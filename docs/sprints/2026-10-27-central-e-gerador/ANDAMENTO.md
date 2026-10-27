@@ -30,10 +30,10 @@
   `relatorios/conferencia-forks.md`, merge c2187964; repos `vitoriamariadb/meowsystem-{eyedropper,clipboard,drives,
   ascii-battery}` na main, nada instalado ainda) Pasta (P123, `relatorios/conferencia-pasta.md`, merge 39e3264c) e Textos (P118-P119,
   `relatorios/conferencia-textos.md`, merge 50f259de; as 15 cópias mortas de `.git/hooks` foram para
-  `~/.local/state/meowsystem/backups/git-hooks-mortos-2026-10-27`).
+  `~/.local/state/meowsystem/backups/git-hooks-mortos-2026-10-27`) e Aurora (P124-P125, `relatorios/conferencia-aurora.md`, merge 704c8be0;
+  doctor com 76 conferências). Correção do coordenador na integração: a grade do acervo pinta o traço (10d9f698).
 - EM VOO, a partir da integração (ela pediu os blocos juntos, 27/10):
-  Aurora (`wf_32a9b69a-21d`, P124 → P125).
-  Flatpak (P127 → P128 → P129) e, depois dele, Modificações (P130): ver «Blocos», rodada 5.
+  Flatpak (`wf_3e37b949-95f`, P127 → P128 → P129). Depois dele, Modificações (P130).
   Worktrees `~/Desenvolvimento/MeowSystem-<bloco>`, branches `bloco/<bloco>`.
 - Próximo passo: integrar cada um assim que voltar. Fecho da pasta, no checkout dela, nesta ordem: `du -sh`; `meow doctor`
   (ver `basefundo` e `estadovelho` acusarem); `meow doctor --consertar`; `scripts/enxugar.sh --raiz ~/Desenvolvimento/MeowSystem`
@@ -50,6 +50,16 @@
   Spotify) sai da Programas para a Modificações (P130). Decidido pelo coordenador: a Modificações mostra só os apps
   instalados; `/usr/share/themes` também sai do override global (o Flatpak recusa montar `/usr`); a issue no Clapper
   pedindo o runtime novo fica para ela decidir.
+- 27/10 15:58, segundo vazamento do `ZDOTDIR`: o `fix_vizinhos` de um teste cortou 21 trechos da Aurora real
+  (`~/.config/zsh` e `/usr/local/sbin/ritual-aurora-self-heal.sh`). Restaurado às 20:40 por `scripts/vizinhos.sh
+  --restaurar` (cópias de antes em `~/.local/state/meowsystem/backups/zsh-antes-restauro-2026-10-27`), tudo menos o
+  que o bloco do terminal do meow já faz (`spellbook-terminal-*`, `aurora-fastfetch-*`, `aurora-completion-meow`). O
+  `/usr/local/sbin` recebeu a cópia restaurada. Cura: bce27b9c (o `vizinhos.sh` só corta `ZDOTDIR` dentro do HOME).
+  No fecho, o doctor com o código novo corta de novo, já com as trocas no ar.
+- Pendências do Aurora para o fecho: o `/usr/bin/cosmic-comp` não é o do pacote (md5 85f5b0dd, o dpkg diz 1907a3d0;
+  o verbo `cosmic-comp-de-fabrica` da ponte nova devolve); só `Meow` e `OS` estão alfinetados no disco (o `III` não,
+  e o `Meow` tem a folga U+2007 do `AREAS_FOLGA`); o `fix_autoreparo` instala as unidades com `AUTO_REPARO` diferente
+  de sim (defeito antigo, anotado); o CLAUDE.md global ainda cita o `aurora-cosmic-workspaces.py`.
 - Anotado para depois (27/10): P126, o Vencord no Discord oficial pelo meow (hoje injetado à mão pelo coordenador).
 - Anotado para depois (vindo do bloco Textos): saídas que ainda citam comando sem mandar digitar (`cursor.sh:188-191` e `:390`,
   `construir_icones.sh:182`, `forma.sh:94,129`, `janelas.sh:182`, `relogio.sh:105`, `pack.py`) viram uma sprint própria;
