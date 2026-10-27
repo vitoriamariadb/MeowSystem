@@ -642,7 +642,7 @@ _b_aplicar() {
       if [ -n "$P_CHAVE_DO_CONF" ]; then env "$P_CHAVE_DO_CONF=sim" "$GARANTIR" --fundo; rc=$?
       else "$GARANTIR" --fundo; rc=$?; fi
       [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
-      mudou=1
+      [ "$rc" = "$MEOW_SEM_DEPENDENCIA" ] || mudou=1
     else
       _b_compilar; rc=$?
       _b_campos "$(_b_prefixo)"

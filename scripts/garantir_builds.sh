@@ -155,20 +155,71 @@ cmd_rodar() {
   return "$MEOW_OK"
 }
 
+_gb_login_pula() {
+  local a e
+  [ -f "$HOME/.config/systemd/user/$GB_UNIDADE" ] || { printf 'sem a unidade %s' "$GB_UNIDADE"; return 0; }
+  [ -f "$MEOW_CONF_ARQUIVO" ] || { printf 'sem meow.conf'; return 0; }
+  a="$(meow_conf_valor AUTO_REPARO 2>/dev/null)"
+  e="$(meow_conf_valor BUILDS_AO_ENTRAR 2>/dev/null)"
+  [ "${a:-sim}" = "sim" ] || { printf 'AUTO_REPARO="%s"' "$a"; return 0; }
+  [ "${e:-sim}" != "nao" ] || { printf 'BUILDS_AO_ENTRAR="nao"'; return 0; }
+  return 1
+}
+
+_gb_esperar_trava() {
+  local i
+  for i in $(seq "${GB_ESPERA:-50}"); do gb_construindo && break; sleep 0.2; done
+}
+
+_gb_transitorio() {
+  local -a env_extra=()
+  local k
+  meow_tem systemd-run || return 1
+  [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] || [ -S "${XDG_RUNTIME_DIR:-/nao/existe}/bus" ] || return 1
+  for k in COMPOSITOR FILES_MENU MEOW_CONF MEOW_ESTADO; do
+    [ -n "${!k:-}" ] && env_extra+=("--setenv=$k=${!k}")
+  done
+  mkdir -p "$MEOW_ESTADO" 2>/dev/null
+  systemd-run --user --no-block --collect --quiet --unit="meow-builds-fundo-$(date +%s)" \
+    -p Nice=19 -p IOSchedulingClass=idle -p CPUWeight=10 \
+    -p "StandardOutput=append:$MEOW_ESTADO/builds.log" -p StandardError=inherit \
+    --setenv=PATH="$PATH" --setenv=MEOW_RAIZ="$MEOW_RAIZ" "${env_extra[@]}" \
+    "$MEOW_RAIZ/scripts/garantir_builds.sh" rodar >/dev/null 2>&1
+}
+
 cmd_fundo() {
   local -a pend=()
+  local o_que pula
   mapfile -t pend < <(_gb_pendentes)
   [ "${#pend[@]}" = "0" ] && { cmd_rodar; return $?; }
   meow_seco && { cmd_rodar; return $?; }
-  if [ -f "$HOME/.config/systemd/user/$GB_UNIDADE" ] \
-     && systemctl --user start --no-block "$GB_UNIDADE" >/dev/null 2>&1; then
-    local i
-    for i in $(seq 50); do gb_construindo && break; sleep 0.2; done
-    meow_muda "construindo em segundo plano: ${pend[*]//$'\t'/ } — vale no próximo login"
+  o_que="${pend[*]//$'\t'/ }"
+  if gb_construindo; then
+    meow_info "o build de $o_que já corre em segundo plano — vale no próximo login"
     return "$MEOW_DIVERGENTE"
   fi
-  cmd_rodar || return $?
-  return "$MEOW_DIVERGENTE"
+  pula="$(_gb_login_pula)" || pula=""
+  if [ -z "$pula" ] \
+     && systemctl --user start --no-block "$GB_UNIDADE" >/dev/null 2>&1; then
+    _gb_esperar_trava
+    meow_muda "construindo em segundo plano: $o_que — vale no próximo login"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if _gb_transitorio; then
+    _gb_esperar_trava
+    if [ -n "$pula" ]; then
+      meow_muda "construindo em segundo plano: $o_que — vale no próximo login; a entrada na sessão não refaz sozinha ($pula)"
+    else
+      meow_muda "construindo em segundo plano: $o_que — vale no próximo login"
+    fi
+    return "$MEOW_DIVERGENTE"
+  fi
+  if [ -n "$pula" ]; then
+    meow_pula "sem systemd --user nesta sessão, e a entrada na sessão não constrói ($pula): $o_que fica sem build, e a sessão segue no de fábrica"
+  else
+    meow_pula "sem systemd --user nesta sessão: $o_que fica para o próximo login, e a sessão segue no de fábrica até lá"
+  fi
+  return "$MEOW_SEM_DEPENDENCIA"
 }
 
 cmd_estado() {
