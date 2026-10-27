@@ -241,7 +241,7 @@ env -i PATH="$T/bin:/usr/bin:/bin" HOME="$C3" SHELL=/bin/bash MEOW_ESTADO="$C3/e
 confere "no PC sem Spellbook, o bloco vai ao .bashrc de sempre, sem vizinhos.conf" \
   'grep -q "^# >>> MeowSystem" "$C3/.bashrc" && [ ! -e "$C3/.config/meow/vizinhos.conf" ]'
 
-printf '\n8. o compositor da Aurora: só o bloco do --ensure e o do night-light saem, e só com o shim de pé\n'
+printf '\n8. o compositor da Aurora: só o bloco do --ensure e o do night-light saem, e só com o shim usando o build da casa\n'
 mkdir -p "$ZD/scripts"
 SH="$ZD/scripts/ritual-aurora-self-heal.sh"
 cat > "$SH" <<'FIM'
@@ -272,8 +272,19 @@ confere "sem o shim em ~/.local/bin, o requer impede o corte" \
   '[ "$rc" = 0 ] && printf "%s" "$saida" | grep -q "espera" && cmp -s "$SH" "$T/self-heal-original.sh"'
 confere "o --listar diz que o compositor espera" 'rodar --listar | grep -q "^aurora-compositor	espera"'
 mkdir -p "$CASA/.local/bin"; cp "$RAIZ/scripts/compositor_shim.sh" "$CASA/.local/bin/cosmic-comp"
+printf '#!/bin/sh\nprintf 1.0-toy\n' > "$T/bin/dpkg-query"; chmod 755 "$T/bin/dpkg-query"
+saida="$(rodar --desativar aurora-compositor)"; rc=$?
+confere "com o shim e sem o build da versão instalada, o corte espera" \
+  '[ "$rc" = 0 ] && printf "%s" "$saida" | grep -q "espera" && cmp -s "$SH" "$T/self-heal-original.sh"'
+BUILD="$CASA/.local/libexec/meow/cosmic-comp/1.0-toy"
+mkdir -p "$BUILD"; printf '#!/bin/sh\n' > "$BUILD/cosmic-comp"; chmod 755 "$BUILD/cosmic-comp"
+printf 'req cosmic-comp-modo-leitura.patch abc presente\n' > "$BUILD/estado"; touch "$BUILD/ruim"
 rodar --desativar aurora-compositor >/dev/null; rc=$?
-confere "com o shim de pé, as quatro linhas do --ensure saem comentadas" \
+confere "com o build marcado ruim, o shim usaria o de fábrica e o corte espera" \
+  '[ "$rc" = 0 ] && cmp -s "$SH" "$T/self-heal-original.sh"'
+rm -f "$BUILD/ruim"
+rodar --desativar aurora-compositor >/dev/null; rc=$?
+confere "com o shim usando o build válido, as quatro linhas do --ensure saem comentadas" \
   '[ "$rc" = 1 ] && [ "$(grep -c "^#vizinhos:aurora-compositor# " "$SH")" = 4 ] && grep -q "^#vizinhos:aurora-compositor# fi$" "$SH"'
 confere "e só elas: o outro bloco, o night-light e o resto ficam" \
   '[ "$(diff "$T/self-heal-original.sh" "$SH" | grep -c "^>")" = 4 ] && grep -q "^  echo outro" "$SH" && grep -q "^echo depois" "$SH"'
@@ -288,6 +299,207 @@ confere "a segunda passada não escreve" '[ "$rc" = 0 ] && [ "$(grep -c "^#vizin
 rodar --restaurar aurora-compositor >/dev/null
 rodar --restaurar aurora-night-light >/dev/null
 confere "--restaurar devolve o self-heal byte a byte" 'cmp -s "$SH" "$T/self-heal-original.sh"'
+
+doutor() {
+  local f="$1"; shift
+  env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" ZDOTDIR="$ZD" VIZINHOS_ETC="$ETC" \
+      VIZINHOS_DESENV="$DESENV" VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
+      MEOW_RAIZ="$RAIZ" XDG_CONFIG_HOME="$CASA/.config" XDG_STATE_HOME="$CASA/.local/state" "$@" \
+      bash -c 'source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow"); "$0"' "$f" 2>&1
+}
+retrato() { (cd "$1" && find . -path ./.local/state -prune -o -printf '%p %s %T@\n' | sort); }
+
+printf '\n9. as cópias reais da Aurora: o doctor corta o que está pronto, uma vez só\n'
+REAL="${SUITE_CASA_REAL:-$HOME}/.config/zsh"
+if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" ] && [ -f "$REAL/env.zsh" ]; then
+  CASA="$T/real"; ZD="$CASA/.config/zsh"; ESTADO="$CASA/.local/state/meowsystem"
+  mkdir -p "$ZD/scripts" "$ZD/functions" "$ESTADO"
+  cp "$REAL/scripts/ritual-aurora-self-heal.sh" "$REAL/scripts/spicetify-setup.sh" "$ZD/scripts/"
+  cp "$REAL/install.sh" "$REAL/env.zsh" "$ZD/"
+  cp "$REAL/functions/sistema.zsh" "$ZD/functions/"
+  cp -a "$ZD" "$T/real-original"
+  NOVOS="aurora-fastfetch-link aurora-fastfetch-passo aurora-completion-meow aurora-icone-applib aurora-stubs-ocultar aurora-gato-pop aurora-spicetify-instalar"
+  ANTIGOS="caches-icones-casa spellbook-terminal-fastfetch spellbook-terminal-starship spellbook-terminal-fzf"
+
+  antes="$(retrato "$CASA")"
+  doutor chk_vizinhos VIZINHOS_DESATIVAR=nao >/dev/null; rc=$?
+  confere "com VIZINHOS_DESATIVAR=nao, o doctor não pede conserto" '[ "$rc" != 1 ]'
+  doutor fix_vizinhos VIZINHOS_DESATIVAR=nao >/dev/null
+  confere "e nada é cortado" '[ "$antes" = "$(retrato "$CASA")" ]'
+
+  saida="$(doutor chk_vizinhos)"; rc=$?
+  confere "com item pronto, chk_vizinhos dá 1" '[ "$rc" = 1 ] && printf "%s" "$saida" | grep -q aurora-gato-pop'
+  confere "e o ensaio não escreve" '[ "$antes" = "$(retrato "$CASA")" ]'
+  doutor fix_vizinhos MEOW_DRY_RUN=1 >/dev/null
+  confere "o fix_vizinhos em seco também não" '[ "$antes" = "$(retrato "$CASA")" ]'
+  doutor fix_vizinhos >/dev/null
+  todos=1
+  for i in $NOVOS $ANTIGOS; do
+    case "$i" in
+      aurora-spicetify-instalar) grep -qF "#vizinhos+:$i#" "$ZD/scripts/spicetify-setup.sh" || { todos=0; printf '       não cortou %s\n' "$i"; } ;;
+      *) grep -rqF "#vizinhos:$i# " "$ZD" || { todos=0; printf '       não cortou %s\n' "$i"; } ;;
+    esac
+  done
+  confere "os sete itens novos e os quatro antigos cortam nas cópias reais" '[ "$todos" = 1 ]'
+  confere "o compositor e o night-light esperam o build, sem corte" \
+    '! grep -qF "#vizinhos:aurora-compositor# " "$ZD/scripts/ritual-aurora-self-heal.sh" && ! grep -qF "#vizinhos:aurora-night-light# " "$ZD/scripts/ritual-aurora-self-heal.sh"'
+  confere "o self-heal cortado passa bash -n" 'bash -n "$ZD/scripts/ritual-aurora-self-heal.sh"'
+  confere "o install.sh cortado passa bash -n" 'bash -n "$ZD/install.sh"'
+  if command -v zsh >/dev/null 2>&1; then
+    confere "o env.zsh cortado passa zsh -n" 'zsh -n "$ZD/env.zsh"'
+    confere "o sistema.zsh cortado passa zsh -n" 'zsh -n "$ZD/functions/sistema.zsh"'
+  else
+    printf '  info  sem zsh nesta máquina: o zsh -n do env.zsh fica para a máquina com zsh\n'
+  fi
+  confere "o passo do fastfetch no install.sh sai numa linha só" \
+    '[ "$(grep -c "^#vizinhos:aurora-fastfetch-passo# " "$ZD/install.sh")" = 1 ]'
+  confere "o self-heal já não cria o symlink do fastfetch" \
+    '! grep -v "^#vizinhos:" "$ZD/scripts/ritual-aurora-self-heal.sh" | grep -q "criando symlink ~/.config/fastfetch"'
+
+  depois="$(retrato "$CASA")"
+  doutor chk_vizinhos >/dev/null; rc=$?
+  confere "na segunda passada, chk_vizinhos dá 0 ou 4" '[ "$rc" = 0 ] || [ "$rc" = 4 ]'
+  confere "e nenhum mtime muda" '[ "$depois" = "$(retrato "$CASA")" ]'
+  doutor fix_vizinhos >/dev/null
+  confere "nem com o fix rodado de novo" '[ "$depois" = "$(retrato "$CASA")" ]'
+
+  rodar --restaurar aurora-gato-pop >/dev/null
+  confere "o --restaurar devolve o trecho do gato" '! grep -qF "#vizinhos:aurora-gato-pop# " "$ZD/scripts/ritual-aurora-self-heal.sh"'
+  doutor chk_vizinhos >/dev/null; rc=$?
+  confere "o que ela devolveu não conta como pronto" '[ "$rc" != 1 ] && ! rodar --prontos | grep -q aurora-gato-pop'
+  doutor fix_vizinhos >/dev/null
+  confere "e continua ativo depois do conserto" '! grep -qF "#vizinhos:aurora-gato-pop# " "$ZD/scripts/ritual-aurora-self-heal.sh"'
+  confere "o --listar diz que foi ela" 'rodar --listar | grep -q "^aurora-gato-pop	ativo, devolvido por você"'
+  rodar --desativar aurora-gato-pop >/dev/null
+  confere "o --desativar dito à mão ainda corta" 'grep -qF "#vizinhos:aurora-gato-pop# " "$ZD/scripts/ritual-aurora-self-heal.sh"'
+  for i in $NOVOS $ANTIGOS; do rodar --restaurar "$i" >/dev/null; done
+  confere "restaurados todos, as cópias voltam byte a byte" 'diff -r "$T/real-original" "$ZD" >/dev/null'
+else
+  printf '  info  sem o ~/.config/zsh da Aurora nesta máquina: as cópias reais ficam para a máquina dela; os blocos 10 a 14 cobrem o corte com arquivos de brinquedo\n'
+fi
+
+CASA="$T/brinquedo"; ZD="$CASA/.config/zsh"; ESTADO="$CASA/.local/state/meowsystem"
+mkdir -p "$ZD/scripts" "$ESTADO" "$CASA/.config/systemd/user/timers.target.wants" "$T/sbin"
+CT="$T/contrato.tsv"
+printf 'item\ttoy-passo\tbloco\t$ZD/install.sh\t        _step_vidro_fosco\t-\t-\tmotivo de brinquedo\n' > "$CT"
+printf 'item\ttoy-repetido\tbloco\t$ZD/scripts/repetido.sh\tfaz_isto\t-\t-\tmotivo de brinquedo\n' >> "$CT"
+printf 'item\ttoy-sintaxe\tbloco\t$ZD/scripts/sintaxe.sh\tif [ -f /x ]; then\t^  echo x$\t-\tmotivo de brinquedo\n' >> "$CT"
+printf 'item\ttoy-sem-fim\tbloco\t$ZD/scripts/sintaxe.sh\tif [ -f /y ]; then\t^nunca$\t-\tmotivo de brinquedo\n' >> "$CT"
+printf 'item\ttoy-instalar\tbloco\t$ZD/scripts/self-heal.sh\tinstall_user_if_diff "$SRC/toy.timer"\ttoy[.]service\t-\tmotivo de brinquedo\n' >> "$CT"
+printf 'item\ttoy-unidade\tunidade\t$UNI/toy.timer\ttoy-instalar\t$SBIN/self-heal.sh\t-\tmotivo de brinquedo\n' >> "$CT"
+rodar() {
+  env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" ZDOTDIR="$ZD" VIZINHOS_ETC="$ETC" \
+      VIZINHOS_DESENV="$DESENV" VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
+      VIZINHOS_CONTRATO="$CT" VIZINHOS_SBIN="$T/sbin" bash "$V" "$@"
+}
+
+printf '\n10. fim - corta uma linha só, e o --restaurar a devolve byte a byte\n'
+cat > "$ZD/install.sh" <<'FIM'
+#!/bin/bash
+STEPS=(
+        _step_night_light
+        _step_vidro_fosco
+        _step_painel_fantasma
+)
+for s in "${STEPS[@]}"; do "$s"; done
+FIM
+cp "$ZD/install.sh" "$T/install-original.sh"
+rodar --desativar toy-passo >/dev/null; rc=$?
+confere "a linha do vidro sai comentada" \
+  '[ "$rc" = 1 ] && grep -qxF "#vizinhos:toy-passo#         _step_vidro_fosco" "$ZD/install.sh"'
+confere "e só ela" '[ "$(diff "$T/install-original.sh" "$ZD/install.sh" | grep -c "^>")" = 1 ]'
+confere "o install.sh cortado passa bash -n" 'bash -n "$ZD/install.sh"'
+rodar --restaurar toy-passo >/dev/null
+confere "--restaurar devolve byte a byte" 'cmp -s "$ZD/install.sh" "$T/install-original.sh"'
+
+printf '\n11. um início que aparece duas vezes não é cortado\n'
+printf '#!/bin/bash\nfaz_isto\necho a\nfaz_isto\n' > "$ZD/scripts/repetido.sh"
+md5a="$(md5sum < "$ZD/scripts/repetido.sh")"
+saida="$(rodar --desativar toy-repetido 2>&1)"; rc=$?
+confere "o corte é recusado" '[ "$rc" = 2 ] && printf "%s" "$saida" | grep -q "não é único"'
+confere "e o arquivo fica com o mesmo md5" '[ "$md5a" = "$(md5sum < "$ZD/scripts/repetido.sh")" ]'
+confere "o --listar diz que o trecho repete" 'rodar --listar | grep -q "^toy-repetido	o trecho não é único"'
+confere "o --prontos não o conta entre os prontos" '! rodar --prontos | grep "repetem o que" | grep -q toy-repetido'
+
+printf '\n12. um corte que quebraria a leitura do arquivo é recusado\n'
+cat > "$ZD/scripts/sintaxe.sh" <<'FIM'
+#!/bin/bash
+if [ -f /x ]; then
+  echo x
+  echo y
+fi
+if [ -f /y ]; then
+  echo z
+fi
+FIM
+md5a="$(md5sum < "$ZD/scripts/sintaxe.sh")"
+saida="$(rodar --desativar toy-sintaxe 2>&1)"; rc=$?
+confere "o corte até o meio do if é recusado" '[ "$rc" = 2 ] && printf "%s" "$saida" | grep -q "quebraria a leitura"'
+confere "e o arquivo fica igual" '[ "$md5a" = "$(md5sum < "$ZD/scripts/sintaxe.sh")" ]'
+saida="$(rodar --desativar toy-sem-fim 2>&1)"; rc=$?
+confere "um fim que não aparece também é recusado, sem mudar nada" \
+  '[ "$rc" = 2 ] && printf "%s" "$saida" | grep -q "fim do trecho não aparece" && [ "$md5a" = "$(md5sum < "$ZD/scripts/sintaxe.sh")" ]'
+confere "e nenhuma cópia fica para trás" '[ ! -d "$ESTADO/vizinhos/toy-sintaxe" ] && [ ! -d "$ESTADO/vizinhos/toy-sem-fim" ]'
+
+printf '\n13. a unidade só sai depois que a Aurora leu o corte da instalação\n'
+printf '#!/bin/sh\necho "systemctl $*" >> "%s/systemctl.log"\nexit 0\n' "$T" > "$T/bin/systemctl"; chmod 755 "$T/bin/systemctl"
+UD="$CASA/.config/systemd/user"
+printf '[Timer]\nOnCalendar=hourly\n' > "$UD/toy.timer"
+printf '[Service]\nExecStart=/bin/true\n' > "$UD/toy.service"
+ln -s ../toy.timer "$UD/timers.target.wants/toy.timer"
+cp "$UD/toy.timer" "$T/toy.timer.original"; cp "$UD/toy.service" "$T/toy.service.original"
+cat > "$ZD/scripts/self-heal.sh" <<'FIM'
+#!/bin/bash
+SRC=/x
+install_user_if_diff "$SRC/toy.timer"
+install_user_if_diff "$SRC/toy.service"
+echo depois
+FIM
+cp "$ZD/scripts/self-heal.sh" "$T/sbin/self-heal.sh"
+saida="$(rodar --desativar toy-unidade)"; rc=$?
+confere "sem a marca no instalado, espera e dá 0" \
+  '[ "$rc" = 0 ] && printf "%s" "$saida" | grep -q "esperando a Aurora" && [ -f "$UD/toy.timer" ] && [ ! -e "$T/systemctl.log" ]'
+confere "o --listar diz que espera a Aurora" 'rodar --listar | grep -q "^toy-unidade	esperando a Aurora ler o corte"'
+rodar --desativar toy-instalar >/dev/null
+confere "o corte da instalação entra na cópia do ZDOTDIR" 'grep -qF "#vizinhos:toy-instalar# " "$ZD/scripts/self-heal.sh"'
+saida="$(rodar --desativar toy-unidade)"; rc=$?
+confere "enquanto o instalado não tem a marca, a unidade fica" '[ "$rc" = 0 ] && [ -f "$UD/toy.timer" ]'
+cp "$ZD/scripts/self-heal.sh" "$T/sbin/self-heal.sh"
+rodar --desativar toy-unidade >/dev/null; rc=$?
+confere "com a marca, chama systemctl --user disable --now" '[ "$rc" = 1 ] && grep -qx "systemctl --user disable --now toy.timer" "$T/systemctl.log"'
+confere "e move o .timer e o .service para a cópia" \
+  '[ ! -e "$UD/toy.timer" ] && [ ! -e "$UD/toy.service" ] && ls "$ESTADO"/vizinhos/toy-unidade/*/toy.timer "$ESTADO"/vizinhos/toy-unidade/*/toy.service >/dev/null 2>&1'
+confere "o link do timers.target.wants sai junto" '[ ! -L "$UD/timers.target.wants/toy.timer" ]'
+: > "$T/systemctl.log"
+rodar --desativar toy-unidade >/dev/null; rc=$?
+confere "a segunda passada não chama o systemd" '[ "$rc" = 0 ] && [ ! -s "$T/systemctl.log" ]'
+rodar --restaurar toy-unidade >/dev/null
+confere "--restaurar devolve os dois byte a byte" \
+  'cmp -s "$UD/toy.timer" "$T/toy.timer.original" && cmp -s "$UD/toy.service" "$T/toy.service.original"'
+confere "e chama enable --now" 'grep -qx "systemctl --user enable --now toy.timer" "$T/systemctl.log"'
+rm -f "$T/bin/systemctl"
+
+printf '\n14. o link do fastfetch que sobrou da briga\n'
+CASA="$T/ff"; ZD="$CASA/.config/zsh"; FF="$CASA/.config/fastfetch"
+mkdir -p "$ZD/fastfetch" "$FF"
+printf '{}\n' > "$FF/config.jsonc"; : > "$ZD/.zshrc"
+ln -s "$ZD/fastfetch" "$FF/fastfetch"
+ffl() {
+  env -i PATH="/usr/bin:/bin" HOME="$CASA" NO_COLOR=1 XDG_CONFIG_HOME="$CASA/.config" \
+      XDG_STATE_HOME="$CASA/.local/state" FASTFETCH_LOGO_CONF=sim "$@" \
+      bash -c 'source "$0/lib/comum.sh"; source <(sed -n "/^_ffl_link_da_briga() {/,/^}/p;/^_ffl_assumir_diretorio() {/,/^}/p" "$0/scripts/fastfetch_logo.sh"); FFL_CONF_DIR="$HOME/.config/fastfetch"; _ffl_assumir_diretorio' "$RAIZ" 2>&1
+}
+ffl MEOW_DRY_RUN=1 >/dev/null; rc=$?
+confere "o ensaio vê o link e não apaga" '[ "$rc" = 1 ] && [ -L "$FF/fastfetch" ]'
+saida="$(ffl)"; rc=$?
+confere "o conserto apaga o link, em voz alta" '[ "$rc" = 1 ] && [ ! -e "$FF/fastfetch" ] && [ ! -L "$FF/fastfetch" ] && printf "%s" "$saida" | grep -q "apaguei o link"'
+confere "e não mexe em mais nada" '[ -f "$FF/config.jsonc" ] && [ -d "$ZD/fastfetch" ] && [ "$(ls -A "$FF")" = config.jsonc ]'
+antes="$(retrato "$CASA")"
+ffl >/dev/null; rc=$?
+confere "a segunda passada não escreve" '[ "$rc" = 0 ] && [ "$antes" = "$(retrato "$CASA")" ]'
+ln -s /outro/lugar "$FF/fastfetch"
+ffl >/dev/null; rc=$?
+confere "um link que não vai ao ZDOTDIR fica" '[ "$rc" = 0 ] && [ -L "$FF/fastfetch" ]'
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'vizinhos: tudo verde\n'; exit 0; fi
