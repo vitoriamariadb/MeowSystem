@@ -4315,6 +4315,7 @@ ACAO_DA_PENDENCIA = {
     "flatpak-global-sistema": "instalar",
     "libreoffice-sistema": "instalar",
     "starship-ausente": "instalar",
+    "spicetify-tema-ausente": "apps_aplicar",
 }
 
 NOME_DA_PENDENCIA = {
@@ -4324,6 +4325,7 @@ NOME_DA_PENDENCIA = {
     "flatpak-global-sistema": "Flatpaks do sistema",
     "libreoffice-sistema": "LibreOffice do sistema",
     "aplicar-ajuste": "Ajuste pendente",
+    "spicetify-tema-ausente": "Tema do Spotify",
 }
 
 BUILD_DA_PENDENCIA = {}
