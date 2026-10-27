@@ -78,7 +78,7 @@ def main():
 
             pag.evaluate("() => { location.hash = '#tema'; }")
             esperar(pag)
-            pag.mouse.click(5, 900)
+            pag.mouse.click(5, 5)
             pag.keyboard.press("Home")
             pag.evaluate("() => document.activeElement && document.activeElement.blur()")
             portas = set()
@@ -95,7 +95,7 @@ def main():
                 reprovas.append(("teclado", "tab", f"o Tab não chega às quatro portas ({sorted(portas)})"))
             if not anel:
                 reprovas.append(("teclado", "foco", "a porta focada pelo teclado não desenha o anel"))
-            pag.mouse.click(5, 900)
+            pag.mouse.click(5, 5)
             pag.keyboard.press("/")
             if pag.evaluate("() => document.activeElement.id") != "busca":
                 reprovas.append(("teclado", "busca", "a tecla / não leva à busca"))

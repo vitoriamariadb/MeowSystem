@@ -123,7 +123,7 @@ OLHAR_JS = r"""
     const r = el.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) continue;
     const x = r.left + r.width / 2, y = r.top + r.height / 2;
-    if (y < 72 || y > innerHeight - 4) continue;
+    if (y < 120 || y > innerHeight - 4) continue;
     const topo = document.elementFromPoint(x, y);
     if (topo && topo !== el && !el.contains(topo) && !topo.closest('label')?.contains(el))
       defeitos.push(['coberto', `«${el.dataset.controle}» está coberto por ${topo.className || topo.tagName}`]);

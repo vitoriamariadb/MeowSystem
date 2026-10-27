@@ -20,7 +20,11 @@
     <span>MeowSystem</span>
   </a>
   <nav aria-label="Portas"><ul class="portas" id="portas"></ul></nav>
-  <div class="busca" role="search">
+  <div class="busca" id="caixa-busca" role="search">
+    <button type="button" class="bt leve so-icone abrir-busca" id="abrir-busca" aria-label="Procurar um ajuste"
+            data-controle="busca-abrir" data-dica="Procurar um ajuste">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    </button>
     <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
     <input id="busca" type="search" placeholder="Procurar um ajuste" aria-label="Procurar um ajuste"
            autocomplete="off" data-controle="busca" aria-controls="achados" aria-expanded="false">
@@ -41,6 +45,11 @@
     <div class="menu-corpo" id="menu-corpo" role="menu"></div>
   </details>
 </header>
+
+<nav class="abas-ajustes" id="abas" aria-label="Definir" hidden>
+  <ul id="abas-lista"></ul>
+  <div class="fila" id="abas-fila"></div>
+</nav>
 
 <main id="principal" class="pagina" tabindex="-1">
   <div id="conteudo" aria-busy="true">

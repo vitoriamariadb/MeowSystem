@@ -294,23 +294,27 @@ function padraoDe(item) {
 function temOQueRestaurar(item, valor) {
   return String(valor) !== String(padraoDe(item));
 }
-function botaoPadrao(item, aplica) {
+function botaoPadrao(item, aplica, coluna) {
   const fabrica = padraoDe(item);
+  const de = coluna ? ` (${coluna.toLowerCase()})` : "";
   return elemento("button", {
     type: "button", class: "padrao", controle: "padrao:" + item.chave,
-    "aria-label": "Voltar ao padrão",
-    dica: fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item),
+    "aria-label": "Voltar ao padrão" + de,
+    dica: (fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item)) + de,
     onclick: () => aplica(fabrica),
   }, [icone("desfazer")]);
 }
 
-function botaoAutomatico(item, valor, aplica) {
+function botaoAutomatico(item, valor, aplica, coluna) {
   if (!item.aceita_vazio || padraoDe(item) === "" || valor === "") return null;
+  const de = coluna ? ` (${coluna.toLowerCase()})` : "";
   return elemento("button", {
     type: "button", class: "padrao", controle: "automatico:" + item.chave,
-    "aria-label": "O sistema decide", dica: "O sistema decide", onclick: () => aplica(""),
+    "aria-label": "O sistema decide" + de, dica: "O sistema decide" + de, onclick: () => aplica(""),
   }, [icone("girar")]);
 }
+
+const TAMANHOS = { XS: "Muito pequeno", S: "Pequeno", M: "Médio", L: "Grande", XL: "Muito grande" };
 
 function controle(item) {
   const valor = valorEmVigor(item);
@@ -361,10 +365,12 @@ function controle(item) {
       const seg = elemento("div", { class: "seg", role: "group", "aria-label": item.titulo || nome });
       const caiu = valor !== "" && o.some((op) => String(op) === String(valor));
       const marcado = caiu ? valor : (item.valendo_agora ?? item.efetivo ?? "");
+      const tamanhos = o.every((op) => TAMANHOS[op]);
       for (const op of o) {
         seg.append(elemento("button", {
           type: "button", "aria-pressed": String(String(op) === String(marcado)),
-          controle: "chave:" + nome + "=" + op, texto: rotuloDeValor(op, item), onclick: () => aplica(op),
+          controle: "chave:" + nome + "=" + op, texto: rotuloDeValor(op, item),
+          dica: tamanhos ? TAMANHOS[op] : rotuloDeValor(op, item), onclick: () => aplica(op),
         }));
       }
       return seg;
@@ -408,20 +414,24 @@ function controleFaixa(item, aplica) {
   const valor = valorEmVigor(item);
   const base = valor !== "" ? valor : (item.valendo_agora ?? item.vazio_vale ?? item.padrao ?? lo);
   const numero = /^-?\d+(\.\d+)?$/.test(String(base)) ? Number(base) : Number(lo);
+  const vazio = valor === "";
   const pct = (n) => `${((n - lo) / ((topo - lo) || 1)) * 100}%`;
   const slider = elemento("input", {
     type: "range", min: lo, max: topo, step: passo, value: String(numero),
     "aria-label": item.titulo || item.chave, controle: "chave:" + item.chave, dica: primeiraFrase(item.frase),
   });
   slider.style.setProperty("--p", pct(numero));
-  const saida = elemento("output", { texto: valor === "" ? "Auto" : String(numero) });
+  const saida = elemento("output", { texto: vazio ? "Auto" : String(numero) });
+  const caixa = elemento("div", { class: "faixa" }, [slider, saida]);
+  if (vazio) caixa.setAttribute("data-vazio", "");
   slider.addEventListener("input", () => {
+    caixa.removeAttribute("data-vazio");
     saida.textContent = slider.value;
     slider.style.setProperty("--p", pct(Number(slider.value)));
     repintarPrevia(item.chave, slider.value);
   });
   slider.addEventListener("change", () => aplica(slider.value));
-  return elemento("div", { class: "faixa" }, [slider, saida]);
+  return caixa;
 }
 
 function controleCor(item, aplica, grandes = false) {
@@ -588,12 +598,20 @@ function controlePorArea(item, aplica) {
   return caixa;
 }
 
+const SOLTO_DE = { FORMA_MARGEM_PAINEL: ["FORMA_PAINEL_SOLTO", "o painel"], FORMA_MARGEM_DOCK: ["FORMA_DOCK_SOLTO", "a dock"] };
+
 function dominada(item) {
+  const solto = SOLTO_DE[item.chave];
+  if (solto && CHAVE.get(solto[0]) && String(vale(solto[0])) === "nao") {
+    return `A distância só vale com ${solto[1]} solto da borda.`;
+  }
   const d = item.dominada_por;
   if (!d) return null;
   if (!CHAVE.get(d.chave) || String(vale(d.chave)) !== String(d.valor)) return null;
   return maiuscula(d.porque || "");
 }
+
+const COLUNAS = ["Barra de cima", "Dock"];
 
 function linhaDeChave(l) {
   const chaves = [].concat(l.c);
@@ -602,24 +620,43 @@ function linhaDeChave(l) {
   const um = itens[0];
   const dupla = Array.isArray(l.c) && l.c.length === 2;
   const mudou = chaves.some((c) => MUDANCAS.has(c));
-  const presa = dominada(um) || (ESQUEMA.mesmo_horario
+  const presa = (dupla ? (itens.every(dominada) ? dominada(um) : null) : dominada(um)) || (ESQUEMA.mesmo_horario
     && (ESQUEMA.horario_das_areas || []).some((a) => a.chaves.includes(um.chave)) ? "Segue o horário da noite" : null);
   const classe = "linha" + (dupla ? " dupla" : "") + (l.sub ? " sub" : "")
     + (mudou ? " mudou" : "") + (presa ? " dominada" : "") + (l.larga ? " larga" : "");
+  const frases = [...new Set(itens.map((i) => primeiraFrase(i.frase)).filter(Boolean))];
+  const junta = frases.map((f, i) => `${COLUNAS[i]}: ${f}`).join(" ");
   const rot = elemento("div", { class: "rot" }, [
-    elemento("span", { texto: l.r, dica: presa || primeiraFrase(um.frase) || null }),
+    elemento("span", { texto: l.r, dica: presa || (frases.length > 1 && dupla && junta.length <= 120
+      ? junta : frases[0]) || null }),
   ]);
-  for (const it of itens) {
-    const aplica = (v) => escolher(it.chave, v);
-    if (temOQueRestaurar(it, valorEmVigor(it))) rot.append(botaoPadrao(it, aplica));
-    const auto = botaoAutomatico(it, valorEmVigor(it), aplica);
-    if (auto) rot.append(auto);
+  if (!dupla) {
+    for (const it of itens) {
+      const aplica = (v) => escolher(it.chave, v);
+      if (temOQueRestaurar(it, valorEmVigor(it))) rot.append(botaoPadrao(it, aplica));
+      const auto = botaoAutomatico(it, valorEmVigor(it), aplica);
+      if (auto) rot.append(auto);
+    }
   }
   const li = elemento("li", { class: classe, "data-linha": chaves.join(" ") }, [rot]);
   if (dupla) {
     l.c.forEach((c, i) => {
       const it = CHAVE.get(c);
-      li.append(elemento("div", { class: "ctl", "data-col": i ? "Dock" : "Barra de cima" }, [it ? controle(it) : null]));
+      const coluna = COLUNAS[i];
+      const ctl = elemento("div", { class: "ctl", "data-coluna": coluna }, [it ? controle(it) : null]);
+      if (it) {
+        const presaDela = dominada(it);
+        if (presaDela) {
+          ctl.classList.add("desligado");
+          ctl.setAttribute("data-dica", presaDela);
+          for (const e of ctl.querySelectorAll("input, button, select")) e.disabled = true;
+        }
+        const aplica = (v) => escolher(it.chave, v);
+        if (temOQueRestaurar(it, valorEmVigor(it))) ctl.append(botaoPadrao(it, aplica, coluna));
+        const auto = botaoAutomatico(it, valorEmVigor(it), aplica, coluna);
+        if (auto) ctl.append(auto);
+      }
+      li.append(ctl);
     });
   } else {
     li.append(elemento("div", { class: "ctl" }, [controle(um)]));
@@ -1030,13 +1067,17 @@ function ligarBusca() {
       campo.value = ""; procurar(); campo.blur();
     }
   });
+  const caixa = campo.parentElement;
+  const abrirCampo = () => { caixa.classList.add("campo-aberto"); campo.focus(); };
+  $("#abrir-busca").addEventListener("click", abrirCampo);
   campo.addEventListener("blur", () => setTimeout(() => {
-    if (!$("#achados").contains(document.activeElement)) $("#busca").parentElement.classList.remove("aberta");
+    if ($("#achados").contains(document.activeElement)) return;
+    caixa.classList.remove("aberta", "campo-aberto");
   }, 150));
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
       ev.preventDefault();
-      campo.focus();
+      abrirCampo();
     }
   });
 }
@@ -1095,6 +1136,7 @@ function render() {
   const ativo = document.activeElement;
   const foco = ativo && ativo.dataset && $("#conteudo").contains(ativo) ? ativo.dataset.controle : null;
   desenharPortas();
+  $("#abas").hidden = ROTA.porta !== "ajustes";
   const pagina = ROTA.porta === "criar" ? paginaCriar(ROTA.sub)
     : ROTA.porta === "ajustes" ? paginaAjustes(ROTA.sub)
     : ROTA.porta === "cuidar" ? paginaCuidar() : paginaTema();

@@ -47,95 +47,143 @@ window.MESA = (function () {
     const n = Number(v);
     return Number.isFinite(n) && String(v).trim() !== "" ? n : padrao;
   };
-  const sim = (v) => ["sim", "1", "true"].includes(String(v || "").toLowerCase());
+
+  const TAMANHO = { XS: 2.6, S: 3.05, M: 3.5, L: 3.95, XL: 4.4 };
+  const PX = 0.12;
+  const CORES = ["rosewater", "flamingo", "pink", "mauve", "red", "maroon", "peach", "yellow", "green", "teal", "sky", "sapphire", "blue", "lavender", "text", "crust"];
+  const PONTEIRO = { light: "var(--text)", dark: "var(--crust)", mauve: "var(--mauve)", pink: "var(--pink)" };
+  const DADOS = [
+    ["FORMA_PAINEL_SOLTO", "soltoPainel", "sim"], ["FORMA_DOCK_SOLTO", "soltoDock", "sim"],
+    ["FORMA_PAINEL_ILHA", "ilhaPainel", "nao"], ["FORMA_DOCK_ILHA", "ilhaDock", "nao"],
+    ["RELOGIO_SEGUNDOS", "segundos", "nao"], ["MIDIA", "musica", "sim"], ["MIDIA_CAPA", "capa", "sim"],
+    ["MIDIA_CONTROLES", "tocar", "nao"], ["JANELAS_TILING", "tiling", "nao"],
+    ["TERMINAL_ESQUEMA", "esquema", "sim"], ["PROMPT_STARSHIP", "prompt", "sim"],
+  ];
+  const PX_VAR = [
+    ["FORMA_MARGEM_PAINEL", "--p-margem-painel"], ["FORMA_MARGEM_DOCK", "--p-margem-dock"],
+    ["FORMA_RAIO_PAINEL", "--p-raio-painel"], ["FORMA_RAIO_DOCK", "--p-raio-dock"],
+    ["FORMA_ESPACO_PAINEL", "--p-espaco-painel"], ["FORMA_ESPACO_DOCK", "--p-espaco-dock"],
+    ["FORMA_RECHEIO_PAINEL", "--p-recheio-painel"], ["FORMA_RECHEIO_DOCK", "--p-recheio-dock"],
+  ];
+  const TAM_VAR = [
+    ["FORMA_ALA_INICIAL_PAINEL", "--p-b-ini"], ["FORMA_CENTRO_PAINEL", "--p-b-centro"], ["FORMA_ALA_FINAL_PAINEL", "--p-b-fim"],
+    ["FORMA_ALA_INICIAL_DOCK", "--p-ala-ini"], ["FORMA_CENTRO_DOCK", "--p-centro"], ["FORMA_ALA_FINAL_DOCK", "--p-ala-fim"],
+  ];
+  const cor = (v) => (CORES.includes(String(v || "")) ? `var(--${v})` : "");
+
+  function aplicarControles(raiz, val) {
+    for (const [chave, dado, padrao] of DADOS) {
+      const v = String(val(chave) || "").toLowerCase();
+      raiz.dataset[dado] = v === "" ? padrao : (["sim", "1", "true"].includes(v) ? "sim" : "nao");
+    }
+    for (const [chave, nome] of PX_VAR) {
+      const v = String(val(chave) || "").trim();
+      if (v !== "" && Number.isFinite(Number(v))) raiz.style.setProperty(nome, Number(v) * PX + "cqi");
+    }
+    for (const [chave, nome] of TAM_VAR) {
+      const t = TAMANHO[String(val(chave) || "").toUpperCase()];
+      if (t) raiz.style.setProperty(nome, t + "cqi");
+    }
+    for (const lado of ["PAINEL", "DOCK"]) {
+      const v = String(val("VIDRO_OPACIDADE_" + lado) || "").trim();
+      if (v !== "" && Number.isFinite(Number(v))) {
+        raiz.style.setProperty("--p-vidro-" + lado.toLowerCase(), Math.round(Number(v) * 100) + "%");
+      }
+    }
+    const largura = Number(val("MIDIA_LARGURA"));
+    if (String(val("MIDIA_LARGURA") || "").trim() !== "" && Number.isFinite(largura)) raiz.style.setProperty("--p-musica-largura", largura / 19.2 + "cqi");
+    const letra = Number(val("MIDIA_FONTE"));
+    if (String(val("MIDIA_FONTE") || "").trim() !== "" && Number.isFinite(letra)) raiz.style.setProperty("--p-musica-letra", letra / 19.2 * 0.7 + "cqi");
+    const titulo = cor(val("MIDIA_COR_TITULO")), artista = cor(val("MIDIA_COR_ARTISTA")), capa = cor(val("MIDIA_COR_ALBUM"));
+    if (titulo) raiz.style.setProperty("--p-musica-titulo", titulo);
+    if (artista) raiz.style.setProperty("--p-musica-artista", artista);
+    if (capa) raiz.style.setProperty("--p-musica-capa", capa);
+    if (val("TERMINAL_CURSOR") === "port") raiz.style.setProperty("--p-cursor", "var(--p-text)");
+    const ponteiro = PONTEIRO[String(val("CURSOR") || "").split("-").pop()];
+    if (ponteiro) raiz.style.setProperty("--p-ponteiro", ponteiro);
+  }
 
   function mesa(o = {}) {
     const val = o.val || (() => "");
     const marca = o.marca || new Set();
     const sem = o.sem || new Set();
     const m = (k) => (marca.has(k) ? " mudou-aqui" : "");
-    const raiz = no("div", "previa");
+    const raiz = no("figure", "previa");
     raiz.setAttribute("role", "img");
     raiz.setAttribute("aria-label", o.rotulo || "Prévia");
     for (const [k, v] of Object.entries(o.cores || {})) raiz.style.setProperty(k, v);
-
-    const forma = (lado, chave, padrao, escala) => {
-      const v = px(val(chave), padrao);
-      return v * escala;
-    };
-    const solto = (lado) => sim(val("FORMA_" + lado + "_SOLTO"));
-    if (o.val) {
-      raiz.style.setProperty("--p-margem-painel", solto("PAINEL") ? forma("PAINEL", "FORMA_MARGEM_PAINEL", 8, 0.12) + "cqi" : "0cqi");
-      raiz.style.setProperty("--p-margem-dock", solto("DOCK") ? forma("DOCK", "FORMA_MARGEM_DOCK", 8, 0.12) + 0.4 + "cqi" : "0cqi");
-      raiz.style.setProperty("--p-raio-painel", forma("PAINEL", "FORMA_RAIO_PAINEL", 12, 0.12) + "cqi");
-      raiz.style.setProperty("--p-raio-dock", forma("DOCK", "FORMA_RAIO_DOCK", 16, 0.12) + "cqi");
-      raiz.style.setProperty("--p-espaco-dock", forma("DOCK", "FORMA_ESPACO_DOCK", 8, 0.12) + "cqi");
-      raiz.style.setProperty("--p-vidro-painel", Math.round(px(val("VIDRO_OPACIDADE_PAINEL"), 0.88) * 100) + "%");
-      raiz.style.setProperty("--p-vidro-dock", Math.round(px(val("VIDRO_OPACIDADE_DOCK"), 0.88) * 100) + "%");
-      const corDe = (nome) => (nome ? `var(--${String(nome).replace(/[^a-z0-9]/g, "")})` : "");
-      if (val("MIDIA_COR_TITULO")) raiz.style.setProperty("--p-musica-titulo", corDe(val("MIDIA_COR_TITULO")));
-      if (val("MIDIA_COR_ARTISTA")) raiz.style.setProperty("--p-musica-artista", corDe(val("MIDIA_COR_ARTISTA")));
-      if (val("TERMINAL_CURSOR") === "port") raiz.style.setProperty("--p-cursor", "var(--p-text)");
-      if (val("TERMINAL_ESQUEMA") === "nao") raiz.dataset.esquema = "nao";
-      if (val("PROMPT_STARSHIP") === "nao") raiz.dataset.prompt = "nao";
-    }
+    if (o.val) aplicarControles(raiz, val);
+    if (sem.has("musica")) raiz.dataset.musica = "nao";
+    if (o.ff) raiz.dataset.ff = "sim";
+    else if (o.ffPagina) raiz.dataset.ff = "nao";
+    if (o.solo === "term") raiz.dataset.soTerm = "sim";
 
     if (o.parede) {
-      const img = no("img", "parede " + (o.ajuste || ""));
+      const img = no("img", "parede " + (o.ajuste === "caber" || o.ajuste === "esticar" ? o.ajuste : ""));
       img.alt = "";
       img.src = o.parede;
       raiz.append(img);
     }
-    const musica = !sem.has("musica") && (!o.val || sim(val("MIDIA") || "sim"));
-    const barra = no("div", "p-barra" + m("painel"), [
-      no("span", "ws", varias(4)),
-      musica ? no("span", "musica", [no("i"), no("b"), no("s")]) : no("span"),
-      no("span", "bandeja", [...varias(3), no("b")]),
-    ]);
-    if (o.val && sim(val("FORMA_PAINEL_ILHA"))) { barra.style.left = "26%"; barra.style.right = "26%"; }
-    raiz.append(barra);
+    raiz.append(no("div", "p-barra" + m("painel"), [
+      no("div", "ws", varias(3)),
+      no("div", "meio", [no("div", "musica", [no("i"), no("b"), no("s"),
+        no("span", "controles", [no("u"), no("u"), no("u")])])]),
+      no("div", "bandeja", [no("i"), no("i"), (() => {
+        const r = no("span", "relogio");
+        r.append("14:32", no("span", "seg-relogio"));
+        r.lastChild.textContent = ":07";
+        return r;
+      })()]),
+    ]));
 
     if (!sem.has("arq")) {
-      const pastas = Array.from({ length: 8 }, () =>
-        no("figure", "", [svg("0 0 24 24", PASTA), no("i")]));
+      const pastas = Array.from({ length: 8 }, () => no("figure", "", [svg("0 0 24 24", PASTA), no("i")]));
       raiz.append(no("div", "p-jan p-arq" + m("arq"), [
         no("header", "", [no("b"), no("i")]),
-        no("div", "corpo", [no("nav", "", varias(5)), no("div", "pastas", pastas)]),
+        no("div", "corpo", [no("nav", "", varias(4)), no("div", "pastas", pastas)]),
       ]));
     }
     if (!sem.has("term")) {
-      const linhas = [
-        no("div", "pr", [no("b"), no("b"), no("b")]),
-        (() => { const l = no("div", "ln", [no("i", "ok"), no("i")]); l.lastChild.style.width = "16cqi"; return l; })(),
-        no("div", "ln", [no("i", "cursor")]),
-      ];
+      const largura = (el, p) => { el.style.width = p; return el; };
+      const linhas = [];
       if (o.ff) {
         const g = no("img"); g.alt = ""; g.src = o.ff;
-        linhas.push(no("div", "gato-ff", [g, no("div", "", varias(3))]));
-        raiz.dataset.ff = "1";
+        linhas.push(no("div", "gato-ff", [g, no("div", "", ["60%", "80%", "50%", "70%"].map((p) => largura(no("i"), p)))]));
       }
+      linhas.push(
+        no("div", "pr", [no("b"), no("b"), no("b")]),
+        no("div", "ln", [no("i", "ok"), largura(no("i"), "40%")]),
+        no("div", "ln", [largura(no("i"), "55%")]),
+      );
       const tira = no("div", "tira");
-      for (const c of TIRA) { const i = no("i"); i.style.background = `var(--c-${c}, var(--${c}))`; tira.append(i); }
-      linhas.push(tira);
+      for (const c of ["red", "peach", "yellow", "green", "teal", "sky", "blue", "acc", "pink"]) {
+        const i = no("i"); i.style.background = `var(--p-${c})`; tira.append(i);
+      }
+      linhas.push(tira, no("div", "ln", [no("span", "pr", [no("b"), no("b"), no("b")]), no("span", "cursor")]));
       raiz.append(no("div", "p-jan p-term" + m("term"), [no("header", "", [no("b"), no("i")]), no("div", "corpo", linhas)]));
     }
     if (!sem.has("dock")) {
-      const dock = no("div", "p-dock" + m("dock"));
-      if (o.gato) { const g = no("img", "gato"); g.alt = ""; g.src = o.gato; dock.append(g, no("span", "sep")); }
-      for (const nome of Object.keys(ICONES)) dock.append(no("span", "app", [svg("0 0 48 48", ICONES[nome])]));
-      raiz.append(dock);
+      const g = o.gato ? no("img", "gato") : null;
+      if (g) { g.alt = ""; g.src = o.gato; }
+      raiz.append(no("div", "p-dock" + m("dock"), [
+        no("div", "ala-ini", [g]),
+        no("div", "centro", Object.keys(ICONES).map((nome) => no("span", "app", [svg("0 0 48 48", ICONES[nome])]))),
+        no("div", "ala-fim", [no("i"), no("i")]),
+      ]));
+    }
+    if (o.ponteiro) {
+      raiz.append(svg("0 0 24 24", '<path d="M5 3l14 8-6 2-2 6Z"/>', "p-ponteiro"));
+    }
+    if (o.textura !== undefined && o.textura !== null && o.textura !== "") {
+      const t = no("div", "papel");
+      t.style.opacity = String(Math.max(0, Math.min(1, Number(o.textura) || 0)));
+      raiz.append(t);
     }
     const kelvin = px(o.quente, 0);
     if (kelvin > 0) {
       const q = no("div", "quente");
-      q.style.opacity = String(Math.max(0, Math.min(0.45, (6500 - kelvin) / 6500 * 0.6)));
+      q.style.opacity = String(Math.max(0, Math.min(0.45, (6500 - kelvin) / 6500 * 0.6)).toFixed(3));
       raiz.append(q);
-    }
-    const textura = px(o.papel, 0);
-    if (textura > 0) {
-      const t = no("div", "papel");
-      t.style.opacity = String(Math.max(0, Math.min(1, textura)));
-      raiz.append(t);
     }
     return raiz;
   }
