@@ -95,8 +95,31 @@ esac
 FFL_CONF_DELA="$HOME/.config/fastfetch/config.jsonc"
 FFL_CONF_DIR="$(dirname "$FFL_CONF_DELA")"
 
+_ffl_link_da_briga() {
+  local link para pai
+  link="$FFL_CONF_DIR/fastfetch"
+  [ -L "$FFL_CONF_DIR" ] && return 1
+  [ -L "$link" ] || return 1
+  para="$(readlink "$link")"
+  pai="$(dirname "$para")"
+  if { [ -n "${ZDOTDIR:-}" ] && [ "$pai" = "$ZDOTDIR" ]; } || [ -f "$pai/.zshrc" ]; then
+    printf '%s' "$para"; return 0
+  fi
+  return 1
+}
+
 _ffl_assumir_diretorio() {
   local para alvo novo bkp
+  if para="$(_ffl_link_da_briga)"; then
+    if meow_seco; then
+      meow_muda "apagaria o link $FFL_CONF_DIR/fastfetch -> $para, que sobrou da briga pelo diretório"
+      return 1
+    fi
+    rm -f "$FFL_CONF_DIR/fastfetch" || { meow_erro "não consegui apagar o link $FFL_CONF_DIR/fastfetch"; return 2; }
+    meow_aviso "apaguei o link $FFL_CONF_DIR/fastfetch -> $para, que sobrou da briga pelo diretório"
+    meow_registrar "fastfetch_logo.sh apagou o link $FFL_CONF_DIR/fastfetch (apontava para $para)"
+    return 1
+  fi
   [ -L "$FFL_CONF_DIR" ] || return 0
   if [ "$FASTFETCH_LOGO_CONF" != "sim" ]; then
     meow_pula "$FFL_CONF_DIR é symlink e FASTFETCH_LOGO_CONF=\"$FASTFETCH_LOGO_CONF\" — fica como está"
@@ -818,6 +841,10 @@ cmd_conferir() {
   [ "$rc" = "$MEOW_ERRO" ] && return "$rc"
   if [ "$rc" != "$MEOW_OK" ]; then
     meow_muda "logo ANSI divergente do SVG/tamanho pedidos"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if _ffl_link_da_briga >/dev/null; then
+    meow_muda "$FFL_CONF_DIR/fastfetch é um link para $(readlink "$FFL_CONF_DIR/fastfetch") que sobrou da briga — sairia"
     return "$MEOW_DIVERGENTE"
   fi
   if [ -L "$FFL_CONF_DIR" ] && [ "$FASTFETCH_LOGO_CONF" = "sim" ]; then
