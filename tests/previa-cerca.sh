@@ -79,8 +79,17 @@ comum="$(ls /usr/share/icons/Papirus/64x64/apps/*.svg 2>/dev/null | head -1)"
 serve "$ELO" "link do flatpak — é o «Original» da oficina"
 serve "$CAPA" "capa JPEG da Steam"
 
-nosso="$(ls "$RAIZ"/packs/meowsystem/icones/apps/*.svg 2>/dev/null | head -1)"
-[ -n "$nosso" ] && serve "$nosso" "arte do próprio repositório" \
-  || printf 'pulado: sem acervo convertido\n'
+nosso="$(grep -l currentColor "$RAIZ"/packs/meowsystem/icones/apps/*.svg | head -1)"
+serve "$nosso" "arte do próprio repositório"
+servir() { curl -s -H "X-Meow-Token: $TOK" --get --data-urlencode "tipo=arquivo" --data-urlencode "id=$nosso" "$@" "$BASE/previa"; }
+case "$(servir --data-urlencode tinta=texto)" in
+  *currentColor*) falha "a grade do acervo recebe o traço com currentColor, que numa <img> fica preto" ;;
+  *'stroke="#'*) ok "a grade do acervo recebe o traço na cor do texto do flavor" ;;
+  *) falha "a grade do acervo não recebe o traço pintado" ;;
+esac
+case "$(servir)" in
+  *currentColor*) ok "sem tinta=texto o traço sai cru, para a oficina pintar na cor escolhida" ;;
+  *) falha "o traço cru perdeu o currentColor que a oficina pinta" ;;
+esac
 
 exit "$falhas"
