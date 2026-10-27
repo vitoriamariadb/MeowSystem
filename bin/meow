@@ -953,7 +953,15 @@ chk_janelas() {
     "$RAIZ/scripts/janelas.sh" conferir 2>&1
 }
 
+_patches_shim_falta() {
+  [ "${COMPOSITOR:-sim}" != nao ] || return 1
+  "$RAIZ/scripts/garantir_builds.sh" estado 2>/dev/null | grep -qx 'compositor_estado=desligado'
+}
 chk_patches() {
+  if _patches_shim_falta; then
+    echo "o build da casa do cosmic-comp está pronto e o shim em ~/.local/bin/cosmic-comp não está ligado"
+    return "$MEOW_DIVERGENTE"
+  fi
   "$RAIZ/scripts/compositor_patches.sh" conferir 2>&1
 }
 
@@ -1164,7 +1172,7 @@ fix_extensoes()  { EXTENSOES_COMPILAR=1 EXTENSOES="${EXTENSOES:-}" MIDIA="${MIDI
                     LEITURA_APPLET="${LEITURA_APPLET:-}" \
                     "$RAIZ/scripts/extensoes_build.sh" --todas --aplicar 2>&1; }
 fix_extensoestema() { FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/extensoes_tema.sh" --aplicar 2>&1; }
-fix_patches()    { "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1; }
+fix_patches()    { "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1; local rc=$?; _patches_shim_falta || return "$rc"; "$RAIZ/scripts/compositor_patches.sh" ativar 2>&1; }
 
 fix_painel()    {
   rodar_painel "$RAIZ" conferir 2>&1
