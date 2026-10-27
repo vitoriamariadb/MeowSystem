@@ -2145,7 +2145,7 @@ def _aplicador():
         for _tentativa in range(3600):
             while _ESPERANDO_O_SLOT[0] > 0:
                 time.sleep(0.1)
-            trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra)
+            trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra, por_dentro=True)
             if trabalho is not None or "já há um trabalho" not in str(erro):
                 break
             time.sleep(0.5)
@@ -4674,7 +4674,9 @@ _ESPERANDO_TRAVA = threading.Lock()
 
 
 def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
-            antes=None, extra_argv=None):
+            antes=None, extra_argv=None, por_dentro=False):
+    if ACOES.get(acao_id, {}).get("interna") and not por_dentro:
+        return (None, "«%s» só roda depois de gravar um ajuste" % ACOES[acao_id]["rotulo"])
     if acao_id == "aplicar":
         return _iniciar_agora(acao_id, argumento, confirmado, seco, pasta_de_ensaio,
                               antes, extra_argv)
