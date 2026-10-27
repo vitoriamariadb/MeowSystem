@@ -624,9 +624,10 @@ function linhaDeChave(l) {
   const classe = "linha" + (dupla ? " dupla" : "") + (l.sub ? " sub" : "")
     + (mudou ? " mudou" : "") + (presa ? " dominada" : "") + (l.larga ? " larga" : "");
   const frases = [...new Set(itens.map((i) => primeiraFrase(i.frase)).filter(Boolean))];
+  const junta = frases.map((f, i) => `${COLUNAS[i]}: ${f}`).join(" ");
   const rot = elemento("div", { class: "rot" }, [
-    elemento("span", { texto: l.r, dica: presa || (frases.length > 1 && dupla
-      ? frases.map((f, i) => `${COLUNAS[i]}: ${f}`).join(" ") : frases[0]) || null }),
+    elemento("span", { texto: l.r, dica: presa || (frases.length > 1 && dupla && junta.length <= 120
+      ? junta : frases[0]) || null }),
   ]);
   if (!dupla) {
     for (const it of itens) {
