@@ -1718,7 +1718,7 @@ def teto_da_chave(chave):
 
 
 def validar_valor(item, valor):
-    if valor == "":
+    if valor == "" or valor == item["padrao"]:
         return None
 
     fechadas = _opcoes_fechadas(item["chave"], item["ajuda"], item["inline"],
@@ -2008,6 +2008,8 @@ def _aplicador():
         extra = [] if completo else ["--etapa", ",".join(etapas)]
         trabalho, erro = None, None
         for _tentativa in range(3600):
+            while _ESPERANDO_O_SLOT[0] > 0:
+                time.sleep(0.1)
             trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra)
             if trabalho is not None or "já há um trabalho" not in str(erro):
                 break
@@ -4291,8 +4293,28 @@ def _guardar_antes_py(pasta, caminho, conteudo):
         fh.write(linha)
 
 
+_ESPERANDO_O_SLOT = [0]
+_ESPERANDO_TRAVA = threading.Lock()
+
+
 def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
             antes=None, extra_argv=None):
+    if acao_id == "aplicar":
+        return _iniciar_agora(acao_id, argumento, confirmado, seco, pasta_de_ensaio,
+                              antes, extra_argv)
+    with _ESPERANDO_TRAVA:
+        _ESPERANDO_O_SLOT[0] += 1
+    try:
+        _esperar_aplicar_vivo()
+        return _iniciar_agora(acao_id, argumento, confirmado, seco, pasta_de_ensaio,
+                              antes, extra_argv)
+    finally:
+        with _ESPERANDO_TRAVA:
+            _ESPERANDO_O_SLOT[0] -= 1
+
+
+def _iniciar_agora(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
+                   antes=None, extra_argv=None):
     global TRABALHO_ATUAL
     acao = ACOES.get(acao_id)
     if acao is None:

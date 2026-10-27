@@ -654,6 +654,9 @@ for estado, recusa in ((dict(Dock=0, compositor="sem", experimental=False), True
     teto = servidor.teto_da_chave("FORMA_RAIO_DOCK")
     if not teto or not teto["motivo"] or teto["trava"] != recusa:
         erros.append("com %r, o cartão não diz o teto e o porquê: %r" % (estado, teto))
+variante = next(i for i in servidor.ler_esquema() if i["chave"] == "ICONES_FLAVOR")
+if servidor.validar_valor(variante, variante["padrao"]):
+    erros.append("o padrão de ICONES_FLAVOR foi recusado, e o Desfazer não consegue devolvê-lo")
 
 if erros:
     print("FALHOU: " + "; ".join(erros), file=sys.stderr)

@@ -254,13 +254,14 @@ function packNoAr() {
 const ligado = (v) => ["sim", "1", "true"].includes(String(v || "").toLowerCase());
 
 const PAR_DA_NOITE = { NOITE_INICIO: "NOITE_FIM", NOITE_FIM: "NOITE_INICIO" };
+const HORA_DA_PONTA = { NOITE_INICIO: "18:00", NOITE_FIM: "07:00" };
 function completarParDaNoite(lote, chave, valor) {
   const irma = PAR_DA_NOITE[chave];
   if (!irma || !/^\d{1,2}:\d{2}$/.test(String(valor))) return;
   const item = CHAVE.get(irma);
   if (!item || valorEmVigor(item) !== "") return;
   const hora = item.efetivo || item.valendo_agora || item.padrao;
-  if (/^\d{1,2}:\d{2}$/.test(String(hora || ""))) lote[irma] = hora;
+  lote[irma] = /^\d{1,2}:\d{2}$/.test(String(hora || "")) ? hora : HORA_DA_PONTA[irma];
 }
 
 const HISTORICO = [];
