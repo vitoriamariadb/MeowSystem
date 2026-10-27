@@ -1485,7 +1485,7 @@ fi
   || falha "o importar do .csv mexeu no meow.conf, ou calou o claro derivado" "$importou"
 saida="$(viaja "$RAIZ/bin/meow" pack importar "$T/Minha Tinta.csv" 2>&1)"; rc=$?
 [ "$rc" = "1" ] && [[ "$saida" == *"já existe"*"com outro nome, ele vira outro pack"* ]] \
-  && [[ "$saida" == *"meow pack remover minha-tinta"* ]] \
+  && [[ "$saida" == *"«Remover» do cartão dele, em Tema"* ]] && [[ "$saida" != *"meow pack remover"* ]] \
   && ok "o mesmo .csv de novo é recusado, dizendo que o nome do arquivo faz o id e como tirar o de lá" \
   || falha "o .csv importado duas vezes não foi recusado como devia (rc=$rc)" "$saida"
 

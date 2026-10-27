@@ -335,7 +335,8 @@ if [ "$instalados" = "0" ]; then
 else
   meow_ok "$instalados ícone(s) instalados em $ALVO"
 fi
-meow_info "o painel só relê no início da sessão — para ver agora: meow painel reciclar"
+_onde="$(meow_onde_no_painel painel_reciclar)"
+meow_info "o painel só relê no início da sessão — para ver agora, no painel: ${_onde:-Definir, Painel e dock}"
 [ "$avisos" = "1" ] && meow_info "houve avisos acima; nada ficou pela metade"
 meow_notificar "MeowSystem" "Ícones completados ($instalados)."
 exit "$MEOW_DIVERGENTE"

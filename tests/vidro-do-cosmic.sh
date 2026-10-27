@@ -65,8 +65,9 @@ mapa_novo_em "$C1"
 
 saida="$(vidro "$C1")"; rc=$?
 if [ "$rc" = "4" ] && [[ "$saida" == *"'VeryHigh2' pede alpha 86, está gravado AA"* ]] \
-   && [[ "$saida" == *"aplicada aqui, grava o alpha 86 deste nível:  meow tema dracula-mauve"* ]]; then
-  ok "antes: o vidro.sh vê AA com o nível pedindo 86, e o conselho é o que resolve"
+   && [[ "$saida" == *"a captura 'dracula-mauve', aplicada aqui, grava o alpha 86 deste nível"* ]] \
+   && [[ "$saida" != *"meow tema"* ]]; then
+  ok "antes: o vidro.sh vê AA com o nível pedindo 86, e diz a captura que grava o certo, sem comando"
 else
   falha "o vidro.sh não descreveu o estado de partida (rc=$rc)" "$saida"
 fi
