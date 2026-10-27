@@ -30,7 +30,8 @@ function mesaDaPagina(pagina = "") {
   return MESA.mesa({
     val: valeNaPrevia, marca, gato: urlDoGato(gato), ff, parede: paredeDaPrevia(),
     ajuste: valeNaPrevia("WALLPAPER_AJUSTE"),
-    quente: pagina === "dia-e-noite" && ligado(valeNaPrevia("LEITURA_AGENDA")) ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
+    quente: pagina === "dia-e-noite" ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
+    papel: pagina === "dia-e-noite" ? valeNaPrevia("LEITURA_TEXTURA") : 0,
     rotulo: "Prévia",
   });
 }
@@ -576,7 +577,7 @@ function reguaDaNoite() {
     fila("gato", "Mascote", ini, fim, vale("LOGO_MODO") === "hora"),
     fila("lua", "Claro ou escuro", Number(vale("MODO_AUTO_CLARO_ATE") || 18), Number(vale("MODO_AUTO_CLARO_DE") || 7), vale("MODO") === "auto"),
     fila("imagem", "Papel de parede", parIni, parFim, ligado(vale("WALLPAPER_NOITE"))),
-    fila("sol", "Tela quente", leituraIni, leituraFim, ligado(vale("LEITURA_AGENDA"))),
+    fila("sol", "Modo de leitura", leituraIni, leituraFim, ligado(vale("LEITURA_AGENDA"))),
     marca,
   ]);
   return regua;

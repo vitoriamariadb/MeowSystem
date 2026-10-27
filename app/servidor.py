@@ -1774,7 +1774,7 @@ PONTAS_DA_NOITE = ("NOITE_INICIO", "NOITE_FIM")
 HORARIO_DAS_AREAS = (
     ("Claro ou escuro", "MODO_AUTO_CLARO_ATE", "MODO_AUTO_CLARO_DE", "hora"),
     ("Papel de parede", "WALLPAPER_NOITE_INICIO", "WALLPAPER_NOITE_FIM", "hhmm"),
-    ("Tela quente", "LEITURA_HORARIO_INICIO", "LEITURA_HORARIO_FIM", "hhmm"),
+    ("Modo de leitura", "LEITURA_HORARIO_INICIO", "LEITURA_HORARIO_FIM", "hhmm"),
 )
 NOITE_DE_FABRICA = ("18:00", "07:00")
 
@@ -2847,7 +2847,7 @@ ACOES = {
                  "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
     },
     "leitura": {
-        "rotulo": "Tela quente agora",
+        "rotulo": "Leitura agora",
         "grupo": "Modo de leitura",
         "natureza": "mostrar",
         "argv": _meow("leitura"),
