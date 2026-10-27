@@ -489,7 +489,7 @@ with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
     fh.write("%s\tvscode\tExtensão\tmeow apps aplicar vscode\t2026-10-23T00:00:00-03:00\n"
              % servidor.PENDENCIA_EXTENSAO)
     fh.write("files-menu-build\tfiles_menu.sh\tO menu compila\t\t2026-10-23T00:00:00-03:00\n")
-    for _id in ("instalar-com-root", "flatpak-global-sistema", "libreoffice-sistema", "leitura-applet"):
+    for _id in ("instalar-com-root", "flatpak-global-sistema", "libreoffice-sistema", "extensao-leitura"):
         fh.write("%s\tinstall.sh\tFalta algo\tmeow instalar\t2026-10-23T00:00:00-03:00\n" % _id)
     fh.write("%s%s\tlib\tTema de fora\tmeow apps aplicar %s\t2026-10-23T00:00:00-03:00\n"
              % (com_modulo, servidor.SUFIXO_TEMA_DE_TERCEIRO, com_modulo))

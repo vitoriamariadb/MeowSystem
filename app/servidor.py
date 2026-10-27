@@ -4176,7 +4176,6 @@ ACAO_DA_PENDENCIA = {
 NOME_DA_PENDENCIA = {
     "areas-sem-alfinete": "Áreas de trabalho",
     "starship-ausente": "Linha colorida",
-    "spicetify-tema-ausente": "Tema do Spotify",
     "files-menu-build": "Menu do Arquivos",
     "instalar-com-root": "Ponte de root",
     "flatpak-global-sistema": "Flatpaks do sistema",
