@@ -15,6 +15,7 @@ maquete `2026-10-26-qa-final/maquete/b/` e com as capturas do levantamento.
 | 3 | O `garantir_builds.sh` compilava o cosmic-comp no pós-apt e no login com `COMPOSITOR=nao` (o «compila para nada» do levantamento). O menu já respeitava `FILES_MENU`. | `_gb_comp_quer`, no molde do `_gb_files_quer`, no `_gb_pendentes`. | `cfcdc93f` | `tests/garantir-builds.sh`: `COMPOSITOR=nao` + versão nova do pacote → zero `compositor compilar`. Sem a cura: `esperado '0', veio '1'`. |
 | 4 | Regressão: a pendência `files-menu-build` passou de «Refazer» (`files_menu_build`) para «Resolver» = `doctor_consertar`. O `files_menu.sh` só emite essa pendência depois de três falhas («parei de tentar sozinha»), e aí o `fix_files_menu` → `disparar_autobuild` não tenta mais: o botão não fazia nada. | `servidor.py`: pendência de pino de build (`TIPO` compositor ou menu) mostra só «Refazer», `extensao_refazer` com o id do pino, que compila em primeiro plano; `onde_na_tela` diz «Refazer»; `lugares.js` ganha o botão nas Pendências. `ACAO_DA_PENDENCIA` e `NOME_DA_PENDENCIA` seguem com as mesmas chaves. | `a022a4ad` | `tests/app.sh`: `files-menu-build` → `acao=""`, escolha `[extensao_refazer, menu-arquivos, «Refazer»]`; `--onde` cita «Refazer». `tests/migracao-do-painel.py` verde com o botão no `lugares.js`. |
 | 5 | Os cartões Compositor e Menu do Arquivos caíam no ícone genérico de grade; a maquete desenha o compositor com camadas. | `assets/extensoes/icones/compositor.svg` (camadas) e `menu-arquivos.svg` (janela com imagem e setas), no traço dos outros cinco. | `83bcf33c` | `tests/extensoes-pagina.py`: os dois cartões têm `img`; foto `extensoes-builds-1500x900`. |
+| 4b | O `app-completo.py` esperava `acao:extensao_refazer` na página Manter, mas a pendência passa o id do pino, como as outras escolhas com dado. | `extensao_refazer` entra no `ACAO_COM_DADO` do teste; a linha é `pendencia:extensao_refazer`. | `5c3f7c3b` | `tests/app-completo.py` verde (820 s). |
 | 6 | Três linhas em branco antes de `_pendencias_das_extensoes` no `servidor.py`. | Saiu com a correção 4. | `a022a4ad` | `ast.parse` e `tests/app.sh`. |
 
 ## Conferido e certo
@@ -59,3 +60,9 @@ maquete `2026-10-26-qa-final/maquete/b/` e com as capturas do levantamento.
 3. Um «Trocar» na Dock e depois «Reiniciar o painel».
 4. Workspaces: só `Meow`, `OS` e `III`, sem vazio no fim; o modo de leitura segue certo com o
    compositor da casa.
+
+## Suíte
+
+`./tests/todos.sh` na worktree, depois das correções: 103 testes, 100 verdes, 0 pulados, 3 vermelhos.
+`decisoes.sh` (só a GPU, D6) e `restaurar.sh` (`pack_usar`, `desinstalar`, `sistema_limpar`) são os aceitos.
+O terceiro, `app-completo.py`, era o 4b: corrigido e verde rodado sozinho.
