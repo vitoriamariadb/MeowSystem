@@ -18,7 +18,7 @@ cp "$RAIZ/meow.conf.exemplo" "$CONF"
 sed -i -e 's/^LEITURA_TEMPERATURA="[^"]*"/LEITURA_TEMPERATURA="4200"/' \
        -e 's/^LEITURA_HORARIO_INICIO="[^"]*"/LEITURA_HORARIO_INICIO="19:30"/' \
        -e 's/^LEITURA_AGENDA="[^"]*"/LEITURA_AGENDA="nao"/' "$CONF"
-ESTADO_APPLET="$CASA/.local/state/cosmic/com.meowsystem.AppletLeitura/v1"
+ESTADO_APPLET="$CASA/.local/state/cosmic/io.github.meowsystem.Leitura/v1"
 COMP="$CASA/.config/cosmic/com.system76.CosmicComp/v1"
 
 casa() { env -i PATH="$FALSO:/usr/bin:/bin" HOME="$CASA" LANG=C.UTF-8 MEOW_CONF="$CONF" \
