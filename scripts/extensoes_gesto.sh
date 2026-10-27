@@ -13,7 +13,7 @@ CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
 CONSTRUTOR="$RAIZ/scripts/extensoes_build.sh"
 
 uso() {
-  meow_erro "uso: $(basename "$0") ler <url> | adicionar <id> | instalar <id> | atualizar <id> | refazer <id> | refazer-tudo | remover <id> | por <id> | trocar <id>"
+  meow_erro "uso: $(basename "$0") ler <url> | adicionar <id> | instalar <id> | atualizar <id> | refazer <id> | refazer-tudo | remover <id> | por <id> | trocar <id> | reiniciar-painel"
   exit "$MEOW_ERRO"
 }
 
@@ -23,16 +23,24 @@ _do_usuario() { [ -f "$PINOS_USUARIO/$1.pino" ]; }
 
 _campo() { sed -n "s/^$2=\"\(.*\)\"/\1/p" "$1" | head -1; }
 
+_pino_de() { if _da_casa "$1"; then printf '%s' "$PINOS_CASA/$1.pino"; else printf '%s' "$PINOS_USUARIO/$1.pino"; fi; }
+_tipo_de() { local t; t="$(_campo "$(_pino_de "$1")" TIPO)"; printf '%s' "${t:-applet}"; }
+_e_build() { _da_casa "$1" && [ "$(_tipo_de "$1")" != applet ]; }
+
+_build_chave() {
+  local chave
+  chave="$(_campo "$PINOS_CASA/$1.pino" CHAVE_DO_CONF)"
+  [ -n "$chave" ] || return 0
+  meow_conf_definir "$chave" "$2"
+}
+
 _lista_atual() {
   local lista="${EXTENSOES:-}"
   [ -n "$lista" ] || lista="$(meow_conf_valor EXTENSOES 2>/dev/null)" || lista=""
   lista="${lista//,/ }"
   if [ -z "$lista" ]; then
-    local midia="${MIDIA:-}" leitura="${LEITURA_APPLET:-}"
-    [ -n "$midia" ] || midia="$(meow_conf_valor MIDIA 2>/dev/null)" || midia=sim
-    [ -n "$leitura" ] || leitura="$(meow_conf_valor LEITURA_APPLET 2>/dev/null)" || leitura=sim
-    [ "$midia" = sim ] && lista="now-playing"
-    [ "$leitura" = sim ] && lista="${lista:+$lista }leitura"
+    lista="$(EXTENSOES="" "$CONSTRUTOR" --queridas 2>/dev/null | tr '\n' ' ')"
+    lista="${lista% }"
   fi
   [ "$lista" = "-" ] && lista=""
   printf '%s' "$lista"
@@ -110,6 +118,11 @@ cmd_adicionar() {
 cmd_instalar() {
   local id="${1:-}"
   _id_valido "$id" || uso
+  if _e_build "$id"; then
+    _build_chave "$id" sim
+    EXTENSOES_COMPILAR=1 "$CONSTRUTOR" "$id" --aplicar
+    return $?
+  fi
   if _da_casa "$id"; then
     _gravar_lista "$(_lista_atual) $id"
     _com_a_lista env EXTENSOES_COMPILAR=1 "$CONSTRUTOR" "$id" --aplicar
@@ -133,6 +146,10 @@ cmd_refazer() {
   local id="${1:-}"
   _id_valido "$id" || uso
   _da_casa "$id" || _do_usuario "$id" || { meow_erro "não conheço a extensão $id"; return "$MEOW_ERRO"; }
+  if _e_build "$id"; then
+    EXTENSOES_REFAZER=1 EXTENSOES_COMPILAR=1 "$CONSTRUTOR" "$id" --aplicar
+    return $?
+  fi
   rm -f "$BASE/$id/carimbo"
   EXTENSOES_COMPILAR=1 "$CONSTRUTOR" "$id" --aplicar
 }
@@ -142,16 +159,25 @@ _ids_instalados() {
   for f in "$PINOS_CASA"/*.pino "$PINOS_USUARIO"/*.pino; do
     [ -f "$f" ] || continue
     id="$(basename "$f" .pino)"
+    if _e_build "$id"; then
+      _quer_build "$id" && printf '%s\n' "$id"
+      continue
+    fi
     "$CONSTRUTOR" "$id" --estado 2>/dev/null | grep -qx 'instalada=sim' && printf '%s\n' "$id"
   done
 }
 
+_quer_build() {
+  local chave valor
+  chave="$(_campo "$PINOS_CASA/$1.pino" CHAVE_DO_CONF)"
+  [ -n "$chave" ] || return 0
+  valor="${!chave:-}"
+  [ -n "$valor" ] || valor="$(meow_conf_valor "$chave" 2>/dev/null)" || valor=sim
+  [ "$valor" != nao ]
+}
+
 cmd_refazer_tudo() {
   local rc geral="$MEOW_OK" id
-  "$RAIZ/bin/meow" compositor; rc=$?
-  case "$rc" in 0|1|3) ;; *) geral="$MEOW_ERRO" ;; esac
-  "$RAIZ/bin/meow" files-menu build; rc=$?
-  case "$rc" in 0|1|3) ;; *) geral="$MEOW_ERRO" ;; esac
   for id in $(_ids_instalados); do
     cmd_refazer "$id"; rc=$?
     case "$rc" in 0|1|3) ;; *) geral="$MEOW_ERRO" ;; esac
@@ -162,6 +188,11 @@ cmd_refazer_tudo() {
 cmd_remover() {
   local id="${1:-}" lista novo="" x rc
   _id_valido "$id" || uso
+  if _e_build "$id"; then
+    _build_chave "$id" nao
+    "$CONSTRUTOR" "$id" --reverter
+    return $?
+  fi
   if _da_casa "$id"; then
     lista="$(_lista_atual)"
     for x in $lista; do [ "$x" = "$id" ] || novo="${novo:+$novo }$x"; done
@@ -177,17 +208,31 @@ cmd_remover() {
 
 _arquivos_do_painel() {
   local dir arq
-  for dir in "$CONFIG"/cosmic/com.system76.CosmicPanel.Panel; do
+  for dir in "$CONFIG"/cosmic/com.system76.CosmicPanel.Panel "$CONFIG"/cosmic/com.system76.CosmicPanel.Dock; do
     for arq in "$dir"/v*/plugins_wings "$dir"/v*/plugins_center; do
       [ -f "$arq" ] && printf '%s\n' "$arq"
     done
   done
 }
 
-_app_id_de() {
-  local alvo
-  if _da_casa "$1"; then alvo="$PINOS_CASA/$1.pino"; else alvo="$PINOS_USUARIO/$1.pino"; fi
-  _campo "$alvo" APP_ID
+_app_id_de() { _campo "$(_pino_de "$1")" APP_ID; }
+
+_painel_tem() {
+  local arq
+  while IFS= read -r arq; do grep -qs "\"$1\"" "$arq" && return 0; done < <(_arquivos_do_painel)
+  return 1
+}
+
+_asa_do_trocado() {
+  local velho arq
+  for velho in $(_campo "$(_pino_de "$1")" SUBSTITUI); do
+    while IFS= read -r arq; do
+      grep -qs "\"$velho\"" "$arq" || continue
+      arq="${arq%/*}/plugins_wings"
+      [ -f "$arq" ] && { printf '%s' "$arq"; return 0; }
+    done < <(_arquivos_do_painel)
+  done
+  _arquivos_do_painel | grep 'CosmicPanel\.Panel/.*plugins_wings$' | head -1
 }
 
 cmd_por() {
@@ -195,12 +240,12 @@ cmd_por() {
   _id_valido "$id" || uso
   app="$(_app_id_de "$id")"
   [ -n "$app" ] || { meow_erro "não conheço a extensão $id"; return "$MEOW_ERRO"; }
-  arq="$(_arquivos_do_painel | grep 'plugins_wings$' | head -1)"
-  [ -n "$arq" ] || { meow_erro "não achei a configuração do painel"; return "$MEOW_ERRO"; }
-  if grep -qs "\"$app\"" "$arq"; then
+  if _painel_tem "$app"; then
     meow_pula "$app já está no painel"
     return "$MEOW_OK"
   fi
+  arq="$(_asa_do_trocado "$id")"
+  [ -n "$arq" ] || { meow_erro "não achei a configuração do painel"; return "$MEOW_ERRO"; }
   texto="$(cat "$arq")"
   case "$texto" in
     *']))') novo="${texto%']))'}    \"$app\",
@@ -238,6 +283,10 @@ cmd_trocar() {
   return "$MEOW_DIVERGENTE"
 }
 
+cmd_reiniciar_painel() {
+  MEOW_QUEM_RECICLA="extensoes reiniciar-painel" "$RAIZ/scripts/painel.sh" reciclar
+}
+
 main() {
   local verbo="${1:-}"
   [ -n "$verbo" ] || uso
@@ -252,6 +301,7 @@ main() {
     remover) cmd_remover "$@" ;;
     por) cmd_por "$@" ;;
     trocar) cmd_trocar "$@" ;;
+    reiniciar-painel) cmd_reiniciar_painel ;;
     *) uso ;;
   esac
 }
