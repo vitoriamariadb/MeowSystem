@@ -21,6 +21,10 @@ const REGIAO = [
   [/^(TERMINAL_|PROMPT_|FASTFETCH_)/, "term"],
   [/^(ICONES_|PASTAS_|JANELAS_TILING)/, "arq"],
 ];
+function previaDoPack(p, flavor) {
+  const todas = (p && p.previa) || {};
+  return todas[flavor] || todas[Object.keys(todas)[0]] || null;
+}
 function mesaDaPagina(pagina = "") {
   const marca = new Set();
   for (const c of chavesRecentes()) for (const [re, r] of REGIAO) if (re.test(c)) marca.add(r);
@@ -32,6 +36,7 @@ function mesaDaPagina(pagina = "") {
   return MESA.mesa({
     val: valeNaPrevia, marca, gato: urlDoGato(gato), ff, ffPagina: doTerminal, parede: paredeDaPrevia(),
     ajuste: valeNaPrevia("WALLPAPER_AJUSTE"),
+    previa: previaDoPack(packNoAr(), flavorEmVigor()),
     solo: pagina === "terminal" ? "term" : "",
     ponteiro: pagina === "janelas",
     quente: leitura ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
@@ -94,6 +99,7 @@ function cartaoDePack(p) {
   const previa = MESA.mesa({
     cores: MESA.estiloDeCores(coresDoFlavor(p, flavor), ordem, p.no_ar ? vale("ACCENT") : "mauve"),
     gato: p.no_ar || !p.mascote ? urlDoGato(ESQUEMA.gato_no_dock || vale("LOGO")) : p.mascote,
+    previa: previaDoPack(p, flavor),
     rotulo: "Prévia do " + p.nome,
     sem: new Set(p.no_ar ? [] : ["musica"]),
   });
@@ -677,6 +683,7 @@ function paginaCriar(sub) {
   const previa = MESA.mesa({
     cores: MESA.estiloDeCores(ordem.map((n) => mapa[n]), ordem, "mauve"),
     gato: urlDoGato(ESQUEMA.gato_no_dock || vale("LOGO")), parede: sub === "papel" ? paredeDaPrevia() : "",
+    previa: previaDoPack(PACKS.find((x) => x.id === rascunho().base.pack) || packNoAr(), rascunho().base.flavor),
     rotulo: "Prévia do tema",
   });
   return [

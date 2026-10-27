@@ -30,6 +30,19 @@ window.MESA = (function () {
     el.innerHTML = corpo;
     return el;
   }
+  function desenho(url, classe) {
+    const img = document.createElement("img");
+    img.className = classe;
+    img.alt = "";
+    img.src = url;
+    return img;
+  }
+  function dockDaPrevia(previa) {
+    const doPack = previa && Array.isArray(previa.dock) ? previa.dock : [];
+    const feitos = new Map(doPack.map((d) => [d.app, d.url]));
+    return Object.keys(ICONES).filter((nome) => doPack.length === 0 || feitos.has(nome)).map((nome) =>
+      no("span", "app", [feitos.has(nome) ? desenho(feitos.get(nome), "arte-pack") : svg("0 0 48 48", ICONES[nome], "neutro")]));
+  }
   const varias = (n, classe) => Array.from({ length: n }, () => no("i", classe));
 
   function estiloDeCores(cores, ordem, acento) {
@@ -137,7 +150,9 @@ window.MESA = (function () {
     ]));
 
     if (!sem.has("arq")) {
-      const pastas = Array.from({ length: 8 }, () => no("figure", "", [svg("0 0 24 24", PASTA), no("i")]));
+      const pasta = o.previa && o.previa.pasta;
+      const pastas = Array.from({ length: 8 }, () => no("figure", "", [
+        pasta ? desenho(pasta, "pasta-pack") : svg("0 0 24 24", PASTA, "pasta-neutra"), no("i")]));
       raiz.append(no("div", "p-jan p-arq" + m("arq"), [
         no("header", "", [no("b"), no("i")]),
         no("div", "corpo", [no("nav", "", varias(4)), no("div", "pastas", pastas)]),
@@ -167,7 +182,7 @@ window.MESA = (function () {
       if (g) { g.alt = ""; g.src = o.gato; }
       raiz.append(no("div", "p-dock" + m("dock"), [
         no("div", "ala-ini", [g]),
-        no("div", "centro", Object.keys(ICONES).map((nome) => no("span", "app", [svg("0 0 48 48", ICONES[nome])]))),
+        no("div", "centro", dockDaPrevia(o.previa)),
         no("div", "ala-fim", [no("i"), no("i")]),
       ]));
     }
