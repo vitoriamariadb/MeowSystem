@@ -2372,16 +2372,6 @@ def _areas_ja_alfinetadas():
             "porque": "há área fixada nesta máquina"}
 
 
-def _starship_ja_instalado():
-    casa = os.path.expanduser("~")
-    for lugar in (shutil.which("starship"),
-                  os.path.join(casa, ".local", "bin", "starship"),
-                  os.path.join(casa, ".cargo", "bin", "starship")):
-        if lugar and os.path.isfile(lugar) and os.access(lugar, os.X_OK):
-            return {"porque": "o starship já está instalado"}
-    return None
-
-
 def indisponivel(acao_id):
     medir = ACOES[acao_id].get("indisponivel")
     return medir() if medir else None
@@ -2801,15 +2791,6 @@ ACOES = {
         "ajuda": "Volta para a pasta que gira e sai da lista de banidas — as "
                  "duas metades.",
     },
-    "wallpaper_semear": {
-        "rotulo": "Baixar a coleção",
-        "grupo": "Papel de parede",
-        "natureza": "baixar",
-        "argv": _meow("wallpaper", "semear"),
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
-        "ajuda": "Reconstrói a coleção a partir da lista de fontes. Usa rede "
-                 "e pode demorar. As imagens que você tirou continuam fora.",
-    },
     "painel_estado": {
         "rotulo": "Painel agora",
         "grupo": "Painel e dock",
@@ -2835,16 +2816,6 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": False,
         "ajuda": "O painel pisca uns 2 s. É o que faz um mascote novo "
                  "aparecer na hora.",
-    },
-    "prompt_instalar_starship": {
-        "rotulo": "Instalar o starship",
-        "grupo": "Terminal",
-        "natureza": "baixar",
-        "argv": [os.path.join(RAIZ, "scripts", "prompt.sh"), "instalar-starship"],
-        "escreve": True, "sudo": False, "confirma": True, "rede": True,
-        "indisponivel": _starship_ja_instalado,
-        "ajuda": "Baixa o starship de starship.rs para ~/.local/bin, sem sudo. "
-                 "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
     },
     "leitura": {
         "rotulo": "Tela quente agora",
@@ -3792,7 +3763,6 @@ def escreve(acao):
 
 ACAO_DA_PENDENCIA = {
     "areas-sem-alfinete": "areas_alfinetar_primeira",
-    "starship-ausente": "prompt_instalar_starship",
     "files-menu-build": "files_menu_build",
     "instalar-com-root": "instalar",
     "flatpak-global-sistema": "instalar",
