@@ -548,6 +548,20 @@ ln -s /outro/lugar "$FF/fastfetch"
 ffl >/dev/null; rc=$?
 confere "um link que não vai ao ZDOTDIR fica" '[ "$rc" = 0 ] && [ -L "$FF/fastfetch" ]'
 
+printf '\n15. um ZDOTDIR herdado de fora do HOME não é alvo do corte\n'
+CASA="$T/c15"; ZD="$T/zdotdir-de-fora"; ESTADO="$CASA/.local/state/meowsystem"
+mkdir -p "$CASA" "$ZD/scripts"
+printf '#!/bin/bash\nSTEPS=(\n        _step_vidro_fosco\n)\n' > "$ZD/install.sh"
+md5a="$(md5sum < "$ZD/install.sh")"
+rodar --desativar-prontos >/dev/null 2>&1
+rodar --desativar toy-passo >/dev/null 2>&1
+confere "o --desativar-prontos e o --desativar deixam o install.sh de fora com o mesmo md5" '[ "$md5a" = "$(md5sum < "$ZD/install.sh")" ]'
+doutor fix_vizinhos VIZINHOS_CONTRATO="$CT" >/dev/null
+confere "nem o fix_vizinhos do doctor o corta" '[ "$md5a" = "$(md5sum < "$ZD/install.sh")" ] && ! grep -rq "#vizinhos" "$ZD"'
+printf 'export ZDOTDIR="$HOME/zsh"\n' > "$CASA/.zshenv"; mkdir -p "$CASA/zsh"; cp "$ZD/install.sh" "$CASA/zsh/"
+rodar --desativar toy-passo >/dev/null 2>&1
+confere "e o ZDOTDIR do .zshenv da casa segue sendo o alvo" 'grep -qxF "#vizinhos:toy-passo#         _step_vidro_fosco" "$CASA/zsh/install.sh"'
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'vizinhos: tudo verde\n'; exit 0; fi
 printf 'vizinhos: %s falha(s)\n' "$falhas"; exit 1
