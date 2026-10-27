@@ -1082,6 +1082,7 @@ function rotaDoHash() {
   if (!PORTAS.some((p) => p.id === porta)) return { porta: "tema", sub: "" };
   if (porta === "ajustes") return { porta, sub: AJUSTES.some((p) => p.id === sub) ? sub : AJUSTES[0].id };
   if (porta === "criar") return { porta, sub: PASSOS.some((p) => p.id === sub) ? sub : PASSOS[0].id };
+  if (porta === "extensoes") return { porta, sub: sub === "builds" ? "builds" : "applets" };
   return { porta, sub: "" };
 }
 function desenharPortas() {
@@ -1092,10 +1093,8 @@ function desenharPortas() {
 }
 function desenharMenu() {
   const itens = [];
-  if (ESQUEMA.repositorio) {
-    itens.push(elemento("a", { href: ESQUEMA.repositorio, target: "_blank", rel: "noopener", role: "menuitem",
-      controle: "menu:creditos", texto: "Créditos" }));
-  }
+  itens.push(elemento("button", { type: "button", role: "menuitem", controle: "menu:creditos", texto: "Créditos",
+    onclick: () => { $("#menu").open = false; abrirCreditos(); } }));
   itens.push(elemento("a", { href: "/api/exportar/pagina", download: true, role: "menuitem",
     controle: "menu:pagina", texto: "Esta tela num arquivo" }));
   $("#menu-corpo").replaceChildren(...itens);
@@ -1108,7 +1107,8 @@ function render() {
   desenharPortas();
   const pagina = ROTA.porta === "criar" ? paginaCriar(ROTA.sub)
     : ROTA.porta === "ajustes" ? paginaAjustes(ROTA.sub)
-    : ROTA.porta === "cuidar" ? paginaCuidar() : paginaTema();
+    : ROTA.porta === "cuidar" ? paginaCuidar()
+    : ROTA.porta === "extensoes" ? paginaExtensoes(ROTA.sub) : paginaTema();
   $("#conteudo").replaceChildren(...[].concat(pagina).filter(Boolean));
   $("#conteudo").removeAttribute("aria-busy");
   reacenderChegada();
