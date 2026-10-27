@@ -188,6 +188,18 @@
     },
     "zapzap": {
       "_nota": "O WhatsApp Web do ZapZap na paleta deste pack (P106, 24/10/2026). Sem `arquivo`: o modelo é do motor (`scripts/temas-de-apps/zapzap/zapzap.modelo.css`), e o bloco existir é o pack dizendo que o ZapZap veste a paleta dele. O módulo monta o CSS com as cores daqui, põe em `customizations/global/css/MeowSystem.css` do ZapZap e liga o CSS global no `ZapZap.conf`. O nome «WhatsApp» e o `Icon=meow-whatsapp` continuam como antes: o `icones/apps.map` deste pack veste esse nome com o desenho escolhido (`apps/whatsapp-linux-app.svg`). As variáveis CSS e o papel de cada uma vêm do WhatsApp Web Catppuccin e do WhatsApp Web Dracula (os dois MIT), e a procedência está no cabeçalho do modelo."
+    },
+    "libadwaita": {
+      "_nota": "P129 (27/10/2026). Sem `arquivo`: o modelo é do motor (`scripts/temas-de-apps/libadwaita/`), preenchido com a paleta deste pack."
+    },
+    "krita": {
+      "_nota": "P129 (27/10/2026). Sem `arquivo`: o modelo é do motor (`scripts/temas-de-apps/krita/`), preenchido com a paleta deste pack."
+    },
+    "obs": {
+      "_nota": "P129 (27/10/2026). Sem `arquivo`: o modelo é do motor (`scripts/temas-de-apps/obs/`), preenchido com a paleta deste pack."
+    },
+    "waterfox": {
+      "_nota": "P129 (27/10/2026). Sem `arquivo`: o modelo é do motor (`scripts/temas-de-apps/waterfox/`), preenchido com a paleta deste pack."
     }
   },
   "lancador": {
