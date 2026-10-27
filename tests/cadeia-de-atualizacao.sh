@@ -91,7 +91,7 @@ ambiente() {
   env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY -u XDG_CACHE_HOME -u XDG_DATA_HOME \
     HOME="$H" PATH="$T/bin:$PATH" TMPDIR="$T/tmp" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
     CP_SERIE="$T/serie" CP_REPO="$T/patches" CP_VERSOES="$T/nenhuma" \
-    PA_DOCTOR="$T/doctor" PA_ORACULO="$T/oraculo" PA_RUSTUP="$T/bin/rustup" PA_CANDIDATO="$T/nenhum" \
+    PA_DOCTOR="$T/doctor" PA_SOM=/bin/true PA_ORACULO="$T/oraculo" PA_RUSTUP="$T/bin/rustup" PA_CANDIDATO="$T/nenhum" \
     "$@"
 }
 printf '#!/bin/sh\necho "doctor $*" >> "%s/build.log"\n' "$T" > "$T/doctor"

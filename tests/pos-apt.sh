@@ -49,12 +49,16 @@ cat > "$T/doctor" <<FIM
 #!/bin/sh
 echo "doctor \$*" >> "$T/log"
 FIM
-chmod 755 "$T/compositor" "$T/files" "$T/doctor" "$T/rustup" "$T/oraculo"
+cat > "$T/som" <<FIM
+#!/bin/sh
+echo "som \$*" >> "$T/log-som"
+FIM
+chmod 755 "$T/compositor" "$T/files" "$T/doctor" "$T/rustup" "$T/oraculo" "$T/som"
 
 rodar() {
   HOME="$T/home" PATH="$T/bin:$PATH" MEOW_ESTADO="$T/estado" MEOW_CONF="$T/nao-existe.conf" \
   GB_CASA="$T/casa" GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" PA_DOCTOR="$T/doctor" \
-  PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" PA_ORACULO="$T/oraculo" \
+  PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" PA_ORACULO="$T/oraculo" PA_SOM="$T/som" \
     "$RAIZ/scripts/cosmic_pos_apt.sh" "$@" >/dev/null 2>&1
 }
 linhas() { grep -c "$1" "$T/log" 2>/dev/null || true; }
@@ -73,6 +77,8 @@ echo "== segunda passagem, nada mudou: zero"
 rodar; igual "rc 0" "$?" 0
 igual "nenhuma linha no registro" "$(grep -c . "$T/log")" 0
 igual "o arquivo de versões não mudou" "$(sha256sum < "$T/estado/cosmic-versoes")" "$h1"
+
+igual "e o som do carregador e da bateria é conferido a cada passagem" "$(grep -c '^som aplicar' "$T/log-som")" 2
 
 echo "== só o cosmic-files sobe"
 versoes cosmic-comp=0.1~a cosmic-files=1.10~b cosmic-panel=1.10~a
@@ -147,7 +153,7 @@ versoes cosmic-comp=0.1~e cosmic-files=1.10~f cosmic-panel=1.10~a
 : > "$T/log"
 HOME="$T/home" PATH="$T/bin:/usr/local/bin:/usr/bin:/bin" MEOW_ESTADO="$T/estado" MEOW_CONF="$T/nao-existe.conf" \
   GB_CASA="$T/casa" GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" PA_DOCTOR="$T/doctor" \
-  PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" PA_ORACULO="$T/oraculo" \
+  PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" PA_ORACULO="$T/oraculo" PA_SOM="$T/som" \
   "$RAIZ/scripts/cosmic_pos_apt.sh" >/dev/null 2>&1
 igual "o passo de build acha o cargo do HOME" "$(sed -n 's/^files cargo=//p' "$T/log")" "$T/home/.cargo/bin/cargo"
 

@@ -205,10 +205,10 @@ _spot_tema_do_pack() {
   mkdir -p "$(dirname -- "$_SPOT_TEMA")" || return "$MEOW_ERRO"
   tmp="$(mktemp -d -p "$(dirname -- "$_SPOT_TEMA")" ".meow-spot-tema.XXXXXX")" || return "$MEOW_ERRO"
   chmod 755 "$tmp"
-  for f in color.ini user.css LICENSE; do
-    [ -f "$dir/$f" ] && [ ! -L "$dir/$f" ] || continue
-    cp -- "$dir/$f" "$tmp/$f" || { rm -rf "$tmp"; return "$MEOW_ERRO"; }
-  done
+  while IFS= read -r -d '' f; do
+    f="${f#"$dir"/}"
+    mkdir -p -- "$tmp/$(dirname -- "$f")" && cp -- "$dir/$f" "$tmp/$f" || { rm -rf "$tmp"; return "$MEOW_ERRO"; }
+  done < <(find "$dir" -type f ! -type l -print0)
   [ -f "$tmp/color.ini" ] || { rm -rf "$tmp"; meow_erro "o tema do pack não tem color.ini"; return "$MEOW_ERRO"; }
   printf 'pack %s: %s\ncopiado pelo MeowSystem em %s\n' "${_SPOT_TEMA_DE:-?}" "$dir" "$(date -Iseconds)" \
     > "$tmp/PROCEDENCIA.txt" 2>/dev/null
@@ -330,7 +330,7 @@ meow_app_detectar() {
   meow_pendencia_resolvida spicetify-ausente
   if [ ! -f "$_SPOT_COLOR_INI" ]; then
     meow_pendencia_acionavel spicetify-tema-ausente \
-      "Falta o tema '$_SPOT_TEMA_NOME' do Spotify, que o pack ${_SPOT_TEMA_DE:-ativo} pede — posso baixá-lo para $_SPOT_TEMA" \
+      "Falta o tema '$_SPOT_TEMA_NOME' do Spotify em $_SPOT_TEMA, e o pack ${_SPOT_TEMA_DE:-ativo} o pede" \
       "meow apps aplicar spotify"
     meow_app_sem "Spotify: falta o tema '$_SPOT_TEMA_NOME' do spicetify em $_SPOT_TEMA"
     return

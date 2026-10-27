@@ -133,7 +133,6 @@ const AJUSTES = [
       { titulo: "Imagens", linhas: [
         { a: "wallpaper_anterior", r: "Imagem anterior", b: "Anterior" },
         { a: "wallpaper_carrossel", r: "Voltar a girar", b: "Girar" },
-        { a: "wallpaper_semear", r: "Coleção do tema", b: "Baixar" },
         { a: "wallpaper", r: "Carrossel agora", b: "Ver" },
         { a: "wallpaper_aplicar", r: "Regras do carrossel", b: "Reaplicar" },
       ] },
@@ -224,7 +223,6 @@ const AJUSTES = [
       ] },
       { titulo: "Linha de comando", linhas: [
         { c: "PROMPT_STARSHIP", r: "Linha colorida" },
-        { a: "prompt_instalar_starship", r: "Starship", b: "Instalar" },
       ] },
       { titulo: "Fonte", linhas: [
         { g: "acervo:fonte", r: "Fonte do terminal", b: "Trazer fonte" },
@@ -241,7 +239,6 @@ const AJUSTES = [
         { c: "LANCADOR_SISTEMA", r: "Arrumar o lançador" },
         { c: "LANCADOR_OCULTAR", r: "Escondidos", larga: true },
         { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify" },
-        { a: "spotify_baixar_tema", r: "Tema do Spotify", b: "Baixar" },
       ] },
       { titulo: "Jogos", jogos: true, linhas: [
         { e: "jogos", r: "Jogos" },
@@ -271,6 +268,7 @@ const LUGAR_CUIDAR = {
     { a: "apps_tema_do_pack", r: "Tema de um programa", b: "Trocar" },
     { a: "apps_manter_o_meu", r: "Tema de um programa", b: "Manter" },
     { a: "vscode_instalar_extensao", r: "Extensão do VS Code", b: "Instalar" },
+    { a: "files_menu_build", r: "Menu do Arquivos", b: "Refazer" },
   ],
   cartoes: [
     { id: "outro", titulo: "Outro computador", icone: "computador", linhas: [
