@@ -359,7 +359,8 @@ function controle(item) {
     }
     if (o.length <= 5) {
       const seg = elemento("div", { class: "seg", role: "group", "aria-label": item.titulo || nome });
-      const marcado = valor !== "" ? valor : (item.valendo_agora ?? "");
+      const caiu = valor !== "" && o.some((op) => String(op) === String(valor));
+      const marcado = caiu ? valor : (item.valendo_agora ?? item.efetivo ?? "");
       for (const op of o) {
         seg.append(elemento("button", {
           type: "button", "aria-pressed": String(String(op) === String(marcado)),
@@ -697,17 +698,6 @@ function bloco(titulo, filhos, props = {}) {
     ...[].concat(filhos),
   ]);
 }
-const MAIS_ABERTO = new Set();
-function maisAjustes(chave, linhas, extra = []) {
-  const ul = lista(linhas);
-  if (!ul.children.length && !extra.length) return null;
-  const d = elemento("details", { class: "mais", "data-mais": chave }, [
-    elemento("summary", { texto: "Mais ajustes", controle: "mais:" + chave }), ul, ...extra]);
-  d.open = MAIS_ABERTO.has(chave);
-  d.addEventListener("toggle", () => { if (d.open) MAIS_ABERTO.add(chave); else MAIS_ABERTO.delete(chave); });
-  return d;
-}
-
 const ACERVO_ACEITA = {
   gato: ".svg,image/svg+xml", parede: "image/jpeg,image/png,image/webp", icone: ".svg,image/svg+xml",
   cursor: ".zip", fonte: ".zip,.ttf,.otf", "tema-icones": ".zip",
@@ -776,7 +766,7 @@ function lerRestauros() {
 const deRoot = (a) => !!(a && (a.sudo || a.pela_ponte));
 
 async function semPonte() {
-  const ok = await perguntar({ titulo: "Falta a ponte", ok: "Conferir e consertar" });
+  const ok = await perguntar({ titulo: "Falta a ponte", ok: "Consertar a ponte" });
   if (ok) rodar(ACAO.get("doctor_consertar"), "");
 }
 
@@ -991,8 +981,8 @@ async function importarArquivo(arquivo) {
 }
 
 function indiceDaBusca() {
-  const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Cuidar"
-    : l.porta === "criar" ? "Criar tema · " + l.pagina : "Ajustes · " + l.pagina);
+  const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Manter"
+    : l.porta === "criar" ? "Personalizar · " + l.pagina : "Definir · " + l.pagina);
   const visto = new Set();
   const saida = [];
   for (const l of inventarioDoPainel()) {
@@ -1060,7 +1050,6 @@ function reacenderChegada() {
 function irPara(l) {
   const sub = l.porta === "ajustes" ? (AJUSTES.find((p) => p.nome === l.pagina) || {}).id
     : l.porta === "criar" ? (PASSOS.find((p) => p.nome === l.pagina) || {}).id : "";
-  if (l.mais) MAIS_ABERTO.add(l.porta + ":" + (sub || l.porta));
   const hash = "#" + l.porta + (sub ? "/" + sub : "");
   if (location.hash !== hash) history.pushState(null, "", hash);
   ROTA = rotaDoHash();

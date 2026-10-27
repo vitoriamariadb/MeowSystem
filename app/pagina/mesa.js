@@ -131,6 +131,12 @@ window.MESA = (function () {
       q.style.opacity = String(Math.max(0, Math.min(0.45, (6500 - kelvin) / 6500 * 0.6)));
       raiz.append(q);
     }
+    const textura = px(o.papel, 0);
+    if (textura > 0) {
+      const t = no("div", "papel");
+      t.style.opacity = String(Math.max(0, Math.min(1, textura)));
+      raiz.append(t);
+    }
     return raiz;
   }
 

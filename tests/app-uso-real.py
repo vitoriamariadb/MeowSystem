@@ -159,9 +159,6 @@ def esperar(pag, ms=600):
 def ir(pag, rota):
     pag.evaluate(f"() => {{ location.hash = '#{rota}'; }}")
     esperar(pag)
-    for s in pag.locator("details.mais > summary").all():
-        if not s.evaluate("(x) => x.parentElement.open"):
-            s.click()
     pag.wait_for_timeout(300)
 
 

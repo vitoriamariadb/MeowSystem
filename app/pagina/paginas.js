@@ -30,7 +30,8 @@ function mesaDaPagina(pagina = "") {
   return MESA.mesa({
     val: valeNaPrevia, marca, gato: urlDoGato(gato), ff, parede: paredeDaPrevia(),
     ajuste: valeNaPrevia("WALLPAPER_AJUSTE"),
-    quente: pagina === "dia-e-noite" && ligado(valeNaPrevia("LEITURA_AGENDA")) ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
+    quente: pagina === "dia-e-noite" ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
+    papel: pagina === "dia-e-noite" ? valeNaPrevia("LEITURA_TEXTURA") : 0,
     rotulo: "Prévia",
   });
 }
@@ -194,9 +195,7 @@ function paginaTema() {
     grade.append(b);
   }
   grade.append(elemento("a", { class: "criar-meu", href: "#criar/cores", controle: "tema:criar" },
-    [icone("mais"), elemento("span", { texto: "Criar o meu" })]));
-  const mais = maisAjustes("tema:tema", LUGAR_TEMA.mais);
-  if (mais) grade.append(mais);
+    [icone("mais"), elemento("span", { texto: "Criar o meu tema" })]));
   return [cabeca("Tema", [pilulaDeSaude(), botaoAbrirTema()]), grade];
 }
 
@@ -253,7 +252,7 @@ async function guardarTema() {
   const b = document.querySelector('[data-controle="criar:guardar"]');
   if (b) b.dataset.estado = "carregando";
   const resp = await api("/api/pack-importar", { method: "POST",
-    body: JSON.stringify({ nome: id + ".csv", conteudo, confirmado: true }) });
+    body: JSON.stringify({ nome: id + ".csv", nome_do_tema: r.nome, conteudo, confirmado: true }) });
   if (b) delete b.dataset.estado;
   if (resp.erro || !resp.instalado) {
     torrada(/contraste/.test(resp.erro || "") ? "Pouco contraste entre texto e fundo" : primeiraFrase(resp.erro || "Não guardou"), "erro");
@@ -393,14 +392,16 @@ function passoIcones() {
     const nome = ABA_ICONES === "sistema" ? "Sistema" : "Biblioteca";
     return [cabeca, bloco(nome, [elemento("div", { class: "corpo" }, [gradeDeLevar(ABA_ICONES, pack)])])];
   }
-  const linhas = lista(p.linhas, (l) => l.g === "acervo:icone");
+  const doBloco = (nome) => lista(p.linhas.filter((l) => l.bloco === nome), (l) => l.g === "acervo:icone");
+  const autoral = oficinaAutoral();
   return [
     cabeca,
     bloco("Aplicativos", [elemento("div", { class: "corpo" }, [montarApps()])],
       { direita: [botaoAcervo("icone", "Trazer .svg")] }),
-    bloco("Pastas", [linhas]),
-    maisAjustes("criar:icones", p.mais, [oficinaAutoral()].filter(Boolean)),
-  ];
+    bloco("Pastas", [doBloco("Pastas")]),
+    bloco("Cores", [doBloco("Cores")]),
+    autoral ? bloco(null, [autoral]) : null,
+  ].filter(Boolean);
 }
 let LEVA = null;
 async function carregarLeva(id) {
@@ -491,7 +492,7 @@ function passoSons() {
       controle: "criar:sino", onclick: tocarSino }, [icone("tocar")]),
     elemento("h2", { texto: "Sino do volume" }),
   ]);
-  return [bloco(null, [sino, lista(p.linhas)]), sonsDeAviso(), maisAjustes("criar:sons", p.mais)];
+  return [bloco(null, [sino, lista(p.linhas)]), sonsDeAviso()];
 }
 function passoMandar() {
   const r = rascunho();
@@ -576,7 +577,7 @@ function reguaDaNoite() {
     fila("gato", "Mascote", ini, fim, vale("LOGO_MODO") === "hora"),
     fila("lua", "Claro ou escuro", Number(vale("MODO_AUTO_CLARO_ATE") || 18), Number(vale("MODO_AUTO_CLARO_DE") || 7), vale("MODO") === "auto"),
     fila("imagem", "Papel de parede", parIni, parFim, ligado(vale("WALLPAPER_NOITE"))),
-    fila("sol", "Tela quente", leituraIni, leituraFim, ligado(vale("LEITURA_AGENDA"))),
+    fila("sol", "Modo de leitura", leituraIni, leituraFim, ligado(vale("LEITURA_AGENDA"))),
     marca,
   ]);
   return regua;
@@ -643,13 +644,12 @@ function paginaAjustes(sub) {
     if (b.noite) filhos.push(linhaMesmoHorario());
     blocos.push(bloco(b.titulo, filhos.filter(Boolean), { colunas: b.colunas }));
   }
-  const mais = maisAjustes("ajustes:" + p.id, p.mais || []);
   return [
     cabeca(p.nome, direita),
     elemento("div", { class: "oficina" }, [
-      elemento("nav", { "aria-label": "Ajustes" }, [trilho]),
+      elemento("nav", { "aria-label": "Definir" }, [trilho]),
       elemento("div", { class: "palco" }, [mesaDaPagina(p.id)]),
-      elemento("div", { class: "pilha" }, [...blocos, mais].filter(Boolean)),
+      elemento("div", { class: "pilha" }, blocos.filter(Boolean)),
     ]),
   ];
 }
@@ -734,7 +734,7 @@ function cartaoDeCuidar(c) {
 
 function paginaCuidar() {
   const e = estadoDaMaquina();
-  const estado = LUGAR_CUIDAR.estado.map((l) => {
+  const estado = LUGAR_CUIDAR.estado.filter((l) => l.a !== "doctor_consertar" || !ESQUEMA.ponte).map((l) => {
     const a = ACAO.get(l.a);
     return a ? controleDeAcao(a, l.b, "")[0] : null;
   }).filter(Boolean);
@@ -750,16 +750,16 @@ function paginaCuidar() {
   const pend = elemento("ul", { class: "linhas pendencias" }, [
     ...PRECISA_DE_GENTE.map(linhaDeGente), ...PENDENCIAS.map(linhaDePendencia)]);
   const blocos = LUGAR_CUIDAR.blocos.map((b) => bloco(b.titulo, [lista(b.linhas)], { class: "metade" }));
+  const maquina = bloco("Ícones da máquina", [lista(LUGAR_CUIDAR.maquina)], { class: "metade" });
   const perigo = bloco(null, [lista(LUGAR_CUIDAR.perigo)], { class: "tracejado" });
-  const restaurar = LUGAR_CUIDAR.mais.filter((l) => l.a);
   return [
     elemento("div", { class: "grade-cuidar" }, [
       topo,
       pend.children.length ? bloco("Pendências", [pend], { class: "inteiro" }) : null,
       ...LUGAR_CUIDAR.cartoes.map(cartaoDeCuidar),
       blocos[0],
+      maquina,
       elemento("div", { class: "pilha metade" }, [blocos[1], perigo]),
-      (() => { const m = maisAjustes("cuidar:cuidar", restaurar); if (m) m.classList.add("inteiro"); return m; })(),
     ].filter(Boolean)),
   ];
 }

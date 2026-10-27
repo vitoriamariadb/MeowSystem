@@ -511,10 +511,10 @@ EXTRAS = {
 }
 GLOBAIS = ["marca", "porta:*", "busca", "achado", "pendentes", "pendente:*", "desfazer", "ensaiar",
            "aplicar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*", "exportar:imagens",
-           "mais:*", "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
+           "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
 NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "busca", "achado", "pendentes", "pendente:*",
           "desfazer", "ensaiar", "aplicar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*",
-          "mais:*", "exportar:imagens", "criar:voltar", "criar:proximo"]
+          "exportar:imagens", "criar:voltar", "criar:proximo"]
 OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cuidar", "busca", "achado",
                 "pendentes", "pendente:*", "desfazer", "ensaiar", "aplicar", "menu", "menu:creditos",
                 "menu:pagina", "trabalho", "resultado:ok", "resultado:guardar", "resultado:parar",
@@ -1145,11 +1145,8 @@ class Percurso:
         self.rota = rota
         inicio = time.time()
         self.ir(rota)
-        for s in self.pag.locator("details.mais > summary").all():
-            if not s.evaluate("(x) => x.parentElement.open"):
-                nome = s.get_attribute("data-controle")
-                self.clicar(nome)
-                self.assentar()
+        self.checa(self.js("() => document.querySelectorAll('details.mais, [data-controle^=\"mais:\"]').length") == 0,
+                   "nenhuma dobra «Mais ajustes» na página")
         self.assentar(quieto=500, teto=15000)
         itens = self.censo()
         sem_nome = [i["html"] for i in itens if not i["nome"]]
@@ -1177,9 +1174,6 @@ class Percurso:
             self.limpar()
             if self.js("() => location.hash") != "#" + rota:
                 self.ir(rota)
-                for s in self.pag.locator("details.mais > summary").all():
-                    if not s.evaluate("(x) => x.parentElement.open"):
-                        s.click()
                 self.assentar()
             agora = self.censo()
             vivo = next((i for i in agora if i["nome"] == nome), None)
@@ -1221,7 +1215,7 @@ class Percurso:
         if self.checa(self.achar("achado"), "a busca acha «vidro»"):
             self.clicar("achado")
             self.assentar()
-            self.checa(self.js("() => location.hash.startsWith('#ajustes/')"), "o achado leva à página de Ajustes")
+            self.checa(self.js("() => location.hash.startsWith('#ajustes/')"), "o achado leva à página do Definir")
             self.checa(self.pag.locator("#conteudo .chegou").count() == 1, "e acende a linha do ajuste")
         self.ir("ajustes/painel")
         self.clicar("chave:RELOGIO_SEGUNDOS")
@@ -1272,11 +1266,11 @@ class Percurso:
             titulo = self.js("() => document.getElementById('pergunta-titulo').textContent")
             if self.checa(self.aberto("pergunta") and titulo == "Falta a ponte",
                           f"sem a ponte, «{acao}» mostra «Falta a ponte» ({titulo!r})"):
-                self.checa(self.js("() => document.getElementById('pergunta-sim').textContent") == "Conferir e consertar",
-                           "e o botão é «Conferir e consertar»")
+                self.checa(self.js("() => document.getElementById('pergunta-sim').textContent") == "Consertar a ponte",
+                           "e o botão é «Consertar a ponte»")
                 self.clicar("pergunta:sim")
                 self.assentar()
-                if self.checa(self.aberto("resultado"), "«Conferir e consertar» roda"):
+                if self.checa(self.aberto("resultado"), "«Consertar a ponte» roda"):
                     self.esperar_trabalho(teto=300)
                     self.fechar_resultado()
         self.clicar("menu")

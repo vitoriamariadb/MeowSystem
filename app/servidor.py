@@ -1335,11 +1335,6 @@ def _gatos():
     return nomes
 
 
-def _capturas():
-    _ponte_em_dia()
-    return [n for n in _capturas_no_disco() if n != "original"]
-
-
 _APLICAM_CACHE = {}
 
 
@@ -1774,7 +1769,7 @@ PONTAS_DA_NOITE = ("NOITE_INICIO", "NOITE_FIM")
 HORARIO_DAS_AREAS = (
     ("Claro ou escuro", "MODO_AUTO_CLARO_ATE", "MODO_AUTO_CLARO_DE", "hora"),
     ("Papel de parede", "WALLPAPER_NOITE_INICIO", "WALLPAPER_NOITE_FIM", "hhmm"),
-    ("Tela quente", "LEITURA_HORARIO_INICIO", "LEITURA_HORARIO_FIM", "hhmm"),
+    ("Modo de leitura", "LEITURA_HORARIO_INICIO", "LEITURA_HORARIO_FIM", "hhmm"),
 )
 NOITE_DE_FABRICA = ("18:00", "07:00")
 
@@ -2150,9 +2145,7 @@ def _acento_da_pagina(flavor, valores):
 
 
 PROVEDORES = {
-    "capturas": _capturas,
     "gatos": _gatos,
-    "modos": lambda: ["claro", "escuro", "auto"],
     "temas_icones": _temas_de_icones,
     "cursores": _temas_de_cursor,
     "areas": _areas_alfinetadas,
@@ -2449,21 +2442,13 @@ ACOES = {
                  "Não escreve nada.",
     },
     "doctor_consertar": {
-        "rotulo": "Conferir e consertar",
+        "rotulo": "Consertar",
         "grupo": "Instalação",
         "natureza": "consertar",
         "argv": _meow("doctor", "--consertar"),
         "escreve": True, "sudo": False, "confirma": False, "rede": True,
         "ajuda": "Confere e aplica só o que falhou — o mesmo que o "
                  "agendamento faz sozinho.",
-    },
-    "status": {
-        "rotulo": "No ar agora",
-        "grupo": "Instalação",
-        "natureza": "mostrar",
-        "argv": _meow("status"),
-        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Variante, cor de destaque, tema, ícones e papel de parede.",
     },
     "desinstalar": {
         "rotulo": "Desinstalar o MeowSystem",
@@ -2515,34 +2500,6 @@ ACOES = {
         "escreve": True, "sudo": True, "confirma": True,
         "ajuda": "Pacotes órfãos e os pacotes que o apt já baixou. Diz quantos "
                  "megabytes saíram.",
-    },
-    "tema": {
-        "rotulo": "Temas prontos",
-        "grupo": "Cor e tela",
-        "natureza": "mostrar",
-        "argv": _meow("tema"),
-        "escreve": False, "sudo": False, "confirma": False,
-        "ajuda": "O tema que você escolheu, o que está mesmo aplicado, e os "
-                 "temas prontos que existem.",
-    },
-    "tema_aplicar": {
-        "rotulo": "Trocar de tema",
-        "grupo": "Cor e tela",
-        "natureza": "trocar",
-        "argv": _meow("tema", "@ARG@"), "arg": "capturas",
-        "tecnica": True,
-        "escreve": True, "sudo": False, "confirma": False,
-        "ajuda": "Aplica o tema escolhido, guardando o anterior antes.",
-    },
-    "tema_modo": {
-        "rotulo": "Trocar o modo",
-        "grupo": "Cor e tela",
-        "natureza": "trocar",
-        "argv": _meow("tema", "@ARG@"), "arg": "modos",
-        "tecnica": True,
-        "escreve": True, "sudo": False, "confirma": False,
-        "ajuda": "São o mesmo tema com um interruptor, por isso trocar não "
-                 "pisca a interface.",
     },
     "restaurar": {
         "rotulo": "Restaurar",
@@ -2847,7 +2804,7 @@ ACOES = {
                  "Ele não está no apt do Pop!_OS, e é ele que desenha o prompt.",
     },
     "leitura": {
-        "rotulo": "Tela quente agora",
+        "rotulo": "Leitura agora",
         "grupo": "Modo de leitura",
         "natureza": "mostrar",
         "argv": _meow("leitura"),
@@ -3810,6 +3767,17 @@ ACAO_DA_PENDENCIA = {
     "leitura-applet": "doctor_consertar",
 }
 
+NOME_DA_PENDENCIA = {
+    "areas-sem-alfinete": "Áreas de trabalho",
+    "starship-ausente": "Linha colorida",
+    "spicetify-tema-ausente": "Tema do Spotify",
+    "files-menu-build": "Menu do Arquivos",
+    "instalar-com-root": "Ponte de root",
+    "flatpak-global-sistema": "Flatpaks do sistema",
+    "libreoffice-sistema": "LibreOffice do sistema",
+    "leitura-applet": "Applet de leitura",
+}
+
 RECUSA_DA_PENDENCIA = {
     "starship-ausente": [os.path.join(RAIZ, "scripts", "prompt.sh"),
                          "nao-quero-starship"],
@@ -3936,8 +3904,8 @@ def inventario_do_painel():
         return _LUGARES["tabela"]
     saida = []
 
-    def pus(l, porta, pagina, bloco, mais=False):
-        base = {"porta": porta, "pagina": pagina, "bloco": bloco, "mais": mais,
+    def pus(l, porta, pagina, bloco):
+        base = {"porta": porta, "pagina": pagina, "bloco": bloco,
                 "rotulo": l.get("r"), "botao": l.get("b")}
         for tipo, campo in (("chave", "c"), ("acao", "a"), ("gesto", "g")):
             if campo in l:
@@ -3951,35 +3919,29 @@ def inventario_do_painel():
     for b in tema["blocos"]:
         for l in b["linhas"]:
             pus(l, "tema", "Tema", b["titulo"])
-    for l in tema["mais"]:
-        pus(l, "tema", "Tema", "Mais ajustes", True)
     for p in c["PASSOS"]:
         for l in p["linhas"]:
-            pus(l, "criar", p["nome"], p["nome"])
-        for l in p.get("mais", []):
-            pus(l, "criar", p["nome"], "Mais ajustes", True)
+            pus(l, "criar", p["nome"], l.get("bloco") or p["nome"])
     for p in c["AJUSTES"]:
         for l in p.get("cabeca", []):
             pus(l, "ajustes", p["nome"], p["nome"])
         for b in p["blocos"]:
             for l in b["linhas"]:
                 pus(l, "ajustes", p["nome"], b["titulo"])
-        for l in p.get("mais", []):
-            pus(l, "ajustes", p["nome"], "Mais ajustes", True)
     for l in cuidar["estado"]:
-        pus(l, "cuidar", "Cuidar", "Estado")
+        pus(l, "cuidar", "Manter", "Estado")
     for l in cuidar["pendencias"]:
-        pus(l, "cuidar", "Cuidar", "Pendências")
+        pus(l, "cuidar", "Manter", "Pendências")
     for cartao in cuidar["cartoes"]:
         for l in cartao["linhas"]:
-            pus(l, "cuidar", "Cuidar", cartao["titulo"])
+            pus(l, "cuidar", "Manter", cartao["titulo"])
     for b in cuidar["blocos"]:
         for l in b["linhas"]:
-            pus(l, "cuidar", "Cuidar", b["titulo"])
+            pus(l, "cuidar", "Manter", b["titulo"])
+    for l in cuidar["maquina"]:
+        pus(l, "cuidar", "Manter", "Ícones da máquina")
     for l in cuidar["perigo"]:
-        pus(l, "cuidar", "Cuidar", "Zona de perigo")
-    for l in cuidar["mais"]:
-        pus(l, "cuidar", "Cuidar", "Mais ajustes", True)
+        pus(l, "cuidar", "Manter", "Zona de perigo")
     for l in c["LUGAR_TOPO"]:
         pus(l, "topo", "Barra de cima", "Barra de cima")
     for l in c["LUGAR_JANELA"]:
@@ -3991,8 +3953,6 @@ def inventario_do_painel():
 def _caminho_na_tela(l):
     porta = l["pagina"] if l["porta"] in ("topo", "janela") else nome_da_porta(l["porta"])
     base = porta if l["porta"] in ("tema", "cuidar", "topo", "janela") else "%s › %s" % (porta, l["pagina"])
-    if l["mais"]:
-        return base + " › Mais ajustes"
     if l["bloco"] and l["bloco"] not in (l["pagina"], base):
         return base + " › " + l["bloco"]
     return base
@@ -4052,6 +4012,8 @@ def pendencias():
                     escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
                                 "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
                     nome = "Extensão do pack"
+                if not nome:
+                    nome = NOME_DA_PENDENCIA.get(ident, "")
                 if not nome and not acao:
                     nome = ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""), {}).get("rotulo", "")
                 rede = any(ACOES.get(a, {}).get("rede") for a in [acao] + [e["acao"] for e in escolha])
@@ -6902,6 +6864,7 @@ class Manipulador(BaseHTTPRequestHandler):
         confirmado = corpo.get("confirmado") is True
         envio = os.path.basename(str(corpo.get("nome") or ""))
         de_csv = envio.lower().endswith(".csv")
+        nome_dado = mod.nome_digitado(corpo.get("nome_do_tema")) if de_csv else ""
         with tempfile.TemporaryDirectory(prefix="meow-importa-") as pasta:
             if de_csv:
                 try:
@@ -6920,14 +6883,15 @@ class Manipulador(BaseHTTPRequestHandler):
                 r = subprocess.run(_meow("pack", "importar", caminho),
                                    capture_output=True, text=True, timeout=120,
                                    stdin=subprocess.DEVNULL,
-                                   env=_ambiente_do_painel(seco=not confirmado))
+                                   env=dict(_ambiente_do_painel(seco=not confirmado),
+                                            MEOW_PACK_NOME=nome_dado))
             except (OSError, subprocess.SubprocessError) as erro:
                 return self._json({"erro": "não consegui rodar: %s" % erro}, 500)
             if r.returncode != 0:
                 texto = (r.stderr or "").strip() or (r.stdout or "").strip()
                 texto = texto.replace(caminho, envio or "o arquivo enviado")
                 return self._json({"erro": texto or "o importar falhou", "rc": r.returncode}, 400)
-            pack = mod.resumo_csv(caminho) if de_csv else mod.resumo_meowpack(caminho)
+            pack = mod.resumo_csv(caminho, nome_dado) if de_csv else mod.resumo_meowpack(caminho)
         nome = pack["nome"]
         if not confirmado:
             if de_csv:
@@ -7128,6 +7092,8 @@ class Manipulador(BaseHTTPRequestHandler):
             "<title>MeowSystem — página para redesenho</title>",
             '<style id="paleta-do-painel">\n%s\n</style>' % paleta,
             '<style id="folha-do-painel">\n%s\n</style>' % ler("estilo.css"),
+            '<style id="folha-do-tema">\n%s\n</style>' % ler("tema.css"),
+            '<style id="folha-do-manter">\n%s\n</style>' % ler("manter.css"),
             '<style id="folha-do-standalone">\n%s\n</style>' % ler("standalone.css"),
             "</head>",
             corpo,
