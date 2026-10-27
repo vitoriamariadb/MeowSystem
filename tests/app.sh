@@ -489,6 +489,8 @@ with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
     fh.write("%s\tvscode\tExtensão\tmeow apps aplicar vscode\t2026-10-23T00:00:00-03:00\n"
              % servidor.PENDENCIA_EXTENSAO)
     fh.write("files-menu-build\tfiles_menu.sh\tO menu compila\t\t2026-10-23T00:00:00-03:00\n")
+    for _id in ("instalar-com-root", "flatpak-global-sistema", "libreoffice-sistema", "leitura-applet"):
+        fh.write("%s\tinstall.sh\tFalta algo\tmeow instalar\t2026-10-23T00:00:00-03:00\n" % _id)
     fh.write("%s%s\tlib\tTema de fora\tmeow apps aplicar %s\t2026-10-23T00:00:00-03:00\n"
              % (com_modulo, servidor.SUFIXO_TEMA_DE_TERCEIRO, com_modulo))
 for p in servidor.pendencias():
@@ -496,6 +498,17 @@ for p in servidor.pendencias():
         longos.append("pendência %s: %r" % (p["id"], p["nome"]))
     longos += ["botão de %s: %r" % (p["id"], e["rotulo"]) for e in p["escolha"]
                if not curto(e["rotulo"]) and not e["rotulo"].startswith("Instalar ")]
+visto = [p for p in servidor.pendencias() if p["id"] in servidor.ACAO_DA_PENDENCIA]
+nomes = [p["nome"] for p in visto]
+if len(nomes) != len(set(nomes)) or len(visto) < 5:
+    erros.append("12c: as pendências com ação têm nomes repetidos (ou sumiram): %r" % nomes)
+rotulos_de_acao = {a["rotulo"] for a in servidor.ACOES.values()}
+if [n for n in nomes if n in rotulos_de_acao or not n]:
+    erros.append("12c: pendência com o nome do botão da ação, e não o do assunto: %r"
+                 % [n for n in nomes if n in rotulos_de_acao or not n])
+sem_nome = sorted(set(servidor.ACAO_DA_PENDENCIA) - set(servidor.NOME_DA_PENDENCIA))
+if sem_nome or set(servidor.NOME_DA_PENDENCIA) - set(servidor.ACAO_DA_PENDENCIA):
+    erros.append("12c: NOME_DA_PENDENCIA e ACAO_DA_PENDENCIA não têm as mesmas chaves: %r" % sem_nome)
 os.remove(servidor.PENDENCIAS)
 if longos:
     erros.append("12c: nome ou botão com mais de três palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))
