@@ -7270,6 +7270,7 @@ class Manipulador(BaseHTTPRequestHandler):
             "<title>MeowSystem — página para redesenho</title>",
             '<style id="paleta-do-painel">\n%s\n</style>' % paleta,
             '<style id="folha-do-painel">\n%s\n</style>' % ler("estilo.css"),
+            '<style id="folha-da-oficina">\n%s\n</style>' % ler("oficina.css"),
             '<style id="folha-do-standalone">\n%s\n</style>' % ler("standalone.css"),
             "</head>",
             corpo,
