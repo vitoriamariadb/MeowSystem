@@ -6151,6 +6151,18 @@ class Manipulador(BaseHTTPRequestHandler):
                 continue
         return ""
 
+    def _desenho_guardado(self, destino, nome):
+        mod = modulo_pack()
+        destino = str(destino or "").strip()
+        if not mod or not destino:
+            return {"tem": False, "svg": "", "pack": destino}
+        try:
+            svg = mod.desenho_no_pack(destino, nome)
+        except mod.Recusa:
+            return {"tem": False, "svg": "", "pack": ""}
+        return {"tem": svg is not None, "svg": svg or "", "pack": destino,
+                "no_ar": destino == _pack_adotado()}
+
     def _salvo_do_app(self, nome):
         conv = os.path.join(ICONES_DO_MOTOR, "apps")
         for caminho, palpite in ((self._caminho_retoque(nome), "mao"),
@@ -6347,6 +6359,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "original": ("/previa?tipo=arquivo&id=" + quote(origem, safe="")) if origem else "",
                 "capa": ("/previa?tipo=arquivo&id=" + quote(capa, safe="")) if capa else "",
                 "salvo": self._salvo_do_app(nome),
+                "no_pack": self._desenho_guardado(corpo.get("pack"), nome),
                 "pack": do_pack,
                 "em_vigor": vigor,
                 "variacoes": variacoes,
@@ -6406,6 +6419,16 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"ok": True, "svg": svg, "origem": origem,
                                "nota": nota, "parametros": texto})
 
+        if acao == "desfazer-no-pack":
+            mod = modulo_pack()
+            try:
+                tirou = mod.tirar_desenho(str(corpo.get("pack") or "").strip(), nome)
+            except mod.Recusa as e:
+                return self._json({"erro": str(e)}, 400)
+            except OSError as e:
+                return self._json({"erro": "não consegui tirar o desenho do pack: %s" % e}, 500)
+            return self._json({"ok": True, "tirou": bool(tirou), "app": app, "nome": nome})
+
         if acao != "salvar":
             return self._json({"erro": "ação desconhecida: %s" % acao}, 400)
 
@@ -6414,6 +6437,9 @@ class Manipulador(BaseHTTPRequestHandler):
         cores = set((_paleta_dados().get("ordem") or []))
         if cores and cor not in cores:
             return self._json({"erro": "a cor tem de ser um nome da paleta"}, 400)
+        destino = str(corpo.get("pack") or "").strip()
+        if destino:
+            return self._salvar_no_pack(app, nome, destino, svg, cor, corpo)
         erro = self._conferir_dialeto(svg)
         if erro:
             return self._json({"erro": erro}, 400)
@@ -6456,6 +6482,26 @@ class Manipulador(BaseHTTPRequestHandler):
                            "modo": modo, "saiu_do_arcticons": saiu,
                            "tirou_retoque": tirou_retoque,
                            "depois": "vale depois de \"Pôr os desenhos em traço na tela\""})
+
+    def _salvar_no_pack(self, app, nome, destino, svg, cor, corpo):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "o painel não carregou o scripts/pack.py"}, 500)
+        flavors = _paleta_dados().get("flavors") or {}
+        flavor = str(mod.campo(destino, "paleta.flavor_padrao", "") or "")
+        tinta = (flavors.get(flavor) or next(iter(flavors.values()), {})).get(cor, "")
+        if tinta and "currentColor" in svg:
+            svg = svg.replace("currentColor", tinta)
+        try:
+            arquivo = mod.usar_desenho(destino, nome, svg, str(corpo.get("rotulo") or ""))
+        except mod.Recusa as e:
+            return self._json({"erro": str(e)}, 400)
+        except OSError as e:
+            return self._json({"erro": "não consegui gravar o desenho no pack: %s" % e}, 500)
+        return self._json({"ok": True, "app": app, "nome": nome, "pack": destino,
+                           "arquivo": arquivo, "guardado": True,
+                           "no_ar": destino == _pack_adotado(),
+                           "depois": "vale depois de «%s»" % ACOES["icones_pack"]["rotulo"]})
 
     def _conferir_dialeto(self, svg):
         texto = (svg or "").strip()
