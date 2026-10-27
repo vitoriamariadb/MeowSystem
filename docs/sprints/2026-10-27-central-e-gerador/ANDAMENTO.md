@@ -28,9 +28,11 @@
 - INTEGRADO em `integracao/central-e-gerador` (worktree `~/Desenvolvimento/MeowSystem-integracao`): Painel (P115-P117,
   `relatorios/conferencia-painel.md`), Central (P120-P121, `relatorios/conferencia-central.md`) e Forks (P122,
   `relatorios/conferencia-forks.md`, merge c2187964; repos `vitoriamariadb/meowsystem-{eyedropper,clipboard,drives,
-  ascii-battery}` na main, nada instalado ainda) e Pasta (P123, `relatorios/conferencia-pasta.md`, merge 39e3264c).
+  ascii-battery}` na main, nada instalado ainda) Pasta (P123, `relatorios/conferencia-pasta.md`, merge 39e3264c) e Textos (P118-P119,
+  `relatorios/conferencia-textos.md`, merge 50f259de; as 15 cópias mortas de `.git/hooks` foram para
+  `~/.local/state/meowsystem/backups/git-hooks-mortos-2026-10-27`).
 - EM VOO, a partir da integração (ela pediu os blocos juntos, 27/10):
-  Aurora (`wf_32a9b69a-21d`, P124 → P125) e Textos (`wf_af23fd58-b64`, P119 → P118).
+  Aurora (`wf_32a9b69a-21d`, P124 → P125).
   Worktrees `~/Desenvolvimento/MeowSystem-<bloco>`, branches `bloco/<bloco>`.
 - Próximo passo: integrar cada um assim que voltar. Fecho da pasta, no checkout dela, nesta ordem: `du -sh`; `meow doctor`
   (ver `basefundo` e `estadovelho` acusarem); `meow doctor --consertar`; `scripts/enxugar.sh --raiz ~/Desenvolvimento/MeowSystem`
@@ -40,6 +42,9 @@
   cura na integração (65d53c56, 8c946886). As suítes de Aurora, Textos e Pasta começaram antes da cura: depois de cada
   uma voltar, conferir `tail -3 ~/.config/zsh/.zshrc` e rodar `scripts/terminal_bloco.sh aplicar` se faltar.
 - Anotado para depois (27/10): P126, o Vencord no Discord oficial pelo meow (hoje injetado à mão pelo coordenador).
+- Anotado para depois (vindo do bloco Textos): saídas que ainda citam comando sem mandar digitar (`cursor.sh:188-191` e `:390`,
+  `construir_icones.sh:182`, `forma.sh:94,129`, `janelas.sh:182`, `relogio.sh:105`, `pack.py`) viram uma sprint própria;
+  depois do merge no `dev`, confirmar o commit «docs(readme): regerado do código» (a captura `tema.png` ainda diz «Vestir»).
 - Anotado para depois (vindo da conferência do Painel): `docs/PACKS.md` sem os campos `icones.sistema` e
   `icones.bandeja` (entra na P118); `restaurar.sh sistema_limpar` vermelho já no `dev` (o `.deb` do cosmic-comp em
   `~/.local/share/meowsystem/debs` muda sem «Restaurar»; entra na P125, junto do resto do compositor); numa casa sem
