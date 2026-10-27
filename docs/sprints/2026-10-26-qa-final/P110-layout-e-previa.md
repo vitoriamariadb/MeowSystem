@@ -34,3 +34,26 @@ rolar até o fim; a tabela controle → prévia passa. Guarde capturas em
 
 ## Fora desta sprint
 O que cada controle grava (P109), textos e renomes (P111).
+
+## Execução
+
+Commits em `sprint/p110`: `04e1118d` (estilo.css da maquete A), `0ccca4e9` (abas, busca em ícone, Programas sem prévia, `tests/app-layout.py`), `0215baf3` (prévia fiel), `f45a6ed2` (↶ por coluna, faixa vazia, margem desligada), `c7990245` (Instalar tudo e Manter), `6fbf9468` (ficha do ícone), `2df3fe8d` (dica da linha dupla e teste do Tab).
+
+Prova: `tests/app-layout.py`, 180 conferências, 1920x1080, 1550x860, 1280x800 e 1500x900.
+
+| item | prova |
+|---|---|
+| Q2-08, Q2-09 | cabeçalho em 0, abas em 64 e palco em 132 depois de rolar, nas páginas de Ajustes, nos 4 tamanhos |
+| Q2-11 | busca vira ícone até 1440; abre o campo ao clicar |
+| Q2-01, Q2-02, Q2-03 | tabela de 29 controles: cada um muda o `data-*`/variável da prévia |
+| Q2-12 | Programas sem prévia, grade em 2 colunas |
+| Q2-10 | nenhum elemento passa da largura do pai, em todas as rotas, nos 4 tamanhos |
+| Q2-19, Q2-20 | um ↶ por coluna com a dica da coluna; distância desligada com a barra colada; faixa vazia tracejada |
+| Q3-01, Q3-03 | diálogo do Instalar tudo e cartões de Manter cabem em 4 larguras |
+| Q1-10 | ficha fora da `.grade-apps`, duas colunas, sem caixa aninhada, um `[data-controle$="usar"]` visível no rodapé, altura menor que a janela |
+
+Regressão: `app-acessibilidade.py` pegou duas coisas minhas, ambas corrigidas: dica de 134 caracteres na linha dupla (agora cai para a primeira frase se passar de 120) e o Tab que começava no conteúdo (o clique do teste foi para o cabeçalho).
+
+Capturas (fora do git): `docs/sprints/2026-10-26-qa-final/capturas/p110/`, painel e maquete A nos 4 tamanhos, mais a ficha do ícone em 3 tamanhos.
+
+Ficou de fora: o `Usar` da oficina agora só habilita depois de gerar ou editar um desenho; a comparação lado a lado em uma imagem só (sem PIL), por isso painel e maquete são arquivos separados.

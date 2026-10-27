@@ -17,22 +17,26 @@ function paredeDaPrevia() {
 }
 const REGIAO = [
   [/^(FORMA_.*PAINEL|VIDRO_OPACIDADE_PAINEL|VIDRO_AO_MAXIMIZAR|MIDIA|RELOGIO)/, "painel"],
-  [/^(FORMA_.*DOCK|VIDRO_OPACIDADE_DOCK|LOGO)/, "dock"],
+  [/^(FORMA_.*DOCK|VIDRO_OPACIDADE_DOCK|LOGO$)/, "dock"],
   [/^(TERMINAL_|PROMPT_|FASTFETCH_)/, "term"],
-  [/^(ICONES_|PASTAS_)/, "arq"],
+  [/^(ICONES_|PASTAS_|JANELAS_TILING)/, "arq"],
 ];
 function mesaDaPagina(pagina = "") {
   const marca = new Set();
   for (const c of MUDANCAS.keys()) for (const [re, r] of REGIAO) if (re.test(c)) marca.add(r);
   const gato = ESQUEMA.gato_no_dock || vale("LOGO");
-  const ff = (pagina === "mascote" || pagina === "terminal") && ligado(valeNaPrevia("FASTFETCH_LOGO"))
+  const doTerminal = pagina === "mascote" || pagina === "terminal";
+  const ff = doTerminal && ligado(valeNaPrevia("FASTFETCH_LOGO"))
     ? urlDoGato(valeNaPrevia("FASTFETCH_LOGO_GATO") || gato) : null;
+  const leitura = pagina === "dia-e-noite";
   return MESA.mesa({
-    val: valeNaPrevia, marca, gato: urlDoGato(gato), ff, parede: paredeDaPrevia(),
+    val: valeNaPrevia, marca, gato: urlDoGato(gato), ff, ffPagina: doTerminal, parede: paredeDaPrevia(),
     ajuste: valeNaPrevia("WALLPAPER_AJUSTE"),
-    quente: pagina === "dia-e-noite" ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
-    papel: pagina === "dia-e-noite" ? valeNaPrevia("LEITURA_TEXTURA") : 0,
-    rotulo: "Prévia",
+    solo: pagina === "terminal" ? "term" : "",
+    ponteiro: pagina === "janelas",
+    quente: leitura ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
+    textura: leitura ? valeNaPrevia("LEITURA_TEXTURA") : null,
+    rotulo: "Prévia da área de trabalho",
   });
 }
 function repintarPrevia(chave, valor) {
@@ -621,17 +625,28 @@ function gradeDeProgramas() {
   return grade;
 }
 
+function desenharAbas(p, direita) {
+  const lista = $("#abas-lista");
+  if (lista.children.length !== AJUSTES.length) {
+    lista.replaceChildren(...AJUSTES.map((x) => elemento("li", {}, [
+      elemento("a", { href: "#ajustes/" + x.id, controle: "ajuste:" + x.id },
+        [icone(x.icone), elemento("span", { texto: x.nome })]),
+    ])));
+  }
+  for (const a of lista.querySelectorAll("a")) {
+    if (a.dataset.controle === "ajuste:" + p.id) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  }
+  $("#abas-fila").replaceChildren(...direita);
+}
+
 function paginaAjustes(sub) {
   const p = AJUSTES.find((x) => x.id === sub) || AJUSTES[0];
-  const trilho = elemento("ul", { class: "trilho" }, AJUSTES.map((x) => elemento("li", {}, [
-    elemento("a", { href: "#ajustes/" + x.id, controle: "ajuste:" + x.id, "aria-current": x.id === p.id ? "page" : null },
-      [icone(x.icone), elemento("span", { texto: x.nome })]),
-  ])));
   const direita = (p.cabeca || []).map((l) => {
     const a = ACAO.get(l.a);
-    return a ? controleDeAcao(a, l.b, "")[0] : null;
+    return a ? controleDeAcao(a, l.b, "pequeno")[0] : null;
   }).filter(Boolean);
-  for (const b of direita) b.classList.add("principal");
+  desenharAbas(p, direita);
   const blocos = [];
   for (const b of p.blocos) {
     const sobra = (l) => l.e || (l.g && !l.g.startsWith("acervo:")) || l.g === "acervo:gato" || l.g === "acervo:cursor"
@@ -642,15 +657,15 @@ function paginaAjustes(sub) {
     if (b.jogos) filhos.push(montarJogos());
     filhos.push(lista(b.linhas, sobra));
     if (b.noite) filhos.push(linhaMesmoHorario());
-    blocos.push(bloco(b.titulo, filhos.filter(Boolean), { colunas: b.colunas }));
+    blocos.push(bloco(b.titulo, filhos.filter(Boolean), { colunas: b.colunas, class: b.programas || b.jogos ? "inteiro" : "" }));
   }
+  const semPrevia = p.id === "programas";
   return [
-    cabeca(p.nome, direita),
-    elemento("div", { class: "oficina" }, [
-      elemento("nav", { "aria-label": "Definir" }, [trilho]),
-      elemento("div", { class: "palco" }, [mesaDaPagina(p.id)]),
+    elemento("h1", { class: "sr", texto: p.nome }),
+    elemento("div", { class: "oficina" + (semPrevia ? " sem-previa" : "") }, [
+      semPrevia ? null : elemento("div", { class: "palco" }, [mesaDaPagina(p.id)]),
       elemento("div", { class: "pilha" }, blocos.filter(Boolean)),
-    ]),
+    ].filter(Boolean)),
   ];
 }
 
