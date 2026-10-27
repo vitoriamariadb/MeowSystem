@@ -656,6 +656,8 @@ class Percurso:
             self.pag.wait_for_timeout(150)
 
     def clicar(self, nome, so_livre=False):
+        if nome.startswith("acao:"):
+            self.esperar_gravacao()
         for _vez in range(4):
             el = self.esperar_nome(nome, teto=4.0)
             if so_livre:

@@ -192,6 +192,8 @@ def main():
             pag.wait_for_function("() => EM_VOO === 0 && !ACOMPANHANDO", timeout=240000)
             checa(casa.valor_de("LOG_NIVEL") == "debug", "«Trazer ajustes» grava na hora")
             pag.locator("#desfazer").click()
+            pag.wait_for_timeout(800)
+            pag.wait_for_function("() => EM_VOO === 0 && !ACOMPANHANDO", timeout=240000)
 
             print("8. a dica")
             ir(pag, "cuidar")
