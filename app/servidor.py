@@ -433,11 +433,15 @@ def _leitura_no_applet(chave):
     tipo, nome = onde
     if tipo == "estado":
         base = os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
-        try:
-            with open(os.path.join(base, "cosmic", "com.meowsystem.AppletLeitura", "v1", nome),
-                      encoding="utf-8") as fh:
-                bruto = fh.read().strip()
-        except OSError:
+        bruto = None
+        for app_id in ("io.github.meowsystem.Leitura", "com.meowsystem.AppletLeitura"):
+            try:
+                with open(os.path.join(base, "cosmic", app_id, "v1", nome), encoding="utf-8") as fh:
+                    bruto = fh.read().strip()
+                break
+            except OSError:
+                continue
+        if bruto is None:
             return None
     else:
         bruto = (_cosmic_ler(nome) or "").strip().strip('"')
