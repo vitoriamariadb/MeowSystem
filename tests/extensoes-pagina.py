@@ -408,6 +408,26 @@ def main():
             checa(estado == "ok" and not os.path.exists(SHIM), f"«Remover» desliga o shim ({estado})")
             checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Pronto, desligado"),
                   f"e o build fica: «{pilula_de_build(pag, 'compositor')}»")
+            velho = os.path.join(casa.CASA, ".local", "libexec", "meow", "cosmic-comp", "0.0~velho")
+            os.makedirs(velho)
+            casa.escrever_exec(os.path.join(velho, "cosmic-comp"), "#!/bin/sh\n")
+            os.remove(os.path.join(TESTE, "comp-pronto"))
+            os.makedirs(os.path.dirname(SHIM), exist_ok=True)
+            with open(SHIM, "w", encoding="utf-8") as fh:
+                fh.write("#!/bin/sh\nMEOW-COSMIC-COMP-SHIM-1\n")
+            pag.evaluate("() => { EXT.quando = 0; render(); }")
+            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Atualização"),
+                  f"versão nova do pacote com o build velho guardado: «{pilula_de_build(pag, 'compositor')}»")
+            checa(botoes_de_build(pag, "compositor") == ["Instalar (parado)", "Atualizar", "Refazer", "Remover Compositor"],
+                  f"e oferece Atualizar e Remover, com o shim de pé ({botoes_de_build(pag, 'compositor')})")
+            shutil.rmtree(velho)
+            os.remove(SHIM)
+            open(os.path.join(TESTE, "comp-pronto"), "w").close()
+            pag.evaluate("() => { EXT.quando = 0; render(); }")
+            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Pronto, desligado"), "e volta a «Pronto, desligado»")
+            checa(cartao_de_build(pag, "compositor").locator("img").count() == 1
+                  and cartao_de_build(pag, "menu-arquivos").locator("img").count() == 1,
+                  "o compositor e o menu têm ícone próprio")
             rotulos = pag.locator("[data-aba-corpo='builds'] .linha .rot b").all_inner_texts()
             checa(rotulos == ["Casa Um", "Casa Dois", "Casa Três"], f"as linhas dos applets ({rotulos})")
             checa(pag.locator("[data-controle='build:tudo']").count() == 1, "«Refazer tudo» existe")

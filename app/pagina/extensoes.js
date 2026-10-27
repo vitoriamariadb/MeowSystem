@@ -115,8 +115,8 @@ function pilulaDoBuildDaCasa(e, ocupado, construindo) {
   if ((ocupado && ocupado.id === e.id) || (construindo && !e.instalada)) return ["correndo", "Compilando"];
   if (e.falhou) return ["erro", "Falhou"];
   if (e.situacao === "nao-encaixa") return ["erro", "Não encaixa"];
-  if (!e.instalada) return ["neutro", "Não instalada"];
   if (e.atualizacao) return ["ensaio", "Atualização"];
+  if (!e.instalada) return ["neutro", "Não instalada"];
   return e.ativa ? ["ok", "Em dia"] : ["neutro", "Pronto, desligado"];
 }
 
@@ -124,12 +124,12 @@ function botoesDoBuildDaCasa(e, parado) {
   const b = (texto, icone, verbo, acao, livre, principal) => botao(texto, {
     class: "bt pequeno" + (principal ? " principal" : ""), icone, disabled: parado || !livre,
     controle: "extensao:" + verbo + ":" + e.id, onclick: () => gestoDeExtensao(acao, e, texto) });
-  const ligar = !e.instalada || !e.ativa;
+  const ligar = !e.atualizacao && (!e.instalada || !e.ativa);
   return [
     b("Instalar", "baixar", "instalar", "extensao_instalar", ligar, ligar),
-    b("Atualizar", "subir", "atualizar", "extensao_atualizar", e.atualizacao, e.atualizacao && !ligar),
+    b("Atualizar", "subir", "atualizar", "extensao_atualizar", e.atualizacao, e.atualizacao),
     b("Refazer", "girar", "refazer", "extensao_refazer", true, false),
-    botao("", { class: "bt leve pequeno so-icone", icone: "lixo", disabled: parado || !(e.instalada && e.ativa),
+    botao("", { class: "bt leve pequeno so-icone", icone: "lixo", disabled: parado || !e.ativa,
       "aria-label": "Remover " + e.nome, dica: "Remover", controle: "extensao:remover:" + e.id,
       onclick: () => gestoDeExtensao("extensao_remover", e, "Remover") }),
   ];
