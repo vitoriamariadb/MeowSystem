@@ -141,3 +141,64 @@ que o MeowSystem ainda não faz inteiro.
 - Os trechos de instalação do compositor (D10, P121).
 - Apagar arquivos da Aurora.
 - Os vigias de outras issues.
+
+## Execução
+Bloco «aurora», árvore `MeowSystem-aurora`, branch `bloco/aurora`.
+
+### Commits
+- Cura 1, painel fantasma: `c2676932` (`lib/painel.sh`, os quatro sinais com nome próprio) e
+  `a73d965d` (`tests/painel-fantasma.sh`, novo, agora na lista portátil do `todos.sh`).
+- Cura 2, vidro: `2f8f7d13` (`meow-vidro.path` e `.service`), `26e61e29` (`install.sh`),
+  `a77b8763` (`chk_autoreparo`) e `f3c0550e` (`tests/vidro-do-cosmic.sh`). O `scripts/vidro.sh` não
+  tem verbo «aplicar»: o `ExecStart` chama a passada que ele já tem, pelo ponteiro `raiz`.
+- Cura 3, vigia da #2059: `88ab957f` (`vigias.tsv`), `f49c059e` (`sentinela.sh`) e `c52c691a`.
+- Cura 4: `d3e28257` (`vizinhos.tsv`: os 17 itens, com a D10 da P124 e a bandeja do qBittorrent) e
+  `14c70d80` (`tests/vizinhos.sh`).
+- Cura 5, D1 aceita: `70ddc2cf` (`areas.sh alfinetes` e `refazer-alfinetes`; a contagem do README
+  foi junto, porque o gancho conta a árvore), `9961be83` (`chk_areas`/`fix_areas` no `VERIFICAVEIS`)
+  e `ece5d22f` (`tests/contrato-cosmic.sh`).
+- Itens do coordenador:
+  - `5ff8e769` e `aef2da85`: o `--fundo` nunca compila no primeiro plano. Sem a unidade do login de
+    pé, vai por `systemd-run --user` em prioridade baixa; sem systemd na sessão, diz que fica para o
+    próximo login (ou sem build, e por quê) e sai 3. A unidade só é chamada quando o
+    `ExecCondition` não pularia. Com `BUILDS_AO_ENTRAR="nao"` ou `AUTO_REPARO` diferente de sim, a
+    frase diz isso. O gesto não conta o rc 3 como mudança, e o install fecha em duas passadas.
+  - `4d0e4424`, `8547e75c` e `69306234`: o verbo `cosmic-comp-de-fabrica` na ponte (confere o md5
+    com a soma do dpkg e só reinstala quando diverge), na regra do sudo, e o
+    `compositor_patches.sh reverter` usa a ponte quando ela está de pé.
+  - `3b4f2d29`: «Limpar as sobras» guarda o restauro do `.deb` que põe ou poda na guarda.
+
+### Provas rodadas
+- `tests/painel-fantasma.sh`, `tests/vidro-do-cosmic.sh`, `tests/sentinela.sh`, `tests/vizinhos.sh` e
+  `tests/contrato-cosmic.sh` verdes. Sem a cura, o painel, a sentinela, o contrato-cosmic e o vizinhos
+  ficaram vermelhos.
+- `tests/garantir-builds.sh` verde, seções 2 e 5, com o `garantir_builds.sh` de verdade: nenhum
+  «compositor compilar» no primeiro plano, o `systemd-run` falso chamado, a unidade só quando ela
+  não pula, as frases certas. Sem a cura, 18 falhas.
+- `tests/etapa-compositor.sh` seção 5: o `install.sh --etapa compositor` com o `garantir_builds.sh`
+  de verdade sai 0, não compila e liga o shim.
+- `tests/ponte-cosmic-comp.sh` (novo, portátil): o de fábrica fica, o remendado volta, a segunda vez
+  não chama o apt, os rc 2, 3 e 4, o argumento recusado, a regra sem curinga e o `reverter`. Sem o
+  verbo, 9 falhas.
+- `tests/restaurar.sh sistema_limpar`: «voltou byte a byte».
+
+### Fica de fora, anotado
+- A D2 (a cadeia do clipboard) espera a P122.
+- O `fix_autoreparo` instala as unidades mesmo com `AUTO_REPARO` diferente de sim. É de antes, e
+  não mexi.
+- O `AREAS_FOLGA` dela tem o «OS» com espaço de figura (U+2007), e o disco e o
+  `aurora-claude-workspace.sh` usam «OS» puro, com nome exato. Se o alfinete do OS cair, o
+  `fix_areas` o refaz com a folga, e o park deixa de achá-lo.
+- O `/usr/bin/cosmic-comp` **não** está de fábrica hoje. O md5 é `85f5b0dd…`, igual ao
+  `/var/lib/aurora/…pkg-orig`. O pacote e o `.deb` do cache dão `1907a3d0…`, igual ao `….orig`. O
+  arquivo é de 27/10 10:29, dois minutos depois do reinstall das 10:27. Não rodei nada como root:
+  `compositor_patches.sh reverter`, com a ponte nova instalada, o devolve.
+- Ninguém chama o verbo sozinho ainda: o doctor não confere o `/usr/bin/cosmic-comp` contra o dpkg.
+
+### Conferir com a mão
+- Depois do corte, `systemctl --user list-timers` sem `aurora-painel-fantasma`,
+  `aurora-cosmic-nightlight-watch` nem `aurora-vidro-maximizado.path`.
+- Trocar o acento na Aparência e maximizar uma janela: o vidro volta em cerca de 1 s, e
+  `journalctl --user -u meow-vidro.service` mostra a passada.
+- O `~/.claude/CLAUDE.md` dela ainda cita o `aurora-cosmic-workspaces.py` e os três workspaces:
+  atualizar é com o coordenador.
