@@ -3811,7 +3811,11 @@ ACAO_DA_PENDENCIA = {
     "instalar-com-root": "instalar",
     "flatpak-global-sistema": "instalar",
     "libreoffice-sistema": "instalar",
-    "leitura-applet": "doctor_consertar",
+    "extensao-now-playing": "doctor_consertar",
+    "extensao-status-hub": "doctor_consertar",
+    "extensao-quick-settings": "doctor_consertar",
+    "extensao-leitura": "doctor_consertar",
+    "extensao-performance": "doctor_consertar",
 }
 
 RECUSA_DA_PENDENCIA = {

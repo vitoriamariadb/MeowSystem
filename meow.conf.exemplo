@@ -955,8 +955,8 @@ RELOGIO_SEGUNDOS="nao"            # sim | nao | vazio (= não toca)
 #   A QUEIXA INTEIRA MORAVA EM UMA LINHA. O `src/media.rs` do upstream descartava
 #   todo `mpris:artUrl` que não fosse `file://`, e o Spotify publica
 #   `https://i.scdn.co/...`. Capa e cor caíam JUNTAS porque a cor dominante é
-#   EXTRAÍDA da capa: sem imagem, não há de onde tirá-la. O patch deste
-#   repositório (`src/applets/now-playing/`) desfaz esse descarte.
+#   EXTRAÍDA da capa: sem imagem, não há de onde tirá-la. O fork publicado do
+#   applet (`assets/extensoes/now-playing.pino`) desfaz esse descarte.
 #
 #   NASCE LIGADO, a pedido: "se é requisição, nosso install teria que
 #   por default trazer a cura".
@@ -967,8 +967,7 @@ RELOGIO_SEGUNDOS="nao"            # sim | nao | vazio (= não toca)
 #   onde olhar.
 #
 #   Compilar não é do doctor (é a única porta do projeto que chama o cargo):
-#   quem atravessa esse caminho é o `install.sh`. À mão, uma vez:
-#       MIDIA_COMPILAR=1 scripts/midia_build.sh
+#   quem atravessa esse caminho é o `install.sh` e o botão da página Extensões.
 # sim | nao
 MIDIA="sim"
 
@@ -1389,7 +1388,7 @@ LEITURA_HORARIO_FIM="07:00"       # HH:MM  (a que horas ela volta ao normal)
 #   acabado de arrastar.
 #
 #   Agora o `scripts/leitura.sh` lê primeiro o ponto que o applet guardou em
-#   `~/.local/state/cosmic/com.meowsystem.AppletLeitura/v1/ultima_temperatura`, e
+#   `~/.local/state/cosmic/io.github.meowsystem.Leitura/v1/ultima_temperatura`, e
 #   só cai AQUI quando aquele não existe ou não passa no filtro — máquina nova,
 #   applet não instalado, sessão em que você nunca tocou num slider. O relógio
 #   ficou com o QUANDO, que é tudo o que foi pedido que ele tivesse.
@@ -1462,15 +1461,15 @@ LEITURA_RAMPA_MIN="0"             # 0 a 60 min  (0 = virada seca)
 # @ Controle no painel
 # > Um ícone com dois deslizantes, para mexer sem abrir este painel.
 # O APPLET DA TOPBAR — o ícone com os dois sliders (30/08/2026).
-#   sim  o `./install.sh` compila `src/applets/leitura` e planta o `.desktop`.
+#   sim  o `./install.sh` compila o applet pinado em `assets/extensoes/leitura.pino` e planta o `.desktop`.
 #   nao  DESLIGA DE VERDADE: a sombra sai primeiro, o binário depois, e a topbar
 #        volta sem ele no próximo login. As cinco chaves NÃO são apagadas — elas
 #        são o seu ajuste, e o relógio continua lendo e escrevendo nelas.
 #
 # TRÊS COISAS PRECISAM SER VERDADE PARA O ÍCONE APARECER, e só duas são nossas:
-#   1. o binário em ~/.local/bin/meow-applet-leitura   (esta chave)
+#   1. o binário em ~/.local/bin/meowsystem-leitura   (esta chave)
 #   2. a sombra .desktop em ~/.local/share/applications (esta chave)
-#   3. a linha "com.meowsystem.AppletLeitura" no plugins_wings da topbar
+#   3. a linha "io.github.meowsystem.Leitura" no plugins_wings da topbar
 #      — arquivo da Aurora, escrito À MÃO, uma vez.
 # O `meow leitura estado` mostra as três, uma por linha, justamente porque elas
 # somem por motivos diferentes.
@@ -1487,6 +1486,12 @@ LEITURA_RAMPA_MIN="0"             # 0 a 60 min  (0 = virada seca)
 # devolve 0 na hora. Sem cargo na máquina, a etapa cai em "pulados" e nada mais
 # acontece.
 LEITURA_APPLET="sim"              # sim | nao
+
+# EXTENSÕES DA CASA QUE O INSTALL COMPILA, pelo id: now-playing, status-hub,
+#   quick-settings, leitura, performance. Vazio segue MIDIA e LEITURA_APPLET
+#   acima; "-" não quer nenhuma; uma lista (separada por vírgula) manda sozinha.
+#   A página Extensões escreve esta chave quando você instala ou remove um applet.
+EXTENSOES=""
 
 # --- Terminal ---------------------------------------------------------------
 
