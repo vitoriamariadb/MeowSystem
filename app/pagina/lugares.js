@@ -288,6 +288,7 @@ const LUGAR_CUIDAR = {
     { titulo: "Sozinho", linhas: [
       { c: "AUTO_REPARO", r: "Conferir todo dia" },
       { c: "AUTO_REPARO_NOTIFICAR", r: "Avisar o conserto", sub: true },
+      { c: "VIZINHOS_DESATIVAR", r: "Desligar o repetido nos vizinhos", sub: true },
       { c: "ASSETS_VIGIA", r: "Mascote novo entra" },
       { c: "ASSETS_VIGIA_NOTIFICAR", r: "Avisar o mascote", sub: true },
       { c: "FLATPAK_VIGIA", r: "Ícones após atualizar" },

@@ -977,9 +977,22 @@ chk_bloco() { "$RAIZ/scripts/terminal_bloco.sh" --conferir 2>&1; }
 fix_bloco() { "$RAIZ/scripts/terminal_bloco.sh" aplicar 2>&1; }
 
 chk_vizinhos() {
-  local rc
+  local rc saida
+  if [ "${VIZINHOS_DESATIVAR:-sim}" = "sim" ]; then
+    saida="$("$RAIZ/scripts/vizinhos.sh" --prontos 2>&1)"; rc=$?
+    [ "$rc" = "1" ] && { printf '%s\n' "$saida"; return "$MEOW_DIVERGENTE"; }
+  fi
   "$RAIZ/scripts/vizinhos.sh" --conferir 2>&1; rc=$?
   case "$rc" in 0|4) return "$rc" ;; *) return 3 ;; esac
+}
+
+fix_vizinhos() {
+  if meow_seco; then
+    "$RAIZ/scripts/vizinhos.sh" --prontos 2>&1
+    meow_muda "desligaria nos vizinhos os trechos acima, com cópia de antes"
+    return "$MEOW_DIVERGENTE"
+  fi
+  VIZINHOS_DESATIVAR="${VIZINHOS_DESATIVAR:-sim}" "$RAIZ/scripts/vizinhos.sh" --desativar-prontos 2>&1
 }
 
 
