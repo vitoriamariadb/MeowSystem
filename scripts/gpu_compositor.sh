@@ -67,6 +67,10 @@ _gpu_pedir_a_ponte() {
     meow_pula "$frase: a ponte root não está de pé, o «Instalar tudo» a levanta"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  if ! grep -qx "$verbo)" "$MEOW_PONTE" 2>/dev/null; then
+    meow_pula "$frase: a ponte root instalada é de antes deste conserto, o «Instalar tudo» a renova"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
   if ! meow_ponte "$verbo" </dev/null >/dev/null 2>&1; then
     meow_erro "a ponte root não aceitou $verbo: o «Instalar tudo» a atualiza"
     return "$MEOW_ERRO"
