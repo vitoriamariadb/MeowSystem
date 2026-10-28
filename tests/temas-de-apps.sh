@@ -24,6 +24,10 @@ declare -A TETO=(
   [telegram]=0
   [discord]=0
   [onlyoffice]=0
+  [libadwaita]=0
+  [krita]=0
+  [obs]=0
+  [waterfox]=0
 )
 
 citacoes_em_codigo() {
