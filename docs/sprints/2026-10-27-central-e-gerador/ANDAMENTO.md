@@ -6,7 +6,9 @@
   fechado. A D6 não fica verde com login: o ID da decisão (`25a2`) não existe nesta máquina (RTX 4060, `28a0`). Ela
   decidiu: produto universal, a GPU detectada por máquina, e a P132 faz isso (worktree `~/Desenvolvimento/MeowSystem-gpu`,
   branch `bloco/gpu`, 2 agentes). A linha do `jogos-fora.map` fica apagada, por decisão dela (ab44877d).
-  PRÓXIMO: integrar a P132 no `dev` e rodar o install com o HOME real pelo askpass (pedido dela).
+  PRÓXIMO: integrar a P132 no `dev` e rodar o install com o HOME real pelo askpass (pedido dela). Depois, pedido
+  dela: `master` no `origin` (hoje em 89064565, de 28/09; as tags v2.0.0 e v2.1.0 só existem aqui) e o release.
+  Os forks (pergunta dela): o install não chama o install de nenhum, e o que falta está na P133.
 - FECHO (28/10, madrugada): tudo no `dev` (merge 9e5bf737) e instalado com o HOME real (69 etapas, rc=0).
   `meow doctor --consertar` rodado: as 348 imagens foram para `~/.local/share/backgrounds/meowsystem`, a
   árvore velha `midia/` e `leitura/` (1,6 GB) saiu, e o corte da Aurora (compositor e luz noturna) está no
