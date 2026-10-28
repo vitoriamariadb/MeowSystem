@@ -262,6 +262,7 @@ _ft_eh_contorno() {
     /^[[:space:]]*$/ { next }
     /^\[(Context|Environment)\]$/ { g = $0; next }
     g == "[Environment]" && $0 == "GTK_THEME=" { n++; next }
+    g == "[Context]" && ($0 == "unset-environment=GTK_THEME;" || $0 == "unset-environment=GTK_THEME") { n++; next }
     g == "[Context]" && index($0, "filesystems=") == 1 {
       m = split(substr($0, 13), it, ";")
       for (i = 1; i <= m; i++)

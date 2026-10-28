@@ -144,8 +144,14 @@ printf '[Context]\nshared=ipc;\nfilesystems=!home;xdg-config/gtk-3.0:ro;xdg-conf
 cp "$USUARIO" "$T/usuario-original"
 printf '[Context]\nfilesystems=xdg-config/gtk-4.0;/usr/share/themes;xdg-data/icons;~/.icons:ro;\n\n[Environment]\nGTK_THEME=adw-gtk3-dark\nICON_THEME=Dracula-Icones\nXCURSOR_THEME=Dracula-Cursor\n' > "$GLOBAL"
 cp "$GLOBAL" "$T/global-original"
-CONTORNO='[Context]\nfilesystems=!xdg-config/gtk-4.0;!xdg-data/icons;\n\n[Environment]\nGTK_THEME=\n'
+CONTORNO='[Context]\nfilesystems=!xdg-config/gtk-4.0;!xdg-data/icons;\nunset-environment=GTK_THEME;\n\n[Environment]\nGTK_THEME=\n'
 printf "$CONTORNO" > "$(dirname "$USUARIO")/com.exemplo.Clapper"
+if [ -x /usr/bin/flatpak ]; then
+  env -i PATH=/usr/bin:/bin HOME="$T/fp-real" FLATPAK_USER_DIR="$T/fp-real" /usr/bin/flatpak override --user \
+    --unset-env=GTK_THEME --nofilesystem=xdg-config/gtk-4.0 --nofilesystem=xdg-data/icons com.exemplo.Clapper >/dev/null 2>&1
+  confere "o contorno da prova é o que o flatpak de verdade grava" \
+    'cmp -s "$T/fp-real/overrides/com.exemplo.Clapper" "$(dirname "$USUARIO")/com.exemplo.Clapper"'
+fi
 printf "$CONTORNO[Context]\nsockets=x11;\n" > "$(dirname "$USUARIO")/com.exemplo.Gradia"
 printf '[Context]\nsockets=x11;\n' > "$(dirname "$USUARIO")/com.exemplo.Torrent"
 
