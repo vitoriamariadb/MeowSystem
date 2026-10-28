@@ -441,13 +441,14 @@ function previaDoRascunho() {
   const r = rascunho();
   return previaDoPack(PACKS.find((x) => x.id === (r.pack || r.base.pack)) || PACKS.find((x) => x.id === r.base.pack) || packNoAr(), r.base.flavor);
 }
-function gradeDoAcervo(pasta) {
+function gradeDoAcervo(pasta, grupo) {
   if (!ACERVO || ACERVO.chave !== chaveDoAcervo()) carregarAcervo();
   const pronto = ACERVO && !ACERVO.carregando;
   const termo = semAcento(BUSCA_ACERVO.trim());
-  const itens = (pronto ? ACERVO[pasta] : []).filter((i) => !termo || semAcento(i.rotulo || i.nome).includes(termo));
+  const itens = (pronto ? ACERVO[pasta] : []).filter((i) => (!grupo || i.grupo === grupo)
+    && (!termo || semAcento(i.rotulo || i.nome).includes(termo) || semAcento(i.nome).includes(termo)));
   const grade = elemento("div", { class: "grade-apps pastas so-" + packEmEdicao(), "aria-busy": pronto ? null : "true",
-    "data-acervo": pasta });
+    "data-acervo": pasta, "data-grupo": grupo || null });
   for (const i of itens) {
     grade.append(elemento("div", { class: "app", "data-nome": i.nome }, [
       elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })]));
@@ -484,7 +485,13 @@ function passoIcones() {
     ABA_ICONES === "apps" ? null : filtro,
     elemento("span", { class: "editando", "data-editando": packEmEdicao(), texto: "Editando " + editando })]);
   if (ABA_ICONES === "sistema") {
-    return [cabeca, bloco("Pastas e tipos", [elemento("div", { class: "corpo" }, [gradeDoAcervo("sistema")])])];
+    const grupos = [["barra", "Barra e bandeja"], ["configuracoes", "Configurações"], ["botoes", "Botões e janelas"],
+      ["pastas", "Pastas"], ["tipos", "Tipos de arquivo"]];
+    const grades = grupos.map(([id, titulo]) => [titulo, gradeDoAcervo("sistema", id)]);
+    const cheias = grades.filter(([, g]) => g.querySelector(".app"));
+    const pronto = ACERVO && !ACERVO.carregando;
+    const mostrar = cheias.length ? cheias : [[pronto ? "Sistema" : grades[0][0], grades[0][1]]];
+    return [cabeca, ...mostrar.map(([titulo, g]) => bloco(titulo, [elemento("div", { class: "corpo" }, [g])]))];
   }
   if (ABA_ICONES === "biblioteca") {
     return [cabeca, bloco("Biblioteca", [elemento("div", { class: "corpo" }, [gradeDoAcervo("biblioteca")])])];
