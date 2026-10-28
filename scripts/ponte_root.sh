@@ -178,7 +178,7 @@ gpu_com_linha() {
 }
 
 gpu_sem_linha() {
-  [ -e "$ENV_ORIGINAL" ] || return 1
+  [ -f "$ENV_ORIGINAL" ] && [ ! -L "$ENV_ORIGINAL" ] || return 1
   grep -q "^$CHAVE_GPU=" "$ENV_SISTEMA" 2>/dev/null || return 2
   local linha_antes novo
   linha_antes="$(grep -m1 "^$CHAVE_GPU=" "$ENV_ORIGINAL" || true)"
@@ -442,31 +442,38 @@ cosmic-comp-de-fabrica)
 
 gpu-compositor)
   alvo="$(gpu_detectar)"
-  tmp="$(mktemp)"; tmp_o="$(mktemp)"; trap 'rm -f "$tmp" "$tmp_o"' EXIT
+  tmp="$(mktemp)"; tmp_o="$(mktemp)"; novo=""; trap 'rm -f "$tmp" "$tmp_o" ${novo:+"$novo"}' EXIT
   rc=0
   if [ -n "$alvo" ]; then gpu_com_linha "$alvo" > "$tmp" || rc=$?; else gpu_sem_linha > "$tmp" || rc=$?; fi
   [ "$rc" != 1 ] || exit 0
   if [ "$rc" = 2 ]; then rm -f "$ENV_ORIGINAL"; exit 0; fi
   [ "$rc" = 0 ] || morrer "não consegui montar o novo $ENV_SISTEMA"
+  [ ! -L "$ENV_SISTEMA" ] || morrer "link simbólico no destino: $ENV_SISTEMA"
+  [ ! -L "$ENV_ORIGINAL" ] || morrer "link simbólico no destino: $ENV_ORIGINAL"
   if [ -n "$alvo" ] && [ ! -e "$ENV_ORIGINAL" ]; then
     { cat "$ENV_SISTEMA" 2>/dev/null || true; } > "$tmp_o"
     install -d -m 755 -o root -g root "${ENV_ORIGINAL%/*}" || morrer "não consegui criar ${ENV_ORIGINAL%/*}"
     install -m 644 -o root -g root "$tmp_o" "$ENV_ORIGINAL" || morrer "não consegui guardar o $ENV_SISTEMA de antes"
   fi
-  install -m 644 -o root -g root "$tmp" "$ENV_SISTEMA" || morrer "não consegui escrever $ENV_SISTEMA"
+  novo="$(mktemp "$ENV_SISTEMA.meow.XXXXXX")" || morrer "não consegui escrever $ENV_SISTEMA"
+  install -m 644 -o root -g root "$tmp" "$novo" || morrer "não consegui escrever $ENV_SISTEMA"
+  mv -f "$novo" "$ENV_SISTEMA" || morrer "não consegui escrever $ENV_SISTEMA"
   [ -n "$alvo" ] || rm -f "$ENV_ORIGINAL"
   anotar "gpu-compositor ${alvo:-tirar}"
   printf 'mudou\n'
   ;;
 
 gpu-compositor-tirar)
-  tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+  tmp="$(mktemp)"; novo=""; trap 'rm -f "$tmp" ${novo:+"$novo"}' EXIT
   rc=0
   gpu_sem_linha > "$tmp" || rc=$?
   [ "$rc" != 1 ] || exit 0
   if [ "$rc" = 2 ]; then rm -f "$ENV_ORIGINAL"; exit 0; fi
   [ "$rc" = 0 ] || morrer "não consegui montar o novo $ENV_SISTEMA"
-  install -m 644 -o root -g root "$tmp" "$ENV_SISTEMA" || morrer "não consegui escrever $ENV_SISTEMA"
+  [ ! -L "$ENV_SISTEMA" ] || morrer "link simbólico no destino: $ENV_SISTEMA"
+  novo="$(mktemp "$ENV_SISTEMA.meow.XXXXXX")" || morrer "não consegui escrever $ENV_SISTEMA"
+  install -m 644 -o root -g root "$tmp" "$novo" || morrer "não consegui escrever $ENV_SISTEMA"
+  mv -f "$novo" "$ENV_SISTEMA" || morrer "não consegui escrever $ENV_SISTEMA"
   rm -f "$ENV_ORIGINAL"
   anotar "gpu-compositor-tirar"
   printf 'mudou\n'
