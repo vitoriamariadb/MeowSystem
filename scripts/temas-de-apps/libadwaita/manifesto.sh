@@ -20,8 +20,8 @@ meow_app_instalado() {
 meow_app_detectar() {
   MEOW_APP_MOTIVO=""
   meow_tem flatpak || { meow_app_sem "libadwaita: o flatpak não está instalado"; return; }
+  meow_app_instalado || { meow_app_sem "libadwaita: nenhum app Flatpak libadwaita instalado"; return; }
   _LA_APPS="$(meow_flatpak_apps_libadwaita)"
-  [ -n "$_LA_APPS" ] || { meow_app_sem "libadwaita: nenhum app Flatpak libadwaita instalado"; return; }
   meow_tarq_detectar libadwaita libadwaita
 }
 
