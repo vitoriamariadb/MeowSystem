@@ -335,7 +335,7 @@ const LUGAR_MODIFICACOES = {
     { a: "modificacao_corrigir", r: "Pôr a correção no lugar" },
   ],
   chaves: [
-    { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify", cartao: "spotify" },
+    { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify", cartao: "spotify", bloco: "Spotify" },
   ],
   detalhes: [
     { id: "terminal", nome: "Terminal", icone: "terminal",
@@ -391,9 +391,9 @@ function inventarioDoPainel() {
   for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Manter", "Zona de perigo");
   for (const l of LUGAR_EXTENSOES.applets) pus(l, "extensoes", "Applets", "Applets");
   for (const l of LUGAR_EXTENSOES.builds) pus(l, "extensoes", "Builds", "Builds");
-  for (const l of LUGAR_MODIFICACOES.cabeca) pus(l, "modificacoes", "Programas", "Programas");
-  for (const l of LUGAR_MODIFICACOES.cartao) pus(l, "modificacoes", "Programas", "Programas");
-  for (const l of LUGAR_MODIFICACOES.chaves) pus(l, "modificacoes", "Programas", "Programas");
+  for (const l of LUGAR_MODIFICACOES.cabeca) pus(l, "modificacoes", "", "");
+  for (const l of LUGAR_MODIFICACOES.cartao) pus(l, "modificacoes", "", "");
+  for (const l of LUGAR_MODIFICACOES.chaves) pus(l, "modificacoes", "", l.bloco);
   for (const d of LUGAR_MODIFICACOES.detalhes) for (const b of d.blocos) for (const l of b.linhas) pus(l, "modificacoes", d.nome, b.titulo);
   for (const l of LUGAR_TOPO) pus(l, "topo", "Barra de cima", "Barra de cima");
   for (const l of LUGAR_JANELA) pus(l, "janela", "Janela do trabalho", "Janela do trabalho");

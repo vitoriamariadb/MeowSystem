@@ -4628,7 +4628,7 @@ def inventario_do_painel():
     mods = c["LUGAR_MODIFICACOES"]
     for parte in ("cabeca", "cartao", "chaves"):
         for l in mods[parte]:
-            pus(l, "modificacoes", "Programas", "Programas")
+            pus(l, "modificacoes", "", l.get("bloco") or "")
     for d in mods["detalhes"]:
         for b in d["blocos"]:
             for l in b["linhas"]:
@@ -4643,7 +4643,8 @@ def inventario_do_painel():
 
 def _caminho_na_tela(l):
     porta = l["pagina"] if l["porta"] in ("topo", "janela") else nome_da_porta(l["porta"])
-    base = porta if l["porta"] in ("tema", "cuidar", "topo", "janela") else "%s › %s" % (porta, l["pagina"])
+    base = porta if l["porta"] in ("tema", "cuidar", "topo", "janela") or not l["pagina"] \
+        else "%s › %s" % (porta, l["pagina"])
     if l["bloco"] and l["bloco"] not in (l["pagina"], base):
         return base + " › " + l["bloco"]
     return base

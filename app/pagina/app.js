@@ -1194,7 +1194,8 @@ async function importarArquivo(arquivo) {
 function indiceDaBusca() {
   const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Manter"
     : l.porta === "criar" ? "Personalizar · " + l.pagina
-    : l.porta === "modificacoes" ? "Modificações · " + l.pagina : "Definir · " + l.pagina);
+    : l.porta === "modificacoes" ? ["Modificações", l.pagina || l.bloco].filter(Boolean).join(" · ")
+    : "Definir · " + l.pagina);
   const visto = new Set();
   const saida = [];
   for (const l of inventarioDoPainel()) {
