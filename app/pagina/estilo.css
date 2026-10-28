@@ -441,9 +441,6 @@ select.campo { padding-right: var(--e-8); }
 .galeria .estrela[aria-pressed="true"] { color: var(--yellow); }
 .galeria .levar[aria-pressed="true"] { background: var(--accent-suave); border-color: var(--accent); color: var(--accent); }
 
-.liga-programas { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--e-3); padding: var(--e-5) var(--e-6); }
-.liga-programas .programa { display: flex; align-items: center; justify-content: space-between; gap: var(--e-3); height: 52px; padding: 0 var(--e-3) 0 var(--e-4); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); font-weight: 600; min-width: 0; }
-.liga-programas .programa span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .grade-jogos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--e-3); padding: var(--e-5) var(--e-6); }
 .jogo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-2); padding: 6px; border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); min-width: 0; }
 .jogo .capa { padding: 0; border: 0; background: none; border-radius: var(--raio-sm); overflow: hidden; }
@@ -707,8 +704,6 @@ dialog.resultado { width: min(880px, calc(100vw - 32px)); }
 .previa .parede ~ .p-barra { backdrop-filter: blur(.4cqi); }
 .secao[hidden] { display: none !important; }
 .lugar-letra { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 6px; background: var(--cartao-2); color: var(--tinta-2); font: 600 var(--t-xs) var(--f-corpo); }
-.liga-programas .programa > .fila { gap: var(--e-3); flex-wrap: nowrap; min-width: 0; }
-.liga-programas .programa img { width: 24px; height: 24px; flex: none; }
 .nova-ficha { position: relative; display: inline-flex; }
 .nova-ficha .ficha-nova { width: min(360px, calc(100vw - 64px)); }
 .nova-ficha .sugestoes { position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; width: 100%; }
