@@ -832,6 +832,13 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         item["opcoes"] = oferta
         item["rotulos"] = {i: (mod.campo(i, "nome") or i) for i in oferta}
 
+    item = por_chave.get("LOGO_PROGRAMA")
+    if item:
+        oferta = _packs_com_logo()
+        item["opcoes"] = [""] + oferta
+        item["rotulos"] = {"": "Do pack no ar", **{i: (mod.campo(i, "nome") or i) for i in oferta}}
+        item["previa"] = "logo"
+
     item = por_chave.get("TERMINAL_CURSOR")
     if item:
         item["frase"] = "A cor de destaque, ou a que o tema «%s» escolhe." % nome_pack
@@ -1882,6 +1889,10 @@ def validar_valor(item, valor):
         fechadas = _flavors_dos_packs() or fechadas
     if item["chave"] == "PACK":
         fechadas = sorted(_packs_no_disco()) or fechadas
+    if item["chave"] == "LOGO_PROGRAMA":
+        fechadas = _packs_com_logo()
+        if valor not in fechadas:
+            return "LOGO_PROGRAMA aceita o nome de um pack com logo: %s" % (" | ".join(fechadas) or "nenhum")
     if fechadas and valor not in fechadas:
         return "%s aceita %s" % (item["chave"], " | ".join(fechadas))
 
@@ -2278,6 +2289,37 @@ def logo_do_painel(flavor, accent):
         return bruto.encode("utf-8")
     return re.sub(r'stroke="#[0-9A-Fa-f]{3,8}"',
                   'stroke="%s"' % tinta, bruto).encode("utf-8")
+
+
+def _packs_com_logo():
+    mod = modulo_pack()
+    if not mod:
+        return []
+    saida = []
+    for ident in sorted(_packs_no_disco()):
+        try:
+            mod.logo(ident)
+        except Exception:
+            continue
+        saida.append(ident)
+    return saida
+
+
+def logo_de_pack(ident, flavor, accent):
+    mod = modulo_pack()
+    if not mod or ident not in _packs_no_disco():
+        return None
+    try:
+        _p, dados, _dir = mod.validar(ident, silencioso=True)
+        return mod.logo(ident, flavor if flavor in dados["flavors"] else None,
+                        accent if accent in mod.SLOTS else None).encode("utf-8")
+    except Exception:
+        return None
+
+
+def logo_escolhida():
+    valor = valores_efetivos(["LOGO_PROGRAMA"]).get("LOGO_PROGRAMA") or ""
+    return valor if valor in _packs_com_logo() else ""
 
 
 def _areas_alfinetadas():
@@ -5311,11 +5353,15 @@ class Manipulador(BaseHTTPRequestHandler):
         finally:
             _pulso_sai()
 
-    def _logo_do_painel(self):
+    def _logo_do_painel(self, pack=None):
         valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
         flavor = _flavor_do_conf(valores)
         flavor = _flavor_da_pagina(flavor, valores)
-        return logo_do_painel(flavor, _acento_da_pagina(flavor, valores))
+        acento = _acento_da_pagina(flavor, valores)
+        escolhida = logo_escolhida() if pack is None else pack
+        if escolhida:
+            return logo_de_pack(escolhida, flavor, acento)
+        return logo_do_painel(flavor, acento)
 
     def do_GET(self):
         alvo = urlparse(self.path)
@@ -5369,7 +5415,8 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/logo.svg":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
-            corpo = self._logo_do_painel()
+            corpo = self._logo_do_painel(consulta.get("pack", [""])[0]
+                                         if "pack" in consulta or "de" in consulta else None)
             if corpo is None:
                 return self._recusar(404, "a logo autoral não está no acervo")
             return self._responder(corpo, tipo=TIPOS[".svg"])
