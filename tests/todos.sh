@@ -79,6 +79,7 @@ PORTATIL=(
   tres-pastas.sh
   migracao-do-painel.py
   vizinhos.sh
+  qbittorrent-tema-do-pack.sh
   segunda-passada-sem-rede.sh
   lancador-do-meow.sh
   flatpak-tema.sh
