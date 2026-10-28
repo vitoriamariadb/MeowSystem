@@ -2217,7 +2217,45 @@ cmd_apps() {
         SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" reverter; local rc=$?
       [ "$rc" = "1" ] && registrar "apps reverter $1"
       return "$rc" ;;
-    *) meow_erro "uso: meow apps [tabela|conferir|aplicar [nome]|reverter <nome>]"; return "$MEOW_ERRO" ;;
+    cartoes)
+      local m todos="${APPS_ATIVOS:-}" ativos=",$(printf '%s' "${APPS_ATIVOS:-}" | tr -d ' '),"
+      local pasta slugs det conf motivo s liga cartao tipo alvo _rotulo
+      local -a _lista=()
+      for m in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
+        [ -f "$m" ] || continue
+        m="${m%/manifesto.sh}"
+        case "$ativos" in *",${m##*/},"*) ;; *) todos="$todos,${m##*/}" ;; esac
+      done
+      while IFS=$'\t' read -r pasta slugs det conf motivo; do
+        [ -n "$pasta" ] || continue
+        slugs="${slugs// /}"
+        liga="nao"
+        IFS=',' read -ra _lista <<< "$slugs"
+        for s in "${_lista[@]}"; do
+          case "$ativos" in *",$s,"*) liga="sim" ;; esac
+        done
+        printf 'modulo\t%s\t%s\t%s\t%s\t%s\t%s\n' "$pasta" "$det" "$conf" "$liga" "$slugs" "$motivo"
+      done < <(APPS_ATIVOS="$todos" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+        SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
+      [ -f "$RAIZ/assets/contratos/modificacoes.tsv" ] || return "$MEOW_OK"
+      while IFS=$'\t' read -r cartao tipo alvo _rotulo; do
+        [ "$tipo" = "correcao" ] && [ -n "$cartao" ] || continue
+        declare -F "chk_$alvo" >/dev/null || continue
+        "chk_$alvo" </dev/null >/dev/null 2>&1
+        printf 'correcao\t%s\t%s\n' "$alvo" "$?"
+      done < "$RAIZ/assets/contratos/modificacoes.tsv"
+      return "$MEOW_OK" ;;
+    corrigir)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow apps corrigir <nome>"; return "$MEOW_ERRO"; }
+      cut -f2,3 "$RAIZ/assets/contratos/modificacoes.tsv" 2>/dev/null | grep -qxF "correcao	$1" \
+        && declare -F "fix_$1" >/dev/null \
+        || { meow_erro "'$1' não é uma correção de programa"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "fix_$1"; local rc=$?
+      [ "$rc" = "1" ] && registrar "apps corrigir $1"
+      return "$rc" ;;
+    *) meow_erro "uso: meow apps [tabela|conferir|cartoes|aplicar [nome]|reverter <nome>|corrigir <nome>]"; return "$MEOW_ERRO" ;;
   esac
 }
 
