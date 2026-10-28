@@ -168,7 +168,7 @@ s="$(pack levar meu-tema sistema "$DRA/sistema/folder-documents.svg" folder-docu
 s2="$(pack levar meu-tema biblioteca "$DRA/biblioteca/$BIB" 2>&1)"; r2=$?
 if [ "$r1$r2" = 00 ] && cmp -s "$DRA/sistema/folder-documents.svg" "$DIR/icones/sistema/folder-documents.svg" \
    && cmp -s "$DRA/biblioteca/$BIB" "$DIR/icones/biblioteca/$BIB" \
-   && pack acervo-para-levar meu-tema sistema | grep -q "	folder-documents	.*	sim$"; then
+   && pack acervo-para-levar meu-tema sistema | grep "	folder-documents	.*	sim$" >/dev/null; then
   ok "«Levar para o tema» copia o ícone de sistema e o da biblioteca para as pastas do pack, e a oferta o marca"
 else
   falha "os ícones não entraram no pack (rc=$r1/$r2)" "$s
