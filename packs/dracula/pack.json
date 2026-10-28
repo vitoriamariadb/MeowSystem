@@ -69,13 +69,14 @@
       "_nota_mapa": "O mapa é do pack desde 09/10/2026 (P74 item 6, I7): as sete pastas especiais de 15/09 mais `folder`, `user-home` e `user-desktop`, desenhadas no mesmo dia na mesma silhueta. O porquê está no cabeçalho do `icones/pastas.map`."
     },
     "sistema": {
-      "herda": "meowsystem",
+      "desenhos": "icones/sistema/",
+      "mapa": "icones/sistema.map",
       "pintar": "text",
-      "_nota": "Os 30 ícones do próprio COSMIC (sistema.map) vêm do molde do pack meowsystem, com o traço pintado na cor `text` do flavor deste pack. A base pinada (`icones.base`) não os cobre: medido em 27/10/2026, 19 dos 30 nomes do mapa não existem nos dois pacotes dela."
+      "_nota": "Os 168 nomes que o COSMIC pede (assets/contratos/nomes-de-sistema.tsv) no desenho deste pack: 143 copiados dos simbólicos do dracula-icons (ramo circle, 00a230a2), 19 desenhados no mesmo preenchido de 16 px onde o dracula-icons não tem o nome (as baterias com limite de carga, a pasta nova, a alça, as áreas de trabalho). Cada família de estado mora aqui inteira; o traço do MeowSystem não entra no Dracula (P131, 27/10/2026)."
     },
     "mimetypes": {
       "herda": "meowsystem",
-      "_nota": "Os 656 tipos de arquivo vêm do molde do pack meowsystem, pintados na instalação com a paleta deste pack (P96, 23/10/2026). Até aqui eram dois diretórios pintados à mão, um por flavor."
+      "_nota": "Os 75 tipos de arquivo vêm do molde do pack meowsystem, pintados na instalação com a paleta deste pack (P96, 23/10/2026). Até aqui eram dois diretórios pintados à mão, um por flavor."
     },
     "autorais": {
       "gerar": true,

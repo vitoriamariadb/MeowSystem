@@ -505,11 +505,11 @@ apps_no_disco() {
 
 tem_apps_traco() { [ -d "$TEMA_DIR/48x48/apps" ]; }
 
-status_no_disco() {
-  local d tam
-  for d in "$TEMA_DIR"/*/status; do
+contexto_no_disco() {
+  local ctx="$1" d tam
+  for d in "$TEMA_DIR"/*/"$ctx"; do
     [ -d "$d" ] || continue
-    tam="$(basename "${d%/status}")"
+    tam="$(basename "${d%/"$ctx"}")"
     case "$tam" in
       [0-9]*x[0-9]*|scalable) printf '%s\n' "$tam" ;;
     esac
@@ -517,12 +517,14 @@ status_no_disco() {
 }
 
 indice() {
-  local dirs="" tam
+  local dirs="" tam ctx contexto
   while IFS= read -r tam; do [ -n "$tam" ] && dirs="$dirs$tam/apps,"; done < <(apps_no_disco)
   tem_apps_png && dirs="${dirs}512x512/apps,"
   dirs="${dirs}scalable/apps"
   tem_mimetypes && dirs="$dirs,scalable/mimetypes"
-  while IFS= read -r tam; do dirs="$dirs,$tam/status"; done < <(status_no_disco)
+  for ctx in status actions devices; do
+    while IFS= read -r tam; do dirs="$dirs,$tam/$ctx"; done < <(contexto_no_disco "$ctx")
+  done
   while IFS= read -r tam; do dirs="$dirs,$tam/places"; done < <(places_no_disco)
 
   cat <<FIM
@@ -573,27 +575,30 @@ MaxSize=512
 FIM
   fi
 
-  while IFS= read -r tam; do
-    if [ "$tam" = scalable ]; then
-      cat <<FIM
+  for ctx in status actions devices; do
+    contexto="${ctx^}"
+    while IFS= read -r tam; do
+      if [ "$tam" = scalable ]; then
+        cat <<FIM
 
-[scalable/status]
+[scalable/$ctx]
 Size=48
-Context=Status
+Context=$contexto
 Type=Scalable
 MinSize=8
 MaxSize=512
 FIM
-    else
-      cat <<FIM
+      else
+        cat <<FIM
 
-[$tam/status]
+[$tam/$ctx]
 Size=${tam%%x*}
-Context=Status
+Context=$contexto
 Type=Fixed
 FIM
-    fi
-  done < <(status_no_disco)
+      fi
+    done < <(contexto_no_disco "$ctx")
+  done
 
   while IFS= read -r tam; do
     if [ "$tam" = scalable ]; then

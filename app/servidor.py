@@ -7534,7 +7534,7 @@ class Manipulador(BaseHTTPRequestHandler):
                     _ICONES_DECLARADOS.add(os.path.normpath(i["arq"]))
                     url = "/previa?tipo=arquivo&id=" + quote(i["arq"], safe="")
                 icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
-                                      "levado": i["levado"], "url": url})
+                                      "grupo": i.get("grupo", ""), "levado": i["levado"], "url": url})
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:
