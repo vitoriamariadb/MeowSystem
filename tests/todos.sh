@@ -22,6 +22,7 @@ PORTATIL=(
   higiene.sh
   app.sh
   modificacoes.sh
+  modificacoes-no-install.sh
   estilo.sh
   reversao.sh
   seco.sh

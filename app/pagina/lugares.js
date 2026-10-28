@@ -333,6 +333,7 @@ const LUGAR_MODIFICACOES = {
     { a: "modificacao_aplicar", r: "Pôr no lugar" },
     { a: "modificacao_reverter", r: "Tirar o tema" },
     { a: "modificacao_corrigir", r: "Pôr a correção no lugar" },
+    { c: "FLATPAK_CORRECOES", r: "Correções do Flatpak" },
   ],
   chaves: [
     { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify", cartao: "spotify", bloco: "Spotify" },
