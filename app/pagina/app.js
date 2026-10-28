@@ -440,6 +440,7 @@ function controle(item) {
 
   if (item.molde_pastas) { const c = controlePastas(item, aplica); if (c) return c; }
   if (item.previa === "gato" || item.previa === "cursor") return controleImagem(item, aplica);
+  if (item.previa === "logo") return controleLogo(item, aplica);
   if (item.previa === "cor") return controleCor(item, aplica);
   if (item.chave === "AREAS_NOMES") return controleAreas(item, aplica);
   if (item.chave === "AREAS_FOLGA" || item.chave === "AREAS_ENCAIXE") return controlePorArea(item, aplica);
@@ -625,6 +626,32 @@ function controleImagem(item, aplica) {
   }
   if (grande) caixa.append(botaoAcervo(tipo, tipo === "gato" ? "Trazer .svg" : "Trazer .zip", true));
   return caixa;
+}
+
+function controleLogo(item, aplica) {
+  const valor = valorEmVigor(item) || "";
+  const caixa = elemento("div", { class: "escolhas", role: "group", "aria-label": item.titulo || item.chave });
+  for (const op of item.opcoes) {
+    const src = "/logo.svg?" + (op ? "pack=" + encodeURIComponent(op) : "de=pack") + "&v=" + encodeURIComponent(vale("FLAVOR") + vale("ACCENT"));
+    caixa.append(elemento("button", {
+      type: "button", class: "escolha", "aria-pressed": String(op === valor),
+      controle: "chave:" + item.chave + "=" + op, onclick: () => aplica(op),
+    }, [elemento("img", { src, alt: "", loading: "lazy" }), elemento("span", { texto: rotuloDeValor(op, item) })]));
+  }
+  return caixa;
+}
+
+const MARCA = { logo: null };
+function marcaDoPrograma() {
+  if (EM_VOO) return;
+  const logo = [vale("LOGO_PROGRAMA"), vale("PACK"), vale("FLAVOR"), vale("ACCENT")].join("|");
+  if (MARCA.logo === null) { MARCA.logo = logo; return; }
+  if (MARCA.logo === logo) return;
+  MARCA.logo = logo;
+  const src = "/logo.svg?v=" + encodeURIComponent(logo);
+  $("#topo .marca img").src = src;
+  const aba = document.querySelector("link[rel=icon]");
+  if (aba) aba.href = src;
 }
 
 const LISTAS_DE_APPS = new Set(["LANCADOR_OCULTAR", "AUTOSTART_BLOQUEADOS"]);
@@ -1315,6 +1342,7 @@ function render() {
   const ativo = document.activeElement;
   const foco = ativo && ativo.dataset && $("#conteudo").contains(ativo) ? ativo.dataset.controle : null;
   desenharPortas();
+  marcaDoPrograma();
   $("#abas").hidden = ROTA.porta !== "ajustes" && ROTA.porta !== "extensoes";
   const pagina = ROTA.porta === "criar" ? paginaCriar(ROTA.sub)
     : ROTA.porta === "ajustes" ? paginaAjustes(ROTA.sub)
