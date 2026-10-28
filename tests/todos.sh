@@ -118,12 +118,14 @@ MAQUINA=(
   p113-navegador.py
   gate-link-externo.py
   extensoes-pagina.py
+  modificacoes-pagina.py
 )
 
 SEM_PULO=(
   app-completo.py
   app-uso-real.py
   extensoes-pagina.py
+  modificacoes-pagina.py
 )
 
 MODO="tudo"
