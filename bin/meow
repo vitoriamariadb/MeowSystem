@@ -350,9 +350,12 @@ fix_fundo() {
     meow_muda "instalaria e ligaria o relógio (15 min) e o gatilho do carrossel"
     return "$MEOW_DIVERGENTE"
   fi
+  local texto _ativos="${WALLPAPER_BASE:-$HOME/.local/share/backgrounds/meowsystem}/ativos"
   mkdir -p "$_FUNDO_DIR"
   for u in "${_FUNDO_UNIDADES[@]}"; do
-    meow_escrever "$_FUNDO_DIR/$u" "$(cat "$RAIZ/systemd/$u")" 644
+    texto="$(cat "$RAIZ/systemd/$u")"
+    [ "$u" = "meow-ativos.path" ] && texto="${texto//@ATIVOS@/$_ativos}"
+    meow_escrever "$_FUNDO_DIR/$u" "$texto" 644
     case $? in 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
   done
   systemctl --user daemon-reload >/dev/null 2>&1
