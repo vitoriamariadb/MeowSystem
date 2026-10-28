@@ -33,7 +33,9 @@
   `~/.local/state/meowsystem/backups/git-hooks-mortos-2026-10-27`) e Aurora (P124-P125, `relatorios/conferencia-aurora.md`, merge 704c8be0;
   doctor com 76 conferências). Correção do coordenador na integração: a grade do acervo pinta o traço (10d9f698).
 - EM VOO, a partir da integração (ela pediu os blocos juntos, 27/10):
-  Modificações (`wf_bcafdaaa-ac2`, P130). Flatpak (P127-P129) integrado às 23:20 (merge d75f0c1b, doctor com 79
+  Nada. Modificações (P130) entrou na integração em 28/10 (merge 947fb272, `relatorios/conferencia-modificacoes.md`);
+  falta a suíte, o `dev` e o install. Anotado da P130: a corrida do `enviarLote` (app.js) que devolve valor velho com
+  o servidor lento vira sprint; só o Terminal tem página de detalhe. Flatpak (P127-P129) integrado às 23:20 (merge d75f0c1b, doctor com 79
   conferências; `relatorios/conferencia-flatpak.md`). No fecho dele: o `APPS_ATIVOS` dela ganha `libadwaita` e
   `waterfox`, o install com o HOME real limpa o override global; o Ghostwriter fica para medir no Nitro; o
   `restaurar.sh` também acusa `sistema_limpar` (o `atualizar_sistema.sh limpar` copia o .deb real do cosmic-comp para
