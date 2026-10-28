@@ -73,8 +73,12 @@ for em_edicao in ("meowsystem", "dracula"):
     rotulos = {i["rotulo"] for i in itens}
     checa({"Documentos", "Downloads", "Música", "Imagens"} <= rotulos,
           "%s: a aba Sistema chama as pastas pelo nome (Documentos, Downloads…)" % em_edicao, repr(sorted(rotulos)))
-    checa(not [r for r in rotulos if re.search(r"[-_.]|^folder|^user", r)],
-          "%s: nenhum rótulo de pasta tem hífen nem nome técnico" % em_edicao, repr(sorted(rotulos)))
+    pastas = {i["rotulo"] for i in itens if i.get("grupo") == "pastas"}
+    checa(pastas and not [r for r in pastas if re.search(r"[-_.]|^folder|^user", r)],
+          "%s: nenhum rótulo de pasta tem hífen nem nome técnico" % em_edicao, repr(sorted(pastas)))
+    checa(not [i for i in itens if re.search(r"_|symbolic|^folder|^user", i["rotulo"]) or i["rotulo"] == i["nome"]],
+          "%s: nenhum rótulo do sistema é o nome técnico do ícone" % em_edicao,
+          repr(sorted(i["rotulo"] for i in itens if re.search(r"_|symbolic", i["rotulo"]) or i["rotulo"] == i["nome"])))
 
 amostra = pack.acervo_para_levar(None, "sistema", "meowsystem", cores_mocha)
 hexes = {v.lower() for v in cores_mocha.values()}

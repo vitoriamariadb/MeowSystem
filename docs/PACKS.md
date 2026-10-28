@@ -480,7 +480,7 @@ ele não desenha — ver [A base de ícones](#a-base-de-ícones).
 `{"de": "catppuccin", "pasta": "css-variables"}` manda o `meow pack construir`
 pegar o acervo daquele pack em que a cor vem escrita por papel, trocar cada papel
 pelo hex da sua paleta. O Dracula não usa esta
-forma: os 656 ícones de arquivo são o molde do pack `meowsystem`
+forma: os 75 ícones de arquivo são o molde do pack `meowsystem`
 (`icones/sistema/`, herdado por `icones.mimetypes.herda`), pintado na instalação
 com a paleta do pack no ar, sem copiar desenho nenhum.
 
