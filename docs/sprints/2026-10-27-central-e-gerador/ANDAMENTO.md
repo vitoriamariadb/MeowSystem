@@ -8,7 +8,11 @@
   branch `bloco/gpu`, 2 agentes). A linha do `jogos-fora.map` fica apagada, por decisão dela (ab44877d).
   PRÓXIMO: integrar a P132 no `dev` e rodar o install com o HOME real pelo askpass (pedido dela). Depois, pedido
   dela: `master` no `origin` (hoje em 89064565, de 28/09; as tags v2.0.0 e v2.1.0 só existem aqui) e o release.
-  Os forks (pergunta dela): o install não chama o install de nenhum, e o que falta está na P133.
+  Os forks (pergunta dela): o install não chama o install de nenhum, e o que falta está na P133 (ela: entra agora;
+  worktree `~/Desenvolvimento/MeowSystem-forks2`, branch `bloco/forks-p133`).
+  Na fila (ela, 28/10: «entra agora também»): bloco Painel com a P134 (Modificações: garantida no install, cartão
+  único com interruptor e «⋮», Adicionar tema) e a P135 (Manter: o cartão de voltar ao lado do Registro). Lança
+  quando a P132 voltar, porque a P134 mexe no `install.sh` (dois blocos por vez, no máximo).
 - FECHO (28/10, madrugada): tudo no `dev` (merge 9e5bf737) e instalado com o HOME real (69 etapas, rc=0).
   `meow doctor --consertar` rodado: as 348 imagens foram para `~/.local/share/backgrounds/meowsystem`, a
   árvore velha `midia/` e `leitura/` (1,6 GB) saiu, e o corte da Aurora (compositor e luz noturna) está no
