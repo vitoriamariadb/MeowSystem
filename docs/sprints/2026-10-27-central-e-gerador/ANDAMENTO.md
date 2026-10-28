@@ -1,6 +1,19 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- FECHO (28/10, madrugada): tudo no `dev` (merge 9e5bf737) e instalado com o HOME real (69 etapas, rc=0).
+  `meow doctor --consertar` rodado: as 348 imagens foram para `~/.local/share/backgrounds/meowsystem`, a
+  árvore velha `midia/` e `leitura/` (1,6 GB) saiu, e o corte da Aurora (compositor e luz noturna) está no
+  self-heal e no install do zsh, com cópia em `~/.local/state/meowsystem/vizinhos/`. Conserto do coordenador:
+  o vigia de `ativos/` era gravado com o `@ATIVOS@` cru (e78bf239). A pasta foi enxugada por decisão dela
+  (2,6 GB para 319 MB; o registro em `arquivo:levas/2026-10-27-pasta-local/`), e o enxugar saiu (bec9c745).
+  O qBittorrent trocou o Dracula dela pelo tema do pack, por decisão dela (cópia em
+  `~/.local/state/meowsystem/backups/qbittorrent-antes-2026-10-28`).
+  PRÓXIMO: o Vencord do Discord entra quando ela fechar o Discord. O build do compositor vale no próximo login
+  (aí a D6 da GPU deve ficar verde). `assets/apps/jogos-fora.map` tem uma linha apagada que não é desta leva:
+  a decisão é dela. Sprints anotadas: a corrida do `enviarLote`, o contraste do traço no Latte, os rótulos
+  cortados da bateria, os tipos de arquivo em inglês, o Ghostwriter no Nitro, o `sistema_limpar` em
+  `restaurar.sh`, o Vencord pelo `meow`, o fundo do chat do ZapZap e a frase «abra o Waterfox uma vez».
 - Desinstalado da máquina (27/10), tudo movido para
   `~/.local/state/meowsystem/backups/desinstalacao-2026-10-27/` (reversível):
   - applets em `~/.local`: os cinco `meowsystem-*` (instalados à mão pelos agentes, não pelo MeowSystem),
