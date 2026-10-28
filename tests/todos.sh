@@ -120,6 +120,7 @@ MAQUINA=(
   gate-link-externo.py
   extensoes-pagina.py
   modificacoes-pagina.py
+  logo-pagina.py
 )
 
 SEM_PULO=(
@@ -127,6 +128,7 @@ SEM_PULO=(
   app-uso-real.py
   extensoes-pagina.py
   modificacoes-pagina.py
+  logo-pagina.py
 )
 
 MODO="tudo"

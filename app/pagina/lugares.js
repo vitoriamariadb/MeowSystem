@@ -186,6 +186,9 @@ const AJUSTES = [
         { c: "FASTFETCH_LOGO_BLOCOS", r: "Detalhe", sub: true },
         { c: "FASTFETCH_LOGO_CONF", r: "Corrigir o Fastfetch", sub: true },
       ] },
+      { titulo: "No programa", linhas: [
+        { c: "LOGO_PROGRAMA", r: "Logo do programa", larga: true },
+      ] },
     ] },
   { id: "dia-e-noite", nome: "Dia e noite", icone: "lua",
     blocos: [
