@@ -391,6 +391,8 @@ def capturas():
             for ident, _nome in lista:
                 pag.click(f'[data-controle="porta:{ident}"]')
                 pag.evaluate(ASSENTAR, [700, 20000])
+                pag.wait_for_function("() => !document.querySelector('#conteudo [aria-busy=\"true\"]')", timeout=300000)
+                pag.evaluate(ASSENTAR, [700, 20000])
                 pag.mouse.move(0, 0)
                 pag.wait_for_timeout(300)
                 novo = os.path.join(brinquedo, ident + ".png")
