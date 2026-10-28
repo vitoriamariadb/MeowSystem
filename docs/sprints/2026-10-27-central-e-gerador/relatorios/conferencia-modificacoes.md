@@ -105,3 +105,40 @@ painel foi aberto headless numa casa de brinquedo, em 1829 e em 390 px de largur
   - `app-navegador.py`, `app-acessibilidade.py`, `app-uso-real.py`, `app-texto-visivel.py`;
   - `extensoes-pagina.py`, `readme.sh`.
 - **Escritas recusadas:** a suíte recusou 6 chamadas de sudo e parou 13 escritas de busctl.
+
+## Final
+
+A conferência final rodou em `6e3c4430` e numa prévia da integração: a árvore de `git merge-tree` da
+`bloco/modificacoes` com a `integracao/central-e-gerador` (`d75f0c1b`, já com o Flatpak), exportada para fora do
+repositório. Não achei regressão, e nenhum commit de código foi preciso.
+
+### O que rodou
+- `./tests/todos.sh` no bloco: «todos os 109 · 107 verde(s), 0 pulado(s), 2 vermelho(s)», os dois aceitos
+  (`decisoes.sh`: D6 e o «24» do `enxugar.sh`; `restaurar.sh`: `pack_usar` e `desinstalar`). `app-completo.py`
+  (1197 s), `app-layout.py`, `app-navegador.py` e `extensoes-pagina.py` verdes. 6 sudo recusados, 13 busctl parados.
+- Na prévia da integração: `modificacoes.sh`, `migracao-do-painel.py` («126 chaves, 72 ações e 24 gestos; 0 sem
+  destino»), `flatpak-tema.sh` e `temas-de-apps.sh` verdes; `app-completo.py --aba modificacoes`: 91 conferências,
+  «ok: o painel inteiro».
+- A segunda passada do doctor na prévia, numa casa temporária, nos dois packs: `install.sh` e três passadas de
+  `meow doctor --consertar`, com `sudo`, `pkexec`, `curl`, `cargo`, `git clone` e o `systemctl` de escrita
+  recusando. Nas passadas 2 e 3 só muda o `~/.cache/dconf/user` (o `dconf read`). Os quatro `flatpak*` dão «ok»
+  e o `meow apps cartoes` traz as três correções do cartão Apps Flatpak com rc 0.
+- Passeio headless pelas seis portas, 17 rotas (com `#modificacoes` e `#modificacoes/terminal`), nos dois packs,
+  em 1829 e em 390 px (68 telas). Procurei erro de JavaScript, HTTP de 400 para cima, imagem quebrada,
+  `undefined`/`NaN`, rolagem lateral, botão sem nome, *vestir*, «Mandar» e «meow <verbo>». Deu zero. A única
+  escrita na casa é o `rascunho-do-tema.json` que o próprio passeio grava para trocar de pack.
+- `scripts/readme.sh --conferir` na prévia: «o README já diz o que o código diz». O `scripts/readme.sh` completo
+  só refaz a `modificacoes.png`, que passa a mostrar «Aplicar em todos» e o cartão Apps Flatpak.
+
+### Para a integração
+- O merge com a `integracao/central-e-gerador` só conflita em 5 capturas (`docs/capturas/readme/{ajustes,criar,
+  cuidar,extensoes,tema}.png`). O `README.md`, o `README.en.md` e o `bin/meow` (`VERIFICAVEIS`) se mesclam sozinhos.
+  Fica qualquer um dos lados das capturas, depois `scripts/readme.sh`, e o commit leva a `modificacoes.png` nova.
+
+### Anotado, para o próximo bloco
+- **A grade da Modificações demora ~25 s para sair do esqueleto.** O `meow apps cartoes` gasta 24 s no
+  `aplicar_apps.sh tabela`, numa casa sem os programas: o `conferir` do `spotify` leva 9 s e o do `btop-bat` 7 s. As
+  correções somam 1,3 s. A página pede de novo a cada visita depois de 60 s. A causa mora nos módulos, que já eram
+  assim no `chk_apps` do doctor, e só ficou à vista agora. Vale virar sprint: medir esses dois `conferir`.
+- **Na largura de celular, a porta ativa fica fora da faixa do topo.** A `nav` rola de lado, mas não traz a porta
+  ativa para a vista. Isso já valia para a Extensões. Com a sexta porta, a Modificações também some.
