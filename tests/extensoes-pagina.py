@@ -279,7 +279,7 @@ def main():
             checa(pag.locator(".abas-ajustes").count() == 1 and pag.locator("#conteudo .abas-ajustes").count() == 0,
                   "as abas moram na barra de cima, uma só")
             ir(pag, "ajustes/painel")
-            checa(pag.locator(".abas-ajustes [data-controle^='ajuste:']").count() >= 7 and pag.locator(".abas-ajustes [data-aba]").count() == 0,
+            checa(pag.locator(".abas-ajustes [data-controle^='ajuste:']").count() == pag.evaluate("() => AJUSTES.length") and pag.locator(".abas-ajustes [data-aba]").count() == 0,
                   "e Definir volta com as suas abas")
             ir(pag, "extensoes")
             checa(pag.locator("#conteudo .previa").count() == 1 and pag.locator(".barra-perto").count() == 1,

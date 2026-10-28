@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR" data-sabor="mocha">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeowSystem · Modificações</title>
+<link rel="stylesheet" href="../../2026-10-26-qa-final/maquete/b/estilo.css">
+<link rel="stylesheet" href="../../2026-10-26-qa-final/maquete/b/paleta.css">
+<link rel="stylesheet" href="../../2026-10-26-qa-final/maquete/b/estilo-b.css">
+<style>
+.grade-modificacoes { display: grid; align-items: start; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--e-4); }
+.cartao-mod { display: grid; gap: var(--e-3); padding: var(--e-5); align-content: start; }
+.cartao-mod .cabeca { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: var(--e-3); align-items: center; }
+.cartao-mod .cabeca h3 { margin: 0; font-size: var(--t-md); overflow-wrap: anywhere; }
+.cartao-mod .marca-app { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--raio-md); background: var(--cartao-2); color: var(--tinta-2); font-weight: 700; }
+.cartao-mod ul { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--linha); }
+.cartao-mod li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--e-3); align-items: center; min-height: 44px; border-bottom: 1px solid var(--linha); }
+.cartao-mod li:last-child { border-bottom: 0; }
+.cartao-mod li span { min-width: 0; overflow-wrap: anywhere; }
+.cartao-mod li small { display: block; color: var(--tinta-3); font: var(--t-xs) var(--f-mono); }
+.cartao-mod .abrir { justify-self: start; }
+.cabeca-mod { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--e-3); margin-bottom: var(--e-5); }
+.cabeca-mod h1 { margin: 0; font-size: var(--t-xl); }
+.cabeca-mod .fila { display: flex; gap: var(--e-2); }
+</style>
+</head>
+<body data-porta="modificacoes">
+<header class="topo">
+  <a class="marca" href="#"><span>MeowSystem</span></a>
+  <nav aria-label="Portas"><ul class="portas">
+    <li><a href="#">Tema</a></li><li><a href="#">Personalizar</a></li><li><a href="#">Definir</a></li><li><a href="#">Manter</a></li><li><a href="#">Extensões</a></li><li><a href="#" aria-current="page">Modificações</a></li>
+  </ul></nav>
+</header>
+<main id="principal" class="pagina">
+  <div class="cabeca-mod">
+    <h1>Modificações</h1>
+    <div class="fila"><button class="bt pequeno" type="button">Conferir</button><button class="bt principal pequeno" type="button">Aplicar em todos</button></div>
+  </div>
+  <div class="grade-modificacoes">
+    <article class="bloco cartao-mod">
+      <div class="cabeca"><span class="marca-app">T</span><h3>Terminal</h3><span class="estado-pilula" data-estado="ok">Aplicado</span></div>
+      <ul>
+        <li><span>Cores do tema</span><button class="chave" role="switch" aria-checked="true" aria-label="Cores do tema"></button></li>
+        <li><span>Linha colorida</span><button class="chave" role="switch" aria-checked="true" aria-label="Linha colorida"></button></li>
+      </ul>
+      <a class="bt leve pequeno abrir" href="#">Abrir</a>
+    </article>
+    <article class="bloco cartao-mod">
+      <div class="cabeca"><span class="marca-app">S</span><h3>Spotify</h3><span class="estado-pilula" data-estado="alerta">Fora do lugar</span></div>
+      <ul>
+        <li><span>Tema<small>spotify</small></span><button class="chave" role="switch" aria-checked="true" aria-label="Tema do Spotify"></button></li>
+        <li><span>Loja do Spotify</span><button class="chave" role="switch" aria-checked="true" aria-label="Loja do Spotify"></button></li>
+      </ul>
+      <button class="bt pequeno abrir" type="button">Pôr no lugar</button>
+    </article>
+    <article class="bloco cartao-mod">
+      <div class="cabeca"><span class="marca-app">D</span><h3>Discord</h3><span class="estado-pilula" data-estado="neutro">Desligado</span></div>
+      <ul><li><span>Tema<small>discord</small></span><button class="chave" role="switch" aria-checked="false" aria-label="Tema do Discord"></button></li></ul>
+    </article>
+    <article class="bloco cartao-mod">
+      <div class="cabeca"><span class="marca-app">F</span><h3>Apps Flatpak</h3><span class="estado-pilula" data-estado="ok">Aplicado</span></div>
+      <ul>
+        <li><span>Tema<small>libadwaita</small></span><button class="chave" role="switch" aria-checked="true" aria-label="Tema dos apps Flatpak"></button></li>
+        <li><span>Libadwaita sem tema quebrado<small>correção</small></span><span class="estado-pilula" data-estado="ok">No lugar</span></li>
+        <li><span>Runtime GNOME antigo<small>correção</small></span><span class="estado-pilula" data-estado="alerta">Fora do lugar</span></li>
+      </ul>
+      <button class="bt pequeno abrir" type="button">Pôr no lugar</button>
+    </article>
+    <article class="bloco cartao-mod">
+      <div class="cabeca"><span class="marca-app">O</span><h3>Obsidian</h3><span class="estado-pilula" data-estado="ok">Aplicado</span></div>
+      <ul><li><span>Tema<small>obsidian</small></span><button class="chave" role="switch" aria-checked="true" aria-label="Tema do Obsidian"></button></li></ul>
+    </article>
+    <article class="bloco cartao-mod">
+      <div class="cabeca"><span class="marca-app">V</span><h3>VS Code</h3><span class="estado-pilula" data-estado="ok">Aplicado</span></div>
+      <ul><li><span>Tema<small>vscode</small></span><button class="chave" role="switch" aria-checked="true" aria-label="Tema do VS Code"></button></li></ul>
+    </article>
+  </div>
+</main>
+</body>
+</html>

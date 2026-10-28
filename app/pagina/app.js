@@ -39,6 +39,7 @@ const IC = {
   voltar: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
   pasta: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
   ponteiro: '<path d="M5 3l14 8-6 2-2 6Z"/>',
+  pincel: '<path d="m14.5 4.5 5 5L10 19H5v-5Z"/><path d="m12.5 6.5 5 5"/>',
 };
 
 function icone(nome, classe = "i") {
@@ -1193,7 +1194,9 @@ async function importarArquivo(arquivo) {
 
 function indiceDaBusca() {
   const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Manter"
-    : l.porta === "criar" ? "Personalizar · " + l.pagina : "Definir · " + l.pagina);
+    : l.porta === "criar" ? "Personalizar · " + l.pagina
+    : l.porta === "modificacoes" ? ["Modificações", l.pagina || l.bloco].filter(Boolean).join(" · ")
+    : "Definir · " + l.pagina);
   const visto = new Set();
   const saida = [];
   for (const l of inventarioDoPainel()) {
@@ -1264,7 +1267,8 @@ function reacenderChegada() {
 }
 function irPara(l) {
   const sub = l.porta === "ajustes" ? (AJUSTES.find((p) => p.nome === l.pagina) || {}).id
-    : l.porta === "criar" ? (PASSOS.find((p) => p.nome === l.pagina) || {}).id : "";
+    : l.porta === "criar" ? (PASSOS.find((p) => p.nome === l.pagina) || {}).id
+    : l.porta === "modificacoes" ? (LUGAR_MODIFICACOES.detalhes.find((d) => d.nome === l.pagina) || {}).id : "";
   const hash = "#" + l.porta + (sub ? "/" + sub : "");
   if (location.hash !== hash) history.pushState(null, "", hash);
   ROTA = rotaDoHash();
@@ -1287,6 +1291,7 @@ function rotaDoHash() {
   if (porta === "ajustes") return { porta, sub: AJUSTES.some((p) => p.id === sub) ? sub : AJUSTES[0].id };
   if (porta === "criar") return { porta, sub: PASSOS.some((p) => p.id === sub) ? sub : PASSOS[0].id };
   if (porta === "extensoes") return { porta, sub: sub === "builds" ? "builds" : "applets" };
+  if (porta === "modificacoes") return { porta, sub: LUGAR_MODIFICACOES.detalhes.some((d) => d.id === sub) ? sub : "" };
   return { porta, sub: "" };
 }
 function desenharPortas() {
@@ -1313,7 +1318,8 @@ function render() {
   const pagina = ROTA.porta === "criar" ? paginaCriar(ROTA.sub)
     : ROTA.porta === "ajustes" ? paginaAjustes(ROTA.sub)
     : ROTA.porta === "cuidar" ? paginaCuidar()
-    : ROTA.porta === "extensoes" ? paginaExtensoes(ROTA.sub) : paginaTema();
+    : ROTA.porta === "extensoes" ? paginaExtensoes(ROTA.sub)
+    : ROTA.porta === "modificacoes" ? paginaModificacoes(ROTA.sub) : paginaTema();
   $("#conteudo").replaceChildren(...[].concat(pagina).filter(Boolean));
   $("#conteudo").removeAttribute("aria-busy");
   reacenderChegada();
