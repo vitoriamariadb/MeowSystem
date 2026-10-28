@@ -13,6 +13,26 @@
   Na fila (ela, 28/10: «entra agora também»): bloco Painel com a P134 (Modificações: garantida no install, cartão
   único com interruptor e «⋮», Adicionar tema) e a P135 (Manter: o cartão de voltar ao lado do Registro). Lança
   quando a P132 voltar, porque a P134 mexe no `install.sh` (dois blocos por vez, no máximo).
+  Também na fila: P138 (escolher a logo do programa) entra no bloco Painel; P137 (pendências se resolvem e saem da
+  tela; o qBittorrent desfeito pelo `aurora-qbittorrent-config.sh`; o pack pessoal sem captura do COSMIC) é um bloco
+  próprio, lançado quando a P133 voltar.
+  EM VOO (ela, 28/10: «dispara uns 3 opus»): P136, os applets, em três grupos (A performance/leitura/quick-settings,
+  B eyedropper/clipboard/drives, C status-hub/ascii-battery/now-playing), clones em `~/Desenvolvimento/forks/`,
+  push na `main` de cada fork. Na integração, os pinos ganham `COMMIT`, `VERSAO`, `TEMA` e `TEMA_CHAVES` novos,
+  depois do merge da P133 (que também mexe nos pinos).
+  P136 grupo B VOLTOU (push feito): eyedropper 0f8c7afd 0.6.3, clipboard 0e663134 0.1.1, drives 02a5ccd6 0.1.3;
+  `TEMA`/`TEMA_CHAVES` iguais. Causa do inglês: faltava `i18n/pt-BR/` no eyedropper e no drives.
+  Disco: `/home` a 96% (14 GB livres); as árvores de build das extensões ocupam 15 GB (1,7 GB cada, um `target/`
+  por applet). Anotado: um `CARGO_TARGET_DIR` só para as nove. Apagar os `target/` de `~/Desenvolvimento/forks/`
+  quando os grupos A e C voltarem.
+  P136 grupo A VOLTOU (push feito): performance 06378723 0.2.0, leitura 274bd6a8 0.2.0, ambos com
+  `TEMA="io.github.meowsystem.<Performance|Leitura>"` e `TEMA_CHAVES="acento:@acento destaque:base fundo:base
+  borda:surface1 texto:text bloco:surface0"`; quick-settings sem mudança (73d29e9b). O `/home` chegou a 0 bytes
+  durante os builds: o que as suítes da P132 e da P133 rodaram nessa janela não vale como prova; o conferente roda de novo.
+  P136 grupo C VOLTOU (push feito): status-hub 8e869d5e 1.7.0, ascii-battery 66a727fd 1.4.0 (chaves iguais),
+  now-playing 6f448ec7 0.4.0 com `TEMA="io.github.meowsystem.NowPlaying"` e `TEMA_CHAVES="acento:@acento fundo:base
+  borda:surface1 texto:text"`. A Bandeja perdeu a opção «Título no popup». `target/` dos clones apagados (19 GB livres).
+  Falta na P136: os pinos no MeowSystem (depois do merge da P133) e as capturas no painel depois do install.
 - FECHO (28/10, madrugada): tudo no `dev` (merge 9e5bf737) e instalado com o HOME real (69 etapas, rc=0).
   `meow doctor --consertar` rodado: as 348 imagens foram para `~/.local/share/backgrounds/meowsystem`, a
   árvore velha `midia/` e `leitura/` (1,6 GB) saiu, e o corte da Aurora (compositor e luz noturna) está no
