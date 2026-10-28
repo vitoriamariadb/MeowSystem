@@ -2,9 +2,23 @@
 .cabeca-mod h1 { margin: 0; font-size: var(--t-xl); }
 .cabeca-mod .fila { display: flex; flex-wrap: wrap; gap: var(--e-2); }
 .grade-mod { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--e-4); align-items: start; }
-.cartao-mod { display: grid; gap: var(--e-3); padding: var(--e-5); min-width: 0; }
-.cabeca-cartao { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: var(--e-3); align-items: center; }
+.cartao-mod { position: relative; display: grid; gap: var(--e-3); padding: var(--e-4) var(--e-5); min-width: 0; overflow: visible; }
+.cartao-mod:has(.menu-mod[open]) { z-index: 20; }
+.cabeca-cartao { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; gap: var(--e-3); align-items: center; }
+.nome-mod { display: grid; gap: var(--e-1); justify-items: start; min-width: 0; }
+.nome-mod .estado-pilula { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cabeca-cartao h3 { margin: 0; font-size: var(--t-md); overflow-wrap: anywhere; min-width: 0; }
+.menu-mod > .menu-corpo { top: calc(100% + var(--e-1)); width: min(320px, calc(100vw - 32px)); }
+.menu-mod > .menu-corpo button, .menu-mod > .menu-corpo a { white-space: normal; min-height: var(--h-bt); height: auto; }
+.menu-mod [role="menuitemradio"] svg.i { visibility: hidden; }
+.menu-mod [role="menuitemradio"][aria-checked="true"] svg.i { visibility: visible; color: var(--accent); }
+.menu-mod a[role="menuitem"] { justify-content: space-between; }
+.menu-mod .itens-mod, .menu-mod .linhas { margin: var(--e-1) 0; padding: 0 var(--e-3); border-top: 1px solid var(--linha); }
+.menu-mod .itens-mod .bt, .menu-mod .itens-mod button { height: var(--h-pequeno); }
+.menu-mod .linhas .linha { grid-template-columns: minmax(0, 1fr) auto; gap: var(--e-3); min-height: 44px; padding: var(--e-1) 0; }
+#adicionar-tema:not([data-passo="gravando"]) .p-gravando { display: none; }
+#adicionar-tema .pilha-campo .bt { justify-self: start; max-width: 100%; }
+#adicionar-tema .pilha-campo .bt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .marca-app { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--raio-md); background: var(--cartao-2); color: var(--tinta-2); }
 .marca-app svg.i { width: 20px; height: 20px; }
 .itens-mod { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--linha); }
@@ -15,8 +29,6 @@
 .rot-mod small { color: var(--tinta-3); font-size: var(--t-xs); overflow-wrap: anywhere; }
 .ctl-mod { display: flex; align-items: center; gap: var(--e-2); justify-content: flex-end; }
 .ctl-mod .bt { white-space: nowrap; }
-.cartao-mod .linhas .linha { grid-template-columns: minmax(0, 1fr) auto; gap: var(--e-3); min-height: 44px; padding: var(--e-1) 0; }
-.abrir-mod { justify-self: start; }
 .voltar-mod { margin-bottom: var(--e-4); }
 .item-mod.chegou, .cartao-mod .linha.chegou { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--raio-sm); }
 .estado-pilula[data-estado="neutro"]::before { background: var(--tinta-3); }

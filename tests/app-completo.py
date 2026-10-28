@@ -509,11 +509,11 @@ def molde(nome):
     n = re.sub(r"=.*$", "=*", nome)
     n = re.sub(r"^pack:[^:]+:", "pack:*:", n)
     n = re.sub(r"^(programa|pendente|estado):.*$", r"\1:*", n)
-    n = re.sub(r"^(chave:APPS_ATIVOS|acao:modificacao_\w+):.*$", r"\1:*", n)
+    n = re.sub(r"^(chave:APPS_ATIVOS|acao:modificacao_\w+|modificacao:(?:ligar|menu|tema|adicionar|pack)):.*$", r"\1:*", n)
     return n
 
 
-CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:"}
+CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "FLATPAK_CORRECOES": "modificacao:ligar:"}
 CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
 ACAO_COM_DADO = {
     "wallpaper_permitir", "wallpaper_dispensar", "apps_tema_do_pack", "apps_manter_o_meu",
@@ -539,7 +539,8 @@ EXTRAS = {
 GLOBAIS = ["marca", "porta:*", "busca", "achado", "mudancas", "desfazer-uma", "descartar",
            "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*", "exportar:imagens",
            "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
-NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "chave:APPS_ATIVOS:*", "busca", "achado", "mudancas", "desfazer-uma",
+NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "chave:APPS_ATIVOS:*", "modificacao:ligar:*", "modificacao:menu:*",
+          "modificacao:adicionar", "busca", "achado", "mudancas", "desfazer-uma",
           "descartar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*",
           "exportar:imagens", "criar:voltar", "criar:proximo"]
 OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cuidar", "porta:modificacoes",
@@ -720,6 +721,7 @@ class Percurso:
             self.pag.wait_for_function("() => MOD.dados && !MOD.pedindo", timeout=300000)
             self.assentar()
             if sub:
+                self.clicar("modificacao:menu:" + sub)
                 self.clicar("modificacao:" + sub)
                 self.assentar()
         elif sub:
@@ -1341,8 +1343,9 @@ class Percurso:
         cartao_pronto()
         self.checa(os.path.exists(arquivo) and os.stat(arquivo).st_mtime_ns == antes,
                    "aplicar em todos com o brinquedo já no lugar não reescreve o arquivo")
-        self.checa(self.js("() => document.querySelector('[data-cartao=\"brinquedo\"] .estado-pilula').textContent") == "Aplicado",
-                   "o cartão do brinquedo diz «Aplicado»")
+        no_ar = self.js("() => MOD.dados.pack")
+        self.checa(no_ar and self.js("() => document.querySelector('[data-cartao=\"brinquedo\"] .estado-pilula').textContent") == no_ar,
+                   f"o cartão do brinquedo diz o tema no ar, o do pack «{no_ar}»")
         for cartao, chave_do_cartao in self.js("() => LUGAR_MODIFICACOES.chaves.map((l) => [l.cartao, l.c])"):
             self.js("""(id) => { MOD.dados = { ...MOD.dados, cartoes: [...MOD.dados.cartoes.filter((c) => c.id !== id),
               { id, nome: '', icone: '', estado: 'ok', correcoes: [],
@@ -1458,7 +1461,7 @@ class Percurso:
                      : porta === 'criar' ? (PASSOS.find((p) => p.id === sub) || {}).nome
                      : porta === 'modificacoes' ? (LUGAR_MODIFICACOES.detalhes.find((d) => d.id === sub) || { nome: '' }).nome : null;
           const semCartao = (l) => LUGAR_MODIFICACOES.chaves.some((x) => x.c === l.id
-            && !document.querySelector(`[data-cartao="${x.cartao}"]`));
+            && !document.querySelector(`[data-cartao="${x.cartao}"] details.menu-mod[open] [data-linha~="${x.c}"]`));
           return inventarioDoPainel().filter((l) => l.porta === porta && (nome == null || l.pagina === nome) && !semCartao(l))
             .map((l) => ({ tipo: l.tipo, id: l.id,
               existe: l.tipo === 'chave' ? CHAVE.has(l.id) && !CHAVE.get(l.id).sem_programa
