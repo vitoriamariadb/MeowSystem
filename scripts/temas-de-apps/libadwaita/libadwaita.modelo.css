@@ -1,0 +1,63 @@
+/* meowsystem-tema: {{pack}}/{{flavor}} */
+/* O libadwaita deste app com a paleta do pack, montado pelo MeowSystem a partir de
+   scripts/temas-de-apps/libadwaita/libadwaita.modelo.css; mexer aqui dura até a próxima passada. */
+
+:root {
+  --accent-bg-color: {{mauve}};
+  --accent-color: {{mauve}};
+  --accent-fg-color: {{base}};
+
+  --destructive-bg-color: {{red}};
+  --destructive-color: {{red}};
+  --destructive-fg-color: {{base}};
+
+  --success-bg-color: {{green}};
+  --success-color: {{green}};
+  --success-fg-color: {{base}};
+
+  --warning-bg-color: {{yellow}};
+  --warning-color: {{yellow}};
+  --warning-fg-color: {{base}};
+
+  --error-bg-color: {{red}};
+  --error-color: {{red}};
+  --error-fg-color: {{base}};
+
+  --window-bg-color: {{base}};
+  --window-fg-color: {{text}};
+  --view-bg-color: {{base}};
+  --view-fg-color: {{text}};
+
+  --headerbar-bg-color: {{mantle}};
+  --headerbar-fg-color: {{text}};
+  --headerbar-border-color: {{text}};
+  --headerbar-backdrop-color: {{base}};
+  --headerbar-shade-color: rgba({{crust:rgb}}, 0.36);
+  --headerbar-darker-shade-color: rgba({{crust:rgb}}, 0.9);
+
+  --sidebar-bg-color: {{mantle}};
+  --sidebar-fg-color: {{text}};
+  --sidebar-backdrop-color: {{base}};
+  --sidebar-shade-color: rgba({{crust:rgb}}, 0.36);
+  --secondary-sidebar-bg-color: {{crust}};
+  --secondary-sidebar-fg-color: {{text}};
+  --secondary-sidebar-backdrop-color: {{mantle}};
+  --secondary-sidebar-shade-color: rgba({{crust:rgb}}, 0.36);
+
+  --card-bg-color: {{surface0}};
+  --card-fg-color: {{text}};
+  --card-shade-color: rgba({{crust:rgb}}, 0.36);
+
+  --dialog-bg-color: {{base}};
+  --dialog-fg-color: {{text}};
+
+  --popover-bg-color: {{surface0}};
+  --popover-fg-color: {{text}};
+  --popover-shade-color: rgba({{crust:rgb}}, 0.36);
+
+  --thumbnail-bg-color: {{surface1}};
+  --thumbnail-fg-color: {{text}};
+
+  --shade-color: rgba({{crust:rgb}}, 0.36);
+  --scrollbar-outline-color: {{crust}};
+}

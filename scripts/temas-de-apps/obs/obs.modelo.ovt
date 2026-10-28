@@ -1,0 +1,29 @@
+/* meowsystem-tema: {{pack}}/{{flavor}} */
+
+@OBSThemeMeta {
+    name: 'MeowSystem';
+    id: 'com.obsproject.Yami.MeowSystem';
+    extends: 'com.obsproject.Yami';
+    author: 'MeowSystem';
+    dark: '{{tipo}}';
+}
+
+@OBSThemeVars {
+    --grey1: {{overlay1}};
+    --grey2: {{overlay0}};
+    --grey3: {{surface2}};
+    --grey4: {{surface1}};
+    --grey5: {{surface0}};
+    --grey6: {{base}};
+    --grey7: {{mantle}};
+    --grey8: {{crust}};
+
+    --white1: {{text}};
+    --white5: {{overlay2}};
+
+    --primary: {{mauve}};
+    --primary_light: {{lavender}};
+    --primary_lighter: {{lavender}};
+    --primary_dark: {{mauve}};
+    --primary_darker: {{mauve}};
+}

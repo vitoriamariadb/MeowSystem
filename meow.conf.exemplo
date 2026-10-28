@@ -1789,7 +1789,7 @@ FASTFETCH_LOGO_CONF="sim"
 #   nova eles nunca rodavam. Entram pelo mesmo motivo do parágrafo acima — cada
 #   módulo se pula sozinho quando o programa não existe. O seu `meow.conf`, se
 #   você já instalou, não muda: este arquivo é o de FÁBRICA, e o seu conf é seu.
-APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,heroic,qt5ct,kitty,gnome-terminal,onlyoffice"
+APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,heroic,qt5ct,kitty,gnome-terminal,onlyoffice,libadwaita,waterfox"
 
 # App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
 # aplica o tema sozinho quando ele aparecer. Nunca falha por app ausente.

@@ -48,6 +48,12 @@ _rodar icones_apps_arcticons.sh
 
 _rodar nomes_apps.sh --so-flatpak
 
+_acao_ft=aplicar
+[ "$CONFERIR" = 1 ] && _acao_ft=conferir
+CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+  "$RAIZ/scripts/flatpak_tema.sh" "$_acao_ft" tudo
+_dobrar $?
+
 if [ -z "${APPS_ATIVOS:-}" ] && [ -f "$HOME/.config/meow/meow.conf" ]; then
   APPS_ATIVOS="$(sed -n 's/^[[:space:]]*APPS_ATIVOS=//p' "$HOME/.config/meow/meow.conf" \
                  | tail -n 1 | tr -d '"'\''')"

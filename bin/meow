@@ -944,6 +944,18 @@ chk_flatpaktema() {
     "$RAIZ/scripts/flatpak_tema.sh" conferir usuario 2>&1
 }
 
+chk_flatpakadwaita() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/flatpak_tema.sh" conferir libadwaita 2>&1
+}
+
+chk_flatpakicones() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/flatpak_tema.sh" conferir icones 2>&1
+}
+
+chk_flatpakruntime() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/flatpak_tema.sh" conferir runtime 2>&1
+}
+
 chk_flatpakglobal() {
   MEOW_DRY_RUN=1 "$RAIZ/scripts/flatpak_tema.sh" conferir global 2>&1
 }
@@ -1360,6 +1372,9 @@ fix_cursor()    { CURSOR="${CURSOR:-}" CURSOR_VERSAO="${CURSOR_VERSAO:-v2.0.0}" 
                     "$RAIZ/scripts/cursor.sh" aplicar 2>&1; }
 fix_flatpaktema() { CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
                     "$RAIZ/scripts/flatpak_tema.sh" aplicar usuario 2>&1; }
+fix_flatpakadwaita() { "$RAIZ/scripts/flatpak_tema.sh" aplicar libadwaita 2>&1; }
+fix_flatpakicones() { "$RAIZ/scripts/flatpak_tema.sh" aplicar icones 2>&1; }
+fix_flatpakruntime() { "$RAIZ/scripts/flatpak_tema.sh" aplicar runtime 2>&1; }
 fix_flatpakglobal() { "$RAIZ/scripts/flatpak_tema.sh" aplicar global 2>&1; }
 fix_onlyoffice() { "$RAIZ/scripts/escritorio.sh" aplicar onlyoffice 2>&1; }
 fix_libreoffice() { "$RAIZ/scripts/escritorio.sh" aplicar libreoffice 2>&1; }
@@ -1474,7 +1489,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema greeter cursor flatpaktema flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 if ! meow_ponte_viva; then
   SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal libreoffice "
