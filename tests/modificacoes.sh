@@ -33,6 +33,27 @@ meow_app_aplicar() {
 meow_app_reverter() { [ -e "$(_br_arq)" ] || return 0; rm -f "$(_br_arq)"; return 1; }
 EOF
 printf 'brinquedo\tcorrecao\tconf\tArquivo de configuração\n' >> "$R/assets/contratos/modificacoes.tsv"
+mkdir -p "$R/scripts/temas-de-apps/enfeite"
+cat > "$R/scripts/temas-de-apps/enfeite/manifesto.sh" <<'EOF'
+#!/usr/bin/env bash
+_en_arq() { printf '%s/enfeite/tema.conf' "${XDG_CONFIG_HOME:-$HOME/.config}"; }
+meow_app_instalado() { return 0; }
+meow_app_detectar() {
+  meow_app_tema_do_pack enfeite.arquivo
+  [ -n "$MEOW_APP_TEMA" ] || { meow_app_sem "Enfeite: sem tema"; return; }
+  _EN_QUERO="$(cat "$MEOW_APP_TEMA")"
+  meow_app_tema_do_pack enfeite.sha256
+  _EN_QUERO="$_EN_QUERO $MEOW_APP_TEMA"
+}
+meow_app_conferir() { meow_app_detectar || return 3; [ "$(cat "$(_en_arq)" 2>/dev/null)" = "$_EN_QUERO" ]; }
+meow_app_aplicar() {
+  meow_app_conferir && return 0
+  meow_app_detectar || return 3
+  mkdir -p "$(dirname "$(_en_arq)")"; printf '%s\n' "$_EN_QUERO" > "$(_en_arq)"; return 1
+}
+meow_app_reverter() { [ -e "$(_en_arq)" ] || return 0; rm -f "$(_en_arq)"; return 1; }
+EOF
+printf 'enfeite\taceita\t.conf\n' >> "$R/assets/contratos/modificacoes.tsv"
 
 meow() {
   env -i PATH="$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" XDG_STATE_HOME="$CASA/.local/state" \
@@ -84,6 +105,51 @@ for e in erros:
 sys.exit(1 if erros else 0)
 EOF
 
+servidor() {
+  (cd "$R/app" && env -i PATH="$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" XDG_DATA_HOME="$CASA/.local/share" \
+    MEOW_RAIZ="$R" LANG=C.UTF-8 python3 -c "import json, sys, servidor; print(json.dumps($1, ensure_ascii=False))" "${@:2}" 2>/dev/null)
+}
+CASA_DE_TEMAS="$CASA/.local/share/meowsystem/temas-de-apps/enfeite"
+printf 'APPS_ATIVOS=enfeite\n' > "$CASA/.config/meow/meow.conf"
+meow apps aplicar enfeite >/dev/null 2>&1
+[ ! -e "$CASA/.config/enfeite/tema.conf" ] || falha "sem tema no pack nem adicionado, o enfeite ganhou tema"
+resposta="$(servidor 'servidor._mod_tema_adicionar({"app": "enfeite", "nome": "../Meu tema.conf", "conteudo": sys.argv[1]})' \
+  "$(printf 'cor=rosa' | base64 -w0)")"
+grep -q '"nome": "Meu tema.conf"' <<< "$resposta" || falha "adicionar tema não guardou o arquivo com o nome limpo: $resposta"
+[ "$(cat "$CASA_DE_TEMAS/padrao" 2>/dev/null)" = "Meu tema.conf" ] || falha "o tema adicionado não virou o padrão do enfeite"
+[ "$(cat "$CASA_DE_TEMAS/Meu tema.conf" 2>/dev/null)" = "cor=rosa" ] || falha "o tema adicionado não está na casa do usuário"
+for corpo in '{"app": "enfeite", "nome": "x.css", "conteudo": "eA=="}' '{"app": "brinquedo", "nome": "x.conf", "conteudo": "eA=="}' \
+             '{"app": "enfeite", "url": "http://exemplo/x.conf"}' '{"app": "../enfeite", "nome": "x.conf", "conteudo": "eA=="}'; do
+  servidor "servidor._mod_tema_adicionar($corpo)" | grep -q '"erro"' || falha "adicionar tema aceitou $corpo"
+done
+[ "$(ls "$CASA_DE_TEMAS")" = "$(printf 'Meu tema.conf\npadrao')" ] || falha "um pedido recusado deixou arquivo na casa de temas: $(ls "$CASA_DE_TEMAS" | tr '\n' ' ')"
+meow apps aplicar enfeite >/dev/null 2>&1
+quero="cor=rosa $(printf 'cor=rosa' | sha256sum | cut -d' ' -f1)"
+[ "$(cat "$CASA/.config/enfeite/tema.conf" 2>/dev/null)" = "$quero" ] || falha "o módulo não usou o tema adicionado (arquivo e sha256)"
+meow apps conferir enfeite >/dev/null 2>&1 || falha "com o tema adicionado no lugar, o doctor não fica verde"
+printf 'cor=azul' > "$CASA_DE_TEMAS/Outro.conf"
+servidor 'servidor._mod_tema_padrao({"app": "enfeite", "nome": "Outro.conf"})' | grep -q '"nome": "Outro.conf"' \
+  || falha "escolher outro tema adicionado não virou o padrão"
+meow apps conferir enfeite >/dev/null 2>&1 && falha "trocado o tema escolhido, o doctor não viu o tema velho no lugar"
+meow apps aplicar enfeite >/dev/null 2>&1
+grep -q '^cor=azul ' "$CASA/.config/enfeite/tema.conf" || falha "o conserto não pôs o tema escolhido"
+python3 - "$(servidor 'servidor._mod_dados()')" <<'EOF' || falhou=1
+import json, sys
+d = json.loads(sys.argv[1] or "{}")
+t = next((t for c in d.get("cartoes", []) for t in c["temas"] if t["pasta"] == "enfeite"), None)
+if not t or t["aceita"] != [".conf"] or t["adicionados"] != ["Meu tema.conf", "Outro.conf"] \
+        or t["padrao"] != "Outro.conf" or t["no_ar"] != "Outro.conf":
+    print("FALHOU: o cartão do enfeite não traz o que aceita, os temas adicionados e o escolhido: %r" % t, file=sys.stderr)
+    sys.exit(1)
+EOF
+servidor 'servidor._mod_tema_padrao({"app": "enfeite", "nome": "Sumido.conf"})' | grep -q '"erro"' \
+  || falha "escolher um tema que não foi adicionado passou"
+servidor 'servidor._mod_tema_padrao({"app": "enfeite", "nome": ""})' >/dev/null
+[ ! -e "$CASA_DE_TEMAS/padrao" ] || falha "«Voltar ao do pack» não desfez o padrão"
+saida="$(meow apps cartoes 2>/dev/null)"
+grep -qP '^modulo\tenfeite\t0\t3\tsim\t' <<< "$saida" \
+  || falha "voltando ao do pack, o enfeite (sem tema no pack) devia ficar sem tema"
+
 if command -v node >/dev/null 2>&1; then
   node - "$RAIZ/app/pagina/lugares.js" <<'EOF' || falhou=1
 const L = require(process.argv[2]);
@@ -109,5 +175,5 @@ if grep -nE '"(spotify|discord|obsidian|vscode|flatpak|btop|terminal)"' "$RAIZ/a
   falha "a página de modificações cita programa pelo nome; o cartão tem que vir do módulo"
 fi
 
-[ "$falhou" = 0 ] && printf 'ok: módulo novo vira cartão, a correção declarada entra nele e o painel não cita programa\n'
+[ "$falhou" = 0 ] && printf 'ok: módulo novo vira cartão, a correção declarada entra nele, o tema adicionado vale acima do pack e o painel não cita programa\n'
 exit "$falhou"
