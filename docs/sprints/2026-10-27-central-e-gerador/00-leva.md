@@ -1,4 +1,4 @@
-# Leva central e gerador — regras comuns às sprints P115 a P130
+# Leva central e gerador — regras comuns às sprints P115 a P131
 
 Cada bloco roda numa worktree própria. Leia este arquivo, `ANDAMENTO.md` (o pedido, as respostas de quem usa e as
 decisões do coordenador), as suas sprints e o relatório que elas citam (`relatorios/levantamento-*.md`). Nada aqui
