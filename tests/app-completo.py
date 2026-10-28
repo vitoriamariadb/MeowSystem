@@ -1343,6 +1343,24 @@ class Percurso:
                    "aplicar em todos com o brinquedo já no lugar não reescreve o arquivo")
         self.checa(self.js("() => document.querySelector('[data-cartao=\"brinquedo\"] .estado-pilula').textContent") == "Aplicado",
                    "o cartão do brinquedo diz «Aplicado»")
+        for cartao, chave_do_cartao in self.js("() => LUGAR_MODIFICACOES.chaves.map((l) => [l.cartao, l.c])"):
+            self.js("""(id) => { MOD.dados = { ...MOD.dados, cartoes: [...MOD.dados.cartoes.filter((c) => c.id !== id),
+              { id, nome: '', icone: '', estado: 'ok', correcoes: [],
+                temas: [{ pasta: id, instalado: true, rc: 0, ligado: true, slugs: [id], motivo: '' }] }] };
+              MOD.quando = Date.now(); render(); }""", cartao)
+            self.assentar(quieto=300)
+            dentro = self.js("([id, c]) => document.querySelectorAll(`[data-cartao=\"${id}\"] [data-linha~=\"${c}\"]`).length",
+                             [cartao, chave_do_cartao])
+            todas = self.js("(c) => document.querySelectorAll(`[data-linha~=\"${c}\"]`).length", chave_do_cartao)
+            self.checa(dentro == 1 and todas == 1, f"{chave_do_cartao} aparece só no cartão «{cartao}» ({dentro} no cartão, {todas} na página)")
+        self.js("() => releModificacoes()")
+        self.ir("ajustes/programas")
+        self.assentar(quieto=400)
+        movidas = ["APPS_ATIVOS", "SPOTIFY_MARKETPLACE", "TERMINAL_ESQUEMA", "PROMPT_STARSHIP"]
+        sobrou = self.js("(cs) => cs.filter((c) => document.querySelector(`#conteudo [data-linha~=\"${c}\"]`))", movidas)
+        self.checa(not sobrou and not self.js("() => !!document.querySelector('#conteudo [data-bloco=\"Recebem o tema\"]')")
+                   and self.js("() => ![...document.querySelectorAll('#abas-lista *')].some((e) => e.textContent.trim() === 'Terminal')"),
+                   f"o Definir › Programas não tem mais o tema dos programas, a Loja do Spotify nem a aba Terminal ({sobrou})")
 
     def h_rotulos_de_aplicar(self, rota):
         self.ir(rota)
@@ -1438,10 +1456,10 @@ class Percurso:
         lista = self.js("""([porta, sub]) => {
           const nome = porta === 'ajustes' ? (AJUSTES.find((p) => p.id === sub) || {}).nome
                      : porta === 'criar' ? (PASSOS.find((p) => p.id === sub) || {}).nome
-                     : porta === 'modificacoes' ? (LUGAR_MODIFICACOES.detalhes.find((d) => d.id === sub) || { nome: 'Programas' }).nome : null;
+                     : porta === 'modificacoes' ? (LUGAR_MODIFICACOES.detalhes.find((d) => d.id === sub) || { nome: '' }).nome : null;
           const semCartao = (l) => LUGAR_MODIFICACOES.chaves.some((x) => x.c === l.id
             && !document.querySelector(`[data-cartao="${x.cartao}"]`));
-          return inventarioDoPainel().filter((l) => l.porta === porta && (!nome || l.pagina === nome) && !semCartao(l))
+          return inventarioDoPainel().filter((l) => l.porta === porta && (nome == null || l.pagina === nome) && !semCartao(l))
             .map((l) => ({ tipo: l.tipo, id: l.id,
               existe: l.tipo === 'chave' ? CHAVE.has(l.id) && !CHAVE.get(l.id).sem_programa
                     : l.tipo === 'acao' ? ACAO.has(l.id) : true }));
