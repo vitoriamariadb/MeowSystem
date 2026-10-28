@@ -40,7 +40,12 @@
   a casa de brinquedo), anotado para a sprint das saídas.
 - 27/10 21:10: o `dev` recebeu a integração (c4fade96) e o install rodou com o HOME real, pedido dela: 69 etapas,
   ponte root posta pela caixa do askpass (4419df82). Os dois blocos em voo integram e o install roda de novo.
-- EM VOO também (ela, 27/10: «lança a 131 agora»), `wf_b64cd132-75f`: P131 (os ícones do sistema e a biblioteca nos dois packs, «Blocos», rodada 6).
+- 28/10: Ícones do sistema (P131) integrado (merge 46a5ceee, `relatorios/conferencia-icones-sistema.md`): 168 nomes de
+  sistema nos dois packs, Biblioteca do MeowSystem de 36 para 622. Levado ao `dev` (ccdca340) com o install. Anotado
+  para depois: traço do Latte sem contraste no cartão escuro do painel; rótulos da bateria cortados; Tipos de
+  arquivo em inglês; os geradores dos desenhos guardados em `~/.local/state/meowsystem/backups/p131-geradores-2026-10-28`;
+  a decisão 24 do `decisoes.sh` (o `tests/enxugar.sh:243` cita `docs/pesquisas/`) some quando o enxugar sair no fecho.
+- Era EM VOO (ela, 27/10: «lança a 131 agora»), `wf_b64cd132-75f`: P131 (os ícones do sistema e a biblioteca nos dois packs, «Blocos», rodada 6).
   Decisão dela de 27/10 que desfaz o `sistema.map:10-25`: as famílias de estado (desligar, wifi, som, bateria)
   moram no pack, não no Papirus.
   Worktrees `~/Desenvolvimento/MeowSystem-<bloco>`, branches `bloco/<bloco>`.
