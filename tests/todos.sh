@@ -62,6 +62,7 @@ PORTATIL=(
   oraculo-tema.sh
   applet-pino.sh
   extensoes.sh
+  extensoes-install.sh
   extensoes-gesto.sh
   escala-kdl.sh
   backoff-do-supervisor.sh
