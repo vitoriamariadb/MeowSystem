@@ -39,7 +39,7 @@
     "mimetypes": {
       "desenhos": "icones/sistema/",
       "mapa": "icones/mimetypes.map",
-      "_nota": "Os 656 desenhos de tipo de arquivo do catppuccin/vscode-icons (MIT) guardados UMA vez, como molde: cada cor é um `var(--vscode-ctp-<papel>)`. A instalação pinta o molde com a paleta do pack no ar e o flavor escolhido (P96, decisão de 23/10)."
+      "_nota": "Os 75 desenhos de tipo de arquivo do catppuccin/vscode-icons (MIT) que o mimetypes.map usa, guardados UMA vez, como molde: cada cor é um `var(--vscode-ctp-<papel>)`. A instalação pinta o molde com a paleta do pack no ar e o flavor escolhido (P96, decisão de 23/10). Os outros 581 moram em icones/biblioteca/ (P131)."
     },
     "pastas": {
       "desenhos": "icones/sistema/",
