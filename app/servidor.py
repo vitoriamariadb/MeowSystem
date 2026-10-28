@@ -2648,6 +2648,85 @@ def _ext_icone(ident):
         return None
 
 
+MODIFICACOES = os.path.join(RAIZ, "assets", "contratos", "modificacoes.tsv")
+RE_PASTA_DE_APP = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _mod_declaracoes():
+    saida = []
+    try:
+        with open(MODIFICACOES, encoding="utf-8") as fh:
+            for linha in fh:
+                campos = linha.rstrip("\n").split("\t")
+                if len(campos) >= 3 and all(campos[:3]):
+                    saida.append((campos[0], campos[1], campos[2], campos[3] if len(campos) > 3 else ""))
+    except OSError:
+        pass
+    return saida
+
+
+def _mod_pastas():
+    base = os.path.join(RAIZ, "scripts", "temas-de-apps")
+    try:
+        nomes = os.listdir(base)
+    except OSError:
+        return []
+    return sorted(n for n in nomes if RE_PASTA_DE_APP.match(n)
+                  and os.path.isfile(os.path.join(base, n, "manifesto.sh")))
+
+
+def _mod_correcoes():
+    return sorted({alvo for _c, tipo, alvo, _r in _mod_declaracoes() if tipo == "correcao"})
+
+
+def _mod_estado(itens):
+    ativos = [i for i in itens if i.get("ligado", True) and i["rc"] != 3]
+    if any(i["rc"] == 2 for i in ativos):
+        return "erro"
+    if any(i["rc"] == 1 for i in ativos):
+        return "fora"
+    if ativos:
+        return "ok"
+    if any(not i.get("ligado", True) for i in itens):
+        return "desligado"
+    return "nao_aplica"
+
+
+def _mod_dados():
+    try:
+        proc = subprocess.run(_meow("apps", "cartoes"), capture_output=True, timeout=240,
+                              env=_ambiente_do_painel(), cwd=RAIZ, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError) as erro:
+        return {"erro": texto_na_tela(str(erro)), "cartoes": []}
+    modulos, correcoes = [], {}
+    for linha in proc.stdout.decode("utf-8", "replace").splitlines():
+        c = linha.split("\t")
+        if c[0] == "modulo" and len(c) >= 6 and c[3].isdigit():
+            modulos.append({"pasta": c[1], "instalado": c[2] == "0", "rc": int(c[3]),
+                            "ligado": c[4] == "sim", "slugs": [x for x in c[5].split(",") if x],
+                            "motivo": texto_na_tela(c[6]) if len(c) > 6 else ""})
+        elif c[0] == "correcao" and len(c) >= 3 and c[2].isdigit():
+            correcoes[c[1]] = int(c[2])
+    decl = _mod_declaracoes()
+    dono = {alvo: cartao for cartao, tipo, alvo, _r in decl if tipo == "modulo"}
+    nome = {cartao: alvo for cartao, tipo, alvo, _r in decl if tipo == "nome"}
+    figura = {cartao: alvo for cartao, tipo, alvo, _r in decl if tipo == "icone"}
+    cartoes = {}
+
+    def cartao(ident):
+        return cartoes.setdefault(ident, {"id": ident, "nome": nome.get(ident, ""),
+                                          "icone": figura.get(ident, ""), "temas": [], "correcoes": []})
+    for cartao_id, tipo, alvo, rotulo in decl:
+        if tipo == "correcao" and alvo in correcoes and correcoes[alvo] != 3:
+            cartao(cartao_id)["correcoes"].append({"nome": alvo, "rotulo": rotulo, "rc": correcoes[alvo]})
+    for m in modulos:
+        if m["instalado"]:
+            cartao(dono.get(m["pasta"], m["pasta"]))["temas"].append(m)
+    for c in cartoes.values():
+        c["estado"] = _mod_estado(c["temas"] + c["correcoes"])
+    return {"cartoes": list(cartoes.values())}
+
+
 PROVEDORES = {
     "gatos": _gatos,
     "temas_icones": _temas_de_icones,
@@ -2666,6 +2745,8 @@ PROVEDORES = {
     "extensoes_da_casa": lambda: _ext_ids(so_casa=True),
     "extensoes_do_usuario": lambda: _ext_ids(so_casa=False),
     "extensoes_todas": lambda: _ext_ids(),
+    "modulos_de_app": lambda: _mod_pastas(),
+    "correcoes_de_app": lambda: _mod_correcoes(),
 }
 
 
@@ -3430,6 +3511,30 @@ ACOES = {
         "ajuda": "Aplica o tema em todos os programas marcados que estiverem "
                  "instalados. Programa ausente fica pendente, e nunca "
                  "derruba o resto.",
+    },
+    "modificacao_aplicar": {
+        "rotulo": "Pôr no lugar",
+        "grupo": "Modificações",
+        "natureza": "aplicar",
+        "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "modulos_de_app",
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Aplica de novo o tema deste programa.",
+    },
+    "modificacao_reverter": {
+        "rotulo": "Tirar o tema",
+        "grupo": "Modificações",
+        "natureza": "tirar",
+        "argv": _meow("apps", "reverter", "@ARG@"), "arg": "modulos_de_app",
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Desfaz o que o tema escreveu neste programa.",
+    },
+    "modificacao_corrigir": {
+        "rotulo": "Pôr no lugar",
+        "grupo": "Modificações",
+        "natureza": "consertar",
+        "argv": _meow("apps", "corrigir", "@ARG@"), "arg": "correcoes_de_app",
+        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
+        "ajuda": "Faz de novo a correção deste programa.",
     },
     "apps_tema_do_pack": {
         "rotulo": "Trocar o tema",
@@ -4520,6 +4625,14 @@ def inventario_do_painel():
         pus(l, "extensoes", "Applets", "Applets")
     for l in c["LUGAR_EXTENSOES"]["builds"]:
         pus(l, "extensoes", "Builds", "Builds")
+    mods = c["LUGAR_MODIFICACOES"]
+    for parte in ("cabeca", "cartao", "chaves"):
+        for l in mods[parte]:
+            pus(l, "modificacoes", "Programas", "Programas")
+    for d in mods["detalhes"]:
+        for b in d["blocos"]:
+            for l in b["linhas"]:
+                pus(l, "modificacoes", d["nome"], b["titulo"])
     for l in c["LUGAR_TOPO"]:
         pus(l, "topo", "Barra de cima", "Barra de cima")
     for l in c["LUGAR_JANELA"]:
@@ -7388,6 +7501,9 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/extensoes":
             return self._json(_ext_dados())
 
+        if caminho == "/api/modificacoes":
+            return self._json(_mod_dados())
+
         if caminho == "/api/pendencias":
             return self._json({"pendencias": pendencias()})
 
@@ -7852,6 +7968,7 @@ class Manipulador(BaseHTTPRequestHandler):
             '<style id="folha-da-oficina">\n%s\n</style>' % ler("oficina.css"),
             '<style id="folha-dos-sons">\n%s\n</style>' % ler("sons.css"),
             '<style id="folha-das-extensoes">\n%s\n</style>' % ler("extensoes.css"),
+            '<style id="folha-das-modificacoes">\n%s\n</style>' % ler("modificacoes.css"),
             '<style id="folha-do-standalone">\n%s\n</style>' % ler("standalone.css"),
             "</head>",
             corpo,

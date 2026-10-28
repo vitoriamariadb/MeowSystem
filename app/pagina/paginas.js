@@ -771,24 +771,6 @@ function linhaMesmoHorario() {
   ])]);
 }
 
-function gradeDeProgramas() {
-  const item = CHAVE.get("APPS_ATIVOS");
-  if (!item) return null;
-  const ativos = String(valorEmVigor(item) || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const todos = [...new Set([...String(item.padrao || "").split(","), ...ativos].map((s) => s.trim()).filter(Boolean))];
-  const grade = elemento("div", { class: "liga-programas", "data-linha": "APPS_ATIVOS" });
-  for (const id of todos) {
-    const liga = ativos.includes(id);
-    grade.append(elemento("div", { class: "programa" }, [
-      elemento("span", { texto: nomeDePrograma(id) }),
-      elemento("button", { type: "button", class: "chave", role: "switch", "aria-checked": String(liga),
-        "aria-label": nomeDePrograma(id), controle: "programa:" + id,
-        onclick: () => escolher("APPS_ATIVOS", (liga ? ativos.filter((x) => x !== id) : [...ativos, id]).join(",")) }),
-    ]));
-  }
-  return grade;
-}
-
 function desenharAbas(p, direita) {
   const lista = $("#abas-lista");
   $("#abas").setAttribute("aria-label", "Definir");
@@ -814,15 +796,13 @@ function paginaAjustes(sub) {
   desenharAbas(p, direita);
   const blocos = [];
   for (const b of p.blocos) {
-    const sobra = (l) => l.e || (l.g && !l.g.startsWith("acervo:")) || l.g === "acervo:gato" || l.g === "acervo:cursor"
-      || (b.programas && l.c === "APPS_ATIVOS");
+    const sobra = (l) => l.e || (l.g && !l.g.startsWith("acervo:")) || l.g === "acervo:gato" || l.g === "acervo:cursor";
     const filhos = [];
     if (b.noite) filhos.push(reguaDaNoite());
-    if (b.programas) filhos.push(gradeDeProgramas());
     if (b.jogos) filhos.push(montarJogos());
     filhos.push(lista(b.linhas, sobra));
     if (b.noite) filhos.push(linhaMesmoHorario());
-    blocos.push(bloco(b.titulo, filhos.filter(Boolean), { colunas: b.colunas, class: b.programas || b.jogos ? "inteiro" : "" }));
+    blocos.push(bloco(b.titulo, filhos.filter(Boolean), { colunas: b.colunas, class: b.jogos ? "inteiro" : "" }));
   }
   const semPrevia = p.id === "programas";
   return [
