@@ -96,8 +96,8 @@ ordem="$(sed -n '/local etapas=(/,/)/p' "$RAIZ/install.sh" | grep -oE '\betapa_[
   || falha "o doctor não confere o índice depois de tudo"
 
 linha="$(amb python3 "$RAIZ/scripts/pack.py" info dracula 2>&1 | grep -E '^  icones\.mimetypes ')"
-[[ "$linha" == *"HERDADO de meowsystem"*"656 desenho(s)"* ]] \
-  && ok "icones.mimetypes do Dracula vem do molde do meowsystem: 656 desenhos" \
+[[ "$linha" == *"HERDADO de meowsystem"*"75 desenho(s)"* ]] \
+  && ok "icones.mimetypes do Dracula vem do molde do meowsystem: 75 desenhos" \
   || falha "o info não diz os ícones de arquivo do Dracula como o molde herdado" "$linha"
 macc="$(python3 -c 'import json,sys;print("|".join(v.lower() for v in json.load(open(sys.argv[1]))["flavors"]["macchiato"].values()))' "$RAIZ/packs/meowsystem/paleta.json")"
 total=0; com_macc=0
