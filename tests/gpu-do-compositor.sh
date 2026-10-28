@@ -8,8 +8,8 @@ falha() { printf '  FALHA %s\n' "$1"; [ -n "${2:-}" ] && printf '%s\n' "$2" | se
 confere() { if (set +o pipefail; eval "$2"); then ok "$1"; else falha "$1" "${3:-}"; fi; }
 
 SYS="$T/sys/bus/pci/devices"; ENVF="$T/etc/environment"; ORIG="$T/var/environment.original"
-CASA="$T/casa"; FALSO="$T/falso"; PONTE="$T/ponte/ponte_root.sh"
-mkdir -p "$SYS" "$T/etc" "$T/var" "$CASA/.local/state/meowsystem" "$FALSO" "$T/ponte"
+CASA="$T/casa"; FALSO="$T/falso"; PONTE="$T/ponte/ponte_root.sh"; VELHA="$T/ponte-velha/ponte_root.sh"
+mkdir -p "$SYS" "$T/etc" "$T/var" "$CASA/.local/state/meowsystem" "$FALSO" "$T/ponte" "$T/ponte-velha"
 
 placa() {
   local end="$1" classe="$2" vendor="$3" device="$4" boot="$5" render="${6:-sim}" d="$SYS/$1"
@@ -33,9 +33,11 @@ sed -e "s#^export PATH=.*#export PATH=\"$FALSO:/usr/bin:/bin\"#" -e 's/ -o root 
     -e "s#^ENV_ORIGINAL=.*#ENV_ORIGINAL=$ORIG#" -e 's#^anotar() {#anotar() { return 0#' \
     "$RAIZ/scripts/ponte_root.sh" > "$PONTE"
 chmod 755 "$PONTE"
+sed -e '/^gpu-compositor)/,/^  ;;$/d' -e '/^gpu-compositor-tirar)/,/^  ;;$/d' -e '/gpu-compositor/d' "$PONTE" > "$VELHA"
+chmod 755 "$VELHA"
 cat > "$FALSO/sudo" <<FIM
 #!/bin/sh
-if [ "\$1" = "-n" ] && [ "\$2" = "$PONTE" ] && [ ! -f "$T/sem-ponte" ]; then shift; exec "\$@"; fi
+if [ "\$1" = "-n" ] && { [ "\$2" = "$PONTE" ] || [ "\$2" = "$VELHA" ]; } && [ ! -f "$T/sem-ponte" ]; then shift; exec "\$@"; fi
 exit 1
 FIM
 chmod 755 "$FALSO/sudo"
@@ -150,6 +152,15 @@ confere "o conferir diverge (1), diz as duas placas e que vale no próximo login
 confere "e não escreveu" '! grep -q COSMIC_RENDER_DEVICE "$ENVF"'
 ponte gpu-compositor algo; rc=$?
 confere "argumento é recusado" '[ "$rc" = 2 ] && ! grep -q COSMIC_RENDER_DEVICE "$ENVF"'
+confere "na ponte as raízes são literais, e as do script não entram nela" \
+  'grep -qx "SYS_PCI=/sys/bus/pci/devices" "$RAIZ/scripts/ponte_root.sh" && grep -qx "ENV_SISTEMA=/etc/environment" "$RAIZ/scripts/ponte_root.sh" \
+   && grep -qx "ENV_ORIGINAL=/var/lib/meowsystem/environment.original" "$RAIZ/scripts/ponte_root.sh" && ! grep -q "MEOW_GPU_" "$RAIZ/scripts/ponte_root.sh"'
+mkdir -p "$T/forjado"
+env -i PATH=/usr/bin:/bin SYS_PCI="$T/forjado" ENV_SISTEMA="$T/forjado/env" ENV_ORIGINAL="$T/forjado/orig" CHAVE_GPU=LD_PRELOAD \
+    MEOW_GPU_ENV="$T/forjado/env" bash "$PONTE" gpu-compositor > "$T/saida" 2>&1; rc=$?
+confere "raiz forjada no ambiente de quem chama não muda o destino" \
+  '[ "$rc" = 0 ] && [ -z "$(ls -A "$T/forjado")" ] && grep -qxF "COSMIC_RENDER_DEVICE=\"0x10de:0x28a0\"" "$ENVF" && ! grep -q LD_PRELOAD "$ENVF"' "$(cat "$T/saida")"
+ponte gpu-compositor-tirar
 
 printf '\n8. a regra do sudo libera os dois verbos, sem curinga\n'
 env -i PATH=/usr/bin:/bin USER=teste bash "$PONTE" regra-sudo > "$T/regra" 2>&1
@@ -164,6 +175,42 @@ confere "sem a ponte o doctor não promete consertar a gpu" 'grep -q "SEM_CONSER
 confere "etapa_gpu está na lista do install, depois do compositor" 'grep -q "etapa_compositor etapa_gpu " "$RAIZ/install.sh"'
 confere "o meow.conf.exemplo tem a chave, de fábrica dedicada" 'grep -qE "^GPU_COMPOSITOR=\"dedicada\" +# dedicada \| padrao" "$RAIZ/meow.conf.exemplo"'
 confere "o desinstalar reverte" 'grep -q "gpu_compositor.sh\" reverter" "$RAIZ/lib/desinstalar.sh"'
+
+printf '\n10. a escrita troca o arquivo de uma vez, 0644, e recusa link simbólico\n'
+confere "os dois verbos escrevem num temporário ao lado e trocam com rename" \
+  '[ "$(grep -c "mv -f \"\$novo\" \"\$ENV_SISTEMA\"" "$RAIZ/scripts/ponte_root.sh")" = 2 ] && [ "$(grep -c "mktemp \"\$ENV_SISTEMA.meow.XXXXXX\"" "$RAIZ/scripts/ponte_root.sh")" = 2 ]'
+hibrida; antes_do_install; chmod 600 "$ENVF"
+ponte gpu-compositor
+confere "o arquivo novo fica 0644 e não sobra temporário na pasta" \
+  '[ "$(stat -c %a "$ENVF")" = 644 ] && [ "$(ls -A "$T/etc")" = environment ]' "$(ls -lA "$T/etc")"
+ponte gpu-compositor-tirar; chmod 600 "$ENVF"; ponte gpu-compositor; ponte gpu-compositor-tirar
+confere "e o -tirar também devolve 0644, sem sobra" \
+  '[ "$(stat -c %a "$ENVF")" = 644 ] && [ "$(ls -A "$T/etc")" = environment ]' "$(ls -lA "$T/etc")"
+hibrida; antes_do_install; mv "$ENVF" "$T/env-alvo"; ln -s "$T/env-alvo" "$ENVF"; cp "$T/env-alvo" "$T/env-alvo.antes"
+ponte gpu-compositor; rc=$?
+confere "link simbólico no lugar do /etc/environment: recusa sem tocar no alvo nem guardar cópia" \
+  '[ "$rc" = 2 ] && [ -L "$ENVF" ] && cmp -s "$T/env-alvo" "$T/env-alvo.antes" && [ ! -e "$ORIG" ]' "$(cat "$T/saida")"
+rm -f "$ENVF"; antes_do_install; ponte gpu-compositor
+mv "$ENVF" "$T/env-alvo"; ln -s "$T/env-alvo" "$ENVF"; cp "$T/env-alvo" "$T/env-alvo.antes"
+ponte gpu-compositor-tirar; rc=$?
+confere "o -tirar também recusa o link" '[ "$rc" = 2 ] && [ -L "$ENVF" ] && cmp -s "$T/env-alvo" "$T/env-alvo.antes"' "$(cat "$T/saida")"
+rm -f "$ENVF"; mv "$T/env-alvo" "$ENVF"
+printf 'SEGREDO=1\n' > "$T/segredo"; rm -f "$ORIG"; ln -s "$T/segredo" "$ORIG"; cp "$ENVF" "$T/env-com-link"
+ponte gpu-compositor-tirar; rc=$?
+confere "a cópia de antes como link não é lida nem devolvida" '[ "$rc" = 0 ] && cmp -s "$ENVF" "$T/env-com-link" && ! grep -q SEGREDO "$ENVF"' "$(cat "$ENVF")"
+limpa_sys; placa 0000:00:02.0 0x030000 0x8086 0xa720 1; placa 0000:03:00.0 0x030000 0x10de 0x2684 0
+ponte gpu-compositor; rc=$?
+confere "e o verbo que grava recusa o link no lugar da cópia" '[ "$rc" = 2 ] && cmp -s "$ENVF" "$T/env-com-link" && [ -L "$ORIG" ]' "$(cat "$T/saida")"
+rm -f "$ORIG"
+
+printf '\n11. a ponte instalada de antes destes verbos: o conserto espera o «Instalar tudo»\n'
+confere "a ponte velha de brinquedo não conhece os verbos" 'bash -n "$VELHA" && ! grep -q gpu-compositor "$VELHA"'
+hibrida; antes_do_install
+ACAO_GPU=aplicar script GPU_COMPOSITOR=dedicada MEOW_PONTE="$VELHA"; rc=$?
+confere "sai 3, não escreve, aponta o «Instalar tudo» e não manda digitar" \
+  '[ "$rc" = 3 ] && ! grep -q COSMIC_RENDER_DEVICE "$ENVF" && grep -q "Instalar tudo" "$T/saida" && ! grep -qiE "digite|rode |sudo" "$T/saida"' "$(cat "$T/saida")"
+ACAO_GPU=aplicar script GPU_COMPOSITOR=dedicada; ACAO_GPU=reverter script GPU_COMPOSITOR=dedicada MEOW_PONTE="$VELHA"; rc=$?
+confere "o reverter também espera, sem tocar na linha" '[ "$rc" = 3 ] && grep -q COSMIC_RENDER_DEVICE "$ENVF"' "$(cat "$T/saida")"
 
 [ "$falhas" = 0 ] && printf '\nok: a GPU do compositor é detectada em cada máquina\n'
 exit $((falhas > 0))
