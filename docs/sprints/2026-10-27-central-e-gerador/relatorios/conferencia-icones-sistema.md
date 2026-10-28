@@ -51,3 +51,36 @@ Rodados sozinhos depois das correções: `icones-do-sistema.sh`, `pack-dracula-c
 
 Os três testes que o implementador consertou e não tinha rodado na suíte inteira passam no `todos.sh`. Houve 6
 chamadas de `sudo` recusadas, todas de leitura, e nenhum teste escreveu no sistema.
+
+## Final
+Rodada sobre a fusão do bloco com o `dev` de hoje (`c2fed759`, com o Flatpak e as Modificações), numa árvore
+avulsa. O `git merge-tree` não dá conflito.
+
+- `./tests/todos.sh`: **110 testes, 108 verdes, 0 pulados, 2 vermelhos**, os dois aceitos. O `decisoes.sh` falha
+  na GPU do compositor e na decisão 24 (`tests/enxugar.sh:243`), e o `restaurar.sh` em `pack_usar` e
+  `desinstalar`. O `app-completo.py` passou em 1180 s, o `convergencia.sh` em 718 s, e o `doctor-so-le.sh` e o
+  `doctor-veredito.sh` também passaram. Houve 6 `sudo` recusados, todos de leitura, e 13 `busctl` parados. Nada
+  mudou no HOME real: nem `~/.config/zsh`, nem `~/.config/cosmic`, nem `~/.local/share/icons`, nem `~/.config/meow`.
+- A segunda passada, numa casa de brinquedo com os mesmos falsos da suíte:
+  - Com o MeowSystem: rodei o `install.sh` duas vezes (a segunda não mexeu em nada), depois o
+    `meow doctor --consertar` duas vezes e o `meow doctor` sozinho. A segunda passada do conserto não escreveu
+    nenhum arquivo, e o doctor sem conserto também não.
+  - Na mesma casa, troquei para `PACK="dracula"` e rodei o conserto duas vezes. A segunda passada também não
+    escreveu nada. Depois da troca, os 168 nomes estão em `status`, `actions` e `devices`, e nenhum desenho
+    instalado tem `stroke="currentColor"`. O que sobra no veredito vem dos limites da casa: ponte, `systemctl`
+    e greeter.
+- O painel em headless, nas cinco portas, com os dois packs no `meow.conf` e no rascunho: Tema, as cinco
+  páginas do Personalizar (em Ícones, as abas Apps, Sistema e Biblioteca), as sete do Definir, Manter e
+  Extensões (Applets e Builds). Não houve erro de página, erro de console, HTTP ≥ 400, imagem quebrada, texto
+  cru (`undefined`, `NaN`), rolagem de lado nem botão sem nome. A aba Sistema tem 298 itens no MeowSystem e 301
+  no Dracula. A Biblioteca tem 622 no MeowSystem (os 617 mais os cinco logos da correção 4bdd8739) e 477 no
+  Dracula.
+
+Não achei regressão para corrigir.
+
+Anotado para um próximo bloco (não é regressão; o mecanismo já existia na Biblioteca):
+- Com um flavor claro (Catppuccin Latte) no rascunho, as abas Sistema e Biblioteca pintam o traço com o texto do
+  Latte (`#4c4f69`), e o cartão continua escuro. O contraste fica em 2,1:1, e 186 itens do Sistema ficam abaixo de
+  3:1. Com o Mocha, o contraste passa em todos.
+- Nos cartões da aba Sistema, o rótulo corta antes do que distingue as baterias («Bateria 0%, carg…» e
+  «Bateria 0%, carr…»).
