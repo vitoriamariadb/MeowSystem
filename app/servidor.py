@@ -3517,6 +3517,7 @@ ACOES = {
         "grupo": "Modificações",
         "natureza": "aplicar",
         "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "modulos_de_app",
+        "ambiente": {"MEOW_TEMA_DE_TERCEIRO": "trocar"},
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Aplica de novo o tema deste programa.",
     },

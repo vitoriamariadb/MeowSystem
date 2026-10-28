@@ -639,21 +639,44 @@ grep -qxF 'General\UseCustomUITheme=true' "$QB/qBittorrent.conf" \
   && grep -qxF 'General\Locale=pt_BR' "$QB/qBittorrent.conf" && grep -qxF 'Session\Port=6881' "$QB/qBittorrent.conf" \
   && cmp -s "$alvo_qb" "$RAIZ/packs/dracula/temas-de-apps/qbittorrent/dracula.qbtheme" && escrito_ok=1
 saida="$saida$(mod qbittorrent aplicar)"; rc1b=$?
+mkdir -p "$CASA/.themes"; printf 'qres de brinquedo\n' > "$CASA/.themes/dela.qbtheme"
 printf '[Preferences]\nGeneral\\CustomUIThemePath=%s/.themes/dela.qbtheme\nGeneral\\UseCustomUITheme=true\n' \
   "$CASA" > "$QB/qBittorrent.conf"
-antes="$(cat "$QB/qBittorrent.conf")"
 saida="$saida$(mod qbittorrent aplicar)"; rc2=$?
-ficou="$(awk -F'\t' '$1 == "qbittorrent-conf-fora-de-escopo"' "$T/estado8/pendencias.tsv" 2>/dev/null)"
+ficou="$(awk -F'\t' '$1 ~ /^qbittorrent-/' "$T/estado8/pendencias.tsv" 2>/dev/null)"
+de_antes="$(cat "$T/estado8/temas-de-apps/qbittorrent/tema-de-antes" 2>/dev/null)"
+trocou=0
+grep -qxF "General\\CustomUIThemePath=$alvo_qb" "$QB/qBittorrent.conf" \
+  && grep -qxF 'General\UseCustomUITheme=true' "$QB/qBittorrent.conf" && trocou=1
+antes="$(cat "$QB/qBittorrent.conf")"
+saida="$saida$(mod qbittorrent aplicar)"; rc3=$?
 [ "$rc0" = 3 ] && [[ "$aberto" == *"UseCustomUITheme=false"* ]] \
   && [ "$rc1" = 1 ] && [ "$escrito_ok" = 1 ] && [ -z "$tinha" ] && [ "$rc1b" = 0 ] \
-  && [ "$rc2" = 3 ] && [ -z "$ficou" ] \
-  && [ "$(cat "$QB/qBittorrent.conf")" = "$antes" ] && printf '%s' "$saida" | grep -q 'já está com o tema' \
-  && ok "qbittorrent: sem o Aurora o conf é escrito aqui (com o app fechado, só as duas chaves), a 2ª passada é 0, e o vestido por ela fica" \
-  || falha "qbittorrent: o escritor próprio do conf (aberto: rc=$rc0, sem tema: rc=$rc1 escrito=$escrito_ok, 2ª: rc=$rc1b, vestido: rc=$rc2)" \
+  && [ "$rc2" = 1 ] && [ "$trocou" = 1 ] && [ -z "$ficou" ] && [ "$de_antes" = "$CASA/.themes/dela.qbtheme" ] \
+  && [ "$rc3" = 0 ] && [ "$(cat "$QB/qBittorrent.conf")" = "$antes" ] \
+  && ok "qbittorrent: sem o Aurora o conf é escrito aqui (com o app fechado, só as duas chaves); o tema de fora vira o do pack sem pendência, o de antes fica guardado, e a 2ª passada é 0" \
+  || falha "qbittorrent: o escritor próprio do conf (aberto: rc=$rc0, sem tema: rc=$rc1 escrito=$escrito_ok, 2ª: rc=$rc1b, de fora: rc=$rc2 trocou=$trocou antes=«$de_antes», depois: rc=$rc3)" \
            "$saida
 conf: $(cat "$QB/qBittorrent.conf")
 pendência antes: $tinha
 pendência depois: $ficou"
+faltam=""
+saida="$(mod qbittorrent reverter)"; rc=$?
+grep -qxF "General\\CustomUIThemePath=$CASA/.themes/dela.qbtheme" "$QB/qBittorrent.conf" \
+  && grep -qxF 'General\UseCustomUITheme=true' "$QB/qBittorrent.conf" && [ "$rc" = 1 ] && [ ! -e "$alvo_qb" ] \
+  || faltam+=" o «Tirar o tema» não devolveu o tema de antes (rc=$rc: $saida);"
+antes="$(cat "$QB/qBittorrent.conf")"
+saida="$(mod qbittorrent aplicar)"; rc=$?
+[ "$rc" = 3 ] && [ "$(cat "$QB/qBittorrent.conf")" = "$antes" ] && [ -z "$(pend qbittorrent-tema-de-terceiro)" ] \
+  || faltam+=" depois do «Tirar o tema» a passada seguinte trocou de novo, ou deixou pendência (rc=$rc: $saida);"
+saida="$(mod qbittorrent aplicar MEOW_TEMA_DE_TERCEIRO=trocar)"; rc=$?
+[ "$rc" = 1 ] && grep -qxF "General\\CustomUIThemePath=$alvo_qb" "$QB/qBittorrent.conf" \
+  && ! grep -q '^qbittorrent' "$mantidos" 2>/dev/null \
+  || faltam+=" o «Pôr no lugar» não trocou de volta, ou não esqueceu o de antes (rc=$rc: $saida);"
+mod qbittorrent reverter >/dev/null
+[ -z "$faltam" ] && grep -qxF "General\\CustomUIThemePath=$CASA/.themes/dela.qbtheme" "$QB/qBittorrent.conf" \
+  && ok "qbittorrent: o «Tirar o tema» devolve o tema de antes e o doctor o respeita; o «Pôr no lugar» troca de novo" \
+  || falha "qbittorrent: o tema de antes:$faltam" "$(cat "$QB/qBittorrent.conf")"
 mv "$CASA/.config/Vencord" "$T/vencord-de-lado"
 printf 'PACK="dracula"\nFLAVOR="dracula"\nACCENT="mauve"\nAPPS_ATIVOS="discord,qbittorrent"\n' > "$T/meow8.conf"
 saida="$(env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" \
