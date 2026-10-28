@@ -120,13 +120,13 @@ pan-down-symbolic:pan-down
 pan-up-symbolic:pan-up
 plugged-into-power-symbolic:plugged-into-power
 preferences-X11-applications-symbolic:preferences-X11-applications
-preferences-appearance-symbolic:palette
+preferences-appearance-symbolic:preferences-appearance
 preferences-applications-symbolic:apps
-preferences-default-applications-symbolic:star
-preferences-desktop-accessibility-symbolic:access
+preferences-default-applications-symbolic:preferences-default-applications
+preferences-desktop-accessibility-symbolic:preferences-desktop-accessibility
 preferences-desktop-display-symbolic:tv
 preferences-desktop-wallpaper-symbolic:gallery
-preferences-dock-symbolic:launcher
+preferences-dock-symbolic:preferences-dock
 preferences-input-devices-symbolic:keyboard
 preferences-network-and-wireless-symbolic:wifi
 preferences-panel-symbolic:taskbar
@@ -140,7 +140,7 @@ preferences-vpn-symbolic:shield
 preferences-window-management-symbolic:layout
 preferences-wired-symbolic:network-wired:alias
 preferences-wireless-symbolic:network-wireless-signal-excellent:alias
-preferences-workspaces-symbolic:tile
+preferences-workspaces-symbolic:preferences-workspaces
 printer-network-symbolic:printer-network
 scanner-symbolic:scanner
 smartphone-symbolic:smartphone

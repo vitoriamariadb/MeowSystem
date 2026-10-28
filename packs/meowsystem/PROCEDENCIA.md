@@ -29,7 +29,7 @@ lado da regra.
 | Papirus / Papirus-Dark | pacote `papirus-icon-theme` do sistema | GPL-3.0 | sim | sim, sob GPL |
 | `catppuccin/papirus-folders` | `~/.cache/meowsystem/upstream/papirus-folders/` | GPL-3.0 | sim | sim, sob GPL |
 | desenho autoral | `packs/<id>/icones/apps/` e os `leitura-*.svg` de `packs/meowsystem/icones/sistema/` | deste projeto | — | — |
-| **desenho do traço, sistema** | `packs/meowsystem/icones/sistema/` — **132** glifos (as famílias de estado da barra, energia, mídia, janelas e as páginas das Configurações, P131), no traço do Arcticons | deste projeto | — | — |
+| **desenho do traço, sistema** | `packs/meowsystem/icones/sistema/` — **137** glifos (as famílias de estado da barra, energia, mídia, janelas e as páginas das Configurações, P131), no traço do Arcticons | deste projeto | — | — |
 
 ## Dois acervos com nome parecido, e cada um veste uma coisa
 
