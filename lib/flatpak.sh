@@ -74,7 +74,7 @@ meow_flatpak_apps_libadwaita() {
 
 meow_flatpak_runtime_gnome() {
   local versao
-  versao="$(meow_flatpak_ler info "$1" 2>/dev/null | sed -n 's|.*Runtime:[[:space:]]*org\.gnome\.Platform/[^/]*/||p' | head -n 1)"
+  versao="$(meow_flatpak_ler info --show-runtime "$1" 2>/dev/null | sed -n 's|^org\.gnome\.Platform/[^/]*/||p' | head -n 1)"
   case "$versao" in ''|*[!0-9]*) return 0 ;; esac
   printf '%s' "$versao"
 }

@@ -46,8 +46,11 @@ if args[:1] == ["info"]:
     if args[1:2] == ["--show-commit"]:
         if not os.path.isdir(app(alvo)): sys.exit(1)
         print(open(os.path.join(app(alvo), "commit")).read().strip()); sys.exit(0)
+    if args[1:2] == ["--show-runtime"]:
+        if not os.path.isdir(app(alvo)): sys.exit(1)
+        print(open(os.path.join(app(alvo), "runtime")).read().strip()); sys.exit(0)
     if os.path.isdir(app(alvo)):
-        print("        ID: %s\n   Runtime: %s" % (alvo, open(os.path.join(app(alvo), "runtime")).read().strip()))
+        print("              ID: %s\nLaufzeitumgebung: %s" % (alvo, open(os.path.join(app(alvo), "runtime")).read().strip()))
         sys.exit(0)
     if alvo in ler("instalados"):
         sys.exit(0)
