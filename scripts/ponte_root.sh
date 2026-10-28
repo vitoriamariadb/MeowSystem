@@ -225,23 +225,42 @@ flatpak-global-limpar)
   lar=""
   [ -r "$PERFIL" ] && lar="$(sed -n 's/^lar=//p' "$PERFIL" | head -n1)"
   case "$lar" in ''|/*) ;; *) morrer "lar inválido no perfil" ;; esac
-  tmp="$(mktemp)"; pedidos="$(mktemp)"; trap 'rm -f "$tmp" "$pedidos"' EXIT
+  tmp="$(mktemp)"; pedidos="$(mktemp)"; pastas="$(mktemp)"; trap 'rm -f "$tmp" "$pedidos" "$pastas"' EXIT
   while IFS= read -r linha || [ -n "${linha:-}" ]; do
     [ -n "$linha" ] || continue
     chave="${linha%%=*}"; valor="${linha#*=}"
+    if [ "$chave" = filesystems ]; then
+      case "$valor" in xdg-config/gtk-4.0|xdg-data/icons|/usr/share/themes) ;; *) morrer "pasta fora da lista desta ponte: $valor" ;; esac
+      printf '%s\n' "$valor" >> "$pastas"
+      continue
+    fi
     case "$chave" in ICON_THEME|XCURSOR_THEME|GTK_THEME) ;; *) morrer "chave fora da lista desta ponte: $chave" ;; esac
     case "$valor" in ''|.*|*[!A-Za-z0-9._+-]*) morrer "nome de tema inválido" ;; esac
     [ "${#valor}" -le 128 ] || morrer "nome de tema comprido demais"
     grep -qxF -- "$chave=$valor" "$FLATPAK_GLOBAL" || continue
     existe=0
-    for raiz in "$USR_SHARE/icons" "$USR_SHARE/themes" \
-                ${lar:+"$lar/.local/share/icons" "$lar/.local/share/themes" "$lar/.icons" "$lar/.themes"}; do
-      [ -d "$raiz/$valor" ] && existe=1
-    done
+    if [ "$chave" != GTK_THEME ]; then
+      for raiz in "$USR_SHARE/icons" "$USR_SHARE/themes" \
+                  ${lar:+"$lar/.local/share/icons" "$lar/.local/share/themes" "$lar/.icons" "$lar/.themes"}; do
+        [ -d "$raiz/$valor" ] && existe=1
+      done
+    fi
     [ "$existe" = "1" ] || printf '%s=%s\n' "$chave" "$valor" >> "$pedidos"
   done
-  [ -s "$pedidos" ] || exit 0
-  { grep -vxF -f "$pedidos" "$FLATPAK_GLOBAL" || true; } | awk '
+  [ -s "$pedidos" ] || [ -s "$pastas" ] || exit 0
+  { grep -vxF -f "$pedidos" "$FLATPAK_GLOBAL" || true; } | awk -v pastas="$pastas" '
+    BEGIN { while ((getline p < pastas) > 0) tirar[p] = 1 }
+    /^filesystems=/ {
+      n = split(substr($0, 13), it, ";"); saida = ""
+      for (i = 1; i <= n; i++) {
+        if (it[i] == "") continue
+        b = it[i]; sub(/:.*/, "", b)
+        if (!(b in tirar)) saida = saida it[i] ";"
+      }
+      if (saida != "") print "filesystems=" saida
+      next
+    }
+    { print }' | awk '
     function solta() { if (cab != "" && n > 0) printf "%s", buf; cab = ""; buf = ""; n = 0 }
     /^\[/ { solta(); cab = $0; buf = $0 "\n"; next }
     cab == "" { print; next }
@@ -253,7 +272,7 @@ flatpak-global-limpar)
   else
     rm -f "$FLATPAK_GLOBAL"
   fi
-  anotar "flatpak-global-limpar $(tr '\n' ' ' < "$pedidos")"
+  anotar "flatpak-global-limpar $(tr '\n' ' ' < "$pedidos") $(tr '\n' ' ' < "$pastas")"
   ;;
 
 libreoffice-remover)
