@@ -19,7 +19,7 @@ ESTADO_COSMIC="$HOME/.local/state/cosmic"
 
 . "$RAIZ/scripts/applet_pino.sh"
 
-PINO_CHAVES=" ORDEM TIPO PADRAO CHAVE_DO_CONF ATIVA NOME DESCRICAO URL COMMIT VERSAO LIBCOSMIC APP_ID BIN DESKTOP ICONES SUBSTITUI LEGADO MIGRA_ESTADO TEMA TEMA_CHAVES PENDENCIA UPSTREAM "
+PINO_CHAVES=" ORDEM TIPO PADRAO CHAVE_DO_CONF ATIVA NOME DESCRICAO URL COMMIT VERSAO LIBCOSMIC APP_ID BIN DESKTOP ICONES METAINFO SUBSTITUI LEGADO MIGRA_ESTADO TEMA TEMA_CHAVES PENDENCIA UPSTREAM "
 GARANTIR="${EXTENSOES_GARANTIR:-$RAIZ/scripts/garantir_builds.sh}"
 COMPOSITOR_PATCHES="${EXTENSOES_COMPOSITOR:-$RAIZ/scripts/compositor_patches.sh}"
 FILES_MENU_SH="${EXTENSOES_FILES_MENU:-$RAIZ/scripts/files_menu.sh}"
@@ -80,6 +80,10 @@ _pino_valido() {
     [[ "$alvo" =~ ^[A-Za-z0-9._@-][A-Za-z0-9._@/-]*$ ]] || return 1
     case "/$alvo/" in */../*) return 1 ;; esac
   done
+  if [ -n "$P_METAINFO" ]; then
+    [[ "$P_METAINFO" =~ ^[A-Za-z0-9._@-][A-Za-z0-9._@/-]*\.metainfo\.xml$ ]] || return 1
+    case "/$P_METAINFO/" in */../*) return 1 ;; esac
+  fi
   for par in $P_ICONES; do
     case "$par" in *:*) ;; *) return 1 ;; esac
     alvo="${par#*:}"
@@ -163,8 +167,19 @@ _texto_sombra() {
   sed -e "s|@bindir@|$BINDIR|g" -e "s|^Exec=\([^/ ][^ ]*\)|Exec=$BINDIR/\1|" "$origem"
 }
 
+_metainfo_destino() { printf '%s/metainfo/%s' "$DADOS" "$(basename "$P_METAINFO")"; }
+
+_metainfo_pendente() {
+  [ -n "$P_METAINFO" ] || return 1
+  local destino
+  destino="$(_metainfo_destino)"
+  [ -f "$destino" ] && grep -qxF -- "$destino" "$ESTADO/icones.lista" 2>/dev/null && return 1
+  return 0
+}
+
 _icones_pares() {
   local par origem destino f
+  [ -n "$P_METAINFO" ] && printf '%s\t%s\n' "$P_METAINFO" "$(_metainfo_destino)"
   for par in $P_ICONES; do
     origem="${par%%:*}"; destino="${par#*:}"
     if [ -d "$ARVORE/$origem" ]; then
@@ -257,6 +272,10 @@ _nucleo() {
     NUCLEO_MOTIVO="$(_nome) instalado não é o do pino (commit, ícones ou rustc mudaram)"
     return 1
   fi
+  if _metainfo_pendente; then
+    NUCLEO_MOTIVO="o metainfo de $(_nome) não está no lugar ($(_metainfo_destino))"
+    return 1
+  fi
   esperada="$(cat "$ESTADO/sombra.esperada" 2>/dev/null)"
   if [ -z "$esperada" ] || [ ! -f "$SOMBRA" ] || [ "$esperada" != "$(cat "$SOMBRA" 2>/dev/null)" ]; then
     NUCLEO_MOTIVO="a sombra de $(_nome) não está no lugar ($SOMBRA)"
@@ -322,6 +341,7 @@ _copiar() {
 _instalar_arquivos() {
   local origem destino texto lista="" r
   texto="$(_texto_sombra)" || { meow_erro "o repositório não tem $P_DESKTOP"; return 1; }
+  [ -z "$P_METAINFO" ] || [ -f "$ARVORE/$P_METAINFO" ] || { meow_erro "o repositório não tem $P_METAINFO"; return 1; }
   while IFS=$'\t' read -r origem destino; do
     [ -n "$destino" ] || continue
     _copiar "$ARVORE/$origem" "$destino" || { meow_erro "não consegui instalar $destino"; return 1; }
