@@ -78,7 +78,7 @@ Bloco `icones-sistema`, branch `bloco/icones-sistema`, 27/10/2026. Um agente só
    desligado; sem o «nenhuma barra» a família ficaria pela metade). Cada nome tem pasta (status 105, actions 38,
    devices 25), grupo e rótulo. Relatório: `relatorios/nomes-de-sistema-do-cosmic.md`.
 2. **Os desenhos.**
-   - MeowSystem: **132 desenhos novos** em `icones/sistema/`, no traço do Arcticons (viewBox 48, `currentColor`),
+   - MeowSystem: **137 desenhos novos** em `icones/sistema/`, no traço do Arcticons (viewBox 48, `currentColor`),
      gerados por script e conferidos em folha de contato antes de mapear
      (`capturas/p131-familias-meowsystem.png`, 16/22/32/48 px, escuro e claro). Famílias inteiras: wifi
      (4 barras a nenhuma, procurando, erro, desligado), volume (mudo, baixo, médio, alto, acima do máximo),
