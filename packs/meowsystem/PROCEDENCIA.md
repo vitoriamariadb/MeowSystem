@@ -19,7 +19,7 @@ lado da regra.
 
 | acervo | onde | licença | pode modificar? | pode redistribuir? |
 |---|---|---|---|---|
-| `catppuccin/vscode-icons` | `packs/meowsystem/icones/sistema/` — o molde, pintado na instalação | MIT | sim | sim, com o aviso de copyright |
+| `catppuccin/vscode-icons` | `packs/meowsystem/icones/sistema/` — os **75** moldes que o `mimetypes.map` usa, pintados na instalação; os outros **581** em `biblioteca/` | MIT | sim | sim, com o aviso de copyright |
 | `Daveedmee/catppuccin-icons` | `assets/icones/catppuccin-apps/<flavor>/` | **não declarada** | indefinido | **não** — uso local apenas |
 | Arcticons (sistema) | `packs/meowsystem/icones/sistema/` e `biblioteca/` (a lista em `icones/arcticons.lista`) — **39** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
 | Arcticons (aplicativo) | `packs/meowsystem/icones/apps/` e `biblioteca/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
@@ -29,6 +29,7 @@ lado da regra.
 | Papirus / Papirus-Dark | pacote `papirus-icon-theme` do sistema | GPL-3.0 | sim | sim, sob GPL |
 | `catppuccin/papirus-folders` | `~/.cache/meowsystem/upstream/papirus-folders/` | GPL-3.0 | sim | sim, sob GPL |
 | desenho autoral | `packs/<id>/icones/apps/` e os `leitura-*.svg` de `packs/meowsystem/icones/sistema/` | deste projeto | — | — |
+| **desenho do traço, sistema** | `packs/meowsystem/icones/sistema/` — **137** glifos (as famílias de estado da barra, energia, mídia, janelas e as páginas das Configurações, P131), no traço do Arcticons | deste projeto | — | — |
 
 ## Dois acervos com nome parecido, e cada um veste uma coisa
 
