@@ -1500,6 +1500,13 @@ EXTENSOES=""
 #   A página Extensões (aba Builds) escreve esta chave.
 COMPOSITOR="sim"                   # sim | nao
 
+# @ GPU do compositor
+# > Em qual placa de vídeo o compositor desenha.
+# A GPU DO COMPOSITOR: "dedicada" grava no /etc/environment o COSMIC_RENDER_DEVICE da placa
+#   dedicada que o instalador acha em /sys (com uma GPU só, não grava nada); "padrao" não toca
+#   e tira a linha que o MeowSystem gravou. Vale no próximo login.
+GPU_COMPOSITOR="dedicada"          # dedicada | padrao
+
 # REFAZER OS BUILDS AO ENTRAR NA SESSÃO: o compositor e o menu do Arquivos, quando a
 #   versão instalada muda. A página Extensões (Builds) liga e desliga esta chave.
 BUILDS_AO_ENTRAR="sim"            # sim | nao

@@ -9,8 +9,8 @@
 [![license](https://img.shields.io/badge/license-GPL--3.0-CBA6F7?style=for-the-badge&labelColor=1E1E2E)](LICENSE)
 [![platform](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
 ![version](https://img.shields.io/badge/version-v1.2.4-FAB387?style=for-the-badge&labelColor=1E1E2E)
-[![installer](https://img.shields.io/badge/installer-69%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-79%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![installer](https://img.shields.io/badge/installer-70%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-80%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 
 <img src="docs/capturas/desktop.jpg" width="920" alt="The desktop dressed by MeowSystem">
 
@@ -34,7 +34,7 @@ cd MeowSystem
 ./install.sh --wizard
 ```
 
-69 steps. `--wizard` asks the essential settings; `./install.sh --perfil <name>` installs with the
+70 steps. `--wizard` asks the essential settings; `./install.sh --perfil <name>` installs with the
 choices saved in `perfis/<name>/`. The sudo password is asked **once**, to register the root bridge;
 after that, no screen asks for a password. The installer downloads what Pop!_OS does not ship: the
 compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse first:
@@ -42,7 +42,7 @@ compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse 
 
 ## The panel
 
-`meow abrir`, or the MeowSystem icon in the launcher. 126 settings and 73 actions behind six doors (the panel speaks Portuguese):
+`meow abrir`, or the MeowSystem icon in the launcher. 127 settings and 73 actions behind six doors (the panel speaks Portuguese):
 
 <table>
 <tr>
@@ -70,7 +70,7 @@ The format is in [`docs/PACKS.md`](docs/PACKS.md) (Portuguese).
 
 ## Keeping it right
 
-`meow doctor` runs 79 checks without writing anything; `meow doctor --consertar` fixes what is out
+`meow doctor` runs 80 checks without writing anything; `meow doctor --consertar` fixes what is out
 of place, without asking anyone to type. It runs on its own at 5 a.m., and the **Consertar** button
 in the Cuidar door is the same gesture.
 
