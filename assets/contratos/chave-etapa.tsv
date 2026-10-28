@@ -102,6 +102,7 @@ FASTFETCH_LOGO_BLOCOS	fastfetch_logo	nao
 FASTFETCH_LOGO_CONF	fastfetch_logo	nao
 APPS_ATIVOS	apps	nao
 SPOTIFY_MARKETPLACE	apps	nao
+FLATPAK_CORRECOES	flatpak_tema	nao
 LANCADOR_SISTEMA	ocultar,ocultar_casa,nomes,absolutos	sim
 LANCADOR_OCULTAR	ocultar	sim
 AUTOSTART_BLOQUEADOS	autostart	nao

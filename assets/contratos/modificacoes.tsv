@@ -1,11 +1,11 @@
 terminal	nome	Terminal
 terminal	icone	terminal
-terminal	correcao	terminal	Cores do terminal
-terminal	correcao	prompt	Linha de comando
+terminal	correcao	terminal	Cores do terminal	terminal	TERMINAL_ESQUEMA
+terminal	correcao	prompt	Linha de comando	prompt	PROMPT_STARSHIP
 flatpak	nome	Apps Flatpak
 flatpak	modulo	libadwaita
-flatpak	correcao	flatpakadwaita	Libadwaita sem tema quebrado
-flatpak	correcao	flatpakicones	Ícones sem cópia em dobro
-flatpak	correcao	flatpakruntime	Runtime GNOME validado
+flatpak	correcao	flatpakadwaita	Libadwaita sem tema quebrado	flatpak_tema	FLATPAK_CORRECOES
+flatpak	correcao	flatpakicones	Ícones sem cópia em dobro	flatpak_tema	FLATPAK_CORRECOES
+flatpak	correcao	flatpakruntime	Runtime GNOME validado	flatpak_tema	FLATPAK_CORRECOES
 btop-bat	nome	btop e bat
 toolkits-gtk-qt	nome	Programas GTK e Qt
