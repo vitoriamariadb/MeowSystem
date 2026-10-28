@@ -108,7 +108,7 @@ for fl in dracula alucard; do
   com_macc=$((com_macc + $(grep -liE "$macc" "$pint"/*.svg | wc -l)))
   rm -rf "$pint"
 done
-[ "$total" = 1312 ] && [ "$com_macc" = 0 ] \
+[ "$total" = 150 ] && [ "$com_macc" = 0 ] \
   && ok "o molde pintado com a paleta do Dracula dá $total ícones de arquivo, nenhum com cor do macchiato" \
   || falha "ícones de arquivo do Dracula com cor do Catppuccin, ou contagem errada" "total=$total com_macchiato=$com_macc"
 [ ! -e "$RAIZ/packs/dracula/icones/sistema/mimetypes" ] && ! grep -rlq 'vscode-ctp' "$RAIZ/packs/dracula/icones" \
@@ -523,13 +523,13 @@ status_com() {
 status_com dracula dracula icones_sistema.sh --aplicar
 status_com dracula dracula icones_bandeja.sh --aplicar; rc_bandeja=$?
 shas_meow="$(cd "$RAIZ/packs/meowsystem/icones/sistema" && sha256sum ./*.svg | cut -d' ' -f1 | sort -u)"
-shas_status="$(sha256sum "$ST"/*/status/*.svg 2>/dev/null | cut -d' ' -f1 | sort -u)"
+shas_status="$(sha256sum "$ST"/*/{status,actions,devices}/*.svg 2>/dev/null | cut -d' ' -f1 | sort -u)"
 n_status="$(printf '%s\n' "$shas_status" | grep -c .)"
 repetidos="$(comm -12 <(printf '%s\n' "$shas_meow") <(printf '%s\n' "$shas_status") | grep -c .)"
 if [ "$n_status" -gt 0 ] && [ "$repetidos" = 0 ] \
-   && ! grep -l currentColor "$ST"/*/status/*.svg >/dev/null 2>&1 \
-   && grep -q 'stroke="#f8f8f2"' "$ST/scalable/status/display-symbolic.svg"; then
-  ok "com o Dracula no ar, os ícones de status não trazem o traço do MeowSystem: vêm pintados com o texto do Dracula ($n_status)"
+   && ! grep -l currentColor "$ST"/*/{status,actions,devices}/*.svg >/dev/null 2>&1 \
+   && grep -q 'fill="#f8f8f2"' "$ST/scalable/devices/display-symbolic.svg"; then
+  ok "com o Dracula no ar, os ícones do sistema não trazem o traço do MeowSystem: vêm do desenho do Dracula, pintados com o texto dele ($n_status)"
 else
   falha "os ícones de status do Dracula repetem o desenho do MeowSystem ou ficaram sem pintura (iguais: $repetidos de $n_status)"
 fi
@@ -542,7 +542,7 @@ status_com dracula dracula icones_sistema.sh --aplicar; rc2=$?
   || falha "a segunda passada dos ícones de status do Dracula escreveu (rc=$rc2)"
 status_com meowsystem mocha icones_sistema.sh --aplicar
 status_com meowsystem mocha icones_sistema.sh --conferir; rc_mew=$?
-if [ "$rc_mew" = 0 ] && grep -q 'stroke="currentColor"' "$ST/scalable/status/display-symbolic.svg"; then
+if [ "$rc_mew" = 0 ] && grep -q 'stroke="currentColor"' "$ST/scalable/devices/display-symbolic.svg" && [ ! -e "$ST/scalable/status/display-symbolic.svg" ]; then
   ok "com o MeowSystem no ar os ícones de status voltam ao traço dele, em currentColor, e conferem"
 else
   falha "o MeowSystem no ar não confere os ícones de status depois do Dracula (rc=$rc_mew)"

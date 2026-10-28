@@ -11,7 +11,10 @@ COR=""
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
-declare -A TRACO=( ["22x22/status"]=4 ["scalable/status"]=2.5 )
+declare -A TRACO=( ["22x22"]=4 ["scalable"]=2.5 )
+CONTEXTOS=(status actions devices)
+CONTRATO="$RAIZ/assets/contratos/nomes-de-sistema.tsv"
+declare -A CONTEXTO=()
 
 _pack_no_ar() {
   local nome
@@ -31,7 +34,37 @@ _ler_mapa() {
     MAPA_LIDO["$nome"]="$glifo"
     if [ "${marca:-}" = "alias" ]; then ALIAS_OK["$glifo"]=1; fi
   done < "$MAPA"
+  _ler_contexto
   return 0
+}
+
+_ler_contexto() {
+  local nome contexto _resto
+  [ -f "$CONTRATO" ] || return 0
+  while IFS=$'\t' read -r nome contexto _resto || [ -n "$nome" ]; do
+    case "$nome" in ''|'#'*) continue ;; esac
+    case "$contexto" in status|actions|devices) CONTEXTO["$nome"]="$contexto" ;; esac
+  done < "$CONTRATO"
+  return 0
+}
+
+_dir_de() {
+  printf '%s/%s' "$1" "${CONTEXTO[$2]:-status}"
+}
+
+_dirs_no_tema() {
+  local tam ctx
+  for tam in "${!TRACO[@]}"; do
+    for ctx in "${CONTEXTOS[@]}"; do
+      [ -d "$BASE/$tam/$ctx" ] && printf '%s\t%s\n' "$tam" "$ctx"
+    done
+  done
+  return 0
+}
+
+_fora_do_mapa() {
+  local tam="$1" ctx="$2" nome="$3"
+  [ -z "${MAPA_LIDO[$nome]:-}" ] || [ "$(_dir_de "$tam" "$nome")" != "$tam/$ctx" ]
 }
 
 _conferir_gemeos() {
@@ -51,13 +84,12 @@ _conferir_gemeos() {
 }
 
 _restos() {
-  local dir arq
-  for dir in "${!TRACO[@]}"; do
-    [ -d "$BASE/$dir" ] || continue
-    for arq in "$BASE/$dir"/*.svg; do
+  local tam ctx arq
+  while IFS=$'\t' read -r tam ctx; do
+    for arq in "$BASE/$tam/$ctx"/*.svg; do
       [ -e "$arq" ] && printf '%s\n' "$arq"
     done
-  done
+  done < <(_dirs_no_tema)
   return 0
 }
 
@@ -95,6 +127,10 @@ _pronto() {
 
 _com_traco() {
   local arq="$1" largura="$2"
+  if ! grep -q 'stroke="currentColor"' "$arq"; then
+    _com_cor < "$arq"
+    return 0
+  fi
   if grep -q 'stroke-width' "$arq"; then
     sed -E 's/stroke-width="[^"]*"/stroke-width="'"$largura"'"/g' "$arq"
   else
@@ -107,38 +143,37 @@ _com_cor() {
 }
 
 _desejado() {
-  local nome glifo dir
-  for dir in "${!TRACO[@]}"; do
+  local nome glifo tam
+  for tam in "${!TRACO[@]}"; do
     for nome in "${!MAPA_LIDO[@]}"; do
       glifo="${MAPA_LIDO[$nome]}"
-      [ -f "$ORIGEM/$glifo.svg" ] && printf '%s\t%s\t%s\n' "$dir" "$nome" "$glifo"
+      [ -f "$ORIGEM/$glifo.svg" ] && printf '%s\t%s\t%s\n' "$(_dir_de "$tam" "$nome")" "$nome" "$glifo"
     done
   done
 }
 
 _conferir() {
-  local dir nome glifo divergentes=0 ausentes=0 orfaos=0 total=0 arq alvo
+  local dir nome glifo divergentes=0 ausentes=0 orfaos=0 total=0 arq alvo tam ctx
   while IFS=$'\t' read -r dir nome glifo; do
     total=$((total + 1))
     alvo="$BASE/$dir/$nome.svg"
     if [ ! -f "$alvo" ]; then
       ausentes=$((ausentes + 1))
-    elif [ "$(_com_traco "$ORIGEM/$glifo.svg" "${TRACO[$dir]}")" != "$(cat "$alvo")" ]; then
+    elif [ "$(_com_traco "$ORIGEM/$glifo.svg" "${TRACO[${dir%%/*}]}")" != "$(cat "$alvo")" ]; then
       divergentes=$((divergentes + 1))
     fi
   done < <(_desejado)
 
-  for dir in "${!TRACO[@]}"; do
-    [ -d "$BASE/$dir" ] || continue
-    for arq in "$BASE/$dir"/*.svg; do
+  while IFS=$'\t' read -r tam ctx; do
+    for arq in "$BASE/$tam/$ctx"/*.svg; do
       [ -e "$arq" ] || continue
       nome="$(basename "$arq" .svg)"
-      [ -n "${MAPA_LIDO[$nome]:-}" ] || orfaos=$((orfaos + 1))
+      if _fora_do_mapa "$tam" "$ctx" "$nome"; then orfaos=$((orfaos + 1)); fi
     done
-  done
+  done < <(_dirs_no_tema)
 
   if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
-    meow_ok "$total ícone(s) do sistema já com o Arcticons do pack $(_pack_no_ar)"
+    meow_ok "$total ícone(s) do sistema já com os desenhos do pack $(_pack_no_ar)"
     return "$MEOW_OK"
   fi
   meow_muda "ícones do sistema: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
@@ -146,11 +181,11 @@ _conferir() {
 }
 
 _aplicar() {
-  local dir nome glifo arq mudou=0 postos=0 removidos=0 rc
+  local dir nome glifo arq mudou=0 postos=0 removidos=0 rc tam ctx
 
   while IFS=$'\t' read -r dir nome glifo; do
     set +e
-    meow_escrever "$BASE/$dir/$nome.svg" "$(_com_traco "$ORIGEM/$glifo.svg" "${TRACO[$dir]}")" 644
+    meow_escrever "$BASE/$dir/$nome.svg" "$(_com_traco "$ORIGEM/$glifo.svg" "${TRACO[${dir%%/*}]}")" 644
     rc=$?
     set -e
     case "$rc" in
@@ -160,12 +195,11 @@ _aplicar() {
     esac
   done < <(_desejado)
 
-  for dir in "${!TRACO[@]}"; do
-    [ -d "$BASE/$dir" ] || continue
-    for arq in "$BASE/$dir"/*.svg; do
+  while IFS=$'\t' read -r tam ctx; do
+    for arq in "$BASE/$tam/$ctx"/*.svg; do
       [ -e "$arq" ] || continue
       nome="$(basename "$arq" .svg)"
-      if [ -z "${MAPA_LIDO[$nome]:-}" ]; then
+      if _fora_do_mapa "$tam" "$ctx" "$nome"; then
         if meow_seco; then
           meow_muda "removeria $arq (saiu do mapa)"
         else
@@ -175,10 +209,10 @@ _aplicar() {
         mudou=1; removidos=$((removidos + 1))
       fi
     done
-  done
+  done < <(_dirs_no_tema)
 
   if [ "$mudou" = 0 ]; then
-    meow_ok "ícones do sistema já com o Arcticons do pack $(_pack_no_ar)"
+    meow_ok "ícones do sistema já com os desenhos do pack $(_pack_no_ar)"
     return "$MEOW_OK"
   fi
   meow_info "ícones do sistema: $postos posto(s), $removidos removido(s)"
