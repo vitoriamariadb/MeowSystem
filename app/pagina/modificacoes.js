@@ -118,7 +118,7 @@ function cabecaDeModificacoes() {
     const a = ACAO.get(l.a);
     if (!a) return null;
     return botao(l.b, { class: "bt pequeno" + (a.escreve ? " principal" : ""), controle: "acao:" + a.id,
-      dica: l.r, onclick: () => rodar(a, "", { depois: releModificacoes }) });
+      dica: l.r !== l.b ? l.r : "", onclick: () => rodar(a, "", { depois: releModificacoes }) });
   }).filter(Boolean);
   return elemento("div", { class: "cabeca-mod" }, [
     elemento("h1", { texto: "Modificações" }),

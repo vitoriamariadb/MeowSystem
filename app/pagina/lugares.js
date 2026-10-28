@@ -326,7 +326,7 @@ const LUGAR_EXTENSOES = {
 const LUGAR_MODIFICACOES = {
   cabeca: [
     { a: "apps", r: "Conferir", b: "Conferir" },
-    { a: "apps_aplicar", r: "Aplicar em todos", b: "Aplicar" },
+    { a: "apps_aplicar", r: "Aplicar em todos", b: "Aplicar em todos" },
   ],
   cartao: [
     { c: "APPS_ATIVOS", r: "Tema" },
