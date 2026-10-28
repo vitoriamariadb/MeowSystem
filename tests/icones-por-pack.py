@@ -53,6 +53,40 @@ def fontes_do_acervo(pag, pasta):
                         ".map((a) => ({ nome: a.querySelector('.nome').textContent, src: a.querySelector('img').src }))", pasta)
 
 
+GRUPOS = {"barra": "Barra e bandeja", "configuracoes": "Configurações", "botoes": "Botões e janelas",
+          "pastas": "Pastas", "tipos": "Tipos de arquivo"}
+NOMES_DA_BARRA = {"system-shutdown-symbolic", "network-wireless-signal-excellent-symbolic"}
+
+
+def grupos_do_sistema(pag):
+    return pag.evaluate("""() => Object.fromEntries([...document.querySelectorAll(".grade-apps.pastas[data-acervo='sistema'][data-grupo]")]
+        .map((g) => [g.dataset.grupo, { titulo: g.closest("section.bloco").querySelector("h2").textContent,
+          nomes: [...g.querySelectorAll(".app")].map((a) => a.dataset.nome),
+          srcs: [...g.querySelectorAll(".app img")].map((i) => i.src) }]))""")
+
+
+def fotografar(pag, nome):
+    if not FOTOS:
+        return
+    os.makedirs(FOTOS, exist_ok=True)
+    pag.evaluate("() => Promise.all([...document.images].map((i) => { i.loading = 'eager';"
+                 " return i.complete ? null : new Promise((ok) => { i.onload = i.onerror = ok; }); }))")
+    pag.wait_for_timeout(300)
+    pag.screenshot(path=os.path.join(FOTOS, nome), full_page=True)
+
+
+def confere_sistema(pag, pack):
+    g = grupos_do_sistema(pag)
+    confere(set(g) == set(GRUPOS) and all(g[k]["titulo"] == v for k, v in GRUPOS.items()),
+            f"Sistema ({pack}): os grupos {', '.join(GRUPOS.values())} ({ {k: len(v['nomes']) for k, v in g.items()} })")
+    todos = {n for v in g.values() for n in v["nomes"]}
+    confere(NOMES_DA_BARRA <= set(g.get("barra", {}).get("nomes", [])),
+            f"Sistema ({pack}): {', '.join(sorted(NOMES_DA_BARRA))} na Barra e bandeja")
+    confere(len(todos) >= 168 + 7, f"Sistema ({pack}): tudo o que o tema instala, herdado incluído ({len(todos)})")
+    fotografar(pag, f"p131-sistema-{pack}.png")
+    return g
+
+
 def decodificado(src):
     if src.startswith("data:"):
         return urllib.parse.unquote(src.split(",", 1)[1])
@@ -97,18 +131,30 @@ def main():
             confere({"Documentos", "Downloads"} <= nomes, f"Sistema (MeowSystem): pastas com nome legível ({sorted(nomes)[:6]})")
             pastas_mew = [a for a in sis if a["nome"] == "Documentos"]
             confere(bool(pastas_mew) and pastas_mew[0]["src"].startswith("data:"), "Sistema (MeowSystem): a pasta vem pintada na cor do tema")
+            g_mew = confere_sistema(pag, "meowsystem")
+            barra_mew = [decodificado(s) for s in g_mew.get("barra", {}).get("srcs", [])]
+            confere(bool(barra_mew) and all("stroke-width" in s and "currentColor" not in s for s in barra_mew),
+                    "Sistema (MeowSystem): a barra vem no traço, pintada na cor do texto")
             aba(pag, "biblioteca")
             bib_mew = fontes_do_acervo(pag, "biblioteca")
+            confere(len(bib_mew) > 36, f"Biblioteca (MeowSystem): a biblioteca inteira, não só os 36 de antes ({len(bib_mew)})")
+            fotografar(pag, "p131-biblioteca-meowsystem.png")
             confere(len(bib_mew) > 0 and all("dracula" not in a["src"] for a in bib_mew), f"Biblioteca (MeowSystem): só o acervo do pack ({len(bib_mew)})")
             confere(pag.locator('[data-controle^="levar:"]').count() == 0, "as abas Sistema e Biblioteca só mostram: sem botão de levar")
 
             partir_de(pag, "dracula")
             aba(pag, "sistema")
-            sis_dra = fontes_do_acervo(pag, "sistema")
-            confere(len(sis_dra) > 0 and all("%2Fdracula%2F" in a["src"] or "/dracula/" in decodificado(a["src"]) for a in sis_dra),
-                    f"Sistema (Dracula): só as pastas do pack Dracula ({len(sis_dra)})")
+            g_dra = confere_sistema(pag, "dracula")
+            pastas_dra = g_dra.get("pastas", {}).get("srcs", [])
+            confere(bool(pastas_dra) and all("%2Fdracula%2F" in s or "/dracula/" in decodificado(s) for s in pastas_dra),
+                    f"Sistema (Dracula): só as pastas do pack Dracula ({len(pastas_dra)})")
+            barra_dra = [decodificado(s) for s in g_dra.get("barra", {}).get("srcs", [])]
+            barra_mew_set = set(barra_mew)
+            confere(bool(barra_dra) and all("stroke-width=\"2.5\"" not in s for s in barra_dra) and barra_mew_set.isdisjoint(barra_dra),
+                    "Sistema (Dracula): a barra é o preenchido do Dracula, sem o traço do MeowSystem")
             aba(pag, "biblioteca")
             bib_dra = fontes_do_acervo(pag, "biblioteca")
+            fotografar(pag, "p131-biblioteca-dracula.png")
             confere(len(bib_dra) > 0 and all("dracula" in decodificado(a["src"]) or a["src"].startswith("data:image/svg+xml") for a in bib_dra),
                     f"Biblioteca (Dracula): só o acervo do pack Dracula ({len(bib_dra)})")
             confere({a["src"] for a in bib_dra}.isdisjoint({a["src"] for a in bib_mew}), "a Biblioteca do Dracula não mistura a do MeowSystem")

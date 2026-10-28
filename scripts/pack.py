@@ -4499,6 +4499,100 @@ def _com_a_tinta(texto, tinta):
     return texto.replace("currentColor", tinta.lower())
 
 
+CONTRATO_DO_SISTEMA = os.path.join(RAIZ, "assets", "contratos", "nomes-de-sistema.tsv")
+GRUPOS_DO_SISTEMA = ("barra", "configuracoes", "botoes", "pastas", "tipos")
+ESPESSURA_DA_PREVIA = "2.5"
+
+
+def _contrato_do_sistema():
+    saida = {}
+    try:
+        with open(CONTRATO_DO_SISTEMA, encoding="utf-8") as fh:
+            for linha in fh:
+                campos = linha.rstrip("\n").split("\t")
+                if linha.startswith("#") or len(campos) < 4:
+                    continue
+                saida[campos[0]] = (campos[2], campos[3])
+    except (OSError, UnicodeDecodeError):
+        return {}
+    return saida
+
+
+def _bloco_herdado(dir_pack, bloco):
+    vistos, r = set(), dir_pack
+    while r and r not in vistos:
+        vistos.add(r)
+        d = achar(r)
+        if not d:
+            return None
+        desenhos, mapa = campo(d, f"icones.{bloco}.desenhos"), campo(d, f"icones.{bloco}.mapa")
+        if isinstance(desenhos, str) and desenhos and isinstance(mapa, str) and mapa:
+            try:
+                return _dentro(d, desenhos, f"icones.{bloco}.desenhos"), _dentro(d, mapa, f"icones.{bloco}.mapa")
+            except Recusa:
+                return None
+        r = campo(d, f"icones.{bloco}.herda")
+    return None
+
+
+def _glifos_do_bloco(dir_pack, bloco):
+    achado = _bloco_herdado(dir_pack, bloco)
+    if not achado:
+        return []
+    pasta, mapa = achado
+    try:
+        linhas = list(ler_mapa(mapa))
+    except (OSError, UnicodeDecodeError):
+        return []
+    saida = []
+    for _num, nome, alvo in linhas:
+        glifo = alvo.split(":", 1)[0].strip()
+        cheio = os.path.join(pasta, glifo + ".svg")
+        if nome_de_destino(nome) and nome_de_destino(glifo) and os.path.isfile(cheio) and not os.path.islink(cheio):
+            saida.append((nome, glifo, cheio))
+    return saida
+
+
+def _previa_do_glifo(texto, tinta):
+    if tinta and 'stroke="currentColor"' in texto:
+        return _tracejar(texto, ESPESSURA_DA_PREVIA, tinta)
+    return _com_a_tinta(texto, tinta)
+
+
+def sistema_do_pack(dir_pack, cores=None):
+    if cores is None:
+        cores = _cores_do_flavor(dir_pack, campo(dir_pack, "paleta.flavor_padrao", ""))
+    tinta = (cores or {}).get("text")
+    contrato = _contrato_do_sistema()
+    saida, vistos = [], set()
+
+    def por(nome, arq, rotulo, svg, previa, grupo):
+        if nome not in vistos:
+            vistos.add(nome)
+            saida.append((nome, arq, rotulo, svg, previa, grupo))
+
+    for bloco in ("sistema", "bandeja"):
+        for nome, _glifo, cheio in _glifos_do_bloco(dir_pack, bloco):
+            grupo, rotulo = contrato.get(nome, ("barra" if bloco == "bandeja" else "botoes", ""))
+            por(nome, cheio, rotulo or _rotulo_do_nome(nome.removesuffix("-symbolic")), None,
+                _previa_do_glifo(_ler_svg(cheio), tinta), grupo)
+    for d in pastas_do_pack(dir_pack, cores):
+        por(d["nome"], d["caminho"], d["rotulo"], d["svg"], d["svg"], "pastas")
+    for nome, glifo, cheio in _glifos_do_bloco(dir_pack, "mimetypes"):
+        bruto = _ler_svg(cheio)
+        pintado = _pintar_molde(bruto, cores) if RE_VAR_CTP.search(bruto) else None
+        if RE_VAR_CTP.search(bruto) and pintado is None:
+            continue
+        por(nome, cheio, _rotulo_do_nome(glifo), pintado, pintado or _com_a_tinta(bruto, tinta), "tipos")
+    return saida
+
+
+def _previa_da_biblioteca(texto, cores, tinta):
+    if RE_VAR_CTP.search(texto):
+        return _pintar_molde(texto, cores)
+    return _com_a_tinta(texto, tinta)
+
+
 def acervo_para_levar(ident, pasta, base="", cores=None):
     _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
     meus = set(icones_do_pack(pack_da_pessoa(ident), pasta)) if ident else set()
@@ -4508,20 +4602,21 @@ def acervo_para_levar(ident, pasta, base="", cores=None):
         if pid == ident or not dir_pack:
             continue
         if pasta == "sistema":
-            itens = [(d["nome"], d["caminho"], d["rotulo"], d["svg"], d["svg"]) for d in pastas_do_pack(dir_pack, cores)]
+            itens = sistema_do_pack(dir_pack, cores)
         else:
             try:
                 bib = _dentro(dir_pack, PASTA_BIBLIOTECA, "biblioteca")
             except Recusa:
                 continue
             rotulos = _rotulos_da_biblioteca(bib)
-            tinta = (cores or _cores_do_flavor(dir_pack, campo(dir_pack, "paleta.flavor_padrao", "")) or {}).get("text")
+            paleta = cores or _cores_do_flavor(dir_pack, campo(dir_pack, "paleta.flavor_padrao", "")) or {}
             itens = [(os.path.basename(a)[:-4], a,
                       rotulos.get(os.path.basename(a)) or _rotulo_do_nome(os.path.basename(a)[:-4]), None,
-                      _com_a_tinta(_ler_svg(a), tinta))
+                      _previa_da_biblioteca(_ler_svg(a), paleta, paleta.get("text")), "biblioteca")
                      for a in _arquivos_da_pasta(bib, ".svg")]
         saida += [{"de": pid, "nome": nome, "rotulo": rotulo, "arq": arq, "svg": svg, "previa": previa,
-                   "levado": nome + ".svg" in meus} for nome, arq, rotulo, svg, previa in itens]
+                   "grupo": grupo, "levado": nome + ".svg" in meus}
+                  for nome, arq, rotulo, svg, previa, grupo in itens]
     return saida
 
 
