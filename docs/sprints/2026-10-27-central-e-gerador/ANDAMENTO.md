@@ -33,7 +33,12 @@
   `~/.local/state/meowsystem/backups/git-hooks-mortos-2026-10-27`) e Aurora (P124-P125, `relatorios/conferencia-aurora.md`, merge 704c8be0;
   doctor com 76 conferências). Correção do coordenador na integração: a grade do acervo pinta o traço (10d9f698).
 - EM VOO, a partir da integração (ela pediu os blocos juntos, 27/10):
-  Flatpak (`wf_3e37b949-95f`, P127 → P128 → P129). Depois dele, Modificações (P130).
+  Flatpak (`wf_3e37b949-95f`, P127 → P128 → P129) e Modificações (`wf_bcafdaaa-ac2`, P130), juntos (ela, 27/10).
+- 27/10 21:10: o `dev` recebeu a integração (c4fade96) e o install rodou com o HOME real, pedido dela: 69 etapas,
+  ponte root posta pela caixa do askpass (4419df82). Os dois blocos em voo integram e o install roda de novo.
+- PRÓXIMO, quando o Flatpak voltar: P131 (os ícones do sistema e a biblioteca nos dois packs, «Blocos», rodada 6).
+  Decisão dela de 27/10 que desfaz o `sistema.map:10-25`: as famílias de estado (desligar, wifi, som, bateria)
+  moram no pack, não no Papirus.
   Worktrees `~/Desenvolvimento/MeowSystem-<bloco>`, branches `bloco/<bloco>`.
 - Próximo passo: integrar cada um assim que voltar. Fecho da pasta, no checkout dela, nesta ordem: `du -sh`; `meow doctor`
   (ver `basefundo` e `estadovelho` acusarem); `meow doctor --consertar`; `scripts/enxugar.sh --raiz ~/Desenvolvimento/MeowSystem`
@@ -152,7 +157,8 @@ Fotos em `fotos/1.png` a `fotos/5.png`.
 | 3 | Aurora | P124 → P125 | `~/Desenvolvimento/MeowSystem-aurora`, `bloco/aurora` | implementa, confere, final |
 | 3 | Pasta | P123 | `~/Desenvolvimento/MeowSystem-pasta`, `bloco/pasta` | script + confere |
 | 5 | Flatpak | P127 → P128 → P129 | `~/Desenvolvimento/MeowSystem-flatpak`, `bloco/flatpak` | implementa (Sonnet high), confere e corrige (Opus high), final (Opus high) |
-| 5b | Modificações | P130, depois que o Flatpak integrar | `~/Desenvolvimento/MeowSystem-modificacoes`, `bloco/modificacoes` | implementa (Opus high), confere e corrige (Opus high), final (Opus high) |
+| 5b | Modificações | P130, junto com o Flatpak (ela, 27/10) | `~/Desenvolvimento/MeowSystem-modificacoes`, `bloco/modificacoes` | implementa (Opus high), confere e corrige (Opus high), final (Opus high) |
+| 6 | Ícones do sistema | P131, quando o Flatpak integrar | `~/Desenvolvimento/MeowSystem-icones-sistema`, `bloco/icones-sistema` | implementa (Opus high), confere e corrige (Opus high), final (Opus high) |
 | 4 | Máquina | instalar do zero pelo MeowSystem, na máquina dela | checkout principal | coordenador |
 Os dois blocos da rodada 1 só dividem `app/servidor.py`, em funções diferentes (P116 `_cartoes_de_pack`; P120 o
 bloco `EXT_*` e as tabelas de pendência). P119 mexe nas mesmas tabelas da P120, por isso vai na rodada 2.
