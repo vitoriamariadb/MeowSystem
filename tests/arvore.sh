@@ -59,7 +59,7 @@ done
 if [ -z "$sobras" ]; then
   ok "a pasta não guarda build de applet, acervo de papel de parede, captura de navegador nem zip na raiz"
 else
-  falha "sobra na pasta do repositório: applet vive em extensoes/<id>, papel de parede em ~/.local/share/backgrounds, o git já guarda o resto (scripts/enxugar.sh --aplicar)"
+  falha "sobra na pasta do repositório: applet vive em extensoes/<id>, papel de parede em ~/.local/share/backgrounds, o git já guarda o resto"
   printf '%s' "$sobras" | amostra
 fi
 
