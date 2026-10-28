@@ -62,14 +62,16 @@ saida="$(guarda "$T/up-torto")"
   || falha "as guardas escreveram na casa de brinquedo" "$(find "$T/casa-guarda" | head)"
 
 achado="$(python3 - "$RAIZ/packs/dracula" "$RAIZ/packs/dracula/icones/apps/org.gnome.Nautilus.svg" <<'PY'
-import glob, json, os, re, sys
+import json, os, re, sys
 pack, resgate = sys.argv[1], sys.argv[2]
 with open(os.path.join(pack, "paleta.json"), encoding="utf-8") as fh:
     dra = json.load(fh)["flavors"]["dracula"]
 quer = [dra["surface0"].upper(), dra["surface1"].upper()]
 erros, vistos = [], 0
 DO_MANUAIS = {"folder.svg", "org.gnome.Nautilus.svg"}
-for svg in sorted(glob.glob(os.path.join(pack, "icones", "sistema", "*.svg"))) + [resgate]:
+with open(os.path.join(pack, "icones", "pastas.map"), encoding="utf-8") as fh:
+    das_pastas = sorted({l.split(":")[1].strip() for l in fh if ":" in l and not l.startswith("#")})
+for svg in [os.path.join(pack, "icones", "sistema", g + ".svg") for g in das_pastas] + [resgate]:
     vistos += 1
     nome = os.path.basename(svg)
     if nome in DO_MANUAIS:
@@ -108,11 +110,13 @@ mkdir -p "$LUGAR"
 for n in documents download music pictures publicshare templates videos; do
   printf '<svg><path style="fill:#CAD3F5"/></svg>' > "$LUGAR/folder-$n.svg"
 done
-N_PASTAS="$(find "$RAIZ/packs/dracula/icones/sistema" -maxdepth 1 -name '*.svg' | wc -l)"
+DAS_PASTAS=( $(grep -v '^#' "$RAIZ/packs/dracula/icones/pastas.map" | grep : | cut -d: -f2 | sort -u) )
+N_PASTAS="${#DAS_PASTAS[@]}"
 aplicou="$(xdg "$T/casa-xdg" dracula dracula --aplicar)"
 conferiu="$(xdg "$T/casa-xdg" dracula dracula --conferir)"; rc=$?
 postos=0
-for d in "$RAIZ/packs/dracula/icones/sistema/"*.svg; do
+for g in "${DAS_PASTAS[@]}"; do
+  d="$RAIZ/packs/dracula/icones/sistema/$g.svg"
   [ "$(cat "$d")" = "$(cat "$LUGAR/$(basename "$d")" 2>/dev/null)" ] && postos=$((postos + 1))
 done
 if [ "$postos" = "$N_PASTAS" ] && [ "$N_PASTAS" = 10 ] && [ "$rc" = 0 ] && [[ "$aplicou" == *"desenhos do pack Dracula"* ]] \
