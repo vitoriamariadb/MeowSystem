@@ -91,8 +91,9 @@ def main():
                 if foco["nome"].startswith("porta:"):
                     portas.add(foco["nome"])
                     anel = anel and foco["anel"]
-            if len(portas) != 5:
-                reprovas.append(("teclado", "tab", f"o Tab não chega às cinco portas ({sorted(portas)})"))
+            todas = pag.evaluate("() => PORTAS.length")
+            if len(portas) != todas:
+                reprovas.append(("teclado", "tab", f"o Tab não chega às {todas} portas ({sorted(portas)})"))
             if not anel:
                 reprovas.append(("teclado", "foco", "a porta focada pelo teclado não desenha o anel"))
             pag.mouse.click(5, 5)

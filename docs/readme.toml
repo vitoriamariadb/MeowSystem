@@ -20,8 +20,8 @@ pt = "um pack seu, em passos: cores, ícones, papel de parede, sons, e baixar o 
 en = "your own pack, step by step: colors, icons, wallpaper, sounds, and download the theme."
 
 [portas.ajustes]
-pt = "painel e dock, janelas, papel de parede, mascote, dia e noite, terminal e programas."
-en = "panel and dock, windows, wallpaper, mascot, day and night, terminal and programs."
+pt = "painel e dock, janelas, papel de parede, mascote, dia e noite e programas."
+en = "panel and dock, windows, wallpaper, mascot, day and night and programs."
 
 [portas.cuidar]
 pt = "o doctor e o Consertar, as pendências, e os ajustes para levar a outra máquina."
@@ -30,3 +30,7 @@ en = "the doctor and its fix button, pending items, and settings to carry to ano
 [portas.extensoes]
 pt = "os applets da casa e os de quem usa: instalar, atualizar, pôr no painel, e os builds do compositor."
 en = "the house applets and your own: install, update, put on the panel, and the compositor builds."
+
+[portas.modificacoes]
+pt = "um cartão por programa que recebe o tema: ligar, desligar, pôr no lugar, e as correções de cada um."
+en = "one card per program that takes the theme: turn on, turn off, put back in place, and each one's fixes."

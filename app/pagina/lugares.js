@@ -6,6 +6,7 @@ const PORTAS = [
   { id: "ajustes", nome: "Definir", icone: "ajustes" },
   { id: "cuidar", nome: "Manter", icone: "cuidar" },
   { id: "extensoes", nome: "Extensões", icone: "grade" },
+  { id: "modificacoes", nome: "Modificações", icone: "pincel" },
 ];
 
 const LUGAR_TEMA = {
@@ -215,30 +216,11 @@ const AJUSTES = [
         { c: "WALLPAPER_NOITE_FIM", r: "Termina", sub: true },
       ] },
     ] },
-  { id: "terminal", nome: "Terminal", icone: "terminal",
-    blocos: [
-      { titulo: "Cores", linhas: [
-        { c: "TERMINAL_ESQUEMA", r: "Cores do tema" },
-        { c: "TERMINAL_CURSOR", r: "Cor do cursor" },
-      ] },
-      { titulo: "Linha de comando", linhas: [
-        { c: "PROMPT_STARSHIP", r: "Linha colorida" },
-      ] },
-      { titulo: "Fonte", linhas: [
-        { g: "acervo:fonte", r: "Fonte do terminal", b: "Trazer fonte" },
-      ] },
-    ] },
   { id: "programas", nome: "Programas", icone: "grade",
     blocos: [
-      { titulo: "Recebem o tema", programas: true, linhas: [
-        { c: "APPS_ATIVOS", r: "Programas" },
-        { a: "apps_aplicar", r: "Aplicar agora", b: "Aplicar" },
-        { a: "apps", r: "Conferir", b: "Conferir" },
-      ] },
       { titulo: "Lançador", linhas: [
         { c: "LANCADOR_SISTEMA", r: "Arrumar o lançador" },
         { c: "LANCADOR_OCULTAR", r: "Escondidos", larga: true },
-        { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify" },
       ] },
       { titulo: "Jogos", jogos: true, linhas: [
         { e: "jogos", r: "Jogos" },
@@ -341,6 +323,37 @@ const LUGAR_EXTENSOES = {
   ],
 };
 
+const LUGAR_MODIFICACOES = {
+  cabeca: [
+    { a: "apps", r: "Conferir", b: "Conferir" },
+    { a: "apps_aplicar", r: "Aplicar em todos", b: "Aplicar em todos" },
+  ],
+  cartao: [
+    { c: "APPS_ATIVOS", r: "Tema" },
+    { a: "modificacao_aplicar", r: "Pôr no lugar" },
+    { a: "modificacao_reverter", r: "Tirar o tema" },
+    { a: "modificacao_corrigir", r: "Pôr a correção no lugar" },
+  ],
+  chaves: [
+    { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify", cartao: "spotify", bloco: "Spotify" },
+  ],
+  detalhes: [
+    { id: "terminal", nome: "Terminal", icone: "terminal",
+      blocos: [
+        { titulo: "Cores", linhas: [
+          { c: "TERMINAL_ESQUEMA", r: "Cores do tema" },
+          { c: "TERMINAL_CURSOR", r: "Cor do cursor" },
+        ] },
+        { titulo: "Linha de comando", linhas: [
+          { c: "PROMPT_STARSHIP", r: "Linha colorida" },
+        ] },
+        { titulo: "Fonte", linhas: [
+          { g: "acervo:fonte", r: "Fonte do terminal", b: "Trazer fonte" },
+        ] },
+      ] },
+  ],
+};
+
 const LUGAR_TOPO = [
   { g: "descartar", r: "Desfazer" },
   { g: "busca", r: "Procurar um ajuste" },
@@ -378,11 +391,15 @@ function inventarioDoPainel() {
   for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Manter", "Zona de perigo");
   for (const l of LUGAR_EXTENSOES.applets) pus(l, "extensoes", "Applets", "Applets");
   for (const l of LUGAR_EXTENSOES.builds) pus(l, "extensoes", "Builds", "Builds");
+  for (const l of LUGAR_MODIFICACOES.cabeca) pus(l, "modificacoes", "", "");
+  for (const l of LUGAR_MODIFICACOES.cartao) pus(l, "modificacoes", "", "");
+  for (const l of LUGAR_MODIFICACOES.chaves) pus(l, "modificacoes", "", l.bloco);
+  for (const d of LUGAR_MODIFICACOES.detalhes) for (const b of d.blocos) for (const l of b.linhas) pus(l, "modificacoes", d.nome, b.titulo);
   for (const l of LUGAR_TOPO) pus(l, "topo", "Barra de cima", "Barra de cima");
   for (const l of LUGAR_JANELA) pus(l, "janela", "Janela do trabalho", "Janela do trabalho");
   return saida;
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_EXTENSOES, LUGAR_TOPO, LUGAR_JANELA, inventarioDoPainel };
+  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_EXTENSOES, LUGAR_MODIFICACOES, LUGAR_TOPO, LUGAR_JANELA, inventarioDoPainel };
 }
