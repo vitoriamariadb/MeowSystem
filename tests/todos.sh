@@ -44,6 +44,7 @@ PORTATIL=(
   gerador-dracula.sh
   variante.sh
   claro-do-pack.sh
+  pack-pessoal-tem-tema.sh
   notas-de-funcao.sh
   frases-velhas.sh
   pack-dracula-completo.sh
