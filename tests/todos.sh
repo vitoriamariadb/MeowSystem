@@ -20,6 +20,7 @@ PORTATIL=(
   git-limpo.sh
   higiene.sh
   app.sh
+  modificacoes.sh
   estilo.sh
   reversao.sh
   seco.sh
