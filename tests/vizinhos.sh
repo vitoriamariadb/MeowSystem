@@ -343,7 +343,7 @@ if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" 
   NOVOS="aurora-fastfetch-link aurora-fastfetch-passo aurora-completion-meow aurora-icone-applib aurora-stubs-ocultar aurora-gato-pop aurora-spicetify-instalar"
   NOVOS="$NOVOS aurora-painel-fantasma-instalar aurora-painel-fantasma-ligar aurora-painel-fantasma-passo"
   NOVOS="$NOVOS aurora-vidro-instalar aurora-vidro-reconciliar aurora-vidro-passo aurora-leitura-vigia-instalar"
-  NOVOS="$NOVOS aurora-alfinetes aurora-alfinetes-passo aurora-qbittorrent-wings"
+  NOVOS="$NOVOS aurora-alfinetes aurora-alfinetes-passo aurora-qbittorrent-wings aurora-qbittorrent-tema"
   UNIDADE_ITENS="aurora-painel-fantasma-unidade aurora-vidro-unidade aurora-leitura-vigia-unidade"
   COMPOSITOR="aurora-compositor aurora-night-light aurora-compositor-instalar aurora-compositor-serie aurora-night-light-instalar aurora-compositor-passo aurora-night-light-passo"
   ANTIGOS="caches-icones-casa spellbook-terminal-fastfetch spellbook-terminal-starship spellbook-terminal-fzf"
@@ -376,6 +376,10 @@ if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" 
   confere "o self-heal cortado passa bash -n" 'bash -n "$ZD/scripts/ritual-aurora-self-heal.sh"'
   confere "o install.sh cortado passa bash -n" 'bash -n "$ZD/install.sh"'
   confere "o script do qBittorrent cortado passa bash -n" 'bash -n "$ZD/scripts/aurora-qbittorrent-config.sh"'
+  confere "o tema sai do script do qBittorrent: as duas chaves do tema cortadas, o resto da config vivo" \
+    '[ "$(grep -c "^#vizinhos:aurora-qbittorrent-tema# " "$ZD/scripts/aurora-qbittorrent-config.sh")" = 2 ] \
+     && ! grep -v "^#vizinhos:" "$ZD/scripts/aurora-qbittorrent-config.sh" | grep -qE "Preferences/General/(UseCustomUITheme|CustomUIThemePath)=[$]" \
+     && grep -qE "^  \"Preferences/General/Locale=" "$ZD/scripts/aurora-qbittorrent-config.sh"'
   confere "o vigia do painel sai inteiro do self-heal: nenhuma linha viva cita o aurora-painel-fantasma" \
     '! grep -v "^#vizinhos:" "$ZD/scripts/ritual-aurora-self-heal.sh" | grep -qE "aurora-painel-fantasma[.](timer|sh)"'
   if command -v zsh >/dev/null 2>&1; then
