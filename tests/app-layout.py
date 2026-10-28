@@ -67,6 +67,27 @@ TRANSBORDOS = """
 }
 """
 
+VOLTAR_E_REGISTRO = """
+() => {
+  const r = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { top: Math.round(b.top), bottom: Math.round(b.bottom), left: Math.round(b.left) }; };
+  return { registro: r('.grade-cuidar > [data-bloco="Registro"]'), voltar: r('.grade-cuidar > .bloco.tracejado') };
+}
+"""
+
+
+def voltar_ao_lado_do_registro(pag, largura):
+    p = pag.evaluate(VOLTAR_E_REGISTRO)
+    reg, vol = p["registro"], p["voltar"]
+    if not (reg and vol):
+        checa(False, f"cuidar {largura}: o Registro e o cartão tracejado são filhos da grade ({p})")
+    elif largura > 860:
+        checa(vol["top"] == reg["top"] and vol["left"] > reg["left"],
+              f"cuidar {largura}: o cartão tracejado fica à direita do Registro, no mesmo topo ({p})")
+    else:
+        checa(vol["left"] == reg["left"] and vol["top"] >= reg["bottom"],
+              f"cuidar {largura}: numa coluna, o cartão tracejado vem depois do Registro ({p})")
+
+
 POSICOES = """
 () => {
   const r = (s) => { const e = document.querySelector(s); if (!e || e.hidden) return null; const b = e.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, w: b.width, h: b.height }; };
@@ -183,6 +204,8 @@ def main():
                     ir(pag, rota)
                     nome = rota.replace("/", "-")
                     ruins = pag.evaluate(TRANSBORDOS)
+                    if rota == "cuidar":
+                        voltar_ao_lado_do_registro(pag, w)
                     checa(not ruins, f"{rota}: nada estoura o pai ({ruins[:3]})")
                     foto(pag, f"{w}x{h}-{nome}-topo")
                     pag.evaluate("() => scrollTo(0, document.documentElement.scrollHeight)")
@@ -204,6 +227,14 @@ def main():
                     larg = pag.evaluate(POSICOES)["previa"]["w"]
                     checa(larg >= 900, f"em 1920 a prévia tem {larg:.0f} px (>= 900)")
                 contexto.close()
+            contexto = nav.new_context(viewport={"width": 800, "height": 1000})
+            pag = contexto.new_page()
+            pag.goto(url)
+            esperar(pag, 800)
+            ir(pag, "cuidar")
+            voltar_ao_lado_do_registro(pag, 800)
+            foto(pag, "800x1000-cuidar-topo")
+            contexto.close()
             contexto = nav.new_context(viewport={"width": 1920, "height": 1080})
             pag = contexto.new_page()
             pag.on("pageerror", lambda e: erros.append(str(e)))
