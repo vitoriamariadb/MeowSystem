@@ -380,6 +380,24 @@ viz --restaurar todos >/dev/null
 confere "e restaurar devolve os dois byte a byte" \
   'cmp -s "$DESENV/NitroKit/src/unificador_temas_dracula.sh" "$T/unificador_temas_dracula-original.sh" && cmp -s "$DESENV/NitroKit/src/ritual_de_harmonia.sh" "$T/ritual_de_harmonia-original.sh"'
 
+printf '\n15. app em JavaScript com o código comprimido no gresource também é achado\n'
+if command -v gresource >/dev/null 2>&1 && command -v glib-compile-resources >/dev/null 2>&1; then
+  FAKE2="$T/falso-gjs"; mkdir -p "$FAKE2/apps" "$T/gjs"
+  for par in com.exemplo.Selo:"pkg.require({ Gio: '2.0', Gtk: '4.0', Adw: '1' });" com.exemplo.Gtk3:"pkg.require({ Gtk: '3.0' });"; do
+    id="${par%%:*}"; d="$FAKE2/apps/$id"; mkdir -p "$d/files/share" "$T/gjs/$id/js"
+    printf '%s\n' "${par#*:}" > "$T/gjs/$id/js/main.js"
+    printf '<?xml version="1.0"?>\n<gresources><gresource prefix="/x"><file compressed="true">js/main.js</file></gresource></gresources>\n' > "$T/gjs/$id/r.xml"
+    glib-compile-resources --sourcedir="$T/gjs/$id" --target="$d/files/share/$id.src.gresource" "$T/gjs/$id/r.xml"
+    printf 'org.gnome.Platform/x86_64/50\n' > "$d/runtime"; printf 'commit-%s\n' "$id" > "$d/commit"
+  done
+  achados="$(env -i PATH="$T/bin:/usr/bin:/bin" HOME="$T/casa-gjs" XDG_CACHE_HOME="$T/casa-gjs/.cache" MEOW_ESTADO="$T/casa-gjs/estado" \
+             FLATPAK_LOG="$LOG" FLATPAK_FAKE="$FAKE2" bash -c '. "$0/lib/comum.sh"; meow_flatpak_apps_libadwaita' "$RAIZ")"
+  confere "o texto comprimido não esconde o Adw, e o app GTK3 fica de fora" \
+    '! grep -qa "Adw" "$FAKE2/apps/com.exemplo.Selo/files/share/com.exemplo.Selo.src.gresource" && [ "$achados" = com.exemplo.Selo ]'
+else
+  falha "falta gresource ou glib-compile-resources para provar a detecção no gresource"
+fi
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'flatpak-tema: tudo verde\n'; exit 0; fi
 printf 'flatpak-tema: %s falha(s)\n' "$falhas"; exit 1
