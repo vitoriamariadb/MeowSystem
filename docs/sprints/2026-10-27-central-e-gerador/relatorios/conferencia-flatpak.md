@@ -57,3 +57,49 @@ Ou seja, o conserto no override dela fica para o fecho, como manda a regra de n�
 
 - O Ghostwriter e os pendentes do implementador continuam abertos (estão na lista do fim do bloco).
 - As chaves do Krita, do OBS e do Waterfox foram medidas na documentação, não num app aberto.
+
+## Final
+
+Regressão no todo, sobre o `71c69f05`. Não achei regressão, e não há commit de código.
+
+### O que rodei
+- `./tests/todos.sh`: 106 testes, 104 verdes, 0 pulados e 2 vermelhos, os dois já aceitos:
+  - `decisoes.sh`: a GPU do compositor fora da RTX e o item 24 (`tests/enxugar.sh`, do `ba773264`);
+  - `restaurar.sh`: `pack_usar`, `desinstalar` e `sistema_limpar`. Rodei `pack_usar` e `desinstalar` sozinhos, e os
+    arquivos que não voltam são só do VS Code (`~/.config/Code/CachedExtensionVSIXs`, `logs/*/cli.log`,
+    `~/.vscode/extensions/.obsolete`).
+
+  `app-completo.py` passou dentro da suíte (1087 s), e o `app-layout.py` também (94 s). Os falsos recusaram 6 chamadas
+  de sudo e 13 escritas de busctl.
+- A segunda passada do doctor numa casa temporária, com os dois packs (`meowsystem`/`mocha` e `dracula`/`dracula`).
+  Os passos: `install.sh`, depois três passadas de `meow doctor --consertar`, com um retrato da casa entre elas.
+  `sudo`, `pkexec`, `curl`, `cargo`, o `git clone` e o `systemctl` de escrita recusam. O `flatpak override --user`
+  é o de verdade e grava só na casa. Antes da primeira passada, pus na casa uma cópia do override global dela
+  (`GTK_THEME=adw-gtk3-dark`, `gtk-4.0:ro`, `/usr/share/themes:ro`, `xdg-data/icons:ro`).
+  - Na primeira passada, o `flatpakadwaita` e o `flatpakicones` limpam o override. Ficam `gtk-3.0:ro`, `kdeglobals:ro`,
+    `color-schemes:ro`, `ICON_THEME`, `QT_WAYLAND_DECORATION` e `XCURSOR_THEME`.
+  - Nas passadas 2 e 3, nada do Flatpak, do tema por app nem do override é escrito. Os dois packs dão o mesmo resultado.
+  - Elas só regravam o que já se sabia, por causa da casa sem rede: o `clone.log` dos nove applets, o `wallpaper-semeado`
+    e o `wallpaper-vistas.txt` (no MeowSystem), e o `pendencias.tsv` e o `~/.config/Code/logs/*/cli.log` (no Dracula).
+    O `~/.cache/dconf/user` também muda. Nada disso é deste bloco.
+- Percorri headless as cinco portas, com 16 rotas, nos dois packs, em 1829 px e em 390 px (64 telas). Procurei:
+  - erro de JavaScript, resposta HTTP de 400 para cima, imagem quebrada, `undefined`/`NaN` na tela e rolagem horizontal;
+  - forma de *vestir*, «meow <verbo>» na tela e a palavra «libadwaita» à vista;
+  - «Apps GNOME» em `#ajustes/programas`.
+
+  Deu zero em tudo. Em Programas, «Apps GNOME» e «Waterfox» aparecem como chaves, nos dois packs.
+- HOME real: o md5 dos três overrides (`global`, BleachBit, qBittorrent) é o mesmo antes e depois, o fim do `.zshrc`
+  é o mesmo, o cache `flatpak-libadwaita.tsv` continua o das 21:06, e o `~/.local/share/dbus-1/services` não existe.
+
+### Anotado, para o fecho e o próximo bloco
+- **O `APPS_ATIVOS` dela não tem `libadwaita` nem `waterfox`.** Quando o fecho limpar o override, os apps GNOME perdem
+  o `GTK_THEME` e só ganham a cor do pack se a chave «Apps GNOME» estiver ligada em Definir > Programas. O fecho liga
+  `libadwaita,waterfox` no conf dela, ou ela liga pela chave.
+- **O `obs` e o `krita` já estão no `APPS_ATIVOS` dela.** O primeiro doctor depois da integração grava, no OBS,
+  `[Appearance] Theme=com.obsproject.Yami.MeowSystem` no `user.ini` (hoje sem `Theme`). No Krita, grava `[theme]` no
+  `kritarc` (hoje sem a seção). As duas chaves vieram da documentação, por isso estão na lista da mão.
+- **`scripts/prompt.sh:12`, fora do bloco.** O `curl … | sh` sem rede termina com 0, porque o `sh` recebe uma entrada
+  vazia. Por isso o `install.sh` diz «starship instalado» e, numa casa sem rede, acusa que o `prompt` escreveu em duas
+  passagens seguidas. É assim desde o `1df20921`. Fica para a sprint das saídas.
+- **`scripts/temas-de-apps/waterfox/manifesto.sh:34`.** Sem perfil, o módulo diz «abra o Waterfox uma vez». A frase
+  pede uma ação a ela. Fica para a mesma sprint.
