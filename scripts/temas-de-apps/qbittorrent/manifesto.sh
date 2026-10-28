@@ -95,6 +95,7 @@ _meow_qbt_alvo() {
 MEOW_QBT_VEREDITO_AR=""
 MEOW_QBT_PODE_PERGUNTAR=""
 _MEOW_QBT_NOSSO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/temas-de-apps/qbittorrent/tema-nosso"
+_MEOW_QBT_ANTES="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/temas-de-apps/qbittorrent/tema-de-antes"
 _meow_qbt_ar_ok() {
   local no_ar alvo
   if [ -z "$MEOW_QBT_VEREDITO_AR" ]; then
@@ -102,6 +103,11 @@ _meow_qbt_ar_ok() {
     if [ -n "$no_ar" ] && [ "$no_ar" != "$alvo" ] && [ "$no_ar" = "$(cat "$_MEOW_QBT_NOSSO" 2>/dev/null)" ]; then
       meow_pendencia_resolvida qbittorrent-tema-de-terceiro
       meow_info "qBittorrent: o tema do MeowSystem estava em '$no_ar' — passa a '$alvo'"
+      MEOW_QBT_VEREDITO_AR="$MEOW_DIVERGENTE"
+    elif [ -n "$no_ar" ] && [ "$no_ar" != "$alvo" ] \
+         && { [ "${MEOW_TEMA_DE_TERCEIRO:-}" = "trocar" ] || ! _meow_tema_mantido qbittorrent "$no_ar"; }; then
+      meow_pendencia_resolvida qbittorrent-tema-de-terceiro
+      meow_info "qBittorrent: estava em '$no_ar', que não veio daqui — o tema do pack entra, e o de antes fica guardado"
       MEOW_QBT_VEREDITO_AR="$MEOW_DIVERGENTE"
     else
       meow_app_tema_no_ar qbittorrent "$no_ar" "$alvo" \
@@ -189,6 +195,17 @@ os.chmod(tmp, 0o644)
 os.replace(tmp, conf)
 sys.exit(1)
 PYFIM
+}
+
+_meow_qbt_guardar_o_de_antes() {
+  local destino="$1" no_ar
+  no_ar="$(_meow_qbt_no_ar)"
+  [ "$no_ar" = "$destino" ] && return 0
+  [ -n "$no_ar" ] && [ "$no_ar" = "$(cat "$_MEOW_QBT_NOSSO" 2>/dev/null)" ] && return 0
+  [ "${MEOW_TEMA_DE_TERCEIRO:-}" = "trocar" ] && _meow_tema_esquecer qbittorrent
+  mkdir -p "$(dirname -- "$_MEOW_QBT_ANTES")" || return 1
+  [ "$(cat "$_MEOW_QBT_ANTES" 2>/dev/null)" = "$no_ar" ] && [ -f "$_MEOW_QBT_ANTES" ] && return 0
+  printf '%s\n' "$no_ar" > "$_MEOW_QBT_ANTES"
 }
 
 meow_app_instalado() { meow_flatpak_tem "$MEOW_QBT_APP_ID" || meow_tem qbittorrent; }
@@ -322,6 +339,7 @@ meow_app_aplicar() {
     fi
     if ! meow_seco; then
       _meow_qbt_backup "$conf_dir/qBittorrent.conf" || return "$MEOW_ERRO"
+      _meow_qbt_guardar_o_de_antes "$destino" || return "$MEOW_ERRO"
     fi
     _meow_qbt_conf_escrever "$conf_dir/qBittorrent.conf" true "$destino"
     case $? in
@@ -394,12 +412,27 @@ meow_app_reverter() {
       return "$MEOW_SEM_DEPENDENCIA"
     fi
     if grep -qxF "General\\CustomUIThemePath=$destino" "$conf_dir/qBittorrent.conf" 2>/dev/null; then
-      if meow_seco; then meow_muda "desligaria o tema no qBittorrent.conf"; else
+      local antes; antes="$(cat "$_MEOW_QBT_ANTES" 2>/dev/null)"
+      [ -n "$antes" ] && [ "$antes" != "$destino" ] && [ -e "$antes" ] || antes=""
+      if meow_seco; then
+        if [ -n "$antes" ]; then meow_muda "voltaria o qBittorrent ao tema de antes, '$antes'"
+        else meow_muda "desligaria o tema no qBittorrent.conf"; fi
+      else
         _MEOW_QBT_ISO="$(date +%Y-%m-%dT%H-%M-%S)"
         _meow_qbt_backup "$conf_dir/qBittorrent.conf" || return "$MEOW_ERRO"
-        _meow_qbt_conf_escrever "$conf_dir/qBittorrent.conf" false ""
+        if [ -n "$antes" ]; then
+          _meow_qbt_conf_escrever "$conf_dir/qBittorrent.conf" true "$antes"
+        else
+          _meow_qbt_conf_escrever "$conf_dir/qBittorrent.conf" false ""
+        fi
         [ $? -ge 2 ] && { meow_erro "não consegui escrever o qBittorrent.conf"; return "$MEOW_ERRO"; }
-        meow_muda "tema desligado no qBittorrent.conf"
+        if [ -n "$antes" ]; then
+          _meow_tema_manter qbittorrent "$antes" || return "$MEOW_ERRO"
+          meow_muda "qBittorrent de volta ao tema de antes, '$antes'"
+        else
+          meow_muda "tema desligado no qBittorrent.conf"
+        fi
+        rm -f -- "$_MEOW_QBT_ANTES"
       fi
       mudou=1
     fi
@@ -409,7 +442,7 @@ meow_app_reverter() {
     fi
     meow_seco && return "$MEOW_DIVERGENTE"
     [ "$mudou" = "0" ] && { meow_ok "qBittorrent já estava sem o tema do pack"; return "$MEOW_OK"; }
-    meow_info "tire 'qbittorrent' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+    [ -n "${antes:-}" ] || meow_info "tire 'qbittorrent' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
     return "$MEOW_DIVERGENTE"
   fi
 
