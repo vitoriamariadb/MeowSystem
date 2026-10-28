@@ -23,6 +23,7 @@ PORTATIL=(
   app.sh
   modificacoes.sh
   modificacoes-no-install.sh
+  logo-do-programa.sh
   estilo.sh
   reversao.sh
   seco.sh

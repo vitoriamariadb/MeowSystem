@@ -22,6 +22,7 @@ AUTORAIS="$(python3 "$RAIZ/scripts/pack.py" onde "$_pack_ref" \
               icones.autorais.desenhos icones/apps/)" || AUTORAIS=""
 
 LOGO_HEFESTO_DELA="${ICONES_LOGO_HEFESTO:-}"
+LOGO_ESCOLHIDA="${LOGO_PROGRAMA:-}"
 
 declare -A AUTORAL=(
   [com.meowsystem.Painel]="__LOGO_DO_PACK__"
@@ -102,8 +103,13 @@ for nome in "${!AUTORAL[@]}"; do
   fonte="$AUTORAIS/${AUTORAL[$nome]}"
   if [ "${AUTORAL[$nome]}" = "__LOGO_DO_PACK__" ]; then
     fonte="$AUTORAIS/meowsystem-painel-$FLAVOR.svg"
-    if logo_do_pack="$(python3 "$RAIZ/scripts/pack.py" logo "$_pack_ref" "$FLAVOR" "$ACCENT" 2>/dev/null)" \
-        && [ -n "$logo_do_pack" ]; then
+    logo_do_pack=""
+    [ -z "$LOGO_ESCOLHIDA" ] ||
+      logo_do_pack="$(FLAVOR="$FLAVOR" ACCENT="$ACCENT" python3 "$RAIZ/scripts/pack.py" logo "$LOGO_ESCOLHIDA" 2>/dev/null)" ||
+      logo_do_pack=""
+    if [ -n "$logo_do_pack" ] ||
+       { logo_do_pack="$(python3 "$RAIZ/scripts/pack.py" logo "$_pack_ref" "$FLAVOR" "$ACCENT" 2>/dev/null)" \
+         && [ -n "$logo_do_pack" ]; }; then
       meow_escrever "$ALVO/$nome.svg" "$logo_do_pack" 644
       case $? in
         1) mudou=1; instalados=$((instalados+1)) ;;
