@@ -31,17 +31,34 @@ _meow_flatpak_cache_gravar() {
   return 0
 }
 
+_MEOW_FLATPAK_ADW='libadwaita-1\.so|require_version\(.Adw.|gi://Adw|versions\.Adw|Adw: *.1.|class="Adw|lib="libadwaita"'
+
+_meow_flatpak_adw_nos_recursos() {
+  local arq r
+  meow_tem gresource || return 1
+  while IFS= read -r -d '' arq; do
+    while IFS= read -r r; do
+      case "$r" in *.js|*.ui|*.py|*.blp) ;; *) continue ;; esac
+      gresource extract "$arq" "$r" 2>/dev/null | grep -qaE "$_MEOW_FLATPAK_ADW" && return 0
+    done < <(gresource list "$arq" 2>/dev/null)
+  done < <(find "$1" -name '*.gresource' -type f -print0 2>/dev/null)
+  return 1
+}
+
 meow_flatpak_usa_libadwaita() {
   local id="$1" pasta commit cache dito veredito=nao
   pasta="$(meow_flatpak_pasta "$id")" || return 1
   [ -d "$pasta/files" ] || return 1
   commit="$(meow_flatpak_ler info --show-commit "$id" 2>/dev/null)"
+  [ -n "$commit" ] && commit="$commit/recursos"
   cache="$(_meow_flatpak_cache_libadwaita)"
   if [ -n "$commit" ] && [ -f "$cache" ]; then
     dito="$(awk -F'\t' -v i="$id" -v c="$commit" '$1 == i && $2 == c { print $3; exit }' "$cache")"
     case "$dito" in sim) return 0 ;; nao) return 1 ;; esac
   fi
-  grep -rqaE 'libadwaita-1\.so|require_version\(.Adw.|gi://Adw' "$pasta/files" 2>/dev/null && veredito=sim
+  if grep -rqaE "$_MEOW_FLATPAK_ADW" "$pasta/files" 2>/dev/null || _meow_flatpak_adw_nos_recursos "$pasta/files"; then
+    veredito=sim
+  fi
   [ -n "$commit" ] && _meow_flatpak_cache_gravar "$cache" "$id" "$commit" "$veredito"
   [ "$veredito" = sim ]
 }
