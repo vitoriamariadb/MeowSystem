@@ -36,7 +36,7 @@
   Flatpak (`wf_3e37b949-95f`, P127 → P128 → P129) e Modificações (`wf_bcafdaaa-ac2`, P130), juntos (ela, 27/10).
 - 27/10 21:10: o `dev` recebeu a integração (c4fade96) e o install rodou com o HOME real, pedido dela: 69 etapas,
   ponte root posta pela caixa do askpass (4419df82). Os dois blocos em voo integram e o install roda de novo.
-- PRÓXIMO, quando o Flatpak voltar: P131 (os ícones do sistema e a biblioteca nos dois packs, «Blocos», rodada 6).
+- EM VOO também (ela, 27/10: «lança a 131 agora»), `wf_b64cd132-75f`: P131 (os ícones do sistema e a biblioteca nos dois packs, «Blocos», rodada 6).
   Decisão dela de 27/10 que desfaz o `sistema.map:10-25`: as famílias de estado (desligar, wifi, som, bateria)
   moram no pack, não no Papirus.
   Worktrees `~/Desenvolvimento/MeowSystem-<bloco>`, branches `bloco/<bloco>`.
@@ -158,7 +158,7 @@ Fotos em `fotos/1.png` a `fotos/5.png`.
 | 3 | Pasta | P123 | `~/Desenvolvimento/MeowSystem-pasta`, `bloco/pasta` | script + confere |
 | 5 | Flatpak | P127 → P128 → P129 | `~/Desenvolvimento/MeowSystem-flatpak`, `bloco/flatpak` | implementa (Sonnet high), confere e corrige (Opus high), final (Opus high) |
 | 5b | Modificações | P130, junto com o Flatpak (ela, 27/10) | `~/Desenvolvimento/MeowSystem-modificacoes`, `bloco/modificacoes` | implementa (Opus high), confere e corrige (Opus high), final (Opus high) |
-| 6 | Ícones do sistema | P131, quando o Flatpak integrar | `~/Desenvolvimento/MeowSystem-icones-sistema`, `bloco/icones-sistema` | implementa (Opus high), confere e corrige (Opus high), final (Opus high) |
+| 6 | Ícones do sistema | P131, junto com os outros dois (ela, 27/10) | `~/Desenvolvimento/MeowSystem-icones-sistema`, `bloco/icones-sistema` | implementa (Opus high), confere e corrige (Opus high), final (Opus high) |
 | 4 | Máquina | instalar do zero pelo MeowSystem, na máquina dela | checkout principal | coordenador |
 Os dois blocos da rodada 1 só dividem `app/servidor.py`, em funções diferentes (P116 `_cartoes_de_pack`; P120 o
 bloco `EXT_*` e as tabelas de pendência). P119 mexe nas mesmas tabelas da P120, por isso vai na rodada 2.
