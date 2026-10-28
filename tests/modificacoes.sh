@@ -84,6 +84,27 @@ for e in erros:
 sys.exit(1 if erros else 0)
 EOF
 
+if command -v node >/dev/null 2>&1; then
+  node - "$RAIZ/app/pagina/lugares.js" <<'EOF' || falhou=1
+const L = require(process.argv[2]);
+const erros = [];
+const so = ["chave:APPS_ATIVOS", "chave:SPOTIFY_MARKETPLACE", "chave:TERMINAL_ESQUEMA", "chave:TERMINAL_CURSOR",
+  "chave:PROMPT_STARSHIP", "gesto:acervo:fonte", "acao:apps", "acao:apps_aplicar"];
+const lugares = {};
+for (const l of L.inventarioDoPainel()) (lugares[l.tipo + ":" + l.id] = lugares[l.tipo + ":" + l.id] || []).push(l);
+for (const id of so) {
+  const onde = lugares[id] || [];
+  if (onde.length !== 1 || onde[0].porta !== "modificacoes")
+    erros.push(`${id} tem que morar só na Modificações, e mora em: ${onde.map((l) => l.porta + "/" + l.pagina).join(", ") || "lugar nenhum"}`);
+}
+if (L.AJUSTES.some((p) => p.id === "terminal")) erros.push("o Definir ainda tem a aba Terminal");
+for (const p of L.AJUSTES) for (const b of p.blocos) if (b.programas || b.titulo === "Recebem o tema")
+  erros.push(`o Definir › ${p.nome} ainda tem o bloco «${b.titulo}»`);
+for (const e of erros) console.error("FALHOU: " + e);
+process.exit(erros.length ? 1 : 0);
+EOF
+fi
+
 if grep -nE '"(spotify|discord|obsidian|vscode|flatpak|btop|terminal)"' "$RAIZ/app/pagina/modificacoes.js"; then
   falha "a página de modificações cita programa pelo nome; o cartão tem que vir do módulo"
 fi
