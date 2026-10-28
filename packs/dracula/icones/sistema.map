@@ -161,8 +161,8 @@ uninterruptible-power-supply-symbolic:uninterruptible-power-supply-symbolic
 user-home-symbolic:user-home-symbolic
 video-display-symbolic:video-display-symbolic:alias
 video-x-generic-symbolic:video-x-generic-symbolic
-view-more-horizontal-symbolic:view-more-horizontal-symbolic
-view-more-symbolic:view-more-symbolic
+view-more-horizontal-symbolic:view-more-symbolic
+view-more-symbolic:view-more-horizontal-symbolic
 view-refresh-symbolic:view-refresh-symbolic
 window-close-symbolic:window-close-symbolic
 window-maximize-symbolic:window-maximize-symbolic
