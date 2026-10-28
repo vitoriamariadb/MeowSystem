@@ -81,6 +81,10 @@ USR_SHARE=/usr/share
 SONS_ORIGINAIS=/var/lib/meowsystem/sons
 COSMIC_COMP=/usr/bin/cosmic-comp
 DPKG_INFO=/var/lib/dpkg/info
+SYS_PCI=/sys/bus/pci/devices
+ENV_SISTEMA=/etc/environment
+ENV_ORIGINAL=/var/lib/meowsystem/environment.original
+CHAVE_GPU=COSMIC_RENDER_DEVICE
 
 morrer() { printf 'ponte_root: %s\n' "$1" >&2; exit "${2:-2}"; }
 
@@ -136,6 +140,54 @@ da_reserva() {
   [ "${#quer}" = 64 ] || morrer "a lista da reserva não confere" 4
   cat "$RESERVA/$nome" > "$tmp" 2>/dev/null || morrer "a reserva não tem $nome" 4
   [ "$(sha256sum < "$tmp" | cut -d' ' -f1)" = "$quer" ] || morrer "a reserva não confere com o sha256: $nome" 4
+}
+
+gpu_detectar() {
+  local dev cls v d b id n=0 primeira="" nvidia=""
+  for dev in "$SYS_PCI"/*; do
+    [ -r "$dev/class" ] || continue
+    cls="$(cat "$dev/class" 2>/dev/null)"
+    case "$cls" in 0x0300??|0x0302??) ;; *) continue ;; esac
+    compgen -G "$dev/drm/renderD*" >/dev/null || continue
+    v="$(cat "$dev/vendor" 2>/dev/null)"; d="$(cat "$dev/device" 2>/dev/null)"
+    case "$v:$d" in
+      0x[0-9a-f][0-9a-f][0-9a-f][0-9a-f]:0x[0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
+      *) continue ;;
+    esac
+    n=$((n + 1))
+    b="$(cat "$dev/boot_vga" 2>/dev/null || true)"
+    [ "$b" != 1 ] || continue
+    id="$v:$d"
+    [ -n "$primeira" ] || primeira="$id"
+    if [ "$v" = 0x10de ] && [ -z "$nvidia" ]; then nvidia="$id"; fi
+  done
+  [ "$n" -ge 2 ] || return 0
+  printf '%s' "${nvidia:-$primeira}"
+}
+
+gpu_com_linha() {
+  local valor="$1"
+  if [ "$(grep -c "^$CHAVE_GPU=" "$ENV_SISTEMA" 2>/dev/null || true)" = 1 ] \
+     && grep -qxF "$CHAVE_GPU=\"$valor\"" "$ENV_SISTEMA"; then
+    return 1
+  fi
+  { cat "$ENV_SISTEMA" 2>/dev/null || true; } | awk -v k="$CHAVE_GPU" -v v="$valor" '
+    index($0, k "=") == 1 { if (!feito) { print k "=\"" v "\""; feito = 1 }; next }
+    { print }
+    END { if (!feito) print k "=\"" v "\"" }'
+}
+
+gpu_sem_linha() {
+  [ -e "$ENV_ORIGINAL" ] || return 1
+  grep -q "^$CHAVE_GPU=" "$ENV_SISTEMA" 2>/dev/null || return 2
+  local linha_antes novo
+  linha_antes="$(grep -m1 "^$CHAVE_GPU=" "$ENV_ORIGINAL" || true)"
+  novo="$(mktemp)"
+  awk -v k="$CHAVE_GPU" -v o="$linha_antes" '
+    index($0, k "=") == 1 { if (o != "" && !feito) { print o; feito = 1 }; next }
+    { print }' "$ENV_SISTEMA" > "$novo"
+  if [ "$(cat "$novo")" = "$(cat "$ENV_ORIGINAL")" ]; then cat "$ENV_ORIGINAL"; else cat "$novo"; fi
+  rm -f "$novo"
 }
 
 verbo="${1:-}"
@@ -388,6 +440,38 @@ cosmic-comp-de-fabrica)
   printf 'reinstalado\n'
   ;;
 
+gpu-compositor)
+  alvo="$(gpu_detectar)"
+  tmp="$(mktemp)"; tmp_o="$(mktemp)"; trap 'rm -f "$tmp" "$tmp_o"' EXIT
+  rc=0
+  if [ -n "$alvo" ]; then gpu_com_linha "$alvo" > "$tmp" || rc=$?; else gpu_sem_linha > "$tmp" || rc=$?; fi
+  [ "$rc" != 1 ] || exit 0
+  if [ "$rc" = 2 ]; then rm -f "$ENV_ORIGINAL"; exit 0; fi
+  [ "$rc" = 0 ] || morrer "não consegui montar o novo $ENV_SISTEMA"
+  if [ -n "$alvo" ] && [ ! -e "$ENV_ORIGINAL" ]; then
+    { cat "$ENV_SISTEMA" 2>/dev/null || true; } > "$tmp_o"
+    install -d -m 755 -o root -g root "${ENV_ORIGINAL%/*}" || morrer "não consegui criar ${ENV_ORIGINAL%/*}"
+    install -m 644 -o root -g root "$tmp_o" "$ENV_ORIGINAL" || morrer "não consegui guardar o $ENV_SISTEMA de antes"
+  fi
+  install -m 644 -o root -g root "$tmp" "$ENV_SISTEMA" || morrer "não consegui escrever $ENV_SISTEMA"
+  [ -n "$alvo" ] || rm -f "$ENV_ORIGINAL"
+  anotar "gpu-compositor ${alvo:-tirar}"
+  printf 'mudou\n'
+  ;;
+
+gpu-compositor-tirar)
+  tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+  rc=0
+  gpu_sem_linha > "$tmp" || rc=$?
+  [ "$rc" != 1 ] || exit 0
+  if [ "$rc" = 2 ]; then rm -f "$ENV_ORIGINAL"; exit 0; fi
+  [ "$rc" = 0 ] || morrer "não consegui montar o novo $ENV_SISTEMA"
+  install -m 644 -o root -g root "$tmp" "$ENV_SISTEMA" || morrer "não consegui escrever $ENV_SISTEMA"
+  rm -f "$ENV_ORIGINAL"
+  anotar "gpu-compositor-tirar"
+  printf 'mudou\n'
+  ;;
+
 limpar)
   export DEBIAN_FRONTEND=noninteractive
   anotar "limpar"
@@ -444,6 +528,8 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE pacotes, \\
     $PONTE limpar, \\
     $PONTE cosmic-comp-de-fabrica, \\
+    $PONTE gpu-compositor, \\
+    $PONTE gpu-compositor-tirar, \\
     $PONTE estado
 
 $quem ALL=(root) NOPASSWD: MEOWSYSTEM_PONTE
@@ -456,7 +542,8 @@ REGRA_FIM
   printf '        apt-hook-instalar · apt-hook-remover · completion-instalar ·\n'
   printf '        completion-remover · flatpak-global-limpar · libreoffice-remover ·\n'
   printf '        libreoffice-devolver · som · som-padrao · atualizar · pacotes ·\n'
-  printf '        limpar · cosmic-comp-de-fabrica · estado ·\n'
+  printf '        limpar · cosmic-comp-de-fabrica · gpu-compositor ·\n'
+  printf '        gpu-compositor-tirar · estado ·\n'
   printf '        regra-sudo\n'
   ;;
 
