@@ -189,8 +189,23 @@ def escrever_exec(caminho, corpo):
     os.chmod(caminho, 0o755)
 
 
+MODULO_DE_BRINQUEDO = """#!/usr/bin/env bash
+_br_arq() { printf '%s/brinquedo/tema.conf' "${XDG_CONFIG_HOME:-$HOME/.config}"; }
+meow_app_instalado() { return 0; }
+meow_app_detectar() { return 0; }
+meow_app_conferir() { [ "$(cat "$(_br_arq)" 2>/dev/null)" = "tema=meow" ]; }
+meow_app_aplicar() {
+  meow_app_conferir && return 0
+  mkdir -p "$(dirname "$(_br_arq)")"; printf 'tema=meow\\n' > "$(_br_arq)"; return 1
+}
+meow_app_reverter() { [ -e "$(_br_arq)" ] || return 0; rm -f "$(_br_arq)"; return 1; }
+"""
+
+
 def montar_casa():
     copiar_raiz()
+    os.makedirs(os.path.join(RAIZ_B, "scripts", "temas-de-apps", "brinquedo"))
+    escrever_exec(os.path.join(RAIZ_B, "scripts", "temas-de-apps", "brinquedo", "manifesto.sh"), MODULO_DE_BRINQUEDO)
     os.makedirs(os.path.dirname(CONF))
     os.makedirs(ESTADO)
     shutil.copyfile(os.path.join(RAIZ, "meow.conf.exemplo"), CONF)
@@ -494,16 +509,17 @@ def molde(nome):
     n = re.sub(r"=.*$", "=*", nome)
     n = re.sub(r"^pack:[^:]+:", "pack:*:", n)
     n = re.sub(r"^(programa|pendente|estado):.*$", r"\1:*", n)
+    n = re.sub(r"^(chave:APPS_ATIVOS|acao:modificacao_\w+):.*$", r"\1:*", n)
     return n
 
 
-CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "APPS_ATIVOS": "programa:"}
+CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:"}
 CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
 ACAO_COM_DADO = {
     "wallpaper_permitir", "wallpaper_dispensar", "apps_tema_do_pack", "apps_manter_o_meu",
     "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
     "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
-    "extensao_refazer",
+    "extensao_refazer", "modificacao_aplicar", "modificacao_reverter", "modificacao_corrigir",
 }
 EXTRAS = {
     "tema": ["tema:saude", "tema:abrir", "tema:criar", "pack:*:*", "chave:ACCENT=*", "chave:MODO=*"],
@@ -516,16 +532,18 @@ EXTRAS = {
     "criar/mandar": ["criar:baixar", "criar:vestir"],
     "ajustes/*": ["ajuste:*"],
     "ajustes/dia-e-noite": ["noite:mesmo-horario"],
-    "ajustes/programas": ["programa:*", "jogo:*", "icone:*", "oficina:*", "desenho:*"],
+    "ajustes/programas": ["jogo:*", "icone:*", "oficina:*", "desenho:*"],
     "cuidar": ["estado:*", "cuidar:exportar", "cuidar:importar", "pendencia:*"],
+    "modificacoes*": ["chave:APPS_ATIVOS:*", "acao:modificacao_*", "modificacao:*"],
 }
 GLOBAIS = ["marca", "porta:*", "busca", "achado", "mudancas", "desfazer-uma", "descartar",
            "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*", "exportar:imagens",
            "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
-NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "busca", "achado", "mudancas", "desfazer-uma",
+NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "chave:APPS_ATIVOS:*", "busca", "achado", "mudancas", "desfazer-uma",
           "descartar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*",
           "exportar:imagens", "criar:voltar", "criar:proximo"]
-OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cuidar", "busca", "achado",
+OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cuidar", "porta:modificacoes",
+                "chave:APPS_ATIVOS:*", "busca", "achado",
                 "mudancas", "desfazer-uma", "descartar", "menu", "menu:creditos",
                 "menu:pagina", "trabalho", "resultado:ok", "resultado:guardar", "resultado:parar",
                 "resultado:registro", "pergunta:nao", "pergunta:sim",
@@ -533,7 +551,7 @@ OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cu
 
 ROTAS = ["tema", "criar/cores", "criar/icones", "criar/papel", "criar/sons", "criar/mandar",
          "ajustes/painel", "ajustes/janelas", "ajustes/papel", "ajustes/mascote", "ajustes/dia-e-noite",
-         "ajustes/terminal", "ajustes/programas", "cuidar"]
+         "ajustes/programas", "modificacoes", "modificacoes/terminal", "cuidar"]
 ACERVO = {"gato": "Adicionar logo", "icone": "Adicionar ícone", "parede": "Adicionar imagem",
           "cursor": "Adicionar tema", "fonte": "Adicionar fonte", "tema-icones": "Adicionar tema de ícones"}
 
@@ -698,7 +716,13 @@ class Percurso:
         porta, _, sub = rota.partition("/")
         self.clicar("porta:" + porta)
         self.assentar()
-        if sub:
+        if porta == "modificacoes":
+            self.pag.wait_for_function("() => MOD.dados && !MOD.pedindo", timeout=300000)
+            self.assentar()
+            if sub:
+                self.clicar("modificacao:" + sub)
+                self.assentar()
+        elif sub:
             self.clicar(("ajuste:" if porta == "ajustes" else "passo:") + sub)
             self.assentar()
         self.checa(self.js("() => location.hash") == "#" + rota, f"o clique leva a #{rota}")
@@ -1271,6 +1295,73 @@ class Percurso:
                    "a ficha do programa aparece na tela")
         self.acionados.add("chave:*:nova")
 
+    def h_modificacoes(self):
+        arquivo = os.path.join(CASA, ".config", "brinquedo", "tema.conf")
+        chave = "chave:APPS_ATIVOS:brinquedo"
+        ativos = lambda: [s.strip() for s in (valor_de("APPS_ATIVOS") or "").split(",")]
+
+        def esperar(cond, frase, teto=300):
+            fim = time.time() + teto
+            while time.time() < fim and not cond():
+                self.pag.wait_for_timeout(500)
+            return self.checa(cond(), frase)
+
+        def cartao_pronto():
+            self.esperar_gravacao(teto=300)
+            self.pag.wait_for_function("() => !MOD.pedindo && !EM_VOO && !ACOMPANHANDO", timeout=300000)
+            self.assentar(quieto=400)
+
+        def interruptor():
+            return self.js(f"() => (document.querySelector('[data-controle=\"{chave}\"]') || {{}}).ariaChecked")
+
+        self.ir("modificacoes")
+        if not self.checa(self.achar(chave), "o módulo de brinquedo aparece como cartão, com o interruptor do tema"):
+            return
+        self.checa(self.js("() => document.querySelector('[data-cartao=\"brinquedo\"] h3').textContent") == "Brinquedo",
+                   "o cartão do brinquedo leva o nome do módulo")
+        self.checa(interruptor() == "false" and not os.path.exists(arquivo), "o brinquedo começa desligado e sem tema")
+        self.clicar(chave)
+        esperar(lambda: os.path.exists(arquivo), "ligar o tema do brinquedo aplica o tema dele")
+        self.checa("brinquedo" in ativos(), f"ligar põe o brinquedo no APPS_ATIVOS ({valor_de('APPS_ATIVOS')!r})")
+        cartao_pronto()
+        self.checa(interruptor() == "true", "o interruptor do brinquedo fica ligado")
+        self.clicar(chave)
+        self.depois_do_gesto(chave)
+        esperar(lambda: not os.path.exists(arquivo) and "brinquedo" not in ativos(),
+                "desligar tira o tema do brinquedo e o nome dele do APPS_ATIVOS")
+        cartao_pronto()
+        self.checa(not os.path.exists(arquivo), "a aplicação que segue o desligar não põe o tema de volta")
+        self.checa(interruptor() == "false", "o interruptor do brinquedo fica desligado")
+        self.clicar(chave)
+        esperar(lambda: os.path.exists(arquivo), "ligar de novo põe o tema de volta")
+        cartao_pronto()
+        antes = os.stat(arquivo).st_mtime_ns
+        if self.clicar("acao:apps_aplicar"):
+            self.depois_do_gesto("acao:apps_aplicar")
+        cartao_pronto()
+        self.checa(os.path.exists(arquivo) and os.stat(arquivo).st_mtime_ns == antes,
+                   "aplicar em todos com o brinquedo já no lugar não reescreve o arquivo")
+        self.checa(self.js("() => document.querySelector('[data-cartao=\"brinquedo\"] .estado-pilula').textContent") == "Aplicado",
+                   "o cartão do brinquedo diz «Aplicado»")
+        for cartao, chave_do_cartao in self.js("() => LUGAR_MODIFICACOES.chaves.map((l) => [l.cartao, l.c])"):
+            self.js("""(id) => { MOD.dados = { ...MOD.dados, cartoes: [...MOD.dados.cartoes.filter((c) => c.id !== id),
+              { id, nome: '', icone: '', estado: 'ok', correcoes: [],
+                temas: [{ pasta: id, instalado: true, rc: 0, ligado: true, slugs: [id], motivo: '' }] }] };
+              MOD.quando = Date.now(); render(); }""", cartao)
+            self.assentar(quieto=300)
+            dentro = self.js("([id, c]) => document.querySelectorAll(`[data-cartao=\"${id}\"] [data-linha~=\"${c}\"]`).length",
+                             [cartao, chave_do_cartao])
+            todas = self.js("(c) => document.querySelectorAll(`[data-linha~=\"${c}\"]`).length", chave_do_cartao)
+            self.checa(dentro == 1 and todas == 1, f"{chave_do_cartao} aparece só no cartão «{cartao}» ({dentro} no cartão, {todas} na página)")
+        self.js("() => releModificacoes()")
+        self.ir("ajustes/programas")
+        self.assentar(quieto=400)
+        movidas = ["APPS_ATIVOS", "SPOTIFY_MARKETPLACE", "TERMINAL_ESQUEMA", "PROMPT_STARSHIP"]
+        sobrou = self.js("(cs) => cs.filter((c) => document.querySelector(`#conteudo [data-linha~=\"${c}\"]`))", movidas)
+        self.checa(not sobrou and not self.js("() => !!document.querySelector('#conteudo [data-bloco=\"Recebem o tema\"]')")
+                   and self.js("() => ![...document.querySelectorAll('#abas-lista *')].some((e) => e.textContent.trim() === 'Terminal')"),
+                   f"o Definir › Programas não tem mais o tema dos programas, a Loja do Spotify nem a aba Terminal ({sobrou})")
+
     def h_rotulos_de_aplicar(self, rota):
         self.ir(rota)
         self.assentar(quieto=400)
@@ -1364,8 +1455,11 @@ class Percurso:
         porta, _, sub = rota.partition("/")
         lista = self.js("""([porta, sub]) => {
           const nome = porta === 'ajustes' ? (AJUSTES.find((p) => p.id === sub) || {}).nome
-                     : porta === 'criar' ? (PASSOS.find((p) => p.id === sub) || {}).nome : null;
-          return inventarioDoPainel().filter((l) => l.porta === porta && (!nome || l.pagina === nome))
+                     : porta === 'criar' ? (PASSOS.find((p) => p.id === sub) || {}).nome
+                     : porta === 'modificacoes' ? (LUGAR_MODIFICACOES.detalhes.find((d) => d.id === sub) || { nome: '' }).nome : null;
+          const semCartao = (l) => LUGAR_MODIFICACOES.chaves.some((x) => x.c === l.id
+            && !document.querySelector(`[data-cartao="${x.cartao}"]`));
+          return inventarioDoPainel().filter((l) => l.porta === porta && (nome == null || l.pagina === nome) && !semCartao(l))
             .map((l) => ({ tipo: l.tipo, id: l.id,
               existe: l.tipo === 'chave' ? CHAVE.has(l.id) && !CHAVE.get(l.id).sem_programa
                     : l.tipo === 'acao' ? ACAO.has(l.id) : true }));
@@ -1462,6 +1556,11 @@ class Percurso:
                 self.h_pendencia_do_spotify()
             except Exception as e:  # noqa: BLE001
                 self.falha(f"a pendência do Spotify quebrou: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
+        if rota == "modificacoes":
+            try:
+                self.h_modificacoes()
+            except Exception as e:  # noqa: BLE001
+                self.falha(f"o cartão do módulo de brinquedo quebrou: {type(e).__name__}: {str(e).splitlines()[0][:200]}")
         if rota == "ajustes/programas":
             try:
                 self.h_busca_de_programas()

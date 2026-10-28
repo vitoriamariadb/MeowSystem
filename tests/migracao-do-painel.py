@@ -55,7 +55,7 @@ def onde(l):
     nomes = portas()
     if l["porta"] in ("topo", "janela"):
         base = l["pagina"]
-    elif l["porta"] in ("tema", "cuidar"):
+    elif l["porta"] in ("tema", "cuidar") or not l["pagina"]:
         base = nomes[l["porta"]]
     else:
         base = "%s › %s" % (nomes[l["porta"]], l["pagina"])

@@ -21,8 +21,8 @@ from playwright.sync_api import sync_playwright  # noqa: E402
 
 FOTOS = casa._arg("--fotos")
 LARGURAS = [(1920, 1080), (1550, 860), (1280, 800), (1500, 900)]
-SECOES = ["painel", "janelas", "papel", "mascote", "dia-e-noite", "terminal", "programas"]
-PORTAS = ["tema", "criar", "cuidar"]
+SECOES = ["painel", "janelas", "papel", "mascote", "dia-e-noite", "programas"]
+PORTAS = ["tema", "criar", "cuidar", "modificacoes", "modificacoes/terminal"]
 falhas = []
 conferidas = [0]
 
@@ -92,6 +92,9 @@ def esperar(pag, ms=500):
 def ir(pag, rota):
     pag.evaluate(f"() => {{ location.hash = '#{rota}'; }}")
     esperar(pag)
+    if rota == "modificacoes":
+        pag.wait_for_function("() => MOD.dados && !MOD.pedindo", timeout=300000)
+        esperar(pag)
 
 
 def foto(pag, nome):
@@ -137,8 +140,8 @@ TABELA = [
     ("mascote", "FASTFETCH_LOGO", "alternar", "attrs"),
     ("dia-e-noite", "LEITURA_TEMPERATURA", "faixa", "quente"),
     ("dia-e-noite", "LEITURA_TEXTURA", "faixa", "papel"),
-    ("terminal", "TERMINAL_ESQUEMA", "alternar", "attrs"),
-    ("terminal", "PROMPT_STARSHIP", "alternar", "attrs"),
+    ("modificacoes/terminal", "TERMINAL_ESQUEMA", "alternar", "attrs"),
+    ("modificacoes/terminal", "PROMPT_STARSHIP", "alternar", "attrs"),
 ]
 
 GESTO = """
@@ -208,7 +211,7 @@ def main():
             esperar(pag, 800)
             print("== a tabela controle -> prévia")
             for secao, chave, tipo, campo in TABELA:
-                ir(pag, "ajustes/" + secao)
+                ir(pag, secao if "/" in secao else "ajustes/" + secao)
                 pag.evaluate("() => { for (const d of document.querySelectorAll('details.mais')) d.open = true; }")
                 antes = pag.evaluate(ASSINATURA)
                 r = pag.evaluate(GESTO, [chave, tipo])
