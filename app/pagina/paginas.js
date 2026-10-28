@@ -918,7 +918,7 @@ function paginaCuidar() {
     ...PRECISA_DE_GENTE.map(linhaDeGente), ...PENDENCIAS.map(linhaDePendencia)]);
   const blocos = LUGAR_CUIDAR.blocos.map((b) => bloco(b.titulo, [lista(b.linhas)], { class: "metade" }));
   const maquina = bloco("Ícones da máquina", [lista(LUGAR_CUIDAR.maquina)], { class: "metade" });
-  const perigo = bloco(null, [lista(LUGAR_CUIDAR.perigo)], { class: "tracejado" });
+  const perigo = bloco(null, [lista(LUGAR_CUIDAR.perigo)], { class: "tracejado metade" });
   return [
     elemento("div", { class: "grade-cuidar" }, [
       topo,
@@ -926,7 +926,8 @@ function paginaCuidar() {
       ...LUGAR_CUIDAR.cartoes.map(cartaoDeCuidar),
       blocos[0],
       maquina,
-      elemento("div", { class: "pilha metade" }, [blocos[1], perigo]),
+      blocos[1],
+      perigo,
     ].filter(Boolean)),
   ];
 }
