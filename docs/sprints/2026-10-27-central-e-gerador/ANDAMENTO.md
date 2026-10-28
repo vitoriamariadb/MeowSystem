@@ -32,7 +32,11 @@
   P136 grupo C VOLTOU (push feito): status-hub 8e869d5e 1.7.0, ascii-battery 66a727fd 1.4.0 (chaves iguais),
   now-playing 6f448ec7 0.4.0 com `TEMA="io.github.meowsystem.NowPlaying"` e `TEMA_CHAVES="acento:@acento fundo:base
   borda:surface1 texto:text"`. A Bandeja perdeu a opção «Título no popup». `target/` dos clones apagados (19 GB livres).
-  Falta na P136: os pinos no MeowSystem (depois do merge da P133) e as capturas no painel depois do install.
+  Falta na P136: as capturas no painel depois do install. Os pinos estão em `bloco/pinos-p136` (131d3eed, worktree
+  `~/Desenvolvimento/MeowSystem-pinos-p136`), SHAs conferidos com `git ls-remote`; integrar depois da P133.
+  EM VOO (ela, 28/10: «o que mais dá pra rodar agora em paralelo»): bloco Painel (P134, P135, P138; worktree
+  `MeowSystem-painel-p134`) e bloco P137 (worktree `MeowSystem-pendencias-p137`), um Opus em cada; conferentes depois.
+  Ordem de integração no `dev`: P132, P133, pinos-p136, P137, Painel.
 - FECHO (28/10, madrugada): tudo no `dev` (merge 9e5bf737) e instalado com o HOME real (69 etapas, rc=0).
   `meow doctor --consertar` rodado: as 348 imagens foram para `~/.local/share/backgrounds/meowsystem`, a
   árvore velha `midia/` e `leitura/` (1,6 GB) saiu, e o corte da Aurora (compositor e luz noturna) está no
