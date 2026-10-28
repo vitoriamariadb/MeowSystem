@@ -39,6 +39,7 @@ const IC = {
   voltar: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
   pasta: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
   ponteiro: '<path d="M5 3l14 8-6 2-2 6Z"/>',
+  pontos: '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',
   pincel: '<path d="m14.5 4.5 5 5L10 19H5v-5Z"/><path d="m12.5 6.5 5 5"/>',
 };
 
