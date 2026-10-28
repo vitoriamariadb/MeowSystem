@@ -1,6 +1,12 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- 28/10, depois do login: o compositor vivo é o build do MeowSystem (`meow compositor conferir`: 5 patches no disco e
+  na sessão). O Vencord está injetado no `app-1.0.166`; falta só o `enabledThemes`, que o install liga com o Discord
+  fechado. A D6 não fica verde com login: o ID da decisão (`25a2`) não existe nesta máquina (RTX 4060, `28a0`). Ela
+  decidiu: produto universal, a GPU detectada por máquina, e a P132 faz isso (worktree `~/Desenvolvimento/MeowSystem-gpu`,
+  branch `bloco/gpu`, 2 agentes). A linha do `jogos-fora.map` fica apagada, por decisão dela (ab44877d).
+  PRÓXIMO: integrar a P132 no `dev` e rodar o install com o HOME real pelo askpass (pedido dela).
 - FECHO (28/10, madrugada): tudo no `dev` (merge 9e5bf737) e instalado com o HOME real (69 etapas, rc=0).
   `meow doctor --consertar` rodado: as 348 imagens foram para `~/.local/share/backgrounds/meowsystem`, a
   árvore velha `midia/` e `leitura/` (1,6 GB) saiu, e o corte da Aurora (compositor e luz noturna) está no
