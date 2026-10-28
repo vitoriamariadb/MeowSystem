@@ -265,6 +265,30 @@ saida="$(mod waterfox aplicar meowsystem mocha)"; rc=$?
 [ "$rc" = 3 ] && ok "waterfox: sem profiles.ini o módulo se pula (3)" \
   || falha "waterfox: sem profiles.ini devia dar 3 e deu $rc" "$saida"
 
+semear libadwaita
+OV="$CASA/.local/share/flatpak/overrides"; mkdir -p "$OV"
+printf '[Context]\nfilesystems=xdg-config/gtk-3.0:ro;xdg-config/gtk-4.0:ro;xdg-data/icons:ro;/usr/share/themes:ro;\n\n[Environment]\nICON_THEME=MeowSystem-Icons\nGTK_THEME=adw-gtk3-dark\n' > "$OV/global"
+trocar_pack() {
+  env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CACHE_HOME="$CASA/.cache" FLATPAK_FAKE="$FAKE" MEOW_RAIZ="$RAIZ" \
+      MEOW_ESTADO="$T/estado" TMPDIR="$T" FLATPAK_USER_DIR="$CASA/.local/share/flatpak" FLATPAK_SYSTEM_DIR="$T/sistema" \
+      FLATPAK_TEMA_SISTEMA="$T/sistema" NOME_TEMA_ICONES=nenhum PACK="$1" FLAVOR="$2" ACCENT=mauve NO_COLOR=1 \
+      bash -c '"$MEOW_RAIZ/scripts/flatpak_tema.sh" aplicar tudo; APPS_ATIVOS=libadwaita "$MEOW_RAIZ/scripts/aplicar_apps.sh" aplicar' </dev/null >/dev/null 2>&1
+}
+CSS="$GTK/be.alexandervanhee.gradia/config/gtk-4.0/gtk.css"
+trocar_pack meowsystem mocha
+c1="$(grep -ci "$(fundo meowsystem mocha)" "$CSS" 2>/dev/null)"
+trocar_pack dracula dracula
+c2="$(grep -ci "$(fundo dracula dracula)" "$CSS" 2>/dev/null)"; c3="$(grep -ci "$(fundo meowsystem mocha)" "$CSS" 2>/dev/null)"
+trocar_pack meowsystem mocha
+c4="$(grep -ci "$(fundo meowsystem mocha)" "$CSS" 2>/dev/null)"
+if [ "${c1:-0}" -gt 0 ] && [ "${c2:-0}" -gt 0 ] && [ "${c3:-0}" = 0 ] && [ "${c4:-0}" -gt 0 ] \
+   && ! grep -q 'GTK_THEME' "$OV/global" && ! grep -qE 'gtk-4\.0|xdg-data/icons|/usr/share/themes' "$OV/global" \
+   && grep -q 'xdg-config/gtk-3.0:ro' "$OV/global"; then
+  ok "libadwaita: trocar de pack pelo flatpak_tema.sh e pelo aplicar_apps.sh reescreve o gtk.css e o GTK_THEME não volta"
+else
+  falha "libadwaita: a troca de pack não reescreveu o gtk.css ou trouxe o GTK_THEME de volta (mocha $c1, dracula $c2, mocha na volta $c4)" "$(cat "$OV/global" 2>/dev/null)"
+fi
+
 for app in "${APPS[@]}"; do
   rm -rf "$CASA" "$FAKE"; mkdir -p "$CASA" "$FAKE/apps"
   saida="$(mod "$app" aplicar meowsystem mocha)"; rc=$?
