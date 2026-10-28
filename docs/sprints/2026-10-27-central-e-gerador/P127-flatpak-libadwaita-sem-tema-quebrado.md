@@ -68,3 +68,21 @@ nenhum pack declara tema GTK. A dúvida da opção b está respondida: o pack Dr
 - Na máquina dela, depois do fecho da leva: Gradia, Upscaler e Calculadora abrem com o visual certo, com print, e um app GTK3 Flatpak continua
   escuro.
 - `tests/todos.sh` verde duas vezes.
+
+## Execução
+
+Feito em 27/10, no bloco `bloco/flatpak`, com `flatpak` falso numa casa de brinquedo (`tests/flatpak-tema.sh`, 14 seções, verde).
+
+- `scripts/flatpak_tema.sh` reescrito em alvos: `usuario`, `libadwaita`, `icones`, `runtime`, `global` (e `tudo`, que o doctor e o vigia usam). O override do usuário passa a levar só `ICON_THEME` e `XCURSOR_THEME`; nunca `GTK_THEME`, nunca `xdg-data/icons`, nunca `/usr/share/themes`.
+- `libadwaita`: tira do override do usuário `GTK_THEME`, `xdg-config/gtk-4.0` e `/usr/share/themes`, e apaga o override à parte que o contorno do Nitro deixou (`--unset-env=GTK_THEME --nofilesystem=...`) quando ele só tinha isso. O que o usuário pôs e o resto do arquivo ficam. A causa sai sempre; a mensagem nomeia os apps libadwaita que a detecção achou, e nenhum nome é fixo.
+- `icones`: tira `xdg-data/icons` do override (o Flatpak já monta os ícones em `/run/host/user-share/icons`).
+- O estado de antes (`flatpak-tema-antes.tsv`) guarda cada chave e cada pasta tirada; o `reverter` do desinstalador devolve tudo, inclusive o `GTK_THEME` e as pastas, e remove o arquivo se ele não existia.
+- Extensão do tema GTK3: `org.gtk.Gtk3theme.<gtk-theme do gsettings>` é instalada `--user` quando falta. Se o Flathub não a tem (Dracula), tenta uma vez por dia, avisa e sai 0.
+- Ponte root: `flatpak-global-limpar` agora aceita `GTK_THEME` mesmo com o tema no disco e as pastas `xdg-config/gtk-4.0`, `xdg-data/icons` e `/usr/share/themes` (a do usuário `~/.icons` continua fora). Recusa o resto, como antes.
+- Detecção: `lib/flatpak.sh`, `grep -a` em bash com `libadwaita-1.so|require_version(.Adw.|gi://Adw`, cache por commit do app em `~/.cache/meowsystem/flatpak-libadwaita.tsv` (o conferir não escreve estado; o cache é derivado). Medido aqui: 18 apps, 6 s a frio, depois instantâneo.
+- Doctor: `chk_/fix_` `flatpakadwaita`, `flatpakicones` (e `flatpakruntime`, da P128); `flatpaktema` ficou só com ícone, cursor e extensão. O `apos_flatpak.sh` reaplica depois de instalar ou atualizar um app.
+- `assets/contratos/vizinhos.tsv`: o texto dos dois scripts do NitroKit diz «tema» em vez de «GTK».
+
+Provas: `bash tests/flatpak-tema.sh` verde (doctor vê sem escrever; `--consertar` aplica; segunda passada não escreve; trocar de pack não traz o `GTK_THEME` de volta; reverter devolve o de antes; ponte recusa o que não é dela).
+
+Fica para o fecho da leva (a mão dela): o override global dela (`~/.local/share/flatpak/overrides/global`) ainda tem os quatro itens; ele só muda no fecho. Depois: Gradia, Upscaler e Calculadora com o visual certo, com print, e um app GTK3 Flatpak escuro.

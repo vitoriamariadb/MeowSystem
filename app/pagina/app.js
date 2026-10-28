@@ -731,6 +731,7 @@ const NOME_DE_PROGRAMA = {
   telegram: "Telegram", spotify: "Spotify", zapzap: "WhatsApp", obs: "OBS", gimp: "GIMP", krita: "Krita",
   vlc: "VLC", steam: "Steam", heroic: "Heroic", kitty: "Kitty", "gnome-terminal": "GNOME Terminal",
   onlyoffice: "OnlyOffice", fastfetch: "fastfetch", zsh: "zsh", fzf: "fzf", bat: "bat", btop: "btop", qt5ct: "qt5ct",
+  libadwaita: "Apps GNOME",
 };
 function nomeDePrograma(id) {
   return NOME_DE_PROGRAMA[id] || maiuscula(String(id).replace(/[-_.]/g, " "));
