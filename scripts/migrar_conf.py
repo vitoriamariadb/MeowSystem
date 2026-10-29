@@ -349,8 +349,13 @@ def main() -> int:
         )
 
     tmp = args.conf.with_suffix(args.conf.suffix + ".tmp")
-    tmp.write_text(novo, encoding="utf-8")
-    tmp.replace(args.conf)
+    try:
+        tmp.write_text(novo, encoding="utf-8")
+        tmp.replace(args.conf)
+    except OSError as erro:
+        tmp.unlink(missing_ok=True)
+        print(f"ERRO: não consegui gravar {args.conf}: {erro}", file=sys.stderr)
+        return 2
     if par:
         print("PACK e FLAVOR não combinavam, agora: " + par)
     if aposentadas:
