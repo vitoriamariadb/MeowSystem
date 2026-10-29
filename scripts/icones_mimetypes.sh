@@ -20,7 +20,7 @@ sys.path.insert(0, sys.argv[1])
 import pack
 print(pack.campo(sys.argv[2], "nome", "") or "")
 PY
-)"
+)" || DONO_ACERVO=""
 [ -n "$DONO_ACERVO" ] || DONO_ACERVO="Catppuccin"
 MAPA="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
           icones.mimetypes.mapa)" || MAPA=""
