@@ -47,6 +47,7 @@ PORTATIL=(
   variante.sh
   claro-do-pack.sh
   pack-pessoal-tem-tema.sh
+  par-do-pack.sh
   notas-de-funcao.sh
   frases-velhas.sh
   pack-dracula-completo.sh

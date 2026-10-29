@@ -51,8 +51,9 @@ no exemplo aparece na página sozinha. O `tests/app.sh` compara as duas leituras
 
 ## Quem escreve
 
-- **No `meow.conf`, só o `meow_conf_definir`** do `lib/comum.sh`, num bash só por lote. Uma
-  segunda rotina de escrita na mesma chave é defeito.
+- **No `meow.conf`, só o `meow_conf_definir`** do `lib/comum.sh`, numa escrita só por lote:
+  o disco cheio não deixa metade do lote gravada. Uma segunda rotina de escrita na mesma chave
+  é defeito.
 - **Gravar** é `/api/definir` (uma chave) ou `/api/salvar` (um lote): confere, grava e entrega à fila
   de aplicação, que roda `./install.sh --etapa` só com as etapas que a tabela
   `assets/contratos/chave-etapa.tsv` liga à chave. Uma escolha recusada barra o lote inteiro, antes
