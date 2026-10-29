@@ -7,13 +7,17 @@
   pessoal com tema do COSMIC). Cada bloco com conferente Opus e suíte com só os vermelhos aceitos (`decisoes.sh` D6,
   `restaurar.sh` `pack_usar`/`desinstalar`). A P136 (os 9 applets) está nos forks, com push; os pinos em
   `bloco/pinos-p136` (131d3eed).
-  EM VOO: o conferente da P133 (worktree `~/Desenvolvimento/MeowSystem-forks2`, branch `bloco/forks-p133`), que
-  também confere o conflito com os pinos da P136.
-  PRÓXIMO: integrar a P133 e depois `bloco/pinos-p136`; suíte final no `dev`; install com o HOME real pelo askpass
-  (`sudo -A`, pedido dela); conferir na máquina (`pendencias.tsv` vazio, qBittorrent no tema do pack, COSMIC no «Meu
-  Meow-Portátil», `COSMIC_RENDER_DEVICE="0x10de:0x28a0"` no `/etc/environment`, capturas dos applets e do painel);
-  `master` no `origin` (hoje 89064565; as tags v2.0.0 e v2.1.0 só existem aqui) e o release. Ela faz login novo
-  para a GPU valer.
+  29/10 02:42: P133 (19b30147) e pinos da P136 (a67ab839) no `dev`; suíte final 117 verdes + os 2 aceitos. Install
+  com o HOME real (askpass): `rc=2`. Causa: o `meow.conf` estava com `PACK="meowsystem"` e `FLAVOR="meumeowportatil"`
+  (alguém regravou o PACK depois do `pack usar` de 18:06), e o `icones_mimetypes.sh` sai calado com 1 nesse caso.
+  Rodado `meow pack usar meu-meow-portatil` (o pack dela de volta): `rc=2` pelo Spotify (o `color.ini` herdado sem a
+  seção do flavor pessoal). Já conferido na máquina: `COSMIC_RENDER_DEVICE="0x10de:0x28a0"` (root 0644, original
+  guardado), `pendencias.tsv` vazio, qBittorrent no tema do pack, COSMIC em `meu-meow-portatil-meumeowportatil`,
+  7 metainfos.
+  EM VOO: P139 (`P139-o-pack-pessoal-perde-o-pack.md`, worktree `~/Desenvolvimento/MeowSystem-pack-p139`, branch
+  `bloco/pack-p139`), 1 Opus; itens 4 (Spotify do pack pessoal) e 5 (o ERRO falso do «tema do COSMIC primeiro»).
+  PRÓXIMO: conferente da P139, merge, install de novo até `rc=0`; capturas dos applets depois do login dela;
+  `master` no `origin` (hoje 89064565; tags v2.0.0 e v2.1.0 só aqui) e o release.
   Anotado para depois: um `CARGO_TARGET_DIR` só para as nove extensões (15 GB de `target/`); o `meow wallpaper
   dispensar` diz «o aviso saiu da Início» (velho); o reverter do qBittorrent sem tema guardado manda editar o
   `meow.conf`; `porta_das_pendencias()` no `servidor.py` com nome que não diz mais o que faz.
