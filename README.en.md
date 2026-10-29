@@ -42,7 +42,7 @@ compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse 
 
 ## The panel
 
-`meow abrir`, or the MeowSystem icon in the launcher. 126 settings and 73 actions behind six doors (the panel speaks Portuguese):
+`meow abrir`, or the MeowSystem icon in the launcher. 126 settings and 69 actions behind six doors (the panel speaks Portuguese):
 
 <table>
 <tr>
@@ -51,7 +51,7 @@ compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse 
 </tr>
 <tr>
 <td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="The Definir door of the panel"><br><b>Definir</b>: panel and dock, windows, wallpaper, mascot, day and night and programs.</td>
-<td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="The Manter door of the panel"><br><b>Manter</b>: the doctor and its fix button, pending items, and settings to carry to another machine.</td>
+<td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="The Manter door of the panel"><br><b>Manter</b>: the doctor and its fix button, the log, and settings to carry to another machine.</td>
 </tr>
 <tr>
 <td width="50%"><img src="docs/capturas/readme/extensoes.png" alt="The Extensões door of the panel"><br><b>Extensões</b>: the house applets and your own: install, update, put on the panel, and the compositor builds.</td>
