@@ -24,6 +24,7 @@ PORTATIL=(
   modificacoes.sh
   modificacoes-no-install.sh
   logo-do-programa.sh
+  logo-do-pack-pessoal.sh
   estilo.sh
   reversao.sh
   seco.sh
@@ -127,6 +128,7 @@ MAQUINA=(
   extensoes-pagina.py
   modificacoes-pagina.py
   logo-pagina.py
+  logo-do-pack-pessoal-pagina.py
 )
 
 SEM_PULO=(
@@ -135,6 +137,7 @@ SEM_PULO=(
   extensoes-pagina.py
   modificacoes-pagina.py
   logo-pagina.py
+  logo-do-pack-pessoal-pagina.py
 )
 
 MODO="tudo"
