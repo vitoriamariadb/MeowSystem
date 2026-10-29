@@ -2,7 +2,9 @@
 .sub-abas .editando { margin-left: auto; color: var(--tinta-3); font-size: var(--t-xs); }
 .grade-apps.pastas .app { cursor: default; }
 .grade-apps.pastas .vazio-acervo { grid-column: 1 / -1; color: var(--tinta-3); font-size: var(--t-sm); }
-.grade-apps.pastas .app .nome { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grade-apps.pastas .app { background: var(--cartao-previa, var(--fundo)); border-color: var(--linha-previa, var(--linha)); color: var(--nome-previa, var(--tinta-2)); }
+.grade-apps.pastas .app:hover { color: var(--tinta-previa, var(--tinta)); }
+.grade-apps.pastas .app .nome { max-width: 100%; white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
 .desenho { display: grid; border: 1px solid var(--accent-linha); border-radius: var(--raio-lg); background: var(--cartao); min-width: 0; padding: 0; gap: 0; }
 .desenho > header { display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap; min-height: 64px; padding: var(--e-3) var(--e-5); border-bottom: 1px solid var(--linha); }
 .desenho > header > img { width: 36px; height: 36px; }
