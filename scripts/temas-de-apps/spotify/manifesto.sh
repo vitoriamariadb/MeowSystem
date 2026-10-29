@@ -299,6 +299,10 @@ _spot_rodando() {
 
 _spot_quer_acento() { [ "$_SPOT_ACENTO_NO_INI" = "sim" ]; }
 
+_spot_sem_secao() {
+  meow_pula "o tema '$_SPOT_TEMA_NOME' não tem o $_SPOT_ESQUEMA nem um flavor de onde derivá-lo — o Spotify fica no tema que já tem"
+}
+
 _spot_receita_valida() {
   python3 -c 'import json,sys; json.load(open(sys.argv[1]))["flavors"][sys.argv[2]][sys.argv[3]]' \
     "$_SPOT_PALETA" "$_SPOT_FLAVOR" "$_SPOT_ACENTO" 2>/dev/null
@@ -365,11 +369,14 @@ meow_app_conferir() {
 
   hex=""
   if _spot_quer_acento; then
-    acento_ok="$(python3 "$_SPOT_ACENTO_PY" estado "$_SPOT_COLOR_INI" \
-                   --flavor "$_SPOT_ESQUEMA" --acento "$_SPOT_ACENTO" 2>/dev/null)" || {
-      meow_erro "não consegui ler o color.ini do tema '$_SPOT_TEMA_NOME'"
-      return "$MEOW_ERRO"
-    }
+    acento_ok="$(python3 "$_SPOT_ACENTO_PY" estado "$_SPOT_COLOR_INI" --paleta "$_SPOT_PALETA" \
+                   --flavor "$_SPOT_ESQUEMA" --acento "$_SPOT_ACENTO" 2>/dev/null)"
+    case "$?" in
+      0) ;;
+      3) _spot_sem_secao; return "$MEOW_SEM_DEPENDENCIA" ;;
+      *) meow_erro "não consegui ler o color.ini do tema '$_SPOT_TEMA_NOME'"
+         return "$MEOW_ERRO" ;;
+    esac
     hex="$(printf '%s\n' "$acento_ok" | sed -n 's/^desejado=//p')"
     printf '%s\n' "$acento_ok" | grep -qx 'ok=sim' || return "$MEOW_DIVERGENTE"
   fi
@@ -491,11 +498,14 @@ meow_app_aplicar() {
 
   if _spot_quer_acento; then
     meow_destino_permitido "$_SPOT_COLOR_INI" || return "$MEOW_ERRO"
-    if ! python3 "$_SPOT_ACENTO_PY" aplicar "$_SPOT_COLOR_INI" \
-          --flavor "$_SPOT_ESQUEMA" --acento "$_SPOT_ACENTO" >/dev/null; then
-      meow_erro "não consegui pôr o acento $_SPOT_ACENTO no color.ini do tema '$_SPOT_TEMA_NOME'"
-      return "$MEOW_ERRO"
-    fi
+    python3 "$_SPOT_ACENTO_PY" aplicar "$_SPOT_COLOR_INI" --paleta "$_SPOT_PALETA" \
+      --flavor "$_SPOT_ESQUEMA" --acento "$_SPOT_ACENTO" >/dev/null
+    case "$?" in
+      0) ;;
+      3) _spot_sem_secao; return "$MEOW_SEM_DEPENDENCIA" ;;
+      *) meow_erro "não consegui pôr o acento $_SPOT_ACENTO no color.ini do tema '$_SPOT_TEMA_NOME'"
+         return "$MEOW_ERRO" ;;
+    esac
   fi
 
   "$cli" config current_theme "$_SPOT_TEMA_NOME" >/dev/null 2>&1

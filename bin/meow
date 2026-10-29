@@ -3207,6 +3207,13 @@ PY
           export PACK="$novo_pack" FLAVOR="$novo_flavor"
           meow_seco || meow_travar || exit "$MEOW_ERRO"
           meow_ponte_python >/dev/null || exit "$MEOW_ERRO"
+          if [ -z "$(meow_captura "$par")" ]; then
+            python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$par" >/dev/null 2>&1
+            if [ "$?" = 1 ]; then
+              meow_seco && { meow_muda "derivaria a captura de '$par' da paleta do «$novo_pack»"; exit "$MEOW_DIVERGENTE"; }
+              python3 "$RAIZ/scripts/derivar_acento.py" "$par" | sed 's/^/  /'
+            fi
+          fi
           "$RAIZ/scripts/aplicar_tema.sh" "$par"
         )
         case "$?" in

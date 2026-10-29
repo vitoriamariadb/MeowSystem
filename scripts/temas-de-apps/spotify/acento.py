@@ -42,12 +42,16 @@ O QUE ISTO CUSTA, DITO EM VOZ ALTA
   meow.conf, conferível pelo doctor, em vez de um clique que ninguém audita.
 
 VERBOS
-  estado  <color.ini> --flavor mocha --acento mauve
+  estado  <color.ini> --flavor mocha --acento mauve [--paleta paleta.json]
       Imprime `desejado=`, `text=`, `button_active=` e `ok=sim|nao`. Não escreve.
-  aplicar <color.ini> --flavor mocha --acento mauve
+  aplicar <color.ini> --flavor mocha --acento mauve [--paleta paleta.json]
       Reescreve as duas chaves. Preserva o arquivo byte a byte fora delas
       (não uso configparser de propósito: ele normaliza espaçamento, comentário
       e caixa, e o diff contra o upstream viraria ilegível).
+
+  Com --paleta, o flavor que o color.ini não tem (o de um pack pessoal, que
+  herda o tema) ganha a seção dele: a seção de fundo mais perto, trocada slot a
+  slot pelas cores do flavor na paleta. Sem seção de onde derivar, sai 3.
 """
 import argparse
 import re
@@ -75,12 +79,57 @@ def _escrever_chave(bloco: str, chave: str, valor: str):
     return novo, n
 
 
+def _hex(valor: str):
+    v = (valor or '').strip().lstrip('#').lower()
+    return v if re.fullmatch(r'[0-9a-f]{6}', v) else None
+
+
+def _distancia(a: str, b: str) -> int:
+    return sum(abs(int(a[i:i + 2], 16) - int(b[i:i + 2], 16)) for i in (0, 2, 4))
+
+
+def _secoes(texto: str):
+    return re.findall(r'^\[([^\]]+)\]\s*$', texto, re.M)
+
+
+def derivar_secao(texto: str, flavor: str, cores: dict):
+    novas = {k: _hex(v) for k, v in (cores or {}).items() if _hex(v)}
+    if 'base' not in novas:
+        return None
+    candidatas = []
+    for nome in _secoes(texto):
+        ini, fim = _fatia_secao(texto, nome)
+        bloco = texto[ini:fim]
+        slots = {k: _hex(_ler_chave(bloco, k) or '') for k in novas}
+        slots = {k: v for k, v in slots.items() if v}
+        if 'base' in slots and len(slots) * 2 >= len(novas):
+            candidatas.append((_distancia(slots['base'], novas['base']), nome, bloco, slots))
+    if not candidatas:
+        return None
+    _d, _nome, bloco, slots = min(candidatas)
+
+    def trocar(m):
+        chave, valor = m.group(1), _hex(m.group(4))
+        if valor is None:
+            return m.group(0)
+        if chave in novas:
+            return f'{m.group(1)}{m.group(2)}={m.group(3)}{novas[chave]}'
+        perto = min(((_distancia(valor, v), k) for k, v in slots.items()), default=None)
+        if perto is None or perto[0] > 12:
+            return m.group(0)
+        return f'{m.group(1)}{m.group(2)}={m.group(3)}{novas[perto[1]]}'
+
+    corpo = re.sub(r'^([A-Za-z0-9_-]+)(\s*)=(\s*)(\S+)[ \t]*$', trocar, bloco.strip('\n'), flags=re.M)
+    return texto.rstrip('\n') + f'\n\n[{flavor}]\n{corpo}\n'
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('verbo', choices=('estado', 'aplicar'))
     p.add_argument('color_ini')
     p.add_argument('--flavor', required=True)
     p.add_argument('--acento', required=True)
+    p.add_argument('--paleta')
     a = p.parse_args()
 
     try:
@@ -89,7 +138,20 @@ def main() -> int:
         print(f'nao consegui ler o color.ini: {e}', file=sys.stderr)
         return 2
 
+    derivada = False
     faixa = _fatia_secao(texto, a.flavor)
+    if not faixa and a.paleta:
+        try:
+            import json
+            cores = json.load(open(a.paleta, encoding='utf-8'))['flavors'][a.flavor]
+        except (OSError, ValueError, KeyError, TypeError):
+            cores = None
+        derivado = derivar_secao(texto, a.flavor, cores) if cores else None
+        if derivado is None:
+            print(f'o color.ini nao tem a secao [{a.flavor}], nem uma de onde deriva-la', file=sys.stderr)
+            return 3
+        texto, derivada = derivado, True
+        faixa = _fatia_secao(texto, a.flavor)
     if not faixa:
         print(f'o color.ini nao tem a secao [{a.flavor}]', file=sys.stderr)
         return 2
@@ -110,7 +172,7 @@ def main() -> int:
     atual_btn = _ler_chave(bloco, 'button-active')
 
     if a.verbo == 'estado':
-        ok = (atual_text or '').lower() == hex_acento.lower() and \
+        ok = not derivada and (atual_text or '').lower() == hex_acento.lower() and \
              (atual_btn or '').lower() == hex_acento.lower()
         print(f'desejado={hex_acento}')
         print(f'text={atual_text or ""}')
@@ -125,7 +187,7 @@ def main() -> int:
             print(f'nao achei a chave "{chave}" na secao [{a.flavor}]', file=sys.stderr)
             return 2
 
-    if novo == bloco:
+    if novo == bloco and not derivada:
         print('nada a fazer')
         return 0
 
