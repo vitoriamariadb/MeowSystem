@@ -70,6 +70,7 @@ if novo != open(conf, encoding="utf-8").read():
 PY
 FALSO
 chmod 755 "$AURORA"
+cp "$AURORA" "$T/aurora-original.sh"
 
 casa() {
   env -i PATH="$BIN:$PATH" HOME="$CASA" ZDOTDIR="$ZD" USER="${USER:-t}" LANG=C.UTF-8 NO_COLOR=1 \
@@ -89,7 +90,7 @@ doutor() {
       [ "$rc" = 1 ] && { "fix_$n" 2>&1 | sed "s/^/  /"; printf "fix_%s=%s\n" "$n" "${PIPESTATUS[0]}"; }
     done' 2>&1
 }
-retrato() { (cd "$CASA" && find . -path ./.local/state/meowsystem/meow.log -prune -o -type f -printf '%p %s %T@\n' | sort); }
+retrato() { (cd "$CASA" && find . -type f -printf '%p %s %T@\n' | sort); }
 tema_no_ar() { sed -n 's/^General\\CustomUIThemePath=//p' "$QB/qBittorrent.conf"; }
 DRACULA="$QB/themes/dracula.qbtheme"
 DO_PACK="$QB/themes/catppuccin-mocha.qbtheme"
@@ -134,6 +135,20 @@ else
   falha "a segunda passada do doctor escreveu" "$s2
 $(diff <(printf '%s\n' "$antes") <(printf '%s\n' "$depois"))"
 fi
+
+cp "$T/aurora-original.sh" "$AURORA"
+aurora
+s3="$(doutor)"
+[ "$(grep -c '^#vizinhos:aurora-qbittorrent-tema# ' "$AURORA")" = 2 ] && [ "$(tema_no_ar)" = "$DO_PACK" ] \
+  && ok "a Aurora regrava o script e repõe o Dracula: o doctor corta de novo e o tema do pack volta" \
+  || falha "depois de a Aurora regravar o script, o doctor não cortou de novo" "$s3
+$(grep -n 'Preferences' "$AURORA")
+$(cat "$QB/qBittorrent.conf")"
+
+casa bash "$RAIZ/scripts/vizinhos.sh" --restaurar aurora-qbittorrent-tema >/dev/null 2>&1
+cmp -s "$AURORA" "$T/aurora-original.sh" \
+  && ok "o --restaurar devolve as duas linhas do tema ao script da Aurora, byte a byte" \
+  || falha "o --restaurar não devolveu o script da Aurora" "$(diff "$T/aurora-original.sh" "$AURORA")"
 
 [ "$falhas" -eq 0 ] || { printf '\n%d falha(s)\n' "$falhas" >&2; exit 1; }
 printf '\ntudo certo\n'
