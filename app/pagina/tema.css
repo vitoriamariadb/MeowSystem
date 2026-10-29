@@ -4,3 +4,10 @@
 .p-dock .app svg.neutro { color: var(--p-sub); }
 .p-arq figure img.pasta-pack { width: 5.2cqi; height: 5.2cqi; object-fit: contain; }
 .p-arq figure svg.pasta-neutra { color: var(--p-sub); }
+.pack-corpo .logo-trocar { position: relative; width: 52px; height: 52px; padding: 0; border-radius: var(--raio-md); border: 1px solid transparent; background: none; cursor: pointer; display: grid; }
+.pack-corpo .logo-trocar:hover, .pack-corpo .logo-trocar:focus-visible { border-color: var(--accent-linha); }
+.pack-corpo .logo-trocar .logo { width: 50px; height: 50px; }
+.pack-corpo .logo-trocar .selo-pincel { position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; padding: 3px; border-radius: 50%; background: var(--cartao-2); border: 1px solid var(--linha-forte); color: var(--tinta-2); opacity: 0; }
+.pack-corpo .logo-trocar:hover .selo-pincel, .pack-corpo .logo-trocar:focus-visible .selo-pincel { opacity: 1; }
+dialog.logo-do-pack { width: min(720px, calc(100vw - 32px)); }
+dialog.logo-do-pack .escolhas { max-height: 60vh; overflow: auto; }
