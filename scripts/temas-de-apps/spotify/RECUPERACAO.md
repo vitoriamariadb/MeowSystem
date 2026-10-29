@@ -32,18 +32,17 @@ O `meow doctor` das 05:00 confere o Spotify, e a conferência olha **o disco**
 (`Apps/xpui/colors.css`), não só a intenção gravada no `config-xpui.ini` — então
 uma atualização que apagou o tema **é acusada**, não passa batido.
 
-Mas o `meow apps aplicar` **para** quando percebe que a versão do backup do
-spicetify é diferente da versão do Spotify instalado:
+Quando o spicetify responde «Preprocessed Spotify data is outdated», ou o backup dele é de outra versão do
+Spotify, o `meow apps aplicar` refaz o backup sozinho, com o Spotify fechado:
 
-```
-!! o Spotify atualizou (1.2.92.147.g5b8f9367 -> 1.2.9X.…) e o backup do spicetify é da versão velha
->> não conserto sozinho: leia scripts/temas-de-apps/spotify/RECUPERACAO.md e rode na mão
-```
+- app de fábrica (o Spotify acabou de atualizar): o backup velho vai para
+  `~/.local/state/meowsystem/backups/spotify-spicetify-<data>` e roda `spicetify backup apply`;
+- app já com o tema (o spicetify é que mudou): roda `spicetify restore backup apply`, com o backup do app de agora.
 
-Isso é de propósito. O conserto oficial tem um passo (`restore`) que, rodado com
-um backup de outra versão, **copia a interface velha por cima do app novo** — e
-o resultado é janela em branco **sem nenhuma mensagem de erro**. Não é o tipo de
-coisa que pode acontecer às cinco da manhã sem ninguém olhando.
+A conferência compara o que o spicetify aplicou (tema, cor, versão do spicetify e pasta do app) com o registro
+`~/.local/state/meowsystem/temas-de-apps/spotify/aplicado`: apply que falhou não deixa «nada a fazer».
+
+Os passos abaixo são o que o módulo faz, para quem quiser entender o mecanismo.
 
 ## O conserto, na ordem
 
