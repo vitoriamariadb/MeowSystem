@@ -244,6 +244,8 @@ echo "== reverter tira o que é nosso e deixa a configuração"
 mkdir -p "$H/.config/cosmic/io.github.teste.Fake/v1"; echo x > "$H/.config/cosmic/io.github.teste.Fake/v1/chave"
 saida="$(EBX fake --reverter)"
 some "binário" "$BIN"; some "sombra" "$SOMBRA"; some "ícone" "$ICONE"; some "metainfo" "$METAINFO_F"; some "árvore" "$ESTADO"
+sobra="$(cd "$H/.local" && find bin share/applications share/icons share/metainfo -type f 2>/dev/null | sort)"
+igual "nada do build sobra em bin, applications, icons e metainfo" "$sobra" ""
 existe "a configuração fica" "$H/.config/cosmic/io.github.teste.Fake/v1/chave"
 
 echo "== METAINFO fora do lugar não executa nada"
