@@ -119,7 +119,7 @@ rodar() {
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
       FLATPAK_USER_DIR="$CASA/.local/share/flatpak" FLATPAK_SYSTEM_DIR="$FSYS" FLATPAK_TEMA_SISTEMA="$SIS" \
       FLATPAK_LOG="$LOG" FLATPAK_FAKE="$FAKE" MEOW_PONTE="$PONTE_DIR/ponte_root.sh" CURSOR="${CURSOR_DO_PACK-Dracula-Cursor}" \
-      NOME_TEMA_ICONES=MeowSystem-Icons bash "$FT" "$@"
+      NOME_TEMA_ICONES=MeowSystem-Icons FLATPAK_CORRECOES="${CORRECOES-sim}" bash "$FT" "$@"
 }
 env_de() { awk -v k="$2" '/^\[/ { g = $0; next } g == "[Environment]" && index($0, k "=") == 1 { print substr($0, length(k) + 2) }' "$1"; }
 chamadas() { grep -c '^override --user' "$LOG"; }
@@ -327,7 +327,28 @@ cat > "$T/bin/gsettings" <<'FIM'
 exit 1
 FIM
 
-printf '\n11. o desinstalador devolve o de antes\n'
+printf '\n11. o interruptor das correções: desligado, devolve o de antes; ligado, conserta de novo\n'
+CONT="$(dirname "$USUARIO")/com.exemplo.Clapper"
+confere "antes de desligar: sem GTK_THEME, sem o contorno do Clapper, o Tocante no runtime forçado" \
+  '[ -z "$(env_de "$USUARIO" GTK_THEME)" ] && [ ! -e "$CONT" ] && grep -q -- "--runtime=org.gnome.Platform//" "$APPS_LOCAIS/com.exemplo.Tocante.desktop"'
+antes="$(instantaneo)"
+saida="$(CORRECOES=nao rodar conferir)"; rc=$?
+confere "desligado, o conferir sai 1, diz o que devolveria e não escreve" \
+  '[ "$rc" = 1 ] && grep -q "devolveria" <<< "$saida" && grep -q "GTK_THEME" <<< "$saida" && [ "$antes" = "$(instantaneo)" ]'
+saida="$(CORRECOES=nao rodar aplicar)"; rc=$?
+confere "desligado, o aplicar devolve o GTK_THEME, as pastas e o contorno do Clapper" \
+  '[ "$rc" = 1 ] && [ "$(env_de "$USUARIO" GTK_THEME)" = adw-gtk3-dark ] && grep -q "xdg-config/gtk-4.0:ro" "$USUARIO" && grep -q "/usr/share/themes:ro" "$USUARIO" && grep -q "xdg-data/icons:ro" "$USUARIO" && cmp -s "$CONT" <(printf "$CONTORNO")'
+confere "e tira o runtime forçado dos apps" \
+  '! grep -qs -- "--runtime=org.gnome.Platform//" "$APPS_LOCAIS/com.exemplo.Tocante.desktop" "$APPS_LOCAIS/com.exemplo.Clapper.desktop"'
+confere "o que é do pack fica" '[ "$(env_de "$USUARIO" ICON_THEME)" = MeowSystem-Icons ]'
+confere "a segunda passada desligada não escreve e fica verde" '
+  a1="$(instantaneo)"; CORRECOES=nao rodar aplicar >/dev/null; rc=$?
+  [ "$rc" = 0 ] && [ "$a1" = "$(instantaneo)" ] && CORRECOES=nao rodar conferir >/dev/null'
+rodar aplicar >/dev/null
+confere "ligado de novo, o GTK_THEME, as pastas, o contorno e o runtime antigo saem outra vez" \
+  '[ -z "$(env_de "$USUARIO" GTK_THEME)" ] && ! grep -q "gtk-4.0" "$USUARIO" && [ ! -e "$CONT" ] && grep -q -- "--runtime=org.gnome.Platform//" "$APPS_LOCAIS/com.exemplo.Tocante.desktop" && rodar conferir libadwaita >/dev/null && rodar conferir icones >/dev/null'
+
+printf '\n12. o desinstalador devolve o de antes\n'
 saida="$(rodar reverter)"; rc=$?
 confere "o reverter sai 0 e o override volta ao de antes, com o GTK_THEME e as pastas que ele tinha" \
   '[ "$rc" = 0 ] && igual_a "$USUARIO" "$T/usuario-original"'
@@ -340,7 +361,7 @@ rodar reverter >/dev/null
 confere "sem override de antes, o reverter tira o arquivo" '[ ! -e "$USUARIO" ]'
 confere "o lib/desinstalar.sh chama o reverter" 'grep -qE "flatpak_tema\.sh\" reverter" "$RAIZ/lib/desinstalar.sh"'
 
-printf '\n12. sem o que pôr ou sem flatpak, nada a fazer\n'
+printf '\n13. sem o que pôr ou sem flatpak, nada a fazer\n'
 mkdir -p "$T/sem-flatpak"
 for b in /usr/bin/*; do [ "${b##*/}" = flatpak ] || ln -s "$b" "$T/sem-flatpak/${b##*/}" 2>/dev/null; done
 saida="$(env -i PATH="$T/sem-flatpak" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 FLATPAK_USER_DIR="$CASA/.local/share/flatpak" bash "$FT" aplicar)"; rc=$?
@@ -348,7 +369,7 @@ confere "sem flatpak no PATH sai 0 e não escreve" '[ "$rc" = 0 ] && [ ! -e "$US
 saida="$(env -i PATH="$T/bin:/usr/bin:/bin" HOME="$T/vazia" MEOW_ESTADO="$T/vazia/estado" NO_COLOR=1 FLATPAK_USER_DIR="$T/vazia/flatpak" FLATPAK_TEMA_SISTEMA="$T/nada" FLATPAK_LOG="$LOG" FLATPAK_FAKE="$T/falso-vazio" bash "$FT" aplicar usuario)"; rc=$?
 confere "sem tema nenhum no disco o override fica como está" '[ ! -e "$T/vazia/flatpak/overrides" ]'
 
-printf '\n13. a fiação: etapa, doctor e ponte\n'
+printf '\n14. a fiação: etapa, doctor e ponte\n'
 confere "a etapa está na lista do instalador" 'sed -n "/local etapas=(/,/)/p" "$RAIZ/install.sh" | grep -q etapa_flatpak_tema'
 confere "o doctor tem o par chk_/fix_ de cada item" \
   'for n in flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal; do grep -q "^chk_$n()" "$RAIZ/bin/meow" && grep -q "^fix_$n()" "$RAIZ/bin/meow" && grep -q "^VERIFICAVEIS=.* $n" "$RAIZ/bin/meow" || exit 1; done'
@@ -358,7 +379,7 @@ confere "o vigia do flatpak reaplica o conserto depois de instalar ou atualizar 
 confere "o LibreOffice não está escondido nem no lançador nem no pack (a decisão de 23/10)" '! grep -rqiE "startcenter" "$RAIZ/meow.conf.exemplo" "$RAIZ/scripts" "$RAIZ/lib" "$RAIZ/bin" "$RAIZ/install.sh" "$RAIZ/app" "$RAIZ/docs/PACKS.md" && ! grep -qi libreoffice "$RAIZ/meow.conf.exemplo" "$RAIZ/scripts/pack.py" "$RAIZ/docs/PACKS.md" "$RAIZ/scripts/ocultar_apps.sh"'
 confere "o script não escreve GTK_THEME nem xdg-data/icons no que o Flatpak recebe" \
   '! grep -E "^FT_CHAVES=.*GTK_THEME" "$FT" && ! grep -E "DESEJO\[GTK_THEME\]" "$FT"'
-printf '\n14. os dois scripts do NitroKit saem pelo vizinhos.sh, quando o instalado cuida\n'
+printf '\n15. os dois scripts do NitroKit saem pelo vizinhos.sh, quando o instalado cuida\n'
 DESENV="$CASA/Desenvolvimento"; mkdir -p "$DESENV/NitroKit/src" "$T/vbin"
 for s in unificador_temas_dracula ritual_de_harmonia; do
   printf '#!/usr/bin/env bash\necho escrevi\n' > "$DESENV/NitroKit/src/$s.sh"; chmod 755 "$DESENV/NitroKit/src/$s.sh"
@@ -383,7 +404,7 @@ viz --restaurar todos >/dev/null
 confere "e restaurar devolve os dois byte a byte" \
   'cmp -s "$DESENV/NitroKit/src/unificador_temas_dracula.sh" "$T/unificador_temas_dracula-original.sh" && cmp -s "$DESENV/NitroKit/src/ritual_de_harmonia.sh" "$T/ritual_de_harmonia-original.sh"'
 
-printf '\n15. app em JavaScript com o código comprimido no gresource também é achado\n'
+printf '\n16. app em JavaScript com o código comprimido no gresource também é achado\n'
 if command -v gresource >/dev/null 2>&1 && command -v glib-compile-resources >/dev/null 2>&1; then
   FAKE2="$T/falso-gjs"; mkdir -p "$FAKE2/apps" "$T/gjs"
   for par in com.exemplo.Selo:"pkg.require({ Gio: '2.0', Gtk: '4.0', Adw: '1' });" com.exemplo.Gtk3:"pkg.require({ Gtk: '3.0' });"; do

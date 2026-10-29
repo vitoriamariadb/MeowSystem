@@ -16,6 +16,7 @@ FT_TENTOU="$MEOW_ESTADO/flatpak-gtk3-tentou.tsv"
 FT_USUARIO="${FLATPAK_USER_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/flatpak}/overrides/global"
 FT_GLOBAL="${FLATPAK_SYSTEM_DIR:-/var/lib/flatpak}/overrides/global"
 FT_ANTES="$MEOW_ESTADO/flatpak-tema-antes.tsv"
+FT_CONTORNOS="$MEOW_ESTADO/flatpak-contornos"
 FT_CHAVES=(ICON_THEME XCURSOR_THEME)
 
 ACAO="${1:-aplicar}"
@@ -33,7 +34,7 @@ case "$ACAO" in
     printf '  icones      tira xdg-data/icons do override, que o Flatpak já monta\n'
     printf '  runtime     app em runtime GNOME antigo abre no runtime validado\n'
     printf '  global      o override do sistema, pela ponte root\n\n'
-    printf 'conf: CURSOR, NOME_TEMA_ICONES\n'
+    printf 'conf: CURSOR, NOME_TEMA_ICONES, FLATPAK_CORRECOES (nao devolve libadwaita, icones e runtime)\n'
     exit 0 ;;
   *) meow_erro "uso: flatpak_tema.sh [aplicar|conferir] [usuario|libadwaita|icones|runtime|global] | reverter"; exit "$MEOW_ERRO" ;;
 esac
@@ -116,7 +117,8 @@ _ft_antes_tem() {
   awk -F'\t' -v t="$1" -v k="$2" '
     function base(x) { sub(/:.*/, "", x); return x }
     t == "env" && $1 == "env" && $2 == k { f = 1 }
-    t != "env" && ($1 == "fs" || $1 == "fsx") && base($2) == base(k) { f = 1 }
+    t == "cont" && $1 == "cont" && $2 == k { f = 1 }
+    t != "env" && t != "cont" && ($1 == "fs" || $1 == "fsx") && base($2) == base(k) { f = 1 }
     END { exit !f }' <<< "$3"
 }
 
@@ -371,6 +373,8 @@ cmd_legado() {
   while IFS= read -r arq; do
     [ -n "$arq" ] || continue
     meow_guardar_antes "$arq"
+    mkdir -p "$FT_CONTORNOS" && cp -p -- "$arq" "$FT_CONTORNOS/$(basename "$arq")" || return "$MEOW_ERRO"
+    printf 'cont\t%s\n' "$arq" | _ft_antes_gravar
     rm -f -- "$arq" || return "$MEOW_ERRO"
   done <<< "$contornos"
   if [ -n "$(_ft_legado "$classe")" ] || { [ "$classe" = libadwaita ] && [ -n "$(_ft_contornos)" ]; }; then
@@ -564,12 +568,64 @@ cmd_global() {
   return "$MEOW_DIVERGENTE"
 }
 
+_ft_corrige() { [ "${FLATPAK_CORRECOES:-sim}" != "nao" ]; }
+
+_ft_da_classe() {
+  [ -f "$FT_ANTES" ] || return 0
+  awk -F'\t' -v c="$1" -v sis="$FT_SISTEMA/themes" '
+    function base(x) { sub(/:.*/, "", x); return x }
+    c == "libadwaita" && $1 == "env" && $2 == "GTK_THEME" { print; next }
+    c == "libadwaita" && $1 == "cont" { print; next }
+    $1 == "fsx" && c == "libadwaita" && (base($2) == "xdg-config/gtk-4.0" || base($2) == "/usr/share/themes" || base($2) == sis) { print; next }
+    $1 == "fsx" && c == "icones" && base($2) == "xdg-data/icons" { print }' "$FT_ANTES"
+}
+
+cmd_devolver() {
+  local modo="$1" classe="$2" linhas resto
+  meow_tem flatpak || { meow_pula "sem flatpak — nada a devolver"; return "$MEOW_OK"; }
+  linhas="$(_ft_da_classe "$classe")"
+  if [ -z "$linhas" ]; then
+    meow_ok "correção $classe do Flatpak desligada, e nada dela a devolver"
+    return "$MEOW_OK"
+  fi
+  if [ "$modo" = "conferir" ] || meow_seco; then
+    meow_muda "a correção $classe do Flatpak está desligada e devolveria: $(cut -f2 <<< "$linhas" | tr '\n' ' ' | sed 's/ $//')"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_guardar_antes "$FT_USUARIO"
+  _ft_devolver_de <(printf '%s\n' "$linhas") >/dev/null || { meow_erro "não consegui devolver o override do Flatpak"; return "$MEOW_ERRO"; }
+  resto="$(grep -vxF -f <(printf '%s\n' "$linhas") "$FT_ANTES")"
+  meow_guardar_antes "$FT_ANTES"
+  if [ -n "$resto" ]; then meow_escrever "$FT_ANTES" "$resto" 644 >/dev/null; else rm -f -- "$FT_ANTES"; fi
+  meow_muda "correção $classe do Flatpak desligada: o override voltou ao de antes"
+  meow_registrar "flatpak_tema.sh devolveu a correção $classe"
+  return "$MEOW_DIVERGENTE"
+}
+
+cmd_runtime_soltar() {
+  local id rc rcs=()
+  meow_tem flatpak || { meow_pula "sem flatpak — nenhum app a conferir"; return "$MEOW_OK"; }
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    _ft_runtime_soltar "$id"; rcs+=($?)
+  done < <(meow_flatpak_apps)
+  _ft_juntar ${rcs[@]+"${rcs[@]}"}; rc=$?
+  [ "$rc" = 0 ] && meow_ok "correção do runtime desligada, e nenhum app com runtime forçado"
+  return "$rc"
+}
+
 cmd_tudo() {
   local modo="$1" rcs=()
   case "$ALVO" in usuario|tudo)    cmd_usuario "$modo";             rcs+=($?) ;; esac
-  case "$ALVO" in libadwaita|tudo) cmd_legado "$modo" libadwaita;   rcs+=($?) ;; esac
-  case "$ALVO" in icones|tudo)     cmd_legado "$modo" icones;       rcs+=($?) ;; esac
-  case "$ALVO" in runtime|tudo)    cmd_runtime "$modo";             rcs+=($?) ;; esac
+  if _ft_corrige; then
+    case "$ALVO" in libadwaita|tudo) cmd_legado "$modo" libadwaita;   rcs+=($?) ;; esac
+    case "$ALVO" in icones|tudo)     cmd_legado "$modo" icones;       rcs+=($?) ;; esac
+    case "$ALVO" in runtime|tudo)    cmd_runtime "$modo";             rcs+=($?) ;; esac
+  else
+    case "$ALVO" in libadwaita|tudo) cmd_devolver "$modo" libadwaita; rcs+=($?) ;; esac
+    case "$ALVO" in icones|tudo)     cmd_devolver "$modo" icones;     rcs+=($?) ;; esac
+    case "$ALVO" in runtime|tudo)    cmd_runtime_soltar "$modo";      rcs+=($?) ;; esac
+  fi
   case "$ALVO" in global|tudo)     cmd_global "$modo";              rcs+=($?) ;; esac
   _ft_juntar "${rcs[@]}"
 }
@@ -585,13 +641,28 @@ cmd_reverter() {
     return "$MEOW_DIVERGENTE"
   fi
   meow_guardar_antes "$FT_USUARIO"
-  mudou="$(python3 -I - "$FT_USUARIO" "$FT_ANTES" <<'PY'
-import os, sys
-arq, antes = sys.argv[1:3]
+  mudou="$(_ft_devolver_de "$FT_ANTES")" || { meow_erro "não consegui devolver o override do Flatpak"; return "$MEOW_ERRO"; }
+  meow_guardar_antes "$FT_ANTES"
+  rm -f "$FT_ANTES"
+  rm -rf -- "$FT_CONTORNOS"
+  meow_ok "override do Flatpak do usuário devolvido ao de antes ($mudou)"
+  return "$MEOW_OK"
+}
+
+_ft_devolver_de() {
+  python3 -I - "$FT_USUARIO" "$1" "$FT_CONTORNOS" <<'PY'
+import os, shutil, sys
+arq, antes, guardados = sys.argv[1:4]
 chaves, pastas, voltam = {}, [], []
 for linha in open(antes, encoding="utf-8").read().splitlines():
     p = linha.split("\t")
-    if p[0] == "env" and len(p) >= 3:
+    if p[0] == "cont" and len(p) >= 2:
+        copia = os.path.join(guardados, os.path.basename(p[1]))
+        if os.path.isfile(copia) and not os.path.exists(p[1]):
+            shutil.copy2(copia, p[1])
+        if os.path.isfile(copia):
+            os.remove(copia)
+    elif p[0] == "env" and len(p) >= 3:
         chaves[p[1]] = p[2]
     elif p[0] == "fs" and len(p) >= 2:
         pastas.append(p[1])
@@ -651,11 +722,6 @@ else:
     os.replace(tmp, arq)
 print("devolvido")
 PY
-)" || { meow_erro "não consegui devolver o override do Flatpak"; return "$MEOW_ERRO"; }
-  meow_guardar_antes "$FT_ANTES"
-  rm -f "$FT_ANTES"
-  meow_ok "override do Flatpak do usuário devolvido ao de antes ($mudou)"
-  return "$MEOW_OK"
 }
 
 case "$ACAO" in
