@@ -6,6 +6,11 @@
   `bloco/apps-p140`; bloco saídas (P142, P143) em `~/Desenvolvimento/MeowSystem-saidas-p142`, branch
   `bloco/saidas-p142`. Cada um: Sonnet implementa, Opus confere e corrige. Depois: bloco suíte (os vermelhos aceitos
   `restaurar.sh` e o `CARGO_TARGET_DIR` de 15 GB), integração no `dev`, install com o HOME real, capturas dos applets.
+  20:45, ela: «já dispara todos». Em voo também: bandeja (P144, fork `meowsystem-status-hub` + pino) em
+  `MeowSystem-bandeja-p144`; logo do pack pessoal (P145) em `MeowSystem-logo-p145`; builds (P146 vermelhos do
+  `restaurar.sh`, P147 `target/` único) em `MeowSystem-builds-p146`. Na integração o coordenador regera o README
+  (badge v2.2.0 vermelho no `readme.sh`). Fora do programa: os `target/` dos clones `~/Desenvolvimento/meowsystem-*`
+  somam ~44 GB (cache; `cargo clean` pelo coordenador no fim).
 - 29/10, madrugada: no `dev` a P132 (affc0489, GPU do compositor por máquina), o bloco Painel (6a269d77: P134
   Modificações universal com interruptor e «⋮» e Adicionar tema, P135 o cartão de voltar ao lado do Registro, P138
   `LOGO_PROGRAMA`) e a P137 (56b859d7: pendências se resolvem e saem da tela; qBittorrent no tema do pack; pack
