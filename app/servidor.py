@@ -2051,7 +2051,7 @@ def _ambiente_do_painel(seco=False):
     return ambiente
 
 
-def definir_varias(pares, conf=None):
+def _recusa_de_gravar(pares):
     for chave, valor in pares:
         if not RE_CHAVE.match(chave + "="):
             return [(chave, 2, "nome de chave inválido")]
@@ -2060,30 +2060,29 @@ def definir_varias(pares, conf=None):
         perigo = expansao_perigosa(valor)
         if perigo:
             return [(chave, 2, perigo)]
+    return None
+
+
+def definir_varias(pares, conf=None):
+    recusa = _recusa_de_gravar(pares)
+    if recusa:
+        return recusa
     if not pares:
         return []
     pares = _par_do_pack_junto(pares, conf)
+    recusa = _recusa_de_gravar(pares)
+    if recusa:
+        return recusa
     programa = ('. "$1/lib/comum.sh"; shift; '
-                'while [ $# -ge 1 ]; do '
-                'n=$1; shift; g=("${@:1:$((2 * n))}"); shift $((2 * n)); '
-                'antes=(); i=0; while [ $i -lt ${#g[@]} ]; do '
-                'antes+=("$(meow_conf_valor "${g[$i]}")"); i=$((i + 2)); done; '
-                'meow_conf_definir "${g[@]}"; r=$?; '
-                'i=0; while [ $i -lt ${#g[@]} ]; do k=$r; '
-                '[ "$r" = 1 ] && [ "$n" -gt 1 ] '
-                '&& [ "${antes[$((i / 2))]}" = "$(meow_conf_valor "${g[$i]}")" ] && k=0; '
-                'printf "\\n@@meow-rc %s %s\\n" "${g[$i]}" "$k"; i=$((i + 2)); done; '
-                'done')
+                'cru() { [ -f "$MEOW_CONF_ARQUIVO" ] && sed -n "s/^$1=//p" "$MEOW_CONF_ARQUIVO" | tail -1; }; '
+                'antes=(); i=1; while [ $i -le $# ]; do antes+=("$(cru "${!i}")"); i=$((i + 2)); done; '
+                'meow_conf_definir "$@"; r=$?; '
+                'i=1; while [ $i -le $# ]; do k=$r; '
+                '[ "$r" = 1 ] && [ "${antes[$((i / 2))]}" = "$(cru "${!i}")" ] && k=0; '
+                'printf "\\n@@meow-rc %s %s\\n" "${!i}" "$k"; i=$((i + 2)); done')
     argv = ["bash", "-c", programa, "_", RAIZ]
-    juntas = [(c, v) for c, v in pares if c in PAR_DO_PACK]
     for chave, valor in pares:
-        if chave in PAR_DO_PACK and len(juntas) > 1:
-            if chave == juntas[0][0]:
-                argv.append(str(len(juntas)))
-                for junta in juntas:
-                    argv += list(junta)
-            continue
-        argv += ["1", chave, valor]
+        argv += [chave, valor]
     ambiente = _ambiente_do_painel()
     if conf:
         ambiente["MEOW_CONF"] = conf
