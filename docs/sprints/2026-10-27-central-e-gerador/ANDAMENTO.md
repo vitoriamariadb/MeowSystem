@@ -1,6 +1,11 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- 29/10 20:20, EM VOO (pedido dela: «siga até a conclusão completa de todas as sprints» e as legadas viram sprint;
+  install no fim com o askpass): bloco apps (P140, P126, P141) em `~/Desenvolvimento/MeowSystem-apps-p140`, branch
+  `bloco/apps-p140`; bloco saídas (P142, P143) em `~/Desenvolvimento/MeowSystem-saidas-p142`, branch
+  `bloco/saidas-p142`. Cada um: Sonnet implementa, Opus confere e corrige. Depois: bloco suíte (os vermelhos aceitos
+  `restaurar.sh` e o `CARGO_TARGET_DIR` de 15 GB), integração no `dev`, install com o HOME real, capturas dos applets.
 - 29/10, madrugada: no `dev` a P132 (affc0489, GPU do compositor por máquina), o bloco Painel (6a269d77: P134
   Modificações universal com interruptor e «⋮» e Adicionar tema, P135 o cartão de voltar ao lado do Registro, P138
   `LOGO_PROGRAMA`) e a P137 (56b859d7: pendências se resolvem e saem da tela; qBittorrent no tema do pack; pack
