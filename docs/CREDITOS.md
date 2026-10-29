@@ -101,7 +101,7 @@ commit ou o release **pinado** para o acervo não mudar debaixo de ninguém:
 
 ## Os applets
 
-Os nove applets da casa moram em repositórios próprios, fixados em `assets/extensoes/`, e a
+Os dez applets da casa moram em repositórios próprios, fixados em `assets/extensoes/`, e a
 página Extensões do painel os baixa e compila. Sete vêm de um projeto de outra pessoa, e a licença de cada um segue a do original:
 
 | applet | upstream |
@@ -114,7 +114,7 @@ página Extensões do painel os baixa e compila. Sete vêm de um projeto de outr
 | Discos | [cosmic-utils/cosmic-ext-applet-drives](https://github.com/cosmic-utils/cosmic-ext-applet-drives) (GPL-3.0-only) |
 | Bateria em ASCII | [pewmoe/Cosmic-Desktop-ASCII-Battery-Applet](https://github.com/pewmoe/Cosmic-Desktop-ASCII-Battery-Applet) (MPL-2.0) |
 
-O Modo de leitura e o Modo performance são de **Vitória Maria** e **André Farias**.
+O Modo de leitura, o Modo performance e o Soneca são de **Vitória Maria** e **André Farias**.
 
 ## O que é deste projeto
 
