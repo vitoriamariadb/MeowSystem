@@ -569,7 +569,7 @@ meow_conf_diz() {
 }
 
 meow_conf_definir() {
-  local chave="$1" valor="$2" texto novo fim="" nl=$'\n'
+  local texto novo fim="" nl=$'\n'
   if [ -f "$MEOW_CONF_ARQUIVO" ]; then
     texto="$(cat "$MEOW_CONF_ARQUIVO"; printf x)"
     texto="${texto%x}"
@@ -579,7 +579,11 @@ meow_conf_definir() {
     texto="$(cat "$MEOW_CONF_PADRAO" 2>/dev/null)" || return "$MEOW_ERRO"
     fim="$nl"
   fi
-  novo="$(meow_conf_texto_definir "$texto" "$chave" "$valor")"
+  novo="$texto"
+  while [ "$#" -ge 2 ]; do
+    novo="$(meow_conf_texto_definir "$novo" "$1" "$2")"
+    shift 2
+  done
   if [ -f "$MEOW_CONF_ARQUIVO" ] && [ "$novo" = "$texto" ]; then
     return "$MEOW_OK"
   fi
