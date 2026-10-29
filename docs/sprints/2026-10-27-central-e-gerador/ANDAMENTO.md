@@ -11,6 +11,10 @@
   `restaurar.sh`, P147 `target/` único) em `MeowSystem-builds-p146`. Na integração o coordenador regera o README
   (badge v2.2.0 vermelho no `readme.sh`). Fora do programa: os `target/` dos clones `~/Desenvolvimento/meowsystem-*`
   somam ~44 GB (cache; `cargo clean` pelo coordenador no fim).
+  Ela fechou a tampa e a sessão caiu (os cinco agentes pararam no meio; retomados pelo transcript). Trava do
+  coordenador: unidade de usuário `meow-desperto-coordenador.service` (`systemd-inhibit` tampa+sono+ocioso); tirar com
+  `systemctl --user stop meow-desperto-coordenador` quando o Soneca estiver no ar. Sexto bloco: P148, o Soneca
+  (repo novo `~/Desenvolvimento/meowsystem-soneca`, worktree `MeowSystem-soneca-p148`).
 - 29/10, madrugada: no `dev` a P132 (affc0489, GPU do compositor por máquina), o bloco Painel (6a269d77: P134
   Modificações universal com interruptor e «⋮» e Adicionar tema, P135 o cartão de voltar ao lado do Registro, P138
   `LOGO_PROGRAMA`) e a P137 (56b859d7: pendências se resolvem e saem da tela; qBittorrent no tema do pack; pack
