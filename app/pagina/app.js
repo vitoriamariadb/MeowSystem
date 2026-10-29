@@ -199,6 +199,8 @@ const ACAO = new Map();
 let PACKS = [];
 const PREVIAS = new Map();
 const MUDANCAS = new Map();
+const ULTIMO_LOTE_DA_CHAVE = new Map();
+let NUMERO_DO_LOTE = 0;
 let ROTA = { porta: "tema", sub: "" };
 
 function indexar() {
@@ -306,21 +308,26 @@ function gravarAgora(lote, opc = {}) {
   const chaves = Object.keys(lote).filter((c) => CHAVE.has(c));
   if (!chaves.length) return Promise.resolve(false);
   const antes = {};
-  for (const c of chaves) { antes[c] = String(CHAVE.get(c).valor ?? ""); MUDANCAS.set(c, String(lote[c])); }
+  const numero = ++NUMERO_DO_LOTE;
+  for (const c of chaves) {
+    antes[c] = String(CHAVE.get(c).valor ?? "");
+    MUDANCAS.set(c, String(lote[c]));
+    ULTIMO_LOTE_DA_CHAVE.set(c, numero);
+  }
   EM_VOO++;
   mostrarGravando("gravando");
   render();
-  FILA_DE_GRAVACAO = FILA_DE_GRAVACAO.then(() => enviarLote(lote, antes, chaves, opc));
+  FILA_DE_GRAVACAO = FILA_DE_GRAVACAO.then(() => enviarLote(lote, antes, chaves, opc, numero));
   return FILA_DE_GRAVACAO;
 }
 
-async function enviarLote(lote, antes, chaves, opc) {
+async function enviarLote(lote, antes, chaves, opc, numero) {
   const so = chaves.length === 1;
   const r = so
     ? await api("/api/definir", { method: "POST", body: JSON.stringify({ chave: chaves[0], valor: String(lote[chaves[0]]) }) })
     : await api("/api/salvar", { method: "POST", body: JSON.stringify({ mudancas: lote }) });
   EM_VOO--;
-  for (const c of chaves) MUDANCAS.delete(c);
+  for (const c of chaves) if (ULTIMO_LOTE_DA_CHAVE.get(c) === numero) { MUDANCAS.delete(c); ULTIMO_LOTE_DA_CHAVE.delete(c); }
   const certas = so ? (r.erro || r.rc === 2 ? [] : chaves)
     : [...(r.gravadas || []), ...(r.iguais || [])].filter((c) => chaves.includes(c));
   for (const c of certas) CHAVE.get(c).valor = String(lote[c]);

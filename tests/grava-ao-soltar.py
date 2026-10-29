@@ -187,6 +187,39 @@ def main():
                 pag.locator("#desfazer").click()
                 assentar(pag)
                 checa(casa.valor_de("SOM_FUNDAMENTAL") == v0, "o Desfazer devolve o valor")
+            print("8. P143: o lote velho que volta depois do novo não apaga o valor novo")
+            chave8 = "LOG_NIVEL"
+            valor8 = casa.valor_de(chave8)
+            opcoes8 = pag.evaluate("(c) => (CHAVE.get(c).opcoes || []).filter((x) => x)", chave8)
+            va, vb = [o for o in opcoes8 if o != valor8][:2]
+            seguradas = []
+            pag.route("**/api/definir", lambda rota: seguradas.append(rota))
+            pag.evaluate("([c, a, b]) => { gravarAgora({[c]: a}); gravarAgora({[c]: b}); }", [chave8, va, vb])
+            pag.wait_for_function("() => EM_VOO === 2", timeout=10000)
+            for _ in range(100):
+                if seguradas:
+                    break
+                pag.wait_for_timeout(50)
+            checa(len(seguradas) == 1, "o primeiro lote está na rede e o segundo espera na fila")
+            seguradas.pop(0).continue_()
+            pag.wait_for_function("() => EM_VOO === 1", timeout=10000)
+            checa(pag.evaluate("(c) => MUDANCAS.get(c)", chave8) == vb,
+                  "com o primeiro respondido, a mudança mais nova continua pendente")
+            checa(pag.evaluate("(c) => valorEmVigor(CHAVE.get(c))", chave8) == vb,
+                  "e a tela fica no valor do segundo, sem voltar ao do primeiro")
+            for _ in range(100):
+                if seguradas:
+                    break
+                pag.wait_for_timeout(50)
+            seguradas.pop(0).continue_()
+            pag.unroute("**/api/definir")
+            assentar(pag)
+            checa(casa.valor_de(chave8) == vb and pag.evaluate("(c) => CHAVE.get(c).valor", chave8) == vb
+                  and pag.evaluate("() => MUDANCAS.size") == 0,
+                  "no fim o conf, a tela e a lista ficam com o valor do segundo")
+            pag.locator("#desfazer").click()
+            assentar(pag)
+
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:
