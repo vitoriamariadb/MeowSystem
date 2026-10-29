@@ -11,6 +11,7 @@ igual() { if [ "$2" = "$3" ]; then ok "$1"; else falha "$1 (esperado '$3', veio 
 CASA_REAL="${SUITE_CASA_REAL:-$HOME}"
 ARVORES="${EXTENSOES_ARVORES:-$CASA_REAL/.local/state/meowsystem/extensoes}"
 FORKS="${EXTENSOES_FORKS:-$CASA_REAL/Desenvolvimento/forks}"
+DESENVOLVIMENTO="${EXTENSOES_DESENVOLVIMENTO:-$CASA_REAL/Desenvolvimento}"
 
 mkdir -p "$T/bin"
 for c in sudo pkexec su apt apt-get; do printf '#!/bin/sh\nexit 1\n' > "$T/bin/$c"; chmod 755 "$T/bin/$c"; done
@@ -167,19 +168,22 @@ ids=()
 for f in "$RAIZ"/assets/extensoes/*.pino; do
   [ -n "$(campo "$f" URL)" ] && ids+=("$(basename "$f" .pino)")
 done
-igual "nove pinos com URL" "${#ids[@]}" 9
+igual "dez pinos com URL" "${#ids[@]}" 10
 
 arvore_com_o_commit() {
   local pino="$RAIZ/assets/extensoes/$1.pino" commit url a
   commit="$(campo "$pino" COMMIT)"; url="$(campo "$pino" URL)"
-  for a in "$FORKS/$(basename "$url" .git)" "$ARVORES/$1/src"; do
+  for a in "$FORKS/$(basename "$url" .git)" "$ARVORES/$1/src" "$DESENVOLVIMENTO/$(basename "$url" .git)"; do
     [ -d "$a/.git" ] && git -C "$a" cat-file -e "$commit^{commit}" 2>/dev/null && { printf '%s' "$a"; return 0; }
   done
   return 1
 }
 
 faltam=()
-for id in "${ids[@]}"; do [ -d "$ARVORES/$id/src/.git" ] || [ -d "$FORKS/$(basename "$(campo "$RAIZ/assets/extensoes/$id.pino" URL)" .git)/.git" ] || faltam+=("$id"); done
+for id in "${ids[@]}"; do
+  repo="$(basename "$(campo "$RAIZ/assets/extensoes/$id.pino" URL)" .git)"
+  [ -d "$ARVORES/$id/src/.git" ] || [ -d "$FORKS/$repo/.git" ] || [ -d "$DESENVOLVIMENTO/$repo/.git" ] || faltam+=("$id")
+done
 if [ "${#faltam[@]}" -gt 0 ]; then
   printf 'pulado: sem a árvore clonada de %s em %s nem em %s (CI ou máquina sem os forks)\n' "${faltam[*]}" "$ARVORES" "$FORKS"
 elif ! command -v just >/dev/null 2>&1; then

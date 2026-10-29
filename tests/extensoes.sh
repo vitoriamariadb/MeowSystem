@@ -336,5 +336,16 @@ done
   && ok "os quatro sem MIGRA_ESTADO: nenhum guarda estado em ~/.local/state/cosmic" \
   || falha "um fork aponta MIGRA_ESTADO para um estado que o applet não lê"
 
+echo "== o Soneca: um applet da casa sem upstream, com o ícone do tema"
+pino="$RAIZ/assets/extensoes/soneca.pino"
+existe "soneca: o pino existe" "$pino"
+grep -qx 'PADRAO="sim"' "$pino" && grep -qx 'TIPO="applet"' "$pino" && grep -qx 'ORDEM=10' "$pino" && ok "soneca: applet, ligado por padrão, depois dos nove" || falha "soneca: TIPO/PADRAO/ORDEM"
+grep -qx 'APP_ID="io.github.meowsystem.Soneca"' "$pino" && grep -qx 'BIN="meowsystem-soneca"' "$pino" && grep -qx 'UPSTREAM=""' "$pino" && grep -qx 'SUBSTITUI=""' "$pino" && ok "soneca: app id, binário e nenhum upstream" || falha "soneca: APP_ID/BIN/UPSTREAM"
+grep -qx 'TEMA="io.github.meowsystem.Soneca"' "$pino" && grep -q '^TEMA_CHAVES="acento:@acento ' "$pino" && ok "soneca: tema e chaves" || falha "soneca: TEMA/TEMA_CHAVES"
+grep -qx 'ICONES="data/icones/io.github.meowsystem.Soneca-symbolic.svg:scalable/apps"' "$pino" && ok "soneca: o ícone simbólico vai para o hicolor" || falha "soneca: ICONES"
+existe "soneca: o ícone do cartão" "$RAIZ/assets/extensoes/icones/soneca.svg"
+saida="$(ESTADO_FORK soneca)"; igual "soneca: o pino passa na validação" "$?" 0
+grep -qx "casa=1" <<< "$saida" && grep -qx "instalada=nao" <<< "$saida" && grep -qx "troca=" <<< "$saida" && ok "soneca: sem binário, nada a trocar" || falha "soneca: estado sem instalar: $saida"
+
 [ "$falhas" = 0 ] && { echo "extensoes.sh: tudo verde"; exit 0; }
 echo "extensoes.sh: $falhas falha(s)"; exit 1
