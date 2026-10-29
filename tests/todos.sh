@@ -15,6 +15,8 @@ PORTATIL=(
   sem-dracula-os-theme.sh
   sem-receita-no-log.sh
   temas-de-apps.sh
+  spotify-atualizado.sh
+  apps-frases.sh
   temas-por-app.sh
   leitura-fonte-unica.sh
   flavor-padrao.sh

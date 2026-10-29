@@ -10,6 +10,7 @@ _SPOT_ACENTO="${ACCENT:-mauve}"
 _SPOT_CONFIG_DIR="$HOME/.config/spicetify"
 _SPOT_INI="$_SPOT_CONFIG_DIR/config-xpui.ini"
 _SPOT_NOSSO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/temas-de-apps/spotify/tema-nosso"
+_SPOT_ASSINATURA_ARQ="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/temas-de-apps/spotify/aplicado"
 
 meow_app_tema_do_pack spotify.spicetify_tema
 _SPOT_TEMA_NOME="$MEOW_APP_TEMA"
@@ -77,6 +78,49 @@ _spot_backup_fresco() {
   tspa="$(stat -c %Y -- "$spa" 2>/dev/null)" || return 1
   tdep="$(stat -c %Y -- "$dep" 2>/dev/null)" || return 1
   [ "$tspa" -ge "$tdep" ]
+}
+
+_spot_app_de_fabrica() {
+  local d; d="$(_spot_dir)"
+  [ -f "$d/Apps/xpui.spa" ] && [ ! -d "$d/Apps/xpui" ]
+}
+
+_spot_assinatura() {
+  local cli ver sha
+  cli="$(_spot_cli)" || return 1
+  [ -f "$_SPOT_COLOR_INI" ] || return 1
+  ver="$("$cli" -v 2>/dev/null | head -n 1)"
+  sha="$(sha256sum -- "$_SPOT_COLOR_INI" 2>/dev/null | cut -d' ' -f1)"
+  printf '%s|%s|%s|%s|%s' "$_SPOT_TEMA_NOME" "$_SPOT_ESQUEMA" "$sha" "$ver" "$(_spot_deploy_dir)"
+}
+
+_spot_assinatura_confere() {
+  [ -f "$_SPOT_ASSINATURA_ARQ" ] || return 1
+  [ "$(cat -- "$_SPOT_ASSINATURA_ARQ" 2>/dev/null)" = "$(_spot_assinatura)" ]
+}
+
+_spot_assinatura_gravar() {
+  mkdir -p "$(dirname -- "$_SPOT_ASSINATURA_ARQ")" || return 1
+  _spot_assinatura > "$_SPOT_ASSINATURA_ARQ"
+}
+
+_spot_backup_de_lado() {
+  local dir dest
+  dir="$(dirname -- "$(_spot_backup_spa)")"
+  [ -d "$dir" ] || return 0
+  dest="$MEOW_ESTADO/backups/spotify-spicetify-$(date +%Y%m%dT%H%M%S)"
+  meow_destino_permitido "$dest" || return 1
+  mkdir -p "$(dirname -- "$dest")" && mv -- "$dir" "$dest"
+}
+
+_spot_aplicar_refazendo() {
+  local cli="$1"
+  if _spot_app_de_fabrica; then
+    _spot_backup_de_lado || { _spot_saida="não consegui pôr de lado o backup velho do spicetify"; return 1; }
+    _spot_saida="$("$cli" backup apply 2>&1)"
+  else
+    _spot_saida="$("$cli" restore backup apply 2>&1)"
+  fi
 }
 
 _spot_carimbar_versao() {
@@ -234,7 +278,6 @@ _spot_tema_baixar() {
   meow_app_tema_do_pack spotify.origem.pasta;  pasta="$MEOW_APP_TEMA"
   if [ -z "$repo" ] || [ -z "$commit" ] || [ -z "$pasta" ]; then
     meow_pula "o pack pede o tema '$_SPOT_TEMA_NOME' do spicetify e não diz de onde ele desce"
-    meow_info "instale-o em $_SPOT_TEMA, ou escolha um pack que traga a origem do tema"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   tar="https://github.com/$repo/archive/$commit.tar.gz"
@@ -345,7 +388,7 @@ meow_app_detectar() {
     [ -f "$_SPOT_ACENTO_PY" ] || { meow_app_sem "Spotify: falta $_SPOT_ACENTO_PY, que escreve o acento no color.ini"; return; }
   fi
   if _spot_quer_acento && ! _spot_receita_valida; then
-    meow_app_sem "Spotify: flavor/acento inexistentes na paleta ($_SPOT_FLAVOR/$_SPOT_ACENTO) — confira o meow.conf"
+    meow_app_sem "Spotify: flavor/acento inexistentes na paleta ($_SPOT_FLAVOR/$_SPOT_ACENTO)"
     return
   fi
   [ -w "$(_spot_dir)/Apps" ] || { meow_app_sem "Spotify: o corpo do app não está gravável em $(_spot_dir)/Apps"; return; }
@@ -355,7 +398,7 @@ meow_app_detectar() {
 meow_app_conferir() {
   meow_app_detectar >/dev/null 2>&1 || {
     if _spot_quer_acento && ! _spot_receita_valida; then
-      meow_aviso "flavor/acento inexistentes na paleta: $_SPOT_FLAVOR/$_SPOT_ACENTO — confira o meow.conf"
+      meow_aviso "flavor/acento inexistentes na paleta: $_SPOT_FLAVOR/$_SPOT_ACENTO"
     fi
     return "$MEOW_SEM_DEPENDENCIA"
   }
@@ -412,7 +455,13 @@ meow_app_conferir() {
       meow_muda "o carimbo de versão do spicetify está velho ($vb; o Spotify é a $vi) — o backup, porém, é do app de agora"
       return "$MEOW_DIVERGENTE"
     fi
-    meow_aviso "o backup do spicetify é da versão $vb e o Spotify é a $vi — veja scripts/temas-de-apps/spotify/RECUPERACAO.md"
+    meow_muda "o backup do spicetify é da versão $vb e o Spotify é a $vi — o backup se refaz"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if ! _spot_assinatura_confere; then
+    meow_muda "o Spotify no disco não tem registro de que este tema, esta versão do spicetify e este app foram aplicados juntos"
+    return "$MEOW_DIVERGENTE"
   fi
 
   meow_ok "Spotify em $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} (via spicetify)"
@@ -461,7 +510,7 @@ meow_app_aplicar() {
        [ "$mexi" = "1" ] && return "$MEOW_DIVERGENTE"
        meow_ok "Spotify já está em $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} — nada a fazer"
        return "$MEOW_OK" ;;
-    3) meow_pula "Spotify: nada a fazer (veja o aviso do conferir)"
+    3) meow_pula "Spotify: sem tema para pôr agora"
        return "$MEOW_SEM_DEPENDENCIA" ;;
     2) return "$MEOW_ERRO" ;;
   esac
@@ -481,18 +530,18 @@ meow_app_aplicar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  local vb vi
+  local vb vi refazer=0
   vb="$(_spot_ini_ler version)"; vi="$(_spot_versao)"
-  if [ -n "$vb" ] && [ -n "$vi" ] && [ "$vb" != "$vi" ]; then
-    meow_aviso "o Spotify atualizou ($vb -> $vi) e o backup do spicetify é da versão velha"
-    meow_info "o tema do Spotify fica como está até o backup novo; o passo a passo está em scripts/temas-de-apps/spotify/RECUPERACAO.md"
-    return "$MEOW_SEM_DEPENDENCIA"
-  fi
+  [ -n "$vb" ] && [ -n "$vi" ] && [ "$vb" != "$vi" ] && refazer=1
 
   local cli; cli="$(_spot_cli)"
 
   if meow_seco; then
-    meow_muda "mudaria o Spotify para $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} (spicetify config + apply)"
+    if [ "$refazer" = 1 ]; then
+      meow_muda "refaria o backup do spicetify (o Spotify atualizou de $vb para $vi) e poria $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo}"
+    else
+      meow_muda "mudaria o Spotify para $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} (spicetify config + apply)"
+    fi
     return "$MEOW_DIVERGENTE"
   fi
 
@@ -512,14 +561,24 @@ meow_app_aplicar() {
   "$cli" config color_scheme "$_SPOT_ESQUEMA" >/dev/null 2>&1
   "$cli" config inject_css 1 inject_theme_js 1 replace_colors 1 overwrite_assets 1 >/dev/null 2>&1
 
-  local _saida
-  if ! _saida="$("$cli" apply 2>&1)"; then
+  local _spot_saida="" aplicou=0
+  if [ "$refazer" = 1 ]; then
+    meow_info "o Spotify atualizou ($vb -> $vi): refaço o backup do spicetify"
+    _spot_aplicar_refazendo "$cli" && aplicou=1
+  elif _spot_saida="$("$cli" apply 2>&1)"; then
+    aplicou=1
+  elif printf '%s\n' "$_spot_saida" | grep -qiE 'outdated|restore backup apply'; then
+    meow_info "o spicetify pediu o backup de novo: refaço"
+    _spot_aplicar_refazendo "$cli" && aplicou=1
+  fi
+  if [ "$aplicou" != 1 ]; then
     meow_erro "o 'spicetify apply' falhou — o Spotify segue com o tema de antes"
-    printf '%s\n' "$_saida" | tail -n 4 | sed 's/^/        /' >&2
+    printf '%s\n' "$_spot_saida" | tail -n 4 | sed 's/^/        /' >&2
     return "$MEOW_ERRO"
   fi
 
   mkdir -p "$(dirname -- "$_SPOT_NOSSO")" && printf '%s\n' "$_SPOT_TEMA_NOME" > "$_SPOT_NOSSO"
+  _spot_assinatura_gravar || { meow_erro "não consegui guardar o registro do que o spicetify aplicou"; return "$MEOW_ERRO"; }
   meow_ok "Spotify em $_SPOT_TEMA_NOME/$_SPOT_ESQUEMA, do pack ${_SPOT_TEMA_DE:-ativo} (vale no próximo início do app)"
   return "$MEOW_DIVERGENTE"
 }
@@ -545,9 +604,13 @@ meow_app_reverter() {
         return "$MEOW_ERRO"
       fi
       meow_info "carimbo de versão corrigido ($vb -> $vi) — o backup é do app de agora, dá para restaurar"
+    elif _spot_app_de_fabrica; then
+      rm -f -- "$_SPOT_ASSINATURA_ARQ"
+      meow_ok "Spotify atualizou e já está de fábrica — não há tema para desfazer"
+      meow_app_desligar spotify
+      return "$MEOW_DIVERGENTE"
     else
       meow_erro "o backup do spicetify é da versão $vb e o Spotify é a $vi — restaurar daria janela em branco"
-      meow_info "a volta limpa é reinstalar o Spotify do flathub; o passo a passo está em scripts/temas-de-apps/spotify/RECUPERACAO.md"
       return "$MEOW_ERRO"
     fi
   fi
@@ -560,7 +623,8 @@ meow_app_reverter() {
     return "$MEOW_ERRO"
   fi
 
+  rm -f -- "$_SPOT_ASSINATURA_ARQ"
   meow_ok "Spotify sem o tema do pack (vale no próximo início do app)"
-  meow_info "tire 'spotify' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar spotify
   return "$MEOW_DIVERGENTE"
 }
