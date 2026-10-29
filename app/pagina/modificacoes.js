@@ -92,12 +92,23 @@ function linhaDeCorrecao(c) {
   ]);
 }
 
+function linhaDeExtensao(e) {
+  const acao = ACAO.get("vscode_instalar_extensao");
+  return elemento("li", { class: "item-mod", "data-linha": "extensao:" + e }, [
+    elemento("span", { class: "rot-mod" }, [elemento("span", { texto: e })]),
+    elemento("span", { class: "ctl-mod" }, [acao ? botao("Instalar", { class: "bt pequeno",
+      controle: "acao:vscode_instalar_extensao:" + e, dica: acao.rotulo,
+      onclick: () => rodar(acao, e, { depois: releModificacoes }) }) : null]),
+  ]);
+}
+
 function cartaoDeModificacao(c) {
   const detalhe = LUGAR_MODIFICACOES.detalhes.find((d) => d.id === c.id);
   const chaves = LUGAR_MODIFICACOES.chaves.filter((l) => l.cartao === c.id && CHAVE.has(l.c));
   const itens = [
     ...c.temas.map((t) => linhaDeTema(t, c.temas.length === 1 && t.pasta === c.id)),
     ...c.correcoes.map(linhaDeCorrecao),
+    ...(c.extensoes || []).map(linhaDeExtensao),
   ];
   return elemento("article", { class: "bloco cartao-mod", "data-cartao": c.id }, [
     elemento("div", { class: "cabeca-cartao" }, [

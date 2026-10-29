@@ -116,6 +116,7 @@ MAQUINA=(
   app-completo.py
   app-uso-real.py
   app-texto-visivel.py
+  manter-sem-pendencias.py
   p113-navegador.py
   gate-link-externo.py
   extensoes-pagina.py

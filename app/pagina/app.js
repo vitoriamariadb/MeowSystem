@@ -196,8 +196,6 @@ let ESQUEMA = null;
 const CHAVE = new Map();
 const ACAO = new Map();
 let PACKS = [];
-let PENDENCIAS = [];
-let PRECISA_DE_GENTE = [];
 const PREVIAS = new Map();
 const MUDANCAS = new Map();
 let ROTA = { porta: "tema", sub: "" };
@@ -214,11 +212,6 @@ async function recarregarEsquema() {
 async function recarregarPacks() {
   const r = await api("/api/packs");
   PACKS = (r && Array.isArray(r.packs)) ? r.packs : [];
-}
-async function recarregarPendencias() {
-  const [r, g] = await Promise.all([api("/api/pendencias"), api("/api/precisa-de-gente")]);
-  PENDENCIAS = (r && Array.isArray(r.pendencias)) ? r.pendencias : [];
-  PRECISA_DE_GENTE = (g && Array.isArray(g.itens)) ? g.itens : [];
 }
 const PREVIAS_PEDIDAS = new Map();
 function previasDe(tipo, grupo = "") {
@@ -350,7 +343,6 @@ async function enviarLote(lote, antes, chaves, opc) {
   if (r.sem_ponte) {
     torrada("Gravado; falta a ponte para aplicar", "erro");
     mostrarGravando("erro", "Falta a ponte para aplicar");
-    await recarregarPendencias();
   } else if (r.aplicando) {
     mostrarGravando("gravando");
     acompanharAplicacao();
@@ -372,7 +364,6 @@ async function acompanharAplicacao() {
       if (!r.correndo) {
         if (r.falhou) {
           mostrarGravando("erro", "Não aplicou");
-          await recarregarPendencias();
           render();
         } else if (!EM_VOO) {
           mostrarGravando("ok");
@@ -1127,7 +1118,7 @@ async function depoisDeEscrever() {
   for (const k of [...PREVIAS.keys()]) if (/^(icone|parede|gato)\//.test(k)) PREVIAS.delete(k);
   APPS = null;
   JOGOS = null;
-  await Promise.all([recarregarEsquema(), recarregarPacks(), recarregarPendencias()]);
+  await Promise.all([recarregarEsquema(), recarregarPacks()]);
   lerRestauros();
   repintarPaleta();
   render();
@@ -1331,7 +1322,7 @@ function render() {
 }
 
 async function iniciar() {
-  const [esquema] = await Promise.all([api("/api/esquema"), recarregarPendencias(), recarregarPacks()]);
+  const [esquema] = await Promise.all([api("/api/esquema"), recarregarPacks()]);
   ESQUEMA = esquema;
   if (ESQUEMA.erro) {
     $("#conteudo").replaceChildren(elemento("h1", { texto: maiuscula(ESQUEMA.erro) }));
