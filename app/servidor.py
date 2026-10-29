@@ -644,7 +644,8 @@ def packs_com_vitrine():
             "id": ident,
             "nome": p.get("nome") or ident,
             "autor": p.get("autor") or "",
-            "capa": (base_url + "&arte=capa") if vit["capa"] else "",
+            "capa": (base_url + "&arte=capa&v=" + _versao_da_logo(vit["capa"])) if vit["capa"] else "",
+            "pessoal": bool(_dir_do_pack_pessoal(ident)),
             "mascote": (base_url + "&arte=mascote") if _mascote_do_pack(mod, ident) else "",
             "descricao_curta": vit["descricao_curta"],
             "descricao": texto,
@@ -2364,6 +2365,341 @@ def logo_de_pack(ident, flavor, accent):
 def logo_escolhida():
     valor = valores_efetivos(["LOGO_PROGRAMA"]).get("LOGO_PROGRAMA") or ""
     return valor if valor in _packs_com_logo() else ""
+
+
+TETO_DA_LOGO_ENVIADA = 512 << 10
+LADO_DO_PNG_NA_LOGO = 64
+RE_RAIZ_DA_LOGO = re.compile(r"<svg\b[^>]*>", re.S)
+RE_VIEWBOX_DA_LOGO = re.compile(r"""\sviewBox\s*=\s*(["'])([^"']*)\1""")
+RE_MEDIDA_DA_LOGO = re.compile(r"""\s(?:width|height)\s*=\s*(["'])[^"']*\1""")
+
+
+def _dir_do_pack_pessoal(ident):
+    mod = modulo_pack()
+    if not mod or ident not in _packs_no_disco():
+        return None
+    dir_pack = mod.achar(ident)
+    if not dir_pack:
+        return None
+    pessoa = os.path.realpath(mod.raiz_da_pessoa())
+    return dir_pack if os.path.dirname(os.path.realpath(dir_pack)) == pessoa else None
+
+
+def _versao_da_logo(caminho):
+    try:
+        return str(os.stat(caminho).st_mtime_ns)
+    except (OSError, TypeError, ValueError):
+        return "0"
+
+
+def _pessoal_no_ar():
+    ident = _pack_no_ar()
+    return ident if ident and _dir_do_pack_pessoal(ident) else ""
+
+
+def _numero_curto(valor):
+    return ("%.4f" % valor).rstrip("0").rstrip(".")
+
+
+def _logo_quadrada(texto):
+    achado = RE_RAIZ_DA_LOGO.search(texto)
+    if not achado:
+        raise ValueError("isso não parece um SVG")
+    raiz = achado.group(0)
+    caixa = RE_VIEWBOX_DA_LOGO.search(raiz)
+    partes = [x for x in re.split(r"[\s,]+", caixa.group(2).strip()) if x] if caixa else []
+    if not caixa:
+        medidas = [re.search(r"""\s%s\s*=\s*["']\s*([0-9.]+)(?:px)?\s*["']""" % lado, raiz)
+                   for lado in ("width", "height")]
+        if all(medidas):
+            partes = ["0", "0", medidas[0].group(1), medidas[1].group(1)]
+    try:
+        x, y, larg, alt = (float(v) for v in partes)
+    except ValueError:
+        raise ValueError("o desenho não diz o tamanho dele") from None
+    if larg <= 0 or alt <= 0:
+        raise ValueError("o desenho não diz o tamanho dele")
+    if caixa and larg == alt:
+        return texto
+    lado = max(larg, alt)
+    novo = ' viewBox="%s"' % " ".join(_numero_curto(v) for v in (
+        x - (lado - larg) / 2, y - (lado - alt) / 2, lado, lado))
+    sem_medidas = RE_MEDIDA_DA_LOGO.sub("", raiz)
+    if caixa:
+        nova = RE_VIEWBOX_DA_LOGO.sub(lambda _m: novo, sem_medidas, count=1)
+    else:
+        nova = sem_medidas[:-1].rstrip("/") + novo + sem_medidas[-1:]
+    return texto[:achado.start()] + nova + texto[achado.end():]
+
+
+def _pixels_do_png(dados):
+    import zlib
+    if dados[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("isso não parece um PNG")
+    pos, cabeca, paleta, translucido, idat = 8, None, b"", b"", []
+    while pos + 8 <= len(dados):
+        tamanho, tipo = struct.unpack(">I4s", dados[pos:pos + 8])
+        corpo = dados[pos + 8:pos + 8 + tamanho]
+        pos += 12 + tamanho
+        if tipo == b"IHDR":
+            cabeca = corpo
+        elif tipo == b"PLTE":
+            paleta = corpo
+        elif tipo == b"tRNS":
+            translucido = corpo
+        elif tipo == b"IDAT":
+            idat.append(corpo)
+        elif tipo == b"IEND":
+            break
+    if not cabeca or len(cabeca) < 13 or not idat:
+        raise ValueError("o PNG está incompleto")
+    larg, alt, fundo, cor, _compressao, _filtro, entrelacado = struct.unpack(">IIBBBBB", cabeca[:13])
+    canais = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(cor)
+    if fundo != 8 or not canais or entrelacado or not (0 < larg <= 4096 and 0 < alt <= 4096):
+        raise ValueError("esse PNG não serve: use 8 bits, sem entrelaçar, até 4096 de lado")
+    passo = larg * canais
+    esperado = alt * (passo + 1)
+    descompressor = zlib.decompressobj()
+    try:
+        bruto = descompressor.decompress(b"".join(idat), esperado + 1)
+    except zlib.error:
+        raise ValueError("o PNG está estragado") from None
+    if len(bruto) != esperado:
+        raise ValueError("o PNG está estragado")
+    linhas, anterior = [], bytearray(passo)
+    for i in range(alt):
+        base = i * (passo + 1)
+        filtro = bruto[base]
+        atual = bytearray(bruto[base + 1:base + 1 + passo])
+        for j in range(passo):
+            a = atual[j - canais] if j >= canais else 0
+            b = anterior[j]
+            c = anterior[j - canais] if j >= canais else 0
+            if filtro == 1:
+                atual[j] = (atual[j] + a) & 255
+            elif filtro == 2:
+                atual[j] = (atual[j] + b) & 255
+            elif filtro == 3:
+                atual[j] = (atual[j] + ((a + b) >> 1)) & 255
+            elif filtro == 4:
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                atual[j] = (atual[j] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 255
+            elif filtro != 0:
+                raise ValueError("o PNG está estragado")
+        linhas.append(atual)
+        anterior = atual
+
+    def pixel(coluna, linha):
+        dados_da_linha = linhas[linha]
+        k = coluna * canais
+        if cor == 0:
+            g = dados_da_linha[k]
+            return g, g, g, 255
+        if cor == 2:
+            return dados_da_linha[k], dados_da_linha[k + 1], dados_da_linha[k + 2], 255
+        if cor == 3:
+            indice = dados_da_linha[k]
+            rgb = paleta[indice * 3:indice * 3 + 3]
+            if len(rgb) < 3:
+                return 0, 0, 0, 0
+            return rgb[0], rgb[1], rgb[2], translucido[indice] if indice < len(translucido) else 255
+        if cor == 4:
+            g = dados_da_linha[k]
+            return g, g, g, dados_da_linha[k + 1]
+        return dados_da_linha[k], dados_da_linha[k + 1], dados_da_linha[k + 2], dados_da_linha[k + 3]
+    return larg, alt, pixel
+
+
+def _svg_do_png(dados):
+    larg, alt, pixel = _pixels_do_png(dados)
+    escala = max(1, -(-max(larg, alt) // LADO_DO_PNG_NA_LOGO))
+    colunas, linhas = -(-larg // escala), -(-alt // escala)
+    celulas = []
+    for linha in range(linhas):
+        fila = []
+        for coluna in range(colunas):
+            soma = [0, 0, 0, 0]
+            quantos = 0
+            for yy in range(linha * escala, min(alt, (linha + 1) * escala)):
+                for xx in range(coluna * escala, min(larg, (coluna + 1) * escala)):
+                    r, g, b, a = pixel(xx, yy)
+                    soma[0] += r * a
+                    soma[1] += g * a
+                    soma[2] += b * a
+                    soma[3] += a
+                    quantos += 1
+            if not quantos or soma[3] / quantos < 64:
+                fila.append(None)
+                continue
+            fila.append("#%02X%02X%02X" % tuple(min(255, round(soma[i] / soma[3] / 16) * 16) for i in range(3)))
+        celulas.append(fila)
+    caminhos = {}
+    for linha, fila in enumerate(celulas):
+        coluna = 0
+        while coluna < len(fila):
+            tinta = fila[coluna]
+            if tinta is None:
+                coluna += 1
+                continue
+            fim = coluna
+            while fim + 1 < len(fila) and fila[fim + 1] == tinta:
+                fim += 1
+            caminhos.setdefault(tinta, []).append("M%d %dh%dv1h-%dz" % (coluna, linha, fim - coluna + 1, fim - coluna + 1))
+            coluna = fim + 1
+    if not caminhos:
+        raise ValueError("o PNG não tem nada desenhado")
+    lado = max(colunas, linhas)
+    unidade = 112.0 / lado
+    deslocamento_x = 8 + (112 - colunas * unidade) / 2
+    deslocamento_y = 8 + (112 - linhas * unidade) / 2
+    corpo = "".join('<path fill="%s" d="%s"/>' % (tinta, "".join(trechos)) for tinta, trechos in sorted(caminhos.items()))
+    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img">'
+            '<g transform="translate(%s %s) scale(%s)" shape-rendering="crispEdges">%s</g></svg>\n'
+            % (_numero_curto(deslocamento_x), _numero_curto(deslocamento_y), _numero_curto(unidade), corpo))
+
+
+def _logo_confere(mod, texto):
+    with tempfile.TemporaryDirectory(prefix="meow-logo-") as pasta:
+        with open(os.path.join(pasta, "logo.svg"), "w", encoding="utf-8") as fh:
+            fh.write(texto)
+        try:
+            mod._validar_logo(pasta, {})
+        except mod.Recusa as erro:
+            frase = str(erro).strip().splitlines()[0]
+            raise ValueError(re.sub(r"^logo\.svg:\s*", "", frase)) from None
+
+
+def _logo_sem_papeis(mod, texto):
+    return mod.RE_ESTILO_PAPEIS.sub("", texto)
+
+
+def _logo_texto_de_pack(mod, ident):
+    p, _dados, dir_pack = mod.validar(ident, silencioso=True)
+    with open(mod._dentro(dir_pack, mod._nome_do_logo(p), "logo"), "r", encoding="utf-8") as fh:
+        return fh.read()
+
+
+def _candidatas_de_logo(mod, ident):
+    p, _dados, _dir = mod.validar(ident, silencioso=True)
+    saida = [{"de": "gerada", "id": "", "rotulo": str(p.get("nome") or ident),
+              "texto": mod.logo_gerado(str(p.get("nome") or ident), ident)}]
+    for outro in _packs_com_logo():
+        if outro == ident:
+            continue
+        try:
+            saida.append({"de": "pack", "id": outro, "rotulo": mod.campo(outro, "nome") or outro,
+                          "texto": _logo_texto_de_pack(mod, outro)})
+        except Exception:
+            continue
+    pasta = _pasta_do_mascote()
+    for nome in _gatos():
+        caminho = os.path.join(pasta, nome + ".svg")
+        try:
+            if os.path.getsize(caminho) > 4 * TETO_DA_LOGO_ENVIADA:
+                continue
+            with open(caminho, "r", encoding="utf-8") as fh:
+                texto = _logo_quadrada(fh.read())
+            _logo_confere(mod, texto)
+        except (OSError, ValueError, UnicodeDecodeError):
+            continue
+        saida.append({"de": "gato", "id": nome, "rotulo": nome, "texto": texto})
+    return saida
+
+
+def _vista_da_logo(mod, ident, texto):
+    p, dados, _dir = mod.validar(ident, silencioso=True)
+    acento = valores_efetivos(["ACCENT"]).get("ACCENT") or ""
+    try:
+        flavor, acento = mod._flavor_e_accent(
+            p, dados, (p.get("paleta") or {}).get("flavor_padrao"),
+            acento if acento in mod.SLOTS else None)
+        return mod._aplicar_papeis(texto, mod.ET.fromstring(texto), mod._cores_do_logo(dados, flavor, acento))
+    except Exception:
+        return texto
+
+
+def logo_do_pack_pessoal_opcoes(ident):
+    mod = modulo_pack()
+    if not mod or not _dir_do_pack_pessoal(ident):
+        return None
+    try:
+        guardada = _logo_sem_papeis(mod, _logo_texto_de_pack(mod, ident))
+    except Exception:
+        guardada = None
+    opcoes, atual = [], ""
+    for c in _candidatas_de_logo(mod, ident):
+        chave = "%s:%s" % (c["de"], c["id"])
+        if not atual and guardada is not None and _logo_sem_papeis(mod, c["texto"]) == guardada:
+            atual = chave
+        opcoes.append({"de": c["de"], "id": c["id"], "chave": chave, "rotulo": c["rotulo"],
+                       "url": _url_de_svg(_vista_da_logo(mod, ident, c["texto"]))})
+    return {"opcoes": opcoes, "atual": atual}
+
+
+def gravar_logo_do_pack_pessoal(corpo):
+    mod = modulo_pack()
+    ident = str(corpo.get("pack") or "")
+    dir_pack = _dir_do_pack_pessoal(ident) if mod else None
+    if not dir_pack:
+        return {"erro": "esse tema não troca de logo"}, 400
+    de = str(corpo.get("de") or "")
+    try:
+        if de == "arquivo":
+            nome = os.path.basename(str(corpo.get("nome") or "")).lower()
+            try:
+                dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+            except Exception:
+                return {"erro": "conteúdo não é base64"}, 400
+            if not dados:
+                return {"erro": "o arquivo veio vazio"}, 400
+            if len(dados) > TETO_DA_LOGO_ENVIADA:
+                return {"erro": "logo maior que 512 KB"}, 413
+            if nome.endswith(".svg"):
+                texto = _logo_quadrada(dados.decode("utf-8-sig"))
+            elif nome.endswith(".png"):
+                texto = _svg_do_png(dados)
+            else:
+                return {"erro": "só SVG ou PNG"}, 400
+        else:
+            escolhida = next((c for c in _candidatas_de_logo(mod, ident)
+                              if c["de"] == de and c["id"] == str(corpo.get("id") or "")), None)
+            if not escolhida:
+                return {"erro": "essa logo não está entre as opções"}, 400
+            texto = escolhida["texto"]
+        if len(texto.encode("utf-8")) > TETO_DA_LOGO_ENVIADA:
+            return {"erro": "logo maior que 512 KB"}, 413
+        _logo_confere(mod, texto)
+        p, _dados, _dir = mod.validar(ident, silencioso=True)
+        nome_do_arquivo = mod._nome_do_logo(p)
+        if not nome_do_arquivo.endswith(".svg"):
+            return {"erro": "esse tema guarda a logo de outro jeito"}, 400
+        destino = mod._dentro(dir_pack, nome_do_arquivo, "logo")
+    except UnicodeDecodeError:
+        return {"erro": "isso não parece um SVG"}, 400
+    except ValueError as erro:
+        return {"erro": str(erro)}, 400
+    except Exception as erro:
+        return {"erro": str(erro).strip().splitlines()[0] if str(erro).strip() else "não deu"}, 400
+    try:
+        with open(destino, "r", encoding="utf-8") as fh:
+            igual = _logo_sem_papeis(mod, fh.read()) == _logo_sem_papeis(mod, texto)
+    except (OSError, UnicodeDecodeError):
+        igual = False
+    if igual:
+        return {"ok": True, "mudou": False, "pack": ident}, 200
+    tmp = destino + ".meow-parcial"
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(texto)
+        os.replace(tmp, destino)
+    except OSError as erro:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        return {"erro": "não consegui gravar: %s" % erro}, 500
+    return {"ok": True, "mudou": True, "pack": ident}, 200
 
 
 def _areas_alfinetadas():
@@ -5352,6 +5688,8 @@ class Manipulador(BaseHTTPRequestHandler):
         flavor = _flavor_da_pagina(flavor, valores)
         acento = _acento_da_pagina(flavor, valores)
         escolhida = logo_escolhida() if pack is None else pack
+        if not escolhida:
+            escolhida = _pessoal_no_ar()
         if escolhida:
             return logo_de_pack(escolhida, flavor, acento)
         return logo_do_painel(flavor, acento)
@@ -7716,6 +8054,12 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/packs":
             return self._json({"packs": packs_com_vitrine()})
 
+        if caminho == "/api/logo-do-pack":
+            opcoes = logo_do_pack_pessoal_opcoes(consulta.get("pack", [""])[0])
+            if opcoes is None:
+                return self._json({"erro": "esse tema não troca de logo"}, 400)
+            return self._json(opcoes)
+
         if caminho == "/api/apps":
             return self._api_apps(consulta)
 
@@ -8447,6 +8791,10 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"ok": True})
         if caminho == "/api/pack-importar":
             return self._api_pack_importar(corpo)
+
+        if caminho == "/api/logo-do-pack":
+            resposta, codigo = gravar_logo_do_pack_pessoal(corpo)
+            return self._json(resposta, codigo)
 
         if caminho == "/api/importar":
             texto = str(corpo.get("texto", ""))
