@@ -14,10 +14,13 @@
   seção do flavor pessoal). Já conferido na máquina: `COSMIC_RENDER_DEVICE="0x10de:0x28a0"` (root 0644, original
   guardado), `pendencias.tsv` vazio, qBittorrent no tema do pack, COSMIC em `meu-meow-portatil-meumeowportatil`,
   7 metainfos.
-  EM VOO: P139 (`P139-o-pack-pessoal-perde-o-pack.md`, worktree `~/Desenvolvimento/MeowSystem-pack-p139`, branch
-  `bloco/pack-p139`), 1 Opus; itens 4 (Spotify do pack pessoal) e 5 (o ERRO falso do «tema do COSMIC primeiro»).
-  PRÓXIMO: conferente da P139, merge, install de novo até `rc=0`; capturas dos applets depois do login dela;
-  `master` no `origin` (hoje 89064565; tags v2.0.0 e v2.1.0 só aqui) e o release.
+  P139 no `dev` (50993cd1; causa: o `pack usar meowsystem` do painel de 18:48 com o disco cheio gravou o PACK e
+  não o FLAVOR). Install de novo: `rc=0`, 2 passagens. `dev` publicado na `master` do `origin` (89064565..50993cd1) e
+  release v2.2.0 (https://github.com/vitoriamariadb/MeowSystem/releases/tag/v2.2.0). A `master` LOCAL é a linha
+  privada (fotos, perfil andre, tags v2.0.0/v2.1.0): nunca vai para o `origin`, que é público; o público é o `dev`.
+  PERGUNTA a ela: às 18:48 de 28/10 o painel trocou para o pack MeowSystem; o coordenador devolveu o «Meu
+  Meow-Portátil» (a escolha de 18:06). Se a de 18:48 foi dela, é um `meow pack usar meowsystem`.
+  PRÓXIMO (bloco novo): P140 (o Spotify atualizado e o spicetify calado); capturas dos applets depois do login dela.
   Anotado para depois: um `CARGO_TARGET_DIR` só para as nove extensões (15 GB de `target/`); o `meow wallpaper
   dispensar` diz «o aviso saiu da Início» (velho); o reverter do qBittorrent sem tema guardado manda editar o
   `meow.conf`; `porta_das_pendencias()` no `servidor.py` com nome que não diz mais o que faz.
