@@ -687,11 +687,7 @@ meow_pendencia_acionavel() {
   if [ "${MEOW_PENDENCIA_ROTINA:-}" = "1" ]; then meow_pula "$frase"; else meow_aviso "$frase"; fi
   if [ -n "$comando" ]; then
     local onde; onde="$(meow_onde_no_painel "$id")"
-    if [ -n "$onde" ]; then
-      meow_info "resolve: no painel, $onde"
-    else
-      meow_info "resolve: $comando"
-    fi
+    [ -n "$onde" ] && meow_info "resolve: no painel, $onde"
   fi
 
   meow_seco && return 0
@@ -704,6 +700,7 @@ meow_pendencia_acionavel() {
   _meow_pendencia_tirar "$id"
   printf '%s\t%s\t%s\t%s\t%s\n' \
     "$id" "$etapa" "$frase" "$comando" "$(date -Iseconds)" >> "$(_meow_pendencias_arquivo)"
+  meow_registrar "ficou para depois: $frase"
   return 0
 }
 
@@ -729,6 +726,7 @@ meow_precisa_de_gente() {
     printf '%s\t%s\t%s\t%s\n' "$id" "$nome" "$desde" "$porque"; } > "$arq.tmp" \
     && mv -f "$arq.tmp" "$arq"
   rm -f "$arq.tmp" 2>/dev/null
+  meow_registrar "precisa de gente: $nome ($porque)"
   return 0
 }
 

@@ -102,67 +102,56 @@ else
   falha "a pendência do applet não nasce ou não sai" "com: $com / sem: $sem"
 fi
 
-printf '\n--- 5. a pendência aponta o botão que resolve, e não o comando ---\n'
-saida="$(env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
-  bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_pendencia_acionavel starship-ausente "O starship falta" "./scripts/prompt.sh instalar-starship"' 2>&1)"
-if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Resolver», em Manter' <<< "$saida"; then
-  ok "a linha «resolve:» diz o botão («Resolver», em Manter), sem o comando"
+printf '\n--- 5. a pendência aponta o botão que resolve, nunca o comando, e vai para o registro ---\n'
+pendencia() {
+  env -i PATH="$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+    bash -c '. "$MEOW_RAIZ/lib/comum.sh"; meow_pendencia_acionavel "$@"' _ "$@" 2>&1
+}
+LOG="$CASA/.local/state/meowsystem/meow.log"
+saida="$(pendencia starship-ausente "O starship falta" "./scripts/prompt.sh instalar-starship")"
+pendencia starship-ausente "O starship falta" "./scripts/prompt.sh instalar-starship" >/dev/null
+sem_lugar="$(pendencia coisa-sem-lugar "Algo ficou de fora" "./scripts/qualquer.sh consertar")"
+if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Instalar», em Manter › Instalar de novo' <<< "$saida" \
+   && ! grep -qE 'resolve|scripts/' <<< "$sem_lugar" \
+   && [ "$(grep -c 'ficou para depois: O starship falta$' "$LOG" 2>/dev/null)" = 1 ] \
+   && ! grep -q 'Pendências' <<< "$saida"; then
+  ok "a linha «resolve:» diz o botão de verdade, sem comando; sem lugar, não diz nada; o registro ganha a frase uma vez só"
 else
-  falha "a pendência ainda manda digitar o comando" "$saida"
+  falha "a pendência ainda manda digitar, cita o cartão de pendências ou não foi para o registro" \
+    "$saida / sem lugar: $sem_lugar / registro: $(cat "$LOG" 2>/dev/null)"
 fi
 
-printf '\n--- 6. o papel de parede devolvido vira botão, e não «meow wallpaper permitir» ---\n'
+printf '\n--- 6. o papel de parede devolvido aponta as «Pastas suas», e não «meow wallpaper permitir» ---\n'
 achados="$(grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*meow wallpaper permitir' "$RAIZ/scripts/wallpaper.sh")"
 [ -z "$achados" ] && ok "o wallpaper.sh não manda digitar «meow wallpaper permitir»" \
   || falha "o wallpaper.sh manda digitar «meow wallpaper permitir»" "$achados"
-mkdir -p "$CASA/.local/state/meowsystem"
-printf 'wallpaper-fonte-revertida\twallpaper.sh\tA imagem de fundo apontava para %s/Imagens/minha.png\tmeow wallpaper permitir %s/Imagens/minha.png\t2026-10-10T00:00:00-03:00\n' \
-  "$CASA" "$CASA" >> "$CASA/.local/state/meowsystem/pendencias.tsv"
-saida="$(env -i PATH="$PATH" HOME="$CASA" python3 - "$RAIZ/app" "$CASA/Imagens/minha.png" <<'PY' 2>&1
+saida="$(env -i PATH="$PATH" HOME="$CASA" python3 - "$RAIZ/app" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])
 import servidor
-p = next((x for x in servidor.pendencias() if x["id"] == "wallpaper-fonte-revertida"), {})
-for e in p.get("escolha") or []:
-    print("escolha=%s|%s" % (e["acao"], e["argumento"]))
-acao = servidor.ACOES.get("wallpaper_permitir") or {}
-print("argv=%s" % " ".join(acao.get("argv") or []))
-print("cerca=%s" % (sys.argv[2] in servidor.PROVEDORES[acao.get("arg", "")]() if acao.get("arg") in servidor.PROVEDORES else False))
+print("onde=%s" % servidor.onde_na_tela(servidor.PENDENCIA_PAREDE))
+print("chave=%s" % servidor.onde_na_tela("WALLPAPER_FONTES_PERMITIDAS"))
 PY
 )"
-if grep -qx "escolha=wallpaper_permitir|$CASA/Imagens/minha.png" <<< "$saida" \
-   && grep -q '^argv=.*wallpaper permitir @ARG@$' <<< "$saida" && grep -qx 'cerca=True' <<< "$saida"; then
-  ok "a pendência do papel de parede devolvido tem o botão que autoriza aquela imagem"
+onde="$(sed -n 's/^onde=//p' <<< "$saida")"
+if [ -n "$onde" ] && [ "$onde" = "$(sed -n 's/^chave=//p' <<< "$saida")" ] && grep -q '«Pastas suas»' <<< "$onde"; then
+  ok "a pendência do papel de parede devolvido leva às «Pastas suas», onde a imagem dela fica autorizada ($onde)"
 else
-  falha "a pendência do papel de parede devolvido não tem o botão que autoriza" "$saida"
+  falha "a pendência do papel de parede devolvido não leva às «Pastas suas»" "$saida"
 fi
 
-printf '\n--- 6b. «Deixar assim» tira o cartão sem autorizar a imagem (P82, item 3; decisão 13) ---\n'
+printf '\n--- 6b. «meow wallpaper dispensar» tira a pendência sem autorizar a imagem ---\n'
 mkdir -p "$CASA/.config/meow"; cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"
+printf 'wallpaper-fonte-revertida\twallpaper.sh\tA imagem de fundo apontava para %s/Imagens/minha.png\tmeow wallpaper permitir %s/Imagens/minha.png\t2026-10-10T00:00:00-03:00\n' \
+  "$CASA" "$CASA" >> "$CASA/.local/state/meowsystem/pendencias.tsv"
 antes_conf="$(sha256sum < "$CASA/.config/meow/meow.conf")"
-pendencia_e_botao() {
-  env -i PATH="$PATH" HOME="$CASA" python3 -I - "$RAIZ/app" <<'PY' 2>&1
-import sys
-sys.path.insert(0, sys.argv[1])
-import servidor
-p = next((x for x in servidor.pendencias() if x["id"] == "wallpaper-fonte-revertida"), None)
-print("cartao=%s" % bool(p))
-for e in (p or {}).get("escolha") or []:
-    print("escolha=%s|%s" % (e["acao"], e["rotulo"]))
-print("argv=%s" % " ".join((servidor.ACOES.get("wallpaper_dispensar") or {}).get("argv") or [])[-19:])
-PY
-}
-antes_p="$(pendencia_e_botao)"
 env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
   "$RAIZ/bin/meow" wallpaper dispensar >/dev/null 2>&1
-depois_p="$(pendencia_e_botao)"
-if grep -qx 'escolha=wallpaper_dispensar|Deixar assim' <<< "$antes_p" \
-   && grep -qx 'argv=wallpaper dispensar' <<< "$antes_p" \
-   && grep -qx 'cartao=False' <<< "$depois_p" \
+if ! grep -q '^wallpaper-fonte-revertida	' "$CASA/.local/state/meowsystem/pendencias.tsv" \
    && [ "$(sha256sum < "$CASA/.config/meow/meow.conf")" = "$antes_conf" ]; then
-  ok "«Deixar assim» tira o cartão do papel de parede devolvido, e o meow.conf não muda (sha256 igual)"
+  ok "a pendência do papel de parede sai, e o meow.conf não muda (sha256 igual)"
 else
-  falha "«Deixar assim» não tirou o cartão, ou mexeu no conf" "antes: $antes_p / depois: $depois_p"
+  falha "o dispensar não tirou a pendência, ou mexeu no conf" "$(cat "$CASA/.local/state/meowsystem/pendencias.tsv")"
 fi
 
 printf '\n--- 7. sem cargo, o conserto instala o rust (e não manda instalar) ---\n'
