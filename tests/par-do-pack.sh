@@ -113,7 +113,16 @@ caso "o último pack usar foi o pack pessoal" \
 caso "o último pack usar foi o meowsystem" \
   "2026-10-28T18:06:40-03:00 pack usar meu-tema flavor=meutema
 2026-10-28T19:00:00-03:00 pack usar meowsystem flavor=macchiato" "meowsystem/mocha"
-caso "sem meow.log" "" "meowsystem/mocha"
+conf_com 'PACK="meowsystem"' 'FLAVOR="meutema"'
+rm -f "$ESTADO/meow.log"
+s1="$(doctor)"; s2="$(doctor --consertar)"
+if [ "$(par)" = "meowsystem/meutema" ] && ! grep -q 'PACK e FLAVOR' <<< "$s1$s2"; then
+  ok "sem escolha no meow.log, o par fica como ela escreveu e o meow_flavor resolve na leitura"
+else
+  falha "sem escolha no meow.log, o doctor mexeu no par (par=$(par))" "$s1
+---
+$s2"
+fi
 
 printf '\n--- 3. o painel grava PACK e FLAVOR juntos e coerentes ---\n'
 painel() {
