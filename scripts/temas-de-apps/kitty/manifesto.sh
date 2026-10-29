@@ -245,6 +245,6 @@ meow_app_reverter() {
     _kitty_gravar_conf "$(_kitty_conf_com_bloco "$bloco")"
     [ $? = "$MEOW_ERRO" ] && { meow_erro "kitty: não consegui tirar o bloco do tema do kitty.conf"; return "$MEOW_ERRO"; }
   fi
-  meow_info "tire 'kitty' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar kitty
   return "$MEOW_DIVERGENTE"
 }

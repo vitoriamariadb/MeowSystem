@@ -93,7 +93,7 @@ meow_desinstalar() {
 
   meow_passo "2/6 Temas por aplicativo"
   if [ -n "${APPS_ATIVOS:-}" ]; then
-    APPS_ATIVOS="$APPS_ATIVOS" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+    MEOW_REVERTER_SEM_DESLIGAR=1 APPS_ATIVOS="$APPS_ATIVOS" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
       "$MEOW_RAIZ/scripts/aplicar_apps.sh" reverter || true
   else
     meow_pula "APPS_ATIVOS vazio no meow.conf — nenhum tema de aplicativo para desfazer"

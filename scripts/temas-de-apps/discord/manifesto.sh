@@ -195,6 +195,6 @@ meow_app_reverter() {
     meow_ok "Discord: nenhum tema do MeowSystem no disco — nada a desfazer"
     return "$MEOW_OK"
   fi
-  meow_seco || meow_info "tire 'discord' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar discord
   return "$MEOW_DIVERGENTE"
 }

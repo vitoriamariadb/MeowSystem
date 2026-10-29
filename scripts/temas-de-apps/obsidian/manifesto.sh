@@ -770,6 +770,6 @@ meow_app_reverter() {
   while IFS= read -r nome; do
     [ -n "$nome" ] && meow_info "o snippet '$nome' continua no disco, desmarcado: Aparência > Snippets CSS"
   done < <(_meow_obsidian_snippets_desmarcados "$_OBS_PACKS" ${com_algo[@]+"${com_algo[@]}"})
-  meow_info "tire 'obsidian' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar obsidian
   return "$MEOW_DIVERGENTE"
 }

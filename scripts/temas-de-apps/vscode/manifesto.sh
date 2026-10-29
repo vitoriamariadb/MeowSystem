@@ -825,6 +825,6 @@ meow_app_reverter() {
 
   [ "$mudou" = "0" ] && { meow_ok "VS Code já estava sem o $_MEOW_VSCODE_PACK_NOME"; return "$MEOW_OK"; }
   meow_ok "VS Code de volta ao tema de fábrica — reescolha o seu em File > Preferences > Theme"
-  meow_info "tire 'vscode' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar vscode
   return "$MEOW_DIVERGENTE"
 }

@@ -249,6 +249,6 @@ meow_app_reverter() {
     meow_ok "OnlyOffice: nenhum tema do MeowSystem no disco — nada a desfazer"
     return "$MEOW_OK"
   fi
-  meow_seco || meow_info "tire 'onlyoffice' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar onlyoffice
   return "$MEOW_DIVERGENTE"
 }

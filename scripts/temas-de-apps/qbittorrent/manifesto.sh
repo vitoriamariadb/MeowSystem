@@ -442,7 +442,7 @@ meow_app_reverter() {
     fi
     meow_seco && return "$MEOW_DIVERGENTE"
     [ "$mudou" = "0" ] && { meow_ok "qBittorrent já estava sem o tema do pack"; return "$MEOW_OK"; }
-    [ -n "${antes:-}" ] || meow_info "tire 'qbittorrent' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+    meow_app_desligar qbittorrent
     return "$MEOW_DIVERGENTE"
   fi
 
@@ -480,6 +480,6 @@ meow_app_reverter() {
 
   [ "$mudou" = "0" ] && { meow_ok "qBittorrent já estava sem o tema do pack"; return "$MEOW_OK"; }
   meow_ok "qBittorrent de volta ao tema $_MEOW_QBT_TEMA_AURORA_PADRAO do Aurora"
-  meow_info "tire 'qbittorrent' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar qbittorrent
   return "$MEOW_DIVERGENTE"
 }

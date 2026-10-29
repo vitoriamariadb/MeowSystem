@@ -370,6 +370,6 @@ meow_app_reverter() {
 
   meow_info "o ícone da bandeja segue aplicado na FONTE do app (tray_icon.py do flatpak)"
   meow_info "  para devolver aquele: flatpak update com.rtosta.zapzap — ver packs/meowsystem/icones/bandeja.map"
-  meow_info "tire 'zapzap' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar zapzap
   return "$MEOW_DIVERGENTE"
 }
