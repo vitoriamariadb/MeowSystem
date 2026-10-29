@@ -128,7 +128,7 @@ function cartaoDePack(p) {
   return elemento("article", { class: "pack" + (p.no_ar ? " no-ar" : ""), "data-pack": p.id }, [
     previa,
     elemento("div", { class: "pack-corpo" }, [
-      p.capa ? elemento("img", { class: "logo", src: p.capa, alt: "" }) : elemento("span"),
+      p.capa ? logoDoCartao(p) : elemento("span"),
       elemento("h2", { texto: p.nome }),
       elemento("div", { class: "fila" }, direita),
       variantes,
