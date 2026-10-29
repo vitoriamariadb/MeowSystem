@@ -35,7 +35,7 @@ respeita GSD.md, anote em `## Execução` no fim da sprint e siga.
 ## Fechamento de cada sprint
 1. Cada item com a prova que a sprint pede, rodada.
 2. `./tests/todos.sh` sem vermelho novo. Os vermelhos aceitos hoje: `decisoes.sh` (GPU e shim do compositor da
-   máquina, até a P121) e `restaurar.sh` (`pack_usar` e `desinstalar`, arquivos do VS Code). Pulado não é verde.
+   máquina, até a P121) e `readme.sh` (o badge). O `restaurar.sh` saiu da lista (P146). Pulado não é verde.
 3. `## Execução` no fim da sprint: item, commit, prova, o que ficou de fora e por quê.
 
 ## Arquivos de mais de um bloco

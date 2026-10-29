@@ -675,11 +675,14 @@ meow_app_aplicar() {
         *) return "$MEOW_ERRO" ;;
       esac
     fi
+    meow_guardar_antes "$MEOW_VSCODE_EXTDIR/extensions.json"
+    meow_vigiar_inicio "$MEOW_VSCODE_EXTDIR" "$HOME/.config/Code" "$HOME/.dotnet"
     if meow_tem timeout; then
       saida="$(timeout 300 "$MEOW_VSCODE_BIN" --install-extension "$alvo" 2>&1)"; rc_ext=$?
     else
       saida="$("$MEOW_VSCODE_BIN" --install-extension "$alvo" 2>&1)"; rc_ext=$?
     fi
+    meow_vigiar_fim
     if [ -n "$_VSC_VSIX_ARQ" ]; then rm -rf -- "$(dirname -- "$_VSC_VSIX_ARQ")"; _VSC_VSIX_ARQ=""; fi
     if [ "$rc_ext" != "0" ]; then
       meow_erro "falhou ao instalar $ext (rc=$rc_ext): $(printf '%s' "$saida" | tail -3)"

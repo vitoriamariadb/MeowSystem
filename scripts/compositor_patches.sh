@@ -795,6 +795,7 @@ cmd_ativar() {
     meow_muda "instalaria o shim em $CP_SHIM (vale no próximo login)"
     return "$MEOW_DIVERGENTE"
   fi
+  meow_guardar_antes "$CP_SHIM"
   mkdir -p "${CP_SHIM%/*}" || return "$MEOW_ERRO"
   local tmp; tmp="$(mktemp -p "${CP_SHIM%/*}" .meow-shim.XXXXXX)" || return "$MEOW_ERRO"
   cp -f "$CP_SHIM_FONTE" "$tmp" && chmod 755 "$tmp" && mv -f "$tmp" "$CP_SHIM" \
@@ -814,6 +815,7 @@ cmd_desativar() {
     meow_muda "removeria $CP_SHIM (o próximo login volta a $CP_BIN)"
     return "$MEOW_DIVERGENTE"
   fi
+  meow_guardar_antes "$CP_SHIM"
   rm -f "$CP_SHIM" || { meow_erro "não consegui remover $CP_SHIM"; return "$MEOW_ERRO"; }
   meow_muda "shim do compositor desligado — o próximo login volta a $CP_BIN"
   return "$MEOW_DIVERGENTE"
