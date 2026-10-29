@@ -46,6 +46,7 @@ PORTATIL=(
   gerador-dracula.sh
   variante.sh
   claro-do-pack.sh
+  pack-pessoal-tem-tema.sh
   notas-de-funcao.sh
   frases-velhas.sh
   pack-dracula-completo.sh
@@ -80,6 +81,7 @@ PORTATIL=(
   tres-pastas.sh
   migracao-do-painel.py
   vizinhos.sh
+  qbittorrent-tema-do-pack.sh
   segunda-passada-sem-rede.sh
   lancador-do-meow.sh
   flatpak-tema.sh
@@ -117,6 +119,7 @@ MAQUINA=(
   app-completo.py
   app-uso-real.py
   app-texto-visivel.py
+  manter-sem-pendencias.py
   p113-navegador.py
   gate-link-externo.py
   extensoes-pagina.py

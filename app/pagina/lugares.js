@@ -247,15 +247,6 @@ const LUGAR_CUIDAR = {
     { a: "doctor_consertar", r: "Consertar a ponte", b: "Consertar a ponte" },
     { a: "doctor", r: "Conferir", b: "Conferir" },
   ],
-  pendencias: [
-    { g: "pendencia-recusar", r: "Não perguntar mais", b: "Não, obrigado" },
-    { a: "wallpaper_permitir", r: "Imagem que você pôs", b: "Manter" },
-    { a: "wallpaper_dispensar", r: "Imagem que você pôs", b: "Deixar assim" },
-    { a: "apps_tema_do_pack", r: "Tema de um programa", b: "Trocar" },
-    { a: "apps_manter_o_meu", r: "Tema de um programa", b: "Manter" },
-    { a: "vscode_instalar_extensao", r: "Extensão do VS Code", b: "Instalar" },
-    { a: "extensao_refazer", r: "Build da casa", b: "Refazer" },
-  ],
   cartoes: [
     { id: "outro", titulo: "Outro computador", icone: "computador", linhas: [
       { g: "exportar-conf", r: "Guardar ajustes", b: "Guardar ajustes" },
@@ -338,6 +329,7 @@ const LUGAR_MODIFICACOES = {
     { a: "modificacao_reverter", r: "Tirar o tema" },
     { a: "modificacao_corrigir", r: "Pôr a correção no lugar" },
     { c: "FLATPAK_CORRECOES", r: "Correções do Flatpak" },
+    { a: "vscode_instalar_extensao", r: "Extensão do pack", b: "Instalar" },
   ],
   chaves: [
     { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify", cartao: "spotify", bloco: "Spotify" },
@@ -389,7 +381,6 @@ function inventarioDoPainel() {
     for (const b of p.blocos) for (const l of b.linhas) pus(l, "ajustes", p.nome, b.titulo);
   }
   for (const l of LUGAR_CUIDAR.estado) pus(l, "cuidar", "Manter", "Estado");
-  for (const l of LUGAR_CUIDAR.pendencias) pus(l, "cuidar", "Manter", "Pendências");
   for (const c of LUGAR_CUIDAR.cartoes) for (const l of c.linhas) pus(l, "cuidar", "Manter", c.titulo);
   for (const b of LUGAR_CUIDAR.blocos) for (const l of b.linhas) pus(l, "cuidar", "Manter", b.titulo);
   for (const l of LUGAR_CUIDAR.maquina) pus(l, "cuidar", "Manter", "Ícones da máquina");

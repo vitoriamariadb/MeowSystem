@@ -24,8 +24,8 @@ pt = "painel e dock, janelas, papel de parede, mascote, dia e noite e programas.
 en = "panel and dock, windows, wallpaper, mascot, day and night and programs."
 
 [portas.cuidar]
-pt = "o doctor e o Consertar, as pendências, e os ajustes para levar a outra máquina."
-en = "the doctor and its fix button, pending items, and settings to carry to another machine."
+pt = "o doctor e o Consertar, o Registro e os ajustes para levar a outra máquina."
+en = "the doctor and its fix button, the log, and settings to carry to another machine."
 
 [portas.extensoes]
 pt = "os applets da casa e os de quem usa: instalar, atualizar, pôr no painel, e os builds do compositor."

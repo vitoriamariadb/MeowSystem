@@ -516,7 +516,6 @@ def molde(nome):
 CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "FLATPAK_CORRECOES": "modificacao:ligar:"}
 CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
 ACAO_COM_DADO = {
-    "wallpaper_permitir", "wallpaper_dispensar", "apps_tema_do_pack", "apps_manter_o_meu",
     "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
     "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
     "extensao_refazer", "modificacao_aplicar", "modificacao_reverter", "modificacao_corrigir",
@@ -533,7 +532,7 @@ EXTRAS = {
     "ajustes/*": ["ajuste:*"],
     "ajustes/dia-e-noite": ["noite:mesmo-horario"],
     "ajustes/programas": ["jogo:*", "icone:*", "oficina:*", "desenho:*"],
-    "cuidar": ["estado:*", "cuidar:exportar", "cuidar:importar", "pendencia:*"],
+    "cuidar": ["estado:*", "cuidar:exportar", "cuidar:importar"],
     "modificacoes*": ["chave:APPS_ATIVOS:*", "acao:modificacao_*", "modificacao:*"],
 }
 GLOBAIS = ["marca", "porta:*", "busca", "achado", "mudancas", "desfazer-uma", "descartar",
@@ -1384,16 +1383,8 @@ class Percurso:
     def h_pendencia_do_spotify(self):
         self.ir("cuidar")
         self.assentar(quieto=400)
-        linha = self.pag.locator('[data-linha="pendencia:spicetify-tema-ausente"]')
-        if not self.checa(linha.count() == 1, "a pendência «spicetify-tema-ausente» aparece em Manter"):
-            return
-        self.checa(linha.locator(".rot span").first.inner_text().strip() == "Tema do Spotify",
-                   "o cartão tem o nome «Tema do Spotify»")
-        botao = linha.locator('[data-controle="pendencia:resolver"]')
-        if self.checa(botao.count() == 1, "o cartão tem o botão «Resolver»"):
-            rotulo = self.js("() => (ACAO.get('apps_aplicar') || {}).rotulo")
-            self.checa(botao.get_attribute("aria-description") == rotulo,
-                       f"o «Resolver» roda a ação apps_aplicar ({rotulo!r})")
+        linha = self.pag.locator('[data-linha^="pendencia:"]')
+        self.checa(linha.count() == 0, "com a pendência «spicetify-tema-ausente» no disco, o Manter não tem linha de pendência")
 
     def h_gerador_da_ficha(self):
         self.abrir_ficha_em_gerar()

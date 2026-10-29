@@ -2134,8 +2134,7 @@ main() {
 
   if [ -n "${TEMA_NAO_APLICADO:-}" ] && ! meow_seco; then
     printf '\n  %s%s%s\n' "$C_AMARELO$C_FORTE" "$TEMA_NAO_APLICADO" "$C_ZERO"
-    local onde; onde="$(meow_onde_no_painel inicio)"
-    printf '  O resto do instalador seguiu; a pendência fica no painel%s.\n\n' "${onde:+, $onde}"
+    printf '  O resto do instalador seguiu; fica anotado no Registro.\n\n'
     return "$MEOW_DIVERGENTE"
   fi
 

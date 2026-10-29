@@ -463,8 +463,11 @@ esperado = "«Consertar a ponte», em Manter › Estado"
 if servidor.onde_na_tela("doctor_consertar") != esperado:
     erros.append("--onde doctor_consertar diz %r, e não %r"
                  % (servidor.onde_na_tela("doctor_consertar"), esperado))
-if servidor.onde_na_tela("areas-sem-alfinete") != "«Resolver», em %s" % servidor.porta_das_pendencias():
-    erros.append("--onde de uma pendência não diz o «Resolver» da lista dela")
+if servidor.onde_na_tela("areas-sem-alfinete") != "«Criar», em Definir › Janelas e tela › Áreas de trabalho":
+    erros.append("--onde de uma pendência não diz o botão de verdade da ação dela: %r"
+                 % servidor.onde_na_tela("areas-sem-alfinete"))
+if "Pendências" in "".join(servidor.onde_na_tela(i) for i in servidor.ACAO_DA_PENDENCIA):
+    erros.append("--onde de uma pendência ainda cita o cartão «Pendências»")
 oculta = next(k for k, a in servidor.ACOES.items() if a.get("oculta"))
 if servidor.onde_na_tela(oculta) or servidor.onde_na_tela("nao-existe"):
     erros.append("--onde cita um botão que não tem cartão (%s) ou que não existe" % oculta)
@@ -472,9 +475,8 @@ modulos = os.path.join(raiz, "scripts", "temas-de-apps")
 com_modulo = next(n for n in sorted(os.listdir(modulos))
                   if os.path.isfile(os.path.join(modulos, n, "manifesto.sh")))
 onde = servidor.onde_na_tela(com_modulo + servidor.SUFIXO_TEMA_DE_TERCEIRO)
-if not all("«%s»" % r in onde for _a, r in servidor.ESCOLHA_TEMA_DE_TERCEIRO) \
-        or not onde.endswith("em %s" % servidor.porta_das_pendencias()):
-    erros.append("--onde da pendência de tema de terceiro de %s não cita os botões da lista: %r"
+if onde != "«Pôr no lugar», em Modificações":
+    erros.append("--onde da pendência de tema de terceiro de %s não leva ao «Pôr no lugar» da Modificações: %r"
                  % (com_modulo, onde))
 def curto(t):
     return bool(t) and len(t.split()) <= 3 and t[0].isupper()
@@ -483,7 +485,7 @@ assert servidor.PENDENCIAS.startswith(casa), servidor.PENDENCIAS
 os.makedirs(os.path.dirname(servidor.PENDENCIAS), exist_ok=True)
 with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
     fh.write("%s\twallpaper.sh\tA saída voltou\t%s/x/y.png\t2026-10-23T00:00:00-03:00\n"
-             % (servidor.PENDENCIA_PAREDE, servidor.PREFIXO_PERMITIR.strip()))
+             % (servidor.PENDENCIA_PAREDE, "meow wallpaper permitir"))
     fh.write("%s\tvscode\tExtensão\tmeow apps aplicar vscode\t2026-10-23T00:00:00-03:00\n"
              % servidor.PENDENCIA_EXTENSAO)
     fh.write("files-menu-build\tfiles_menu.sh\tO menu compila\t\t2026-10-23T00:00:00-03:00\n")
@@ -494,8 +496,6 @@ with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
 for p in servidor.pendencias():
     if p["nome"] and not curto(p["nome"]):
         longos.append("pendência %s: %r" % (p["id"], p["nome"]))
-    longos += ["botão de %s: %r" % (p["id"], e["rotulo"]) for e in p["escolha"]
-               if not curto(e["rotulo"]) and not e["rotulo"].startswith("Instalar ")]
 visto = [p for p in servidor.pendencias() if p["id"] in servidor.ACAO_DA_PENDENCIA]
 nomes = [p["nome"] for p in visto]
 if len(nomes) != len(set(nomes)) or len(visto) < 5:
@@ -511,11 +511,11 @@ with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
     fh.write("files-menu-build\tfiles_menu.sh\tParei de tentar sozinha\tmeow files-menu build"
              "\t2026-10-27T00:00:00-03:00\n")
 menu = servidor.pendencias()
-if [(p["acao"], p["escolha"]) for p in menu] != [("", [{"acao": "extensao_refazer", "argumento": "menu-arquivos",
-                                                        "rotulo": "Refazer"}])]:
-    erros.append("a pendência do build do menu não se resolve com «Refazer» do pino: %r" % menu)
-if servidor.onde_na_tela("files-menu-build") != "«Refazer», em %s" % servidor.porta_das_pendencias():
-    erros.append("--onde do build do menu não cita o «Refazer»: %r" % servidor.onde_na_tela("files-menu-build"))
+if [(p["acao"], p["nome"]) for p in menu] != [("", servidor.NOME_DA_PENDENCIA["files-menu-build"])]:
+    erros.append("a pendência do build do menu não sai com o nome do assunto: %r" % menu)
+if servidor.onde_na_tela("files-menu-build") != "«Tentar de novo», em Extensões › Applets":
+    erros.append("--onde do build do menu não leva ao «Tentar de novo» da Extensões: %r"
+                 % servidor.onde_na_tela("files-menu-build"))
 os.remove(servidor.PENDENCIAS)
 if longos:
     erros.append("12c: nome ou botão com mais de três palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))
@@ -794,8 +794,8 @@ if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em
     erros.append("13b: --onde de uma chave que era do «Mais ajustes» diz %r" % servidor.onde_na_tela("WALLPAPER_DRACULA_REPO"))
 if any("Mais ajustes" in (servidor.onde_na_tela(k) or "") for k in list(servidor.ACOES) + ["PACK", "CURSOR", "ICONES_FLAVOR"]):
     erros.append("13b: ainda existe um --onde que manda para «Mais ajustes»")
-if servidor.onde_na_tela("inicio") != "em Manter":
-    erros.append("13b: --onde inicio não diz onde as pendências moram: %r" % servidor.onde_na_tela("inicio"))
+if servidor.onde_na_tela("inicio"):
+    erros.append("13b: --onde inicio ainda aponta um lugar de pendências na tela: %r" % servidor.onde_na_tela("inicio"))
 velhas = [f for f in (servidor.onde_na_tela(k) for k in list(servidor.ACOES) + ["inicio", "PACK", "CURSOR"])
           if "na aba" in f]
 if velhas:
@@ -817,7 +817,9 @@ for n, linha in enumerate(instalador.splitlines(), 1):
                 if re.search(r"\baba\s+[«\"]?%s(?!\w)" % re.escape(x), linha)]
     if citados:
         erros.append("13b: install.sh:%d escreve à mão %s" % (n, ", ".join(sorted(citados))))
-for ident in ("LANCADOR_SISTEMA", "inicio", "desfazer"):
+if "pendência fica no painel" in instalador:
+    erros.append("13b: o install.sh ainda manda a pendência para o painel")
+for ident in ("LANCADOR_SISTEMA", "desfazer"):
     if "meow_onde_no_painel %s" % ident not in instalador:
         erros.append("13b: o install.sh não pergunta ao --onde onde fica %s" % ident)
 

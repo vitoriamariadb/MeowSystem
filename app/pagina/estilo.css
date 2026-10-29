@@ -478,7 +478,6 @@ select.campo { padding-right: var(--e-8); }
 .cartao-acao { display: grid; padding: var(--e-6); align-content: start; }
 .cartao-acao .icone { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--raio-md); background: var(--accent-suave); color: var(--accent); }
 .cartao-acao .fila { align-self: end; }
-.pendencias { list-style: none; margin: 0; padding: 0; }
 
 dialog { border: 1px solid var(--linha-forte); border-radius: var(--raio-xl); background: var(--cartao-2); color: var(--tinta); padding: 0; width: min(560px, calc(100vw - 32px)); box-shadow: 0 24px 64px var(--sombra); }
 dialog::backdrop { background: var(--veu); }
@@ -714,7 +713,6 @@ dialog.resultado { width: min(880px, calc(100vw - 32px)); }
 .palco > .bloco .corpo { padding: var(--e-4) var(--e-5); }
 .escolha svg.ponteiro { width: 40px; height: 40px; }
 .estado-pilula[data-estado="alerta"]::before { background: var(--alerta); }
-.pendencias .rot svg.i { color: var(--alerta); flex: none; }
 .oficina.sem-previa > .pilha { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: dense; }
 .oficina.sem-previa > .pilha > .inteiro { grid-column: 1 / -1; }
 @media (max-width: 1000px) {

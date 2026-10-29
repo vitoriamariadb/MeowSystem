@@ -623,6 +623,10 @@ def _nome_da_paleta(flavor: str) -> str:
 
 def _outro_lado(par_do_par: str, outro: str, paleta: dict) -> dict:
     p = da.plano(par_do_par, paleta, _flavor=False)
+    if p["estado"] == "nao":
+        de_outro_flavor = plano(par_do_par, paleta, _com_par=False)
+        if de_outro_flavor["estado"] == "derivavel":
+            p = de_outro_flavor
     prefixos = (f"com.system76.CosmicTheme.{outro}/", f"com.system76.CosmicTheme.{outro}.Builder/")
     if p["estado"] == "fotografia":
         d = Path(pack.captura(par_do_par))
