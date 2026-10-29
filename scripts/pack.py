@@ -413,8 +413,13 @@ def par_coerente(pack, flavor, vence="pack"):
 
 def par_do_conf(pack, flavor, log=None):
     ultimo = ultimo_pack_usar(log)
-    vence = "flavor" if ultimo and ultimo[1] == flavor and ultimo[0] != pack else "pack"
-    return par_coerente(pack, flavor, vence)
+    if not ultimo:
+        return None
+    if ultimo[1] == flavor and ultimo[0] != pack:
+        return par_coerente(pack, flavor, "flavor")
+    if ultimo[0] == pack:
+        return par_coerente(pack, flavor, "pack")
+    return None
 
 
 def paleta_do_pack_ativo():
