@@ -364,6 +364,59 @@ def adocao(pack="", flavor=""):
     return os.path.basename(dir_pack), dir_pack, ""
 
 
+RE_PACK_USAR_NO_LOG = re.compile(r"\bpack usar (\S+) flavor=(\S+)\s*$")
+
+
+def ultimo_pack_usar(log=None):
+    if log is None:
+        estado = os.environ.get("MEOW_ESTADO") or os.path.join(
+            os.path.expanduser("~"), ".local", "state", "meowsystem")
+        log = os.path.join(estado, "meow.log")
+    ultimo = None
+    try:
+        with open(log, encoding="utf-8", errors="replace") as fh:
+            for linha in fh:
+                m = RE_PACK_USAR_NO_LOG.search(linha.rstrip("\n"))
+                if m:
+                    ultimo = (m.group(1), m.group(2))
+    except OSError:
+        return None
+    return ultimo
+
+
+def _flavors_da_cadeia(ref):
+    try:
+        return set(validar(ref, silencioso=True)[1]["flavors"])
+    except Exception:
+        return set()
+
+
+def par_coerente(pack, flavor, vence="pack"):
+    if not pack or not flavor or "$" in pack + flavor:
+        return None
+    try:
+        validar(pack, silencioso=True)
+    except Exception:
+        return None
+    if flavor in _flavors_da_cadeia(pack):
+        return None
+    if vence == "flavor":
+        dono = adocao("", flavor)[0]
+        if flavor in _flavors_da_cadeia(dono):
+            return dono, flavor, f"o flavor «{flavor}» é do pack «{dono}»"
+    try:
+        ident, padrao, _porque = plano_de_uso(pack)
+    except Exception:
+        return None
+    return ident, padrao, f"o «{ident}» não tem o flavor «{flavor}»; vale o padrão dele"
+
+
+def par_do_conf(pack, flavor, log=None):
+    ultimo = ultimo_pack_usar(log)
+    vence = "flavor" if ultimo and ultimo[1] == flavor and ultimo[0] != pack else "pack"
+    return par_coerente(pack, flavor, vence)
+
+
 def paleta_do_pack_ativo():
     da_pessoa = os.environ.get("MEOW_PALETA")
     if da_pessoa:
