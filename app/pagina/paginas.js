@@ -59,9 +59,7 @@ function cabeca(titulo, direita = []) {
 }
 
 function estadoDaMaquina() {
-  const n = PENDENCIAS.length + PRECISA_DE_GENTE.length;
   if (!ESQUEMA.ponte) return { bom: false, titulo: "Falta a ponte", icone: "alerta" };
-  if (n) return { bom: false, titulo: n === 1 ? "1 pendência" : `${n} pendências`, icone: "alerta" };
   return { bom: true, titulo: "Tudo em ordem", icone: "certo" };
 }
 
@@ -836,45 +834,6 @@ function faixaDoEstado() {
       [elemento("b", { texto: nome }), elemento("span", { texto: valor || "Padrão" })])));
 }
 
-function linhaDePendencia(p) {
-  const acao = p.acao ? ACAO.get(p.acao) : null;
-  const programa = ((p.escolha || [])[0] || {}).argumento || "";
-  const nome = maiuscula(p.nome || (acao && acao.rotulo) || (programa ? nomeDePrograma(programa) : (p.etapa || p.id)));
-  const botoes = [];
-  if (acao) botoes.push(botao("Resolver", { class: "bt pequeno principal", controle: "pendencia:resolver",
-    dica: maiuscula(acao.rotulo), onclick: async () => { await rodar(acao, ""); await recarregarPendencias(); render(); } }));
-  for (const e of p.escolha || []) {
-    const a = ACAO.get(e.acao);
-    botoes.push(botao(maiuscula(e.rotulo), { class: "bt pequeno", controle: "pendencia:" + e.acao,
-      onclick: async () => { await rodar(a, e.argumento, { verbo: e.rotulo }); await recarregarPendencias(); render(); } }));
-  }
-  if (p.recusavel) botoes.push(botao("Não, obrigado", { class: "bt pequeno", controle: "pendencia:recusar",
-    onclick: async () => {
-      if (!await perguntar({ titulo: "Não perguntar de novo?", ok: "Não, obrigado" })) return;
-      const r = await api("/api/pendencia-recusar", { method: "POST", body: JSON.stringify({ id: p.id }) });
-      if (r.erro) { torrada(r.erro, "erro"); return; }
-      await recarregarPendencias();
-      render();
-    } }));
-  return elemento("li", { class: "linha", "data-linha": "pendencia:" + p.id }, [
-    elemento("div", { class: "rot" }, [icone("alerta"), elemento("span", { texto: nome, dica: primeiraFrase(p.frase) })]),
-    elemento("div", { class: "ctl" }, botoes),
-  ]);
-}
-function desdeCurto(iso) {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  return String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
-}
-function linhaDeGente(g) {
-  const desde = desdeCurto(g.desde);
-  const dica = [primeiraFrase(g.porque), desde ? `Desde ${desde}` : ""].filter(Boolean).join(" · ");
-  return elemento("li", { class: "linha", "data-linha": "gente:" + g.id }, [
-    elemento("div", { class: "rot" }, [icone("alerta"), elemento("span", { texto: maiuscula(g.nome), dica })]),
-    elemento("div", { class: "ctl" }, []),
-  ]);
-}
-
 function cartaoDeCuidar(c) {
   const botoes = [];
   for (const l of c.linhas) {
@@ -914,15 +873,12 @@ function paginaCuidar() {
     ]),
     faixaDoEstado(),
   ]);
-  const pend = elemento("ul", { class: "linhas pendencias" }, [
-    ...PRECISA_DE_GENTE.map(linhaDeGente), ...PENDENCIAS.map(linhaDePendencia)]);
   const blocos = LUGAR_CUIDAR.blocos.map((b) => bloco(b.titulo, [lista(b.linhas)], { class: "metade" }));
   const maquina = bloco("Ícones da máquina", [lista(LUGAR_CUIDAR.maquina)], { class: "metade" });
   const perigo = bloco(null, [lista(LUGAR_CUIDAR.perigo)], { class: "tracejado" });
   return [
     elemento("div", { class: "grade-cuidar" }, [
       topo,
-      pend.children.length ? bloco("Pendências", [pend], { class: "inteiro" }) : null,
       ...LUGAR_CUIDAR.cartoes.map(cartaoDeCuidar),
       blocos[0],
       maquina,

@@ -1208,19 +1208,22 @@ import servidor
 nasceu = []
 servidor.Trabalho = lambda acao, argv, amb, rot, ao_terminar=None: nasceu.append((argv, amb)) or type("T", (), {"id": "x", "vivo": lambda s: False})()
 print("lista=" + ",".join(servidor.PROVEDORES["extensoes_de_terceiro"]()))
-for p in servidor.pendencias():
-    if p["id"] == "vscode-extensao-de-terceiro":
-        print("botoes=" + ",".join("%s:%s" % (e["acao"], e["argumento"]) for e in p["escolha"]))
-        print("rede=%s" % p["rede"])
+print("onde=" + servidor.onde_na_tela(servidor.PENDENCIA_EXTENSAO))
+print("rede=%s" % bool(servidor.ACOES["vscode_instalar_extensao"].get("rede")))
 _t, erro = servidor.iniciar("vscode_instalar_extensao", "outro.tema", confirmado=True)
 print("fora=%s" % bool(erro))
 _t, erro = servidor.iniciar("vscode_instalar_extensao", "noite.tema-noite", confirmado=True)
 print("gesto=%s" % (nasceu[-1][1].get("MEOW_VSCODE_EXTENSAO") if nasceu else erro))
+cartoes = lambda *a, **k: type("P", (), {"stdout": b"modulo\tvscode\t0\t0\tsim\tdracula\n"})()
+servidor._meow, antes = (lambda *a: ["true"]), servidor._meow
+real, servidor.subprocess.run = servidor.subprocess.run, lambda argv, **k: cartoes() if argv == ["true"] else real(argv, **k)
+print("cartao=" + ",".join(e for c in servidor._mod_dados()["cartoes"] for e in c.get("extensoes", [])))
 PY
 }
 saida="$(gesto10 noite)"
 printf '%s\n' "$saida" | grep -qx 'lista=noite.tema-noite' \
-  && printf '%s\n' "$saida" | grep -qx 'botoes=vscode_instalar_extensao:noite.tema-noite' \
+  && printf '%s\n' "$saida" | grep -qx 'onde=«Instalar», em Modificações' \
+  && printf '%s\n' "$saida" | grep -qx 'cartao=noite.tema-noite' \
   && printf '%s\n' "$saida" | grep -qx 'rede=True' && printf '%s\n' "$saida" | grep -qx 'fora=True' \
   && printf '%s\n' "$saida" | grep -qx 'gesto=noite.tema-noite' \
   || faltam+=" o painel não oferece o gesto da extensão ($saida);"

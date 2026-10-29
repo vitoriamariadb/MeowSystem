@@ -2724,6 +2724,8 @@ def _mod_dados():
             cartao(dono.get(m["pasta"], m["pasta"]))["temas"].append(m)
     for c in cartoes.values():
         c["estado"] = _mod_estado(c["temas"] + c["correcoes"])
+        c["extensoes"] = (_extensoes_de_terceiro()
+                          if any(t["pasta"] == "vscode" and t["ligado"] for t in c["temas"]) else [])
     return {"cartoes": list(cartoes.values())}
 
 
@@ -2737,9 +2739,7 @@ PROVEDORES = {
     "paredes_favoritas": lambda: _paredes_favoritas(),
     "packs": lambda: sorted(_packs_no_disco()),
     "packs_removiveis": _packs_removiveis,
-    "apps_de_terceiro": lambda: sorted({_app_da_pendencia(p["id"]) for p in pendencias()} - {""}),
     "extensoes_de_terceiro": lambda: _extensoes_de_terceiro(),
-    "fontes_revertidas": lambda: _fontes_revertidas(),
     "restauros": lambda: sorted(restauros()),
     "jogos_heroic": lambda: sorted(j["id"] for j in jogos_do_heroic()),
     "extensoes_da_casa": lambda: _ext_ids(so_casa=True),
@@ -3233,22 +3233,6 @@ ACOES = {
                  "dura é «Quanto tempo dura a imagem escolhida» — com 0, até "
                  "«Voltar a girar».",
     },
-    "wallpaper_permitir": {
-        "rotulo": "Manter a imagem",
-        "grupo": "Papel de parede",
-        "natureza": "gravar",
-        "argv": _meow("wallpaper", "permitir", "@ARG@"), "arg": "fontes_revertidas",
-        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Autoriza a imagem que você pôs: o carrossel para de devolvê-la.",
-    },
-    "wallpaper_dispensar": {
-        "rotulo": "Deixar assim",
-        "grupo": "Papel de parede",
-        "natureza": "gravar",
-        "argv": _meow("wallpaper", "dispensar"),
-        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "A imagem devolvida fica como está, e o aviso sai da Início.",
-    },
     "wallpaper_favoritar": {
         "rotulo": "Guardar nas favoritas",
         "grupo": "Papel de parede",
@@ -3536,26 +3520,6 @@ ACOES = {
         "argv": _meow("apps", "corrigir", "@ARG@"), "arg": "correcoes_de_app",
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Faz de novo a correção deste programa.",
-    },
-    "apps_tema_do_pack": {
-        "rotulo": "Trocar o tema",
-        "grupo": "Lançadores e jogos",
-        "natureza": "trocar",
-        "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "apps_de_terceiro",
-        "ambiente": {"MEOW_TEMA_DE_TERCEIRO": "trocar"},
-        "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
-        "oculta": True,
-        "ajuda": "Troca o tema que o programa tem agora pelo do pack no ar.",
-    },
-    "apps_manter_o_meu": {
-        "rotulo": "Manter o tema",
-        "grupo": "Lançadores e jogos",
-        "natureza": "gravar",
-        "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "apps_de_terceiro",
-        "ambiente": {"MEOW_TEMA_DE_TERCEIRO": "manter"},
-        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "O tema de agora fica, e o MeowSystem para de perguntar "
-                 "enquanto o programa estiver nele.",
     },
     "vscode_instalar_extensao": {
         "rotulo": "Instalar a extensão",
@@ -4458,28 +4422,14 @@ def _pendencias_das_extensoes():
 
 _pendencias_das_extensoes()
 
-RECUSA_DA_PENDENCIA = {
-    "starship-ausente": [os.path.join(RAIZ, "scripts", "prompt.sh"),
-                         "nao-quero-starship"],
-}
-
 SUFIXO_TEMA_DE_TERCEIRO = "-tema-de-terceiro"
-ESCOLHA_TEMA_DE_TERCEIRO = (("apps_tema_do_pack", "Trocar"),
-                            ("apps_manter_o_meu", "Manter"))
-ESCOLHA_PAREDE = (("wallpaper_permitir", "Manter"),
-                  ("wallpaper_dispensar", "Deixar assim"))
 
 
 PENDENCIA_EXTENSAO = "vscode-extensao-de-terceiro"
 
 PENDENCIA_PAREDE = "wallpaper-fonte-revertida"
-PREFIXO_PERMITIR = "meow wallpaper permitir "
 
 
-def _fontes_revertidas():
-    return sorted({p["comando"][len(PREFIXO_PERMITIR):] for p in pendencias()
-                   if p["id"] == PENDENCIA_PAREDE and p["comando"].startswith(PREFIXO_PERMITIR)
-                   and len(p["comando"]) > len(PREFIXO_PERMITIR)})
 RE_EXTENSAO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*\.[A-Za-z0-9][A-Za-z0-9-]*$")
 
 
@@ -4610,8 +4560,6 @@ def inventario_do_painel():
                 pus(l, "ajustes", p["nome"], b["titulo"])
     for l in cuidar["estado"]:
         pus(l, "cuidar", "Manter", "Estado")
-    for l in cuidar["pendencias"]:
-        pus(l, "cuidar", "Manter", "Pendências")
     for cartao in cuidar["cartoes"]:
         for l in cartao["linhas"]:
             pus(l, "cuidar", "Manter", cartao["titulo"])
@@ -4651,23 +4599,25 @@ def _caminho_na_tela(l):
     return base
 
 
-def onde_na_tela(ident):
-    pendencias = porta_das_pendencias()
-    if not pendencias:
+def _onde_da_acao(acao):
+    l = next((l for l in inventario_do_painel()
+              if l["id"] == acao and l["tipo"] == "acao" and (l["botao"] or l["rotulo"])), None)
+    if not l:
         return ""
-    if ident in BUILD_DA_PENDENCIA:
-        return "«Refazer», em %s" % pendencias
-    if ident in ACAO_DA_PENDENCIA:
-        return "«Resolver», em %s" % pendencias
-    if _app_da_pendencia(ident):
-        return "%s, em %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_TEMA_DE_TERCEIRO),
-                              pendencias)
+    return "«%s», em %s" % (l["botao"] or l["rotulo"], _caminho_na_tela(l))
+
+
+def onde_na_tela(ident):
+    if not porta_das_pendencias():
+        return ""
     if ident == PENDENCIA_EXTENSAO:
-        return "«Instalar», em %s" % pendencias
+        return _onde_da_acao("vscode_instalar_extensao")
     if ident == PENDENCIA_PAREDE:
-        return "%s, em %s" % (" ou ".join("«%s»" % r for _a, r in ESCOLHA_PAREDE), pendencias)
-    if ident == "inicio":
-        return "em %s" % pendencias
+        return onde_na_tela("WALLPAPER_FONTES_PERMITIDAS")
+    if ident in ACAO_DA_PENDENCIA:
+        return _onde_da_acao(ACAO_DA_PENDENCIA[ident])
+    if _app_da_pendencia(ident):
+        return _onde_da_acao("modificacao_aplicar")
     if (ACOES.get(ident) or {}).get("oculta"):
         return ""
     l = next((l for l in inventario_do_painel() if l["id"] == ident and l["tipo"] in ("acao", "chave")), None)
@@ -4692,37 +4642,16 @@ def pendencias():
                 acao = ACAO_DA_PENDENCIA.get(ident, "") if comando and ident not in BUILD_DA_PENDENCIA else ""
                 if acao and (indisponivel(acao) or {}).get("feito"):
                     continue
-                app = _app_da_pendencia(ident) if comando else ""
-                escolha = [{"acao": a, "argumento": app, "rotulo": r}
-                           for a, r in ESCOLHA_TEMA_DE_TERCEIRO] if app else []
-                nome = ""
-                if ident == PENDENCIA_PAREDE and comando.startswith(PREFIXO_PERMITIR):
-                    (permitir, r_permitir), (dispensar, r_dispensar) = ESCOLHA_PAREDE
-                    escolha = [{"acao": permitir, "rotulo": r_permitir,
-                                "argumento": comando[len(PREFIXO_PERMITIR):]},
-                               {"acao": dispensar, "rotulo": r_dispensar,
-                                "argumento": ""}]
+                nome = NOME_DA_PENDENCIA.get(ident, "") or frase
+                if ident == PENDENCIA_PAREDE:
                     nome = "Papel devolvido"
-                if ident in BUILD_DA_PENDENCIA and comando:
-                    escolha = [{"acao": "extensao_refazer", "argumento": BUILD_DA_PENDENCIA[ident],
-                                "rotulo": "Refazer"}]
-                if ident == PENDENCIA_EXTENSAO and comando:
-                    escolha = [{"acao": "vscode_instalar_extensao", "argumento": e,
-                                "rotulo": "Instalar " + e} for e in _extensoes_de_terceiro()]
+                if ident == PENDENCIA_EXTENSAO:
                     nome = "Extensão do pack"
-                if not nome:
-                    nome = NOME_DA_PENDENCIA.get(ident, "")
-                if not nome and not acao:
-                    nome = ACOES.get(ACAO_DA_PENDENCIA.get(ident, ""), {}).get("rotulo", "")
-                rede = any(ACOES.get(a, {}).get("rede") for a in [acao] + [e["acao"] for e in escolha])
                 fora.append({
                     "id": ident, "etapa": etapa, "frase": frase,
                     "comando": comando, "quando": quando,
                     "acao": acao,
-                    "escolha": escolha,
                     "nome": nome,
-                    "recusavel": ident in RECUSA_DA_PENDENCIA,
-                    "rede": bool(rede),
                 })
     except OSError:
         return []
@@ -8244,18 +8173,6 @@ class Manipulador(BaseHTTPRequestHandler):
             if not texto.strip():
                 return self._json({"erro": "o arquivo veio vazio"}, 400)
             return self._json(importar_conf(texto))
-
-        if caminho == "/api/pendencia-recusar":
-            ident = str(corpo.get("id", ""))
-            argv = RECUSA_DA_PENDENCIA.get(ident)
-            if argv is None:
-                return self._json({"erro": "esta pendência não aceita recusa"}, 404)
-            try:
-                fim = subprocess.run(argv, capture_output=True, timeout=30,
-                                     env=_ambiente_do_painel())
-            except (OSError, subprocess.SubprocessError) as erro:
-                return self._json({"erro": "não consegui gravar a recusa: %s" % erro}, 500)
-            return self._json({"recusada": ident, "rc": fim.returncode})
 
         if caminho == "/api/parar":
             try:
