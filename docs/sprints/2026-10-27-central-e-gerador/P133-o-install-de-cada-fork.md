@@ -28,5 +28,5 @@ install de cada um deles»).
   arquivo novo no install do fork acenda vermelho aqui em vez de faltar em silêncio.
 
 ## Prova
-- O teste novo verde para os 9 forks; `./tests/todos.sh` verde; metainfo dos 9 em `~/.local/share/metainfo/` depois
-  do install.
+- O teste novo verde para os 9 forks; `./tests/todos.sh` verde; depois do install, em `~/.local/share/metainfo/`, o
+  metainfo dos sete que têm um (leitura e performance não trazem metainfo).
