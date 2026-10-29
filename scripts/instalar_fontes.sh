@@ -89,6 +89,7 @@ _fonte_instalar_face() {
 
   local d
   for d in "$ACERVO_LOCAL" "$DESTINO_LOCAL"; do
+    meow_guardar_antes "$d/$nome"
     tmp="$(mktemp -p "$d" ".meow-fonte.XXXXXX")" || return "$MEOW_ERRO"
     if ! cp -- "$origem" "$tmp"; then
       rm -f "$tmp"; meow_erro "não consegui copiar '$nome'"; return "$MEOW_ERRO"
@@ -285,6 +286,7 @@ else
       continue
     fi
     chmod 644 "$stage/$nome"
+    meow_guardar_antes "$DESTINO/$nome"
     mv -f "$stage/$nome" "$DESTINO/$nome" || { meow_erro "falhou instalar $nome"; exit "$MEOW_ERRO"; }
     novos=$((novos+1))
   done < <(printf '%s\n' "${SOMAS[@]}")
@@ -310,7 +312,7 @@ if [ -d "$DESTINO" ]; then
       meow_muda "removeria ${#sobrando[@]} face(s) de outra versão: ${sobrando[*]}"
       mudou=1
     else
-      for nome_f in "${sobrando[@]}"; do rm -f "$DESTINO/$nome_f"; done
+      for nome_f in "${sobrando[@]}"; do meow_guardar_antes "$DESTINO/$nome_f"; rm -f "$DESTINO/$nome_f"; done
       meow_muda "removidas ${#sobrando[@]} face(s) de outra versão: ${sobrando[*]}"
       mudou=1
       refazer_cache=1
@@ -335,6 +337,7 @@ if [ -d "$ACERVO_LOCAL" ]; then
       meow_muda "instalaria a fonte local $nome_l em $DESTINO_LOCAL"
       mudou=1; locais_postas=$((locais_postas + 1)); continue
     fi
+    meow_guardar_antes "$alvo_l"
     mkdir -p "$DESTINO_LOCAL" || { meow_erro "não consegui criar $DESTINO_LOCAL"; exit "$MEOW_ERRO"; }
     tmp_l="$(mktemp -p "$DESTINO_LOCAL" ".meow.XXXXXX")" || exit "$MEOW_ERRO"
     cp -- "$arq" "$tmp_l" || { rm -f "$tmp_l"; meow_erro "não consegui copiar $nome_l"; exit "$MEOW_ERRO"; }
@@ -350,7 +353,7 @@ if [ -d "$ACERVO_LOCAL" ]; then
       if meow_seco; then
         meow_muda "removeria $nome_l (saiu de assets/fontes/locais/)"
       else
-        rm -f "$arq"; refazer_cache=1
+        meow_guardar_antes "$arq"; rm -f "$arq"; refazer_cache=1
       fi
       mudou=1; locais_tiradas=$((locais_tiradas + 1))
     done < <(find "$DESTINO_LOCAL" -maxdepth 1 -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print0 2>/dev/null)
@@ -422,6 +425,7 @@ else
         ;;
     esac
     chmod 644 "$tmp_f"
+    meow_guardar_antes "$alvo_f"
     mv -f "$tmp_f" "$alvo_f" || { rm -f "$tmp_f"; meow_erro "falhou instalar $nome_f"; exit "$MEOW_ERRO"; }
     mudou=1; refazer_cache=1; pack_postas=$((pack_postas + 1))
   done <<< "$lista_pack"
@@ -433,7 +437,7 @@ else
       if meow_seco; then
         meow_muda "removeria $nome_l (o pack ativo não a traz)"
       else
-        rm -f "$arq"; refazer_cache=1
+        meow_guardar_antes "$arq"; rm -f "$arq"; refazer_cache=1
       fi
       mudou=1; pack_tiradas=$((pack_tiradas + 1))
     done < <(find "$DESTINO_PACK" -maxdepth 1 -type f \( -iname '*.otf' -o -iname '*.ttf' \) -print0 2>/dev/null)
