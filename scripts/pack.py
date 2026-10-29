@@ -3163,7 +3163,7 @@ def flavor_de_icones(ref, pedido, flavor):
         return pedido
     p, dados, _dir = validar(_ref_ativa(ref), silencioso=True)
     mt = _mimetypes_de(p["id"], p, dados)
-    fabrica = pedido or flavor
+    fabrica = pedido or flavor or (p.get("paleta") or {}).get("flavor_padrao") or next(iter(dados["flavors"]), "")
     if mt and fabrica not in mt["existem"] and mt["escolhido"] in mt["existem"]:
         return mt["escolhido"]
     return fabrica
