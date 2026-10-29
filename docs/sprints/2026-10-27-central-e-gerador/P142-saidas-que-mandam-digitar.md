@@ -29,3 +29,26 @@ Anotada em 27/10 (bloco Textos) e 29/10; medida de novo em 29/10 no `dev` (29350
 ## Prova
 - O `grep` acima sem achado fora da ajuda; os testes que citam essas frases atualizados no mesmo commit;
   `tests/decisoes.sh` verde no que é desta sprint.
+
+## Execução
+
+Commit `270a0264`.
+
+- **Cursor** (`scripts/cursor.sh`): sem rede, a saída diz que nada foi instalado e que o doctor tenta de novo na
+  passada seguinte; o ponteiro adicionado diz onde escolher, pelo nome que o painel mostra
+  (`meow_onde_no_painel CURSOR`). O `depois` do envio no painel passou de «Tema do ponteiro» para «Ponteiro», o nome
+  que a tela tem.
+- **Janelas e relógio**: escolhi a segunda via, só dizer o fato. A decisão 34 e o desenho do doctor não permitem
+  que ele adote a escolha da GUI sem mexer na regra «o conf manda»; as saídas dizem que o valor do `meow.conf`
+  manda e onde ele se escolhe no painel. O doctor não mudou.
+- Os demais achados do `grep` da sprint foram reescritos para o fato: `construir_icones.sh`, `forma.sh` (três
+  frases), `escala.sh`, `areas.sh`, `leitura.sh`, `terminal.sh`, `wallpaper.sh` (`cmd_dispensar` sem «Início»),
+  `completar_icones.sh` (a pendência de tema mora em Tema), `lib/desinstalar.sh`, `lib/preflight.sh` e dois avisos
+  do `bin/meow`.
+- `porta_das_pendencias()` virou `nome_da_porta_cuidar()` no `app/servidor.py` e em `tests/app.sh`.
+- **Prova**: `tests/nada-manda-digitar.sh` ganhou a seção 9 (o `grep` da sprint sem achado em `scripts`, `bin` e
+  `lib`; nenhuma saída cita a Início; o nome antigo da porta não volta; o ponteiro adicionado diz onde escolher).
+  Rodado: verde.
+- **Ficou de fora**: `scripts/temas-de-apps/` (outro bloco). `bin/meow` ainda tem a ajuda e o `--help`, como a
+  sprint manda. As frases de `meow_pula` com o nome da chave («TERMINAL_ESQUEMA="nao" no meow.conf — o terminal
+  fica com a paleta de fábrica» e parecidas) dizem o estado e não mandam fazer nada; ficaram.
