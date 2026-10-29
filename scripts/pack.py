@@ -376,7 +376,7 @@ def ultimo_pack_usar(log=None):
     try:
         with open(log, encoding="utf-8", errors="replace") as fh:
             for linha in fh:
-                m = RE_PACK_USAR_NO_LOG.search(linha.rstrip("\n"))
+                m = linha.endswith("\n") and RE_PACK_USAR_NO_LOG.search(linha[:-1])
                 if m:
                     ultimo = (m.group(1), m.group(2))
     except OSError:
