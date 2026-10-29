@@ -805,7 +805,7 @@ nomes = ({i["titulo"] for i in esquema if i.get("titulo")}
          | {a["rotulo"] for a in servidor.ACOES.values() if not a.get("oculta")})
 abas = ({i["secao"] for i in esquema if i.get("secao")}
         | {a["grupo"] for a in servidor.ACOES.values() if not a.get("oculta")}
-        | {"Início", servidor.porta_das_pendencias()})
+        | {"Início", servidor.nome_da_porta_cuidar()})
 with open(os.path.join(raiz, "install.sh"), encoding="utf-8") as fh:
     instalador = fh.read()
 for n, linha in enumerate(instalador.splitlines(), 1):

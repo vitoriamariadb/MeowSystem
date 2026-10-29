@@ -77,8 +77,8 @@ if [ -z "$ESCALA_TELA" ]; then
         meow_aviso "$nome está em escala $escala (fracionária) — o traço fino dos ícones serrilha"
         meow_info "  o app desenha em 1x e o compositor reamostra: 1 px de traço vira ${escala} px"
         meow_info "  isso não tem conserto do lado do arquivo — o vetor já é rasterizado no tamanho certo"
-        meow_info "  se quiser nitidez no lugar do tamanho: ESCALA_TELA=\"1.0\" no meow.conf"
-        meow_info "  para calar este aviso sem mudar nada: ESCALA_AVISAR=\"nao\""
+        onde="$(meow_onde_no_painel ESCALA_TELA)"
+        [ -z "$onde" ] || meow_info "  nitidez no lugar do tamanho: escala 1.0 em $onde"
       fi
     done < <(saidas)
   fi

@@ -15,7 +15,7 @@ _forma_compositor_clampa() {
 
 
 _forma_conferir_raio_do_disco() {
-  local barra="$1" dir="$2" atual teto chave rc
+  local barra="$1" dir="$2" atual teto rc
   atual="$(cat "$dir/border_radius" 2>/dev/null || true)"
   case "$atual" in ''|*[!0-9]*) return 0 ;; esac
 
@@ -37,11 +37,10 @@ _forma_conferir_raio_do_disco() {
     return 0
   fi
 
-  chave="FORMA_RAIO_PAINEL"; [ "$barra" = "Dock" ] && chave="FORMA_RAIO_DOCK"
   meow_aviso "$barra: raio $atual no disco, acima de $teto, e o cosmic-comp NÃO está patchado"
   meow_info  "  com este valor topbar e dock somem JUNTAS e não voltam — medido em 26/08/2026"
   meow_info  "  o patch some num 'apt upgrade' do cosmic-comp; o doctor o refaz (~4 min, sudo no fim)"
-  meow_info  "  para impor um valor daqui em vez disso: $chave no meow.conf"
+  meow_info  "  o raio fica em $teto até o patch voltar"
   meow_escrever "$dir/border_radius" "$teto" 644; rc=$?
   case "$rc" in
     1) mudou=1 ;;
@@ -91,7 +90,7 @@ done
 if [ "$_forma_veio_do_ambiente" = "0" ] &&
    grep -qE '^[[:space:]]*(export[[:space:]]+)?FORMA_' "$MEOW_CONF_ARQUIVO" 2>/dev/null; then
   meow_aviso "o $MEOW_CONF_ARQUIVO tem geometria e nada dela chegou aqui — vou gravar os padrões DESTE arquivo por cima"
-  meow_info "quem lê o conf é 'meow doctor --consertar' (ou o ./install.sh); rodar este script na mão desfaz a sua escolha"
+  meow_info "o doctor e o instalador são quem lê o conf; este script, sozinho, volta aos padrões dele"
 fi
 
 _bool() { case "$1" in sim|true|1) printf 'true' ;; nao|não|false|0) printf 'false' ;;
@@ -122,18 +121,17 @@ aplicar_barra() {
     if [ "$raio" -gt "$teto" ] && _forma_compositor_clampa; then
       meow_info "$barra: raio $raio acima de $teto, mas o cosmic-comp clampa — seguindo"
     elif [ "$raio" -gt "$teto" ]; then
-      local chave; chave="FORMA_RAIO_PAINEL"; [ "$barra" = "Dock" ] && chave="FORMA_RAIO_DOCK"
       case "${FORMA_RAIO_EXPERIMENTAL:-nao}" in
         sim|true|1)
           meow_aviso "$barra: raio $raio acima do valor com evidência ($teto) — modo experimental, seguindo"
-          meow_info  "  se topbar e dock sumirem JUNTAS, é isto: $chave=\"$teto\" e 'meow forma' devolve"
+          meow_info  "  se topbar e dock sumirem JUNTAS, é este raio: o valor com evidência é $teto"
           ;;
         *)
           meow_aviso "$barra: raio $raio acima de $teto, o único valor com dias de uso atrás"
           meow_info  "  não há teto calculável: o cosmic-comp compara o raio NOVO com a caixa do frame ANTERIOR"
           meow_info  "  (corner_radius.rs:657-698) e mata o cliente — topbar e dock somem JUNTAS"
           meow_info  "  o conserto de raiz é o patch, que o doctor compila (~4 min, sudo no fim)"
-          meow_info  "  para tentar acima disso sem o patch: FORMA_RAIO_EXPERIMENTAL=sim"
+          meow_info  "  o raio fica em $teto até o patch voltar"
           raio="$teto"
           ;;
       esac

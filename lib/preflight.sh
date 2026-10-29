@@ -29,8 +29,7 @@ meow_preflight() {
         meow_erro "isto arruma o COSMIC, e o COSMIC não está rodando aqui"
         meow_info "  num GNOME/KDE o resultado é ~/.config/cosmic/ que ninguém lê,"
         meow_info "  mais timers do systemd e um tema de ícones sem quem o peça."
-        meow_info "  para instalar mesmo assim (ex.: pelo TTY, antes do 1º login):"
-        meow_info "      MEOW_IGNORA_DESKTOP=1 ./install.sh"
+        meow_info "  o instalador só segue sem COSMIC com MEOW_IGNORA_DESKTOP=1 no ambiente (ex.: pelo TTY, antes do 1º login)"
         return 2
       fi ;;
   esac
