@@ -2808,6 +2808,25 @@ def _mod_gravar_padrao(pasta, nome):
     os.replace(tmp, arquivo)
 
 
+def _mod_formato_confere(ext, dados):
+    if ext == ".qbtheme":
+        return dados[:4] == b"qres"
+    try:
+        texto = dados.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return False
+    if "\0" in texto:
+        return False
+    if ext == ".json":
+        try:
+            return isinstance(json.loads(texto), dict)
+        except ValueError:
+            return False
+    if ext == ".dconf":
+        return "[/]" in (linha.strip() for linha in texto.splitlines())
+    return True
+
+
 def _mod_tema_adicionar(corpo):
     pasta = str(corpo.get("app", ""))
     aceita = _mod_aceita().get(pasta)
@@ -2833,8 +2852,8 @@ def _mod_tema_adicionar(corpo):
         return {"erro": "arquivo vazio"}, 400
     if len(dados) > TEMA_ADICIONADO_TETO:
         return {"erro": "arquivo maior que 4 MB"}, 413
-    if b"\0" in dados[:8192]:
-        return {"erro": "isso não parece um tema"}, 400
+    if not _mod_formato_confere(os.path.splitext(nome)[1].lower(), dados):
+        return {"erro": "isso não parece um tema %s" % os.path.splitext(nome)[1].lower()}, 400
     casa = _mod_casa_de_temas(pasta)
     destino = os.path.join(casa, nome)
     tmp = destino + ".meow-parcial"

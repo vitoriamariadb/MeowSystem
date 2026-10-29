@@ -122,6 +122,14 @@ for corpo in '{"app": "enfeite", "nome": "x.css", "conteudo": "eA=="}' '{"app": 
              '{"app": "enfeite", "url": "http://exemplo/x.conf"}' '{"app": "../enfeite", "nome": "x.conf", "conteudo": "eA=="}'; do
   servidor "servidor._mod_tema_adicionar($corpo)" | grep -q '"erro"' || falha "adicionar tema aceitou $corpo"
 done
+servidor 'servidor._mod_tema_adicionar({"app": "enfeite", "nome": "bin.conf", "conteudo": sys.argv[1]})' \
+  "$(printf '\377\376\000cor' | base64 -w0)" | grep -q '"erro"' || falha "adicionar tema aceitou um binário como .conf"
+formatos="$(servidor '[servidor._mod_formato_confere(e, d.encode("latin-1")) for e, d in json.loads(sys.argv[1])]' \
+  '[[".qbtheme", "qres\u0000\u0000\u0000\u0003"], [".qbtheme", "cor=rosa"], [".json", "{\"id\": 1}"], [".json", "[1]"],
+    [".json", "{quebrado"], [".dconf", "[/]\npalette=[]"], [".dconf", "[outro]\nx=1"], [".css", "a { b: c; }"],
+    [".css", "a\u0000b"], [".css", "\u00ff\u00fe"]]')"
+[ "$formatos" = "[true, false, true, false, false, true, false, true, false, false]" ] \
+  || falha "a conferência de formato do tema adicionado errou: $formatos"
 [ "$(ls "$CASA_DE_TEMAS")" = "$(printf 'Meu tema.conf\npadrao')" ] || falha "um pedido recusado deixou arquivo na casa de temas: $(ls "$CASA_DE_TEMAS" | tr '\n' ' ')"
 meow apps aplicar enfeite >/dev/null 2>&1
 quero="cor=rosa $(printf 'cor=rosa' | sha256sum | cut -d' ' -f1)"
