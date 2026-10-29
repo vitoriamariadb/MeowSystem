@@ -1,42 +1,22 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
-- 28/10, depois do login: o compositor vivo é o build do MeowSystem (`meow compositor conferir`: 5 patches no disco e
-  na sessão). O Vencord está injetado no `app-1.0.166`; falta só o `enabledThemes`, que o install liga com o Discord
-  fechado. A D6 não fica verde com login: o ID da decisão (`25a2`) não existe nesta máquina (RTX 4060, `28a0`). Ela
-  decidiu: produto universal, a GPU detectada por máquina, e a P132 faz isso (worktree `~/Desenvolvimento/MeowSystem-gpu`,
-  branch `bloco/gpu`, 2 agentes). A linha do `jogos-fora.map` fica apagada, por decisão dela (ab44877d).
-  PRÓXIMO: integrar a P132 no `dev` e rodar o install com o HOME real pelo askpass (pedido dela). Depois, pedido
-  dela: `master` no `origin` (hoje em 89064565, de 28/09; as tags v2.0.0 e v2.1.0 só existem aqui) e o release.
-  Os forks (pergunta dela): o install não chama o install de nenhum, e o que falta está na P133 (ela: entra agora;
-  worktree `~/Desenvolvimento/MeowSystem-forks2`, branch `bloco/forks-p133`).
-  Na fila (ela, 28/10: «entra agora também»): bloco Painel com a P134 (Modificações: garantida no install, cartão
-  único com interruptor e «⋮», Adicionar tema) e a P135 (Manter: o cartão de voltar ao lado do Registro). Lança
-  quando a P132 voltar, porque a P134 mexe no `install.sh` (dois blocos por vez, no máximo).
-  Também na fila: P138 (escolher a logo do programa) entra no bloco Painel; P137 (pendências se resolvem e saem da
-  tela; o qBittorrent desfeito pelo `aurora-qbittorrent-config.sh`; o pack pessoal sem captura do COSMIC) é um bloco
-  próprio, lançado quando a P133 voltar.
-  EM VOO (ela, 28/10: «dispara uns 3 opus»): P136, os applets, em três grupos (A performance/leitura/quick-settings,
-  B eyedropper/clipboard/drives, C status-hub/ascii-battery/now-playing), clones em `~/Desenvolvimento/forks/`,
-  push na `main` de cada fork. Na integração, os pinos ganham `COMMIT`, `VERSAO`, `TEMA` e `TEMA_CHAVES` novos,
-  depois do merge da P133 (que também mexe nos pinos).
-  P136 grupo B VOLTOU (push feito): eyedropper 0f8c7afd 0.6.3, clipboard 0e663134 0.1.1, drives 02a5ccd6 0.1.3;
-  `TEMA`/`TEMA_CHAVES` iguais. Causa do inglês: faltava `i18n/pt-BR/` no eyedropper e no drives.
-  Disco: `/home` a 96% (14 GB livres); as árvores de build das extensões ocupam 15 GB (1,7 GB cada, um `target/`
-  por applet). Anotado: um `CARGO_TARGET_DIR` só para as nove. Apagar os `target/` de `~/Desenvolvimento/forks/`
-  quando os grupos A e C voltarem.
-  P136 grupo A VOLTOU (push feito): performance 06378723 0.2.0, leitura 274bd6a8 0.2.0, ambos com
-  `TEMA="io.github.meowsystem.<Performance|Leitura>"` e `TEMA_CHAVES="acento:@acento destaque:base fundo:base
-  borda:surface1 texto:text bloco:surface0"`; quick-settings sem mudança (73d29e9b). O `/home` chegou a 0 bytes
-  durante os builds: o que as suítes da P132 e da P133 rodaram nessa janela não vale como prova; o conferente roda de novo.
-  P136 grupo C VOLTOU (push feito): status-hub 8e869d5e 1.7.0, ascii-battery 66a727fd 1.4.0 (chaves iguais),
-  now-playing 6f448ec7 0.4.0 com `TEMA="io.github.meowsystem.NowPlaying"` e `TEMA_CHAVES="acento:@acento fundo:base
-  borda:surface1 texto:text"`. A Bandeja perdeu a opção «Título no popup». `target/` dos clones apagados (19 GB livres).
-  Falta na P136: as capturas no painel depois do install. Os pinos estão em `bloco/pinos-p136` (131d3eed, worktree
-  `~/Desenvolvimento/MeowSystem-pinos-p136`), SHAs conferidos com `git ls-remote`; integrar depois da P133.
-  EM VOO (ela, 28/10: «o que mais dá pra rodar agora em paralelo»): bloco Painel (P134, P135, P138; worktree
-  `MeowSystem-painel-p134`) e bloco P137 (worktree `MeowSystem-pendencias-p137`), um Opus em cada; conferentes depois.
-  Ordem de integração no `dev`: P132, P133, pinos-p136, P137, Painel.
+- 29/10, madrugada: no `dev` a P132 (affc0489, GPU do compositor por máquina), o bloco Painel (6a269d77: P134
+  Modificações universal com interruptor e «⋮» e Adicionar tema, P135 o cartão de voltar ao lado do Registro, P138
+  `LOGO_PROGRAMA`) e a P137 (56b859d7: pendências se resolvem e saem da tela; qBittorrent no tema do pack; pack
+  pessoal com tema do COSMIC). Cada bloco com conferente Opus e suíte com só os vermelhos aceitos (`decisoes.sh` D6,
+  `restaurar.sh` `pack_usar`/`desinstalar`). A P136 (os 9 applets) está nos forks, com push; os pinos em
+  `bloco/pinos-p136` (131d3eed).
+  EM VOO: o conferente da P133 (worktree `~/Desenvolvimento/MeowSystem-forks2`, branch `bloco/forks-p133`), que
+  também confere o conflito com os pinos da P136.
+  PRÓXIMO: integrar a P133 e depois `bloco/pinos-p136`; suíte final no `dev`; install com o HOME real pelo askpass
+  (`sudo -A`, pedido dela); conferir na máquina (`pendencias.tsv` vazio, qBittorrent no tema do pack, COSMIC no «Meu
+  Meow-Portátil», `COSMIC_RENDER_DEVICE="0x10de:0x28a0"` no `/etc/environment`, capturas dos applets e do painel);
+  `master` no `origin` (hoje 89064565; as tags v2.0.0 e v2.1.0 só existem aqui) e o release. Ela faz login novo
+  para a GPU valer.
+  Anotado para depois: um `CARGO_TARGET_DIR` só para as nove extensões (15 GB de `target/`); o `meow wallpaper
+  dispensar` diz «o aviso saiu da Início» (velho); o reverter do qBittorrent sem tema guardado manda editar o
+  `meow.conf`; `porta_das_pendencias()` no `servidor.py` com nome que não diz mais o que faz.
 - FECHO (28/10, madrugada): tudo no `dev` (merge 9e5bf737) e instalado com o HOME real (69 etapas, rc=0).
   `meow doctor --consertar` rodado: as 348 imagens foram para `~/.local/share/backgrounds/meowsystem`, a
   árvore velha `midia/` e `leitura/` (1,6 GB) saiu, e o corte da Aurora (compositor e luz noturna) está no
