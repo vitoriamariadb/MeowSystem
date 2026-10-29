@@ -1019,6 +1019,10 @@ _patches_shim_falta() {
   [ "${COMPOSITOR:-sim}" != nao ] || return 1
   "$RAIZ/scripts/garantir_builds.sh" estado 2>/dev/null | grep -qx 'compositor_estado=desligado'
 }
+chk_gpu() {
+  MEOW_DRY_RUN=1 GPU_COMPOSITOR="${GPU_COMPOSITOR:-dedicada}" "$RAIZ/scripts/gpu_compositor.sh" conferir 2>&1
+}
+
 chk_patches() {
   if _patches_shim_falta; then
     echo "o build da casa do cosmic-comp está pronto e o shim em ~/.local/bin/cosmic-comp não está ligado"
@@ -1378,6 +1382,7 @@ fix_flatpaktema() { CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-M
 fix_flatpakadwaita() { "$RAIZ/scripts/flatpak_tema.sh" aplicar libadwaita 2>&1; }
 fix_flatpakicones() { "$RAIZ/scripts/flatpak_tema.sh" aplicar icones 2>&1; }
 fix_flatpakruntime() { "$RAIZ/scripts/flatpak_tema.sh" aplicar runtime 2>&1; }
+fix_gpu() { GPU_COMPOSITOR="${GPU_COMPOSITOR:-dedicada}" "$RAIZ/scripts/gpu_compositor.sh" aplicar 2>&1; }
 fix_flatpakglobal() { "$RAIZ/scripts/flatpak_tema.sh" aplicar global 2>&1; }
 fix_onlyoffice() { "$RAIZ/scripts/escritorio.sh" aplicar onlyoffice 2>&1; }
 fix_libreoffice() { "$RAIZ/scripts/escritorio.sh" aplicar libreoffice 2>&1; }
@@ -1492,10 +1497,10 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 if ! meow_ponte_viva; then
-  SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal libreoffice "
+  SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal gpu libreoffice "
 fi
 
 declare -A SEM_CONSERTO_RAZAO=(
@@ -1505,6 +1510,7 @@ declare -A SEM_CONSERTO_RAZAO=(
   [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste scripts/temas-de-apps/heroic/manifesto.sh"
   [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — entra no «Instalar tudo»"
   [flatpakglobal]="limpar o override do sistema usa root, e o doctor não usa — entra no «Instalar tudo»"
+  [gpu]="gravar o /etc/environment usa root, e o doctor não usa — entra no «Instalar tudo»"
   [libreoffice]="tirar o LibreOffice do apt usa root, e o doctor não usa — entra no «Instalar tudo»"
   [pacotes]="sem a ponte root, instalar pacote pede a sua senha, e o auto-reparo não tem a quem pedir — o ./install.sh pede uma vez e instala a ponte"
 )

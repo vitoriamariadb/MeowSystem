@@ -64,6 +64,9 @@ meow_desinstalar() {
   if [ -x "$MEOW_RAIZ/scripts/escritorio.sh" ]; then
     "$MEOW_RAIZ/scripts/escritorio.sh" reverter || true
   fi
+  if [ -x "$MEOW_RAIZ/scripts/gpu_compositor.sh" ]; then
+    "$MEOW_RAIZ/scripts/gpu_compositor.sh" reverter || true
+  fi
 
   local regra_ponte=/etc/sudoers.d/49-meowsystem-ponte
   local braco_ponte=/usr/local/lib/meowsystem

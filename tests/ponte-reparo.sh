@@ -410,6 +410,31 @@ confere "e a etapa a põe de volta" '[ "$rc" = 1 ] && cmp -s "$REGRA_PK_REPO" "$
 saida="$(doctor chk_ponte)"; rc=$?
 confere "e o doctor diz ok" '[ "$rc" = 0 ]' "$saida"
 
+printf '\n--- 8. a ponte de antes dos verbos da GPU: o doctor a acusa e o install a renova ---\n'
+VELHA="$T/ponte-velha.sh"
+sed -e '/^gpu-compositor)/,/^  ;;$/d' -e '/^gpu-compositor-tirar)/,/^  ;;$/d' -e '/gpu-compositor/d' \
+  "$RAIZ/scripts/ponte_root.sh" > "$VELHA"
+regra_velha="$(SUDO_USER="$(id -un)" bash "$VELHA" regra-sudo)"
+confere "a ponte velha de brinquedo não conhece os verbos da GPU" \
+  'bash -n "$VELHA" && ! grep -q gpu-compositor "$VELHA" && grep -q "ponte_root.sh estado" <<< "$regra_velha"'
+chmod -R u+w "$BASE"; chmod u+w "$REGRA"
+cp "$VELHA" "$BASE/ponte_root.sh"; cp "$VELHA" "$BASE/reserva/ponte_root.sh"
+printf '%s\n' "$regra_velha" > "$REGRA"; printf '%s\n' "$regra_velha" > "$BASE/reserva/49-meowsystem-ponte"
+( cd "$BASE/reserva" && sha256sum ponte_root.sh 49-meowsystem-ponte ) > "$BASE/reserva.sha256"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "ponte e reserva da mesma época, sem gpu-compositor: divergente, e pede o «Instalar tudo»" \
+  '[ "$rc" = 1 ] && grep -q "repositório" <<< "$saida" && grep -q "Instalar tudo" <<< "$saida"' "$saida"
+: > "$SYSTEMCTL_LOG"
+saida="$(doctor fix_ponte)"; rc=$?
+confere "e o conserto não dispara o reparo, que só devolveria a velha (sai 3)" \
+  '[ "$rc" = 3 ] && ! grep -q "^start" "$SYSTEMCTL_LOG" && grep -q "Instalar tudo" <<< "$saida"' "$saida"
+saida="$(etapa)"; rc=$?
+confere "o install renova ponte, reserva e regra, que passa a liberar os dois verbos" \
+  '[ "$rc" = 1 ] && cmp -s "$RAIZ/scripts/ponte_root.sh" "$BASE/ponte_root.sh" && cmp -s "$RAIZ/scripts/ponte_root.sh" "$BASE/reserva/ponte_root.sh" \
+   && grep -q "ponte_root.sh gpu-compositor, " "$REGRA" && grep -q "ponte_root.sh gpu-compositor-tirar, " "$REGRA"' "$saida"
+saida="$(doctor chk_ponte)"; rc=$?
+confere "e o doctor diz ok" '[ "$rc" = 0 ]' "$saida"
+
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi
 printf 'tudo ok\n'
