@@ -205,7 +205,7 @@ existe "binário de volta" "$BIN"
 
 echo "== sombra órfã: sem binário e sem poder compilar, a sombra sai"
 SOMBRA_F="$H/.local/share/applications/io.github.teste.Fake.desktop"
-cp "$BIN" "$T/bin-guardado"; rm -f "$BIN"; rm -rf "$H/.local/state/meowsystem/extensoes/fake/target"
+cp "$BIN" "$T/bin-guardado"; rm -f "$BIN"; rm -rf "$H/.local/state/meowsystem/extensoes/.target"
 existe "armado: sombra sem binário" "$SOMBRA_F"
 saida="$(EBX MEOW_DRY_RUN=1 fake --aplicar)"; igual "o seco só avisa (diverge)" "$?" 1
 existe "o seco não tirou a sombra" "$SOMBRA_F"
@@ -306,6 +306,66 @@ printf 'ORDEM=1\nNOME="Novo"\nBIN="meowsystem-status-hub"\nTEMA="io.github.teste
 saida="$(TEMA EXTENSOES_PINOS="$NP" FLAVOR=mocha)"; igual "um pino novo com TEMA_CHAVES ganha tema sem código" "$?" 1
 NOVO="$TH/.config/meowsystem/extensoes/io.github.teste.Novo/tema.conf"
 igual "com as chaves do pino, o sufixo e o acento" "$(cat "$NOVO" 2>/dev/null | paste -sd' ')" "fundo = #1e1e2ef0 realce = #cba6f7"
+
+echo "== um CARGO_TARGET_DIR só para as nove extensões"
+P9="$T/pinos9"; H9="$T/lar9"; E9="$H9/.local/state/meowsystem/extensoes"; ALVO9="$E9/.target"
+mkdir -p "$P9" "$H9" "$T/bin9"
+cat > "$T/bin9/cargo" <<FIM
+#!/bin/sh
+[ "\$1" = build ] || exit 0
+echo "\$CARGO_TARGET_DIR" >> "$T/alvos.log"
+[ -f "$T/cargo9-falha" ] && { echo "error: linker \\\`cc\\\` not found" >&2; exit 101; }
+mkdir -p "\$CARGO_TARGET_DIR/release"
+for n in 1 2 3 4 5 6 7 8 9; do
+  printf '#!/bin/sh\n# %s\n' "\$\$" > "\$CARGO_TARGET_DIR/release/meowsystem-e\$n"
+  chmod 755 "\$CARGO_TARGET_DIR/release/meowsystem-e\$n"
+done
+FIM
+chmod 755 "$T/bin9/cargo"
+EB9() {
+  EBX PATH="$T/bin9:$PATH" HOME="$H9" XDG_DATA_HOME="$H9/.local/share" XDG_CONFIG_HOME="$H9/.config" \
+    MEOW_ESTADO="$H9/.local/state/meowsystem" EXTENSOES_PINOS="$P9" "$@"
+}
+LISTA9=""
+for n in 1 2 3 4 5 6 7 8 9; do
+  printf 'ORDEM=%s\nNOME="E%s"\nURL="%s"\nCOMMIT="%s"\nVERSAO="0.4.2"\nAPP_ID="io.github.teste.E%s"\nBIN="meowsystem-e%s"\nDESKTOP="data/io.github.teste.Fake.desktop.in"\n' \
+    "$n" "$n" "$REPO" "$C1" "$n" "$n" > "$P9/e$n.pino"
+  mkdir -p "$E9/e$n/target/release"; printf 'cache velho\n' > "$E9/e$n/target/release/lixo"
+  LISTA9="$LISTA9 e$n"
+done
+: > "$T/alvos.log"
+saida="$(EB9 EXTENSOES="$LISTA9" --todas --conferir)"; igual "com as target/ velhas, o conferir diverge" "$?" 1
+existe "e o conferir não apagou a velha" "$E9/e1/target/release/lixo"
+saida="$(EB9 EXTENSOES="$LISTA9" EXTENSOES_COMPILAR=1 --todas --aplicar)"; rc=$?
+igual "a primeira passada compila e migra (rc 1)" "$rc" 1
+igual "nove builds" "$(wc -l < "$T/alvos.log")" 9
+igual "as nove receberam o mesmo CARGO_TARGET_DIR" "$(sort -u "$T/alvos.log")" "$ALVO9"
+for n in 1 2 3 4 5 6 7 8 9; do
+  some "e$n: a target/ própria saiu" "$E9/e$n/target"
+  existe "e$n: o binário saiu pelo nome dela" "$H9/.local/bin/meowsystem-e$n"
+done
+existe "a pasta única existe, com nome que nenhuma extensão pode ter" "$ALVO9/release"
+antes="$(cd "$H9" && find . -mindepth 1 ! -type d -exec sha256sum {} + | sort | grep -v 'pendencias.tsv\|meow.log')"
+: > "$T/alvos.log"
+saida="$(EB9 EXTENSOES="$LISTA9" EXTENSOES_COMPILAR=1 --todas --aplicar)"; rc=$?
+igual "a segunda passada: rc 0" "$rc" 0
+igual "sem build" "$(wc -l < "$T/alvos.log")" 0
+igual "e nada mudou" "$(cd "$H9" && find . -mindepth 1 ! -type d -exec sha256sum {} + | sort | grep -v 'pendencias.tsv\|meow.log')" "$antes"
+mkdir -p "$E9/e2/target"; printf 'x\n' > "$E9/e2/target/lixo"
+saida="$(EB9 EXTENSOES="$LISTA9" MEOW_DRY_RUN=1 --todas --aplicar)"; igual "o seco com target/ velha diverge" "$?" 1
+existe "e o seco não apagou" "$E9/e2/target/lixo"
+saida="$(EB9 EXTENSOES="$LISTA9" EXTENSOES_COMPILAR=1 e2 --aplicar)"; igual "uma extensão já instalada também migra (rc 1)" "$?" 1
+some "e a target/ velha dela saiu" "$E9/e2/target"
+igual "sem build" "$(wc -l < "$T/alvos.log")" 0
+cd "$REPO" && echo nove >> data/novo && git add -A && git -c core.hooksPath=/dev/null commit -q -m nove && C9="$(git rev-parse HEAD)"; cd "$RAIZ"
+sed -i "s/^COMMIT=.*/COMMIT=\"$C9\"/" "$P9/e1.pino"
+antes="$(sha256sum "$H9/.local/bin/meowsystem-e1")"; touch "$T/cargo9-falha"; : > "$T/alvos.log"
+saida="$(EB9 EXTENSOES_COMPILAR=1 e1 --aplicar)"; igual "build que falha: rc 2" "$?" 2
+igual "e o binário no ar ficou" "$(sha256sum "$H9/.local/bin/meowsystem-e1")" "$antes"
+igual "mesmo assim no alvo único" "$(sort -u "$T/alvos.log")" "$ALVO9"
+rm -f "$T/cargo9-falha"
+saida="$(EB9 EXTENSOES="$LISTA9" --todas --reverter)"
+some "o --todas --reverter leva a pasta única" "$ALVO9"
 
 echo "== os quatro forks: pino válido e a troca do app id de hoje"
 FK="$T/forks"; mkdir -p "$FK/.local/bin" "$FK/.local/share/applications" "$FK/.config/cosmic/com.system76.CosmicPanel.Dock/v1"
