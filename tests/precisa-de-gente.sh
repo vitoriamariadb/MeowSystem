@@ -120,47 +120,13 @@ PY
   && ok "precisa_de_gente() devolve id, nome, desde e porquê, na ordem" || falha "o servidor leu errado: $r"
 grep -q '"/api/precisa-de-gente"' "$RAIZ/app/servidor.py" && ok "a rota /api/precisa-de-gente existe" || falha "falta a rota /api/precisa-de-gente"
 
-echo "== 4. o Manter põe uma linha por item, o porquê e o desde quando na dica"
-if command -v node >/dev/null; then
-  r="$(node - "$RAIZ/app/pagina" "$ARQ" <<'JS' 2>&1
-const fs = require("fs"), vm = require("vm"), path = require("path");
-const src = ["app.js", "paginas.js"].map((f) => fs.readFileSync(path.join(process.argv[2], f), "utf8")).join("\n");
-const itens = fs.readFileSync(process.argv[3], "utf8").trim().split("\n").map((l) => {
-  const [id, nome, desde, porque] = l.split("\t"); return { id, nome, desde, porque }; });
-const pega = (nome) => {
-  const i = src.indexOf("function " + nome + "(");
-  if (i < 0) throw new Error("falta a função " + nome);
-  let n = 0, j = src.indexOf("{", i);
-  for (let k = j; k < src.length; k++) {
-    if (src[k] === "{") n++;
-    if (src[k] === "}" && --n === 0) return src.slice(i, k + 1);
-  }
-};
-const no = (tag, a = {}, filhos = []) => ({ tag, a, texto: a.texto || "", filhos: [...filhos].filter(Boolean) });
-const ctx = { elemento: no, icone: (n) => ({ tag: "icone", a: {}, texto: "", nome: n, filhos: [] }) };
-vm.createContext(ctx);
-for (const f of ["maiuscula", "primeiraFrase", "desdeCurto", "linhaDeGente"]) vm.runInContext(pega(f), ctx);
-const todos = (n, saida = []) => { saida.push(n); (n.filhos || []).forEach((f) => todos(f, saida)); return saida; };
-const linhas = itens.map((g) => vm.runInContext("linhaDeGente", ctx)(g));
-console.log("linhas=" + linhas.filter((l) => l.tag === "li").length);
-const spans = linhas.map((l) => todos(l).find((n) => n.tag === "span" && n.texto));
-console.log("nomes=" + spans.map((s) => s.texto).join("|"));
-console.log("dicas=" + spans.map((s) => s.a.dica).join("|"));
-console.log("icones=" + linhas.map((l) => todos(l).filter((n) => n.tag === "icone").map((n) => n.nome).join("")).join("|"));
-JS
-)"
-  esperado="$(date -d "$(cut -f3 "$ARQ" | head -1)" +%d/%m)"
-  { grep -qx 'linhas=2' <<< "$r" \
-    && grep -qx 'nomes=O COSMIC da fila não entra|Patch obrigatório precisa de rebase' <<< "$r" \
-    && grep -q "^dicas=Serie: brinquedo.patch é obrigatório · Desde $esperado|Cosmic-comp 0.9~a: a série não entra · Desde " <<< "$r" \
-    && grep -qx 'icones=alerta|alerta' <<< "$r"; } \
-    && ok "uma linha por item, com o alerta; o porquê e o desde quando ficam na dica" \
-    || falha "a linha de quem precisa de gente saiu diferente: $r"
-  grep -q 'PRECISA_DE_GENTE.map(linhaDeGente)' "$RAIZ/app/pagina/paginas.js" \
-    && grep -q 'pend.children.length ? bloco("Pendências"' "$RAIZ/app/pagina/paginas.js" \
-    && ok "o Manter desenha o bloco só quando há o que esperar" || falha "o bloco de pendências do Manter mudou"
+echo "== 4. quem precisa de gente vai para o registro, e o Manter não tem cartão de pendências"
+igual "o registro ganha a linha uma vez por mudança do porquê" \
+  "$(grep -c 'precisa de gente: Primeiro (' "$E/meow.log" 2>/dev/null)" 2
+if grep -q 'PRECISA_DE_GENTE\|linhaDeGente\|bloco("Pendências"' "$RAIZ/app/pagina/paginas.js" "$RAIZ/app/pagina/app.js"; then
+  falha "o Manter ainda desenha o cartão de pendências"
 else
-  printf '  pulado: sem node, a linha do Manter não roda aqui\n'
+  ok "o Manter não desenha cartão de pendências nem a conta delas"
 fi
 
 echo

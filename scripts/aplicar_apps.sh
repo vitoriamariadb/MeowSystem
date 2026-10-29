@@ -53,7 +53,9 @@ rodar_modulo() {
 }
 
 if [ "$ACAO" = "tabela" ]; then
+  mantidos="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/temas-mantidos.tsv"
   MEOW_ESTADO="$(mktemp -d -p "${TMPDIR:-/tmp}" .meow-tabela.XXXXXX)" || exit "$MEOW_ERRO"
+  [ -f "$mantidos" ] && cp -- "$mantidos" "$MEOW_ESTADO/"
   export MEOW_ESTADO
   trap 'rm -rf "$MEOW_ESTADO"' EXIT
 

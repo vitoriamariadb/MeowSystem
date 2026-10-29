@@ -31,7 +31,6 @@ GESTOS_DE_ANTES = [
     ("GET /api/glifos", "Ícones: Buscar desenho", "glifos"),
     ("POST /api/autorais", "Ícones: Desenhos autorais do pack", "autorais"),
     ("POST /api/jogo-fora", "Lançadores e jogos: o jogo no lançador", "jogo-fora"),
-    ("POST /api/pendencia-recusar", "Início: Não, obrigado", "pendencia-recusar"),
     ("POST /api/parar", "Janela do trabalho: Parar", "parar"),
     ("POST /api/guardar-log", "Janela do trabalho: Guardar", "guardar-log"),
     ("Rodar de verdade (depois do ensaio)", "Janela do trabalho: Rodar de verdade", "ensaio-rodar"),
@@ -92,7 +91,6 @@ def servidor():
             "print(json.dumps({'chaves': [[i['chave'], i.get('secao') or '', i.get('titulo') or ''] for i in e],\n"
             "  'acoes': [[k, v.get('grupo') or '', v.get('rotulo') or ''] for k, v in s.ACOES.items() if not v.get('interna')],\n"
             "  'onde': onde, 'pendencias': pend, 'renomeado': renomeado,\n"
-            "  'escolhas': list(s.ESCOLHA_PAREDE) + list(s.ESCOLHA_TEMA_DE_TERCEIRO),\n"
             "  'inventario': srv_inv}))\n")
         amb = {"PATH": os.environ.get("PATH", ""), "HOME": casa, "LANG": "C.UTF-8",
                "MEOW_CONF": conf, "MEOW_ESTADO": os.path.join(casa, "estado"),
@@ -170,12 +168,11 @@ def gerar():
         if caminho not in destinos:
             falhas.append("o --onde de %s aponta para %r, que não existe no lugares.js" % (ident, caminho))
         if ident in srv["pendencias"]:
-            botoes = {l["botao"] for l in srv["inventario"]
-                      if l["porta"] == "cuidar" and l.get("bloco") == "Pendências" and l.get("botao")}
+            botoes = {x for l in srv["inventario"] if onde(l) == caminho for x in (l["rotulo"], l["botao"]) if x}
             for citado in [x.split("»", 1)[0] for x in frase.split("«")[1:]]:
-                if citado not in botoes | {"Resolver"}:
-                    falhas.append("o --onde da pendência %s cita «%s», que não é botão de pendência no lugares.js"
-                                  % (ident, citado))
+                if citado not in botoes:
+                    falhas.append("o --onde da pendência %s cita «%s», que não está em %s no lugares.js"
+                                  % (ident, citado, caminho))
             continue
         nomes = {x for l in srv["inventario"] if l["id"] == ident for x in (l["rotulo"], l["botao"]) if x}
         citado = frase.split("«", 1)[-1].split("»", 1)[0] if "«" in frase else ""
@@ -185,15 +182,11 @@ def gerar():
     bloco = comum.split("\nmeow_onde_no_painel() {", 1)[0].rsplit("\n\n", 1)[-1]
     if re.search(r"\babas?\b", bloco, re.I):
         falhas.append("o comentário do meow_onde_no_painel (lib/comum.sh) ainda fala em aba")
-    botao_de = {l["id"]: l.get("botao") for l in srv["inventario"]
-                if l["porta"] == "cuidar" and l.get("bloco") == "Pendências"}
-    for acao, rotulo in srv["escolhas"]:
-        if botao_de.get(acao) != rotulo:
-            falhas.append("a pendência desenha «%s» para %s, e o lugares.js diz «%s»"
-                          % (rotulo, acao, botao_de.get(acao)))
+    if any(l["porta"] == "cuidar" and l.get("bloco") == "Pendências" for l in srv["inventario"]):
+        falhas.append("o lugares.js ainda tem o bloco «Pendências» no Manter")
     quer = {"doctor_consertar": "«Consertar a ponte», em Manter Nova › Estado",
             "LANCADOR_SISTEMA": "«Arrumar o lançador», em Definir Nova › Programas › Lançador",
-            "inicio": "em Manter Nova", "areas-sem-alfinete": "«Resolver», em Manter Nova"}
+            "inicio": "", "areas-sem-alfinete": "«Criar», em Definir Nova › Janelas e tela › Áreas de trabalho"}
     if srv["renomeado"] != quer:
         falhas.append("o --onde não lê o nome das portas do lugares.js (segunda tabela no servidor): %r"
                       % srv["renomeado"])

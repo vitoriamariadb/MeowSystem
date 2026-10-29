@@ -232,9 +232,16 @@ for app in qbittorrent spotify; do
   esac
   saida="$(mod "$app" aplicar dracula dracula)"; rc=$?
   case "$app" in qbittorrent) dela=dela.qbtheme ;; *) dela=Dela ;; esac
-  [ "$rc" = 3 ] && [ "$(no_ar "$app")" = "$dela" ] \
-    && ok "$app: o tema que ela pôs à mão não é trocado pela troca de pack" \
-    || falha "$app: o tema dela foi trocado (rc=$rc, no ar: $(no_ar "$app"))" "$saida"
+  if [ "$app" = qbittorrent ]; then
+    [ "$rc" = 1 ] && [ "$(no_ar "$app")" = "$(quero "$app" dracula)" ] \
+      && [ "$(basename "$(cat "$T/estado/temas-de-apps/qbittorrent/tema-de-antes" 2>/dev/null)")" = "$dela" ] \
+      && ok "$app: o tema de fora dá lugar ao do pack, e o dela fica guardado para o «Tema de antes»" \
+      || falha "$app: o tema do pack não entrou, ou o dela não ficou guardado (rc=$rc, no ar: $(no_ar "$app"))" "$saida"
+  else
+    [ "$rc" = 3 ] && [ "$(no_ar "$app")" = "$dela" ] \
+      && ok "$app: o tema que ela pôs à mão não é trocado pela troca de pack" \
+      || falha "$app: o tema dela foi trocado (rc=$rc, no ar: $(no_ar "$app"))" "$saida"
+  fi
 done
 
 for trilha in qbittorrent.arquivo obsidian.esquema vscode.esquema heroic.esquema; do

@@ -154,6 +154,16 @@ function linhaDeCorrecao(c) {
   ]);
 }
 
+function linhaDeExtensao(e) {
+  const acao = ACAO.get("vscode_instalar_extensao");
+  return elemento("li", { class: "item-mod", "data-linha": "extensao:" + e }, [
+    elemento("span", { class: "rot-mod" }, [elemento("span", { texto: e })]),
+    elemento("span", { class: "ctl-mod" }, [acao ? botao("Instalar", { class: "bt pequeno",
+      controle: "acao:vscode_instalar_extensao:" + e, dica: acao.rotulo,
+      onclick: () => rodar(acao, e, { depois: releModificacoes }) }) : null]),
+  ]);
+}
+
 function menuDoCartao(c) {
   const detalhe = LUGAR_MODIFICACOES.detalhes.find((d) => d.id === c.id);
   const chaves = LUGAR_MODIFICACOES.chaves.filter((l) => l.cartao === c.id && CHAVE.has(l.c));
@@ -161,6 +171,7 @@ function menuDoCartao(c) {
   const corpo = [
     ...temas,
     c.correcoes.length ? elemento("ul", { class: "itens-mod" }, c.correcoes.map(linhaDeCorrecao)) : null,
+    (c.extensoes || []).length ? elemento("ul", { class: "itens-mod" }, c.extensoes.map(linhaDeExtensao)) : null,
     chaves.length ? lista(chaves) : null,
     detalhe ? elemento("a", { href: "#modificacoes/" + detalhe.id, role: "menuitem", controle: "modificacao:" + detalhe.id,
       onclick: fecharMenus }, [elemento("span", { texto: "Abrir" }), icone("seta")]) : null,
