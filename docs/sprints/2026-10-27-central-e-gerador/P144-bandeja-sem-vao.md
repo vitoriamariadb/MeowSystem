@@ -19,3 +19,24 @@ popup abre largo, o ícone fica à esquerda e o «| ⚙» colado na borda direit
   `cargo test --release --locked` verdes; commit e push na `main`.
 - No MeowSystem: pino com `COMMIT` e `VERSAO` novos; `tests/extensoes.sh` verde; depois do install, captura da
   Bandeja aberta sem vão.
+
+## Execução
+
+- Fork `meowsystem-status-hub`, `main`, publicado no origin:
+  - `c9e7943` a largura do popup acompanha a quantidade de ícones. `popup.rs`: `tray_columns`, `tray_icons_width`
+    e `tray_surface_width` (ícones × largura do item + espaços + traço + engrenagem + margens, com teto em
+    `SURFACE_WIDTH`; vazio = margem, engrenagem, margem). O `tray_row` fixa a largura da grade nos ícones (o
+    `flex_row` da libcosmic ocupa sempre o máximo que recebe, e era isso que abria o vão) e a engrenagem vem logo
+    depois do traço. `mod.rs`: `hub_width()` dá a largura à superfície do hub e ao tamanho inicial do popup, para
+    ele nascer pequeno em vez de encolher depois.
+  - `06a9749` e `7fa8824`: versão 1.7.1 (`Cargo.toml`, `Cargo.lock`, metainfo).
+- Prova no fork: `cargo build --release --locked` e `cargo test --release --locked` verdes (262 testes da lib, mais
+  os de integração), com testes novos de 1, 3, muitos ícones (quebra em 5 colunas e fica abaixo do teto) e vazio.
+- Pino `assets/extensoes/status-hub.pino`: `COMMIT=7fa8824…`, `VERSAO=1.7.1`; `LIBCOSMIC` a401af8 confere com o
+  `Cargo.lock`. Provas com o HOME temporário do arranjo do `todos.sh`: `extensoes.sh`, `applet-pino.sh`,
+  `extensoes-gesto.sh`, `cadeia-de-atualizacao.sh` e `extensoes-install.sh` verdes (este exigiu avançar o clone
+  `~/Desenvolvimento/forks/meowsystem-status-hub` para o 7fa8824, fast-forward local).
+- Com o menu de um item aberto no hub, o popup volta a `SURFACE_WIDTH` (o menu precisa da largura); os ícones e a
+  engrenagem ficam juntos à esquerda. Configurações também seguem em `SURFACE_WIDTH`.
+- Falta: o install do binário e a captura da Bandeja aberta sem vão (o coordenador instala no fim). A largura
+  exata do encaixe do `flex_row` (soma igual ao máximo) não foi vista numa tela real.
