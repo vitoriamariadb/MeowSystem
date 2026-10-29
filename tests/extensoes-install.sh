@@ -10,6 +10,7 @@ igual() { if [ "$2" = "$3" ]; then ok "$1"; else falha "$1 (esperado '$3', veio 
 
 CASA_REAL="${SUITE_CASA_REAL:-$HOME}"
 ARVORES="${EXTENSOES_ARVORES:-$CASA_REAL/.local/state/meowsystem/extensoes}"
+FORKS="${EXTENSOES_FORKS:-$CASA_REAL/Desenvolvimento/forks}"
 
 mkdir -p "$T/bin"
 for c in sudo pkexec su apt apt-get; do printf '#!/bin/sh\nexit 1\n' > "$T/bin/$c"; chmod 755 "$T/bin/$c"; done
@@ -34,7 +35,7 @@ lista_instalada() {
       bin/*|share/applications/*) printf '%s\t-\n' "$f" ;;
       *) printf '%s\t%s\n' "$f" "$(sha256sum -- "$raiz/$f" | cut -d' ' -f1)" ;;
     esac
-  done < <(cd "$raiz" && find bin share/applications share/metainfo share/icons -type f 2>/dev/null | sort)
+  done < <(cd "$raiz" && find . -path ./state -prune -o -type f -printf '%P\n' | sort)
 }
 
 clonar() {
@@ -150,6 +151,17 @@ comparar fake "$FK" "$PF"; rc=$?
 igual "fork falso: um arquivo novo no install do fork acende" "$rc" 1
 grep -q 'extra.desktop' <<< "$DIFERENCA" && ok "e aponta o arquivo novo" || falha "diferença sem o arquivo novo: $DIFERENCA"
 
+(
+  cd "$FK" && git checkout -q HEAD~1 -- install.sh && rm -f data/extra.desktop.in && printf '{}\n' > data/schema.json
+  printf 'install -Dm0644 data/schema.json "$prefix/share/configurator/io.github.teste.Fake.json"\n' >> install.sh
+  git add -A && git -c core.hooksPath=/dev/null commit -q -m tres
+)
+C_FALSO="$(git -C "$FK" rev-parse HEAD)"
+pino_falso "data/io.github.teste.Fake.metainfo.xml"
+comparar fake "$FK" "$PF"; rc=$?
+igual "fork falso: um arquivo fora de bin, applications, metainfo e icons também acende" "$rc" 1
+grep -q 'share/configurator/io.github.teste.Fake.json' <<< "$DIFERENCA" && ok "e aponta o schema" || falha "diferença sem o schema: $DIFERENCA"
+
 echo "== os forks de verdade: o install deles contra o pino"
 ids=()
 for f in "$RAIZ"/assets/extensoes/*.pino; do
@@ -157,15 +169,25 @@ for f in "$RAIZ"/assets/extensoes/*.pino; do
 done
 igual "nove pinos com URL" "${#ids[@]}" 9
 
+arvore_com_o_commit() {
+  local pino="$RAIZ/assets/extensoes/$1.pino" commit url a
+  commit="$(campo "$pino" COMMIT)"; url="$(campo "$pino" URL)"
+  for a in "$FORKS/$(basename "$url" .git)" "$ARVORES/$1/src"; do
+    [ -d "$a/.git" ] && git -C "$a" cat-file -e "$commit^{commit}" 2>/dev/null && { printf '%s' "$a"; return 0; }
+  done
+  return 1
+}
+
 faltam=()
-for id in "${ids[@]}"; do [ -d "$ARVORES/$id/src/.git" ] || faltam+=("$id"); done
+for id in "${ids[@]}"; do [ -d "$ARVORES/$id/src/.git" ] || [ -d "$FORKS/$(basename "$(campo "$RAIZ/assets/extensoes/$id.pino" URL)" .git)/.git" ] || faltam+=("$id"); done
 if [ "${#faltam[@]}" -gt 0 ]; then
-  printf 'pulado: sem a árvore clonada de %s em %s (CI ou máquina sem os forks)\n' "${faltam[*]}" "$ARVORES"
+  printf 'pulado: sem a árvore clonada de %s em %s nem em %s (CI ou máquina sem os forks)\n' "${faltam[*]}" "$ARVORES" "$FORKS"
 elif ! command -v just >/dev/null 2>&1; then
   printf 'pulado: sem o just para rodar o install-user dos forks\n'
 else
   for id in "${ids[@]}"; do
-    comparar "$id" "$ARVORES/$id/src" "$RAIZ/assets/extensoes"; rc=$?
+    arvore="$(arvore_com_o_commit "$id")" || { falha "$id: nenhuma árvore local tem o commit do pino ($FORKS, $ARVORES)"; continue; }
+    comparar "$id" "$arvore" "$RAIZ/assets/extensoes"; rc=$?
     if [ "$rc" = 0 ]; then ok "$id: o install do fork e o pino põem os mesmos $N_ARQUIVOS arquivos"
     elif [ -n "${DIFERENCA:-}" ]; then falha "$id: o install do fork e o pino divergem: $(printf '%s' "$DIFERENCA" | tr '\n' ' ')"; fi
   done
