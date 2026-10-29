@@ -73,6 +73,8 @@ for desde in 1 2; do
       ok "com a escrita $desde do meow.conf falhando, o par fica inteiro: $(par)" ;;
     *) falha "a escrita $desde do meow.conf falhou e o par partiu: $(par)" "$s" ;;
   esac
+  restos="$(find "$(dirname "$CONF")" -name '.atomicwrite.meow.*' 2>/dev/null)"
+  [ -z "$restos" ] || falha "a escrita $desde que falhou deixou temporário ao lado do meow.conf" "$restos"
 done
 conf_com 'PACK="meu-tema"' 'FLAVOR="meutema"'
 s="$(amb "$RAIZ/bin/meow" pack usar meowsystem --sem-aplicar 2>&1)"
@@ -113,6 +115,13 @@ caso "o último pack usar foi o pack pessoal" \
 caso "o último pack usar foi o meowsystem" \
   "2026-10-28T18:06:40-03:00 pack usar meu-tema flavor=meutema
 2026-10-28T19:00:00-03:00 pack usar meowsystem flavor=macchiato" "meowsystem/mocha"
+printf '%s\n%s' "2026-10-28T18:06:40-03:00 pack usar meu-tema flavor=meutema" \
+  "2026-10-28T18:48:41-03:00 pack usar meowsystem flavor=moc" > "$T/cortada.log"
+s="$(amb python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import pack; print(pack.ultimo_pack_usar(sys.argv[2]))' \
+       "$RAIZ/scripts" "$T/cortada.log" 2>&1)"
+[ "$s" = "('meu-tema', 'meutema')" ] \
+  && ok "uma linha cortada no fim do meow.log não conta como escolha" \
+  || falha "a linha cortada do meow.log virou escolha: $s"
 conf_com 'PACK="meowsystem"' 'FLAVOR="meutema"'
 rm -f "$ESTADO/meow.log"
 s1="$(doctor)"; s2="$(doctor --consertar)"
@@ -147,6 +156,28 @@ s="$(painel PACK=meu-tema FLAVOR=meutema ACCENT=blue)"
 [ "$(par)" = "meu-tema/meutema" ] && [ "$s" = "ACCENT:1 FLAVOR:0 PACK:0" ] \
   && ok "o par já coerente fica, e o painel diz que não mudou" \
   || falha "o par coerente mexeu ou o painel disse errado o que gravou ($(par))" "$s"
+lote_no_disco() {
+  conf_com 'PACK="meu-tema"' 'FLAVOR="meutema"' 'NOITE_INICIO="19:00"' 'NOITE_FIM="06:00"'
+  rm -f "$T/mv-conf"
+  amb env PATH="$DISCO:$FALSO:$PATH" MV_FALHA_DESDE="$1" python3 -I - "$RAIZ" <<'PY' 2>&1
+import sys
+sys.path.insert(0, sys.argv[1] + "/app")
+import servidor
+pares = [("PACK", "meowsystem"), ("NOITE_INICIO", "20:00"), ("NOITE_FIM", "07:00")]
+print(" ".join("%s:%s" % (c, rc) for c, rc, _s in sorted(servidor.definir_varias(pares))))
+PY
+}
+s="$(lote_no_disco 2)"
+[ "$(cat "$T/mv-conf" 2>/dev/null)" = 1 ] && [ "$s" = "FLAVOR:1 NOITE_FIM:1 NOITE_INICIO:1 PACK:1" ] \
+  && [ "$(par)" = "meowsystem/mocha" ] && grep -qx 'NOITE_INICIO="20:00"' "$CONF" && grep -qx 'NOITE_FIM="07:00"' "$CONF" \
+  && ok "o lote do painel é uma escrita só: o par do pack e as pontas da noite vão juntos" \
+  || falha "o lote do painel foi em mais de uma escrita ($(par))" "$s
+$(grep -E '^(NOITE_INICIO|NOITE_FIM)=' "$CONF")"
+s="$(lote_no_disco 1)"
+[ "$s" = "FLAVOR:2 NOITE_FIM:2 NOITE_INICIO:2 PACK:2" ] && [ "$(par)" = "meu-tema/meutema" ] \
+  && grep -qx 'NOITE_INICIO="19:00"' "$CONF" && [ -z "$(find "$(dirname "$CONF")" -name '.atomicwrite.meow.*')" ] \
+  && ok "com o disco cheio, o lote do painel não grava nada e não deixa temporário" \
+  || falha "com o disco cheio, o lote do painel gravou pela metade ($(par))" "$s"
 
 printf '\n--- 4. o mimetypes nunca sai calado com 1 ---\n'
 mimetypes() { amb env FLAVOR="$1" ICONES_FLAVOR="$2" PACK="" "$RAIZ/scripts/icones_mimetypes.sh" 2>&1; }
