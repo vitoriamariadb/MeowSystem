@@ -185,10 +185,7 @@ _cursor_baixar_instalar() {
     rm -rf "$tmp"
     meow_erro "não deu para baixar o tema de cursor (sem rede, ou release mudou)"
     meow_aviso "nada foi instalado — o cursor continua exatamente como estava."
-    meow_aviso "para fazer à mão, quando houver rede:"
-    meow_aviso "  curl -sSL -o /tmp/cursor.zip '$url'"
-    meow_aviso "  mkdir -p '$CURSOR_ICONES' && unzip -q /tmp/cursor.zip -d '$CURSOR_ICONES'"
-    meow_aviso "  $0 aplicar   # para apontar as chaves depois"
+    meow_aviso "o doctor tenta de novo na passada seguinte"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -387,7 +384,12 @@ cmd_adicionar() {
 _cursor_dizer_como_usar() {
   [ -n "$CURSOR_ADICIONADO" ] || return 0
   [ "$CURSOR_ADICIONADO" = "$CURSOR" ] && return 0
-  meow_info "para usá-lo: CURSOR=\"$CURSOR_ADICIONADO\" no meow.conf, e depois 'meow aplicar'"
+  local onde; onde="$(meow_onde_no_painel CURSOR)"
+  if [ -n "$onde" ]; then
+    meow_info "o ponteiro '$CURSOR_ADICIONADO' já está na lista; escolha-o em $onde"
+  else
+    meow_info "o ponteiro '$CURSOR_ADICIONADO' já está na lista do painel"
+  fi
 }
 
 cmd_aplicar() {

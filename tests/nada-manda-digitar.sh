@@ -189,6 +189,32 @@ grep -qE '^SEM_CONSERTO=.* patches ' "$RAIZ/bin/meow" \
   && falha "a linha patches ainda está em SEM_CONSERTO (o doctor não a conserta)" \
   || ok "a linha patches tem conserto: o doctor compila"
 
+printf '\n--- 9. as saídas dos scripts dizem o fato, sem mandar digitar nem editar o conf (P142) ---\n'
+achados="$(cd "$RAIZ" && grep -nE "(meow_info|meow_aviso|meow_erro|meow_ok|meow_muda).*('meow |\"meow |rode|digite|no meow.conf|\./install)" \
+             scripts/*.sh bin/meow lib/*.sh 2>/dev/null)"
+[ -z "$achados" ] && ok "nenhuma saída de script, de bin/meow ou de lib manda digitar, rodar ou editar o meow.conf" \
+  || falha "saídas que ainda mandam digitar ou editar o conf" "$achados"
+
+achados="$(cd "$RAIZ" && grep -nE 'Início' scripts/*.sh lib/*.sh bin/meow 2>/dev/null)"
+[ -z "$achados" ] && ok "nenhuma saída manda olhar a Início, que não mostra pendência" \
+  || falha "saída que cita a Início" "$achados"
+
+grep -rq 'porta_das_pend[e]ncias' "$RAIZ/app" "$RAIZ/tests" 2>/dev/null \
+  && falha "o nome antigo da porta Manter voltou" \
+  || ok "a porta Manter tem o nome que diz o que é: nome_da_porta_cuidar"
+
+DIZER="$(sed -n '/^_cursor_dizer_como_usar()/,/^}/p' "$RAIZ/scripts/cursor.sh")"
+saida="$(
+  meow_info() { printf '%s\n' "$*"; }
+  meow_onde_no_painel() { printf '«Ponteiro», em Definir\n'; }
+  CURSOR="" CURSOR_ADICIONADO="Novo"
+  eval "$DIZER"
+  _cursor_dizer_como_usar
+)"
+grep -q "escolha-o em «Ponteiro», em Definir" <<< "$saida" && ! grep -q 'meow.conf' <<< "$saida" \
+  && ok "o ponteiro adicionado diz onde escolher, pelo nome que o painel mostra" \
+  || falha "o ponteiro adicionado não diz onde escolher" "$saida"
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: nada manda digitar\n'

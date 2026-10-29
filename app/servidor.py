@@ -4788,7 +4788,7 @@ def nome_da_porta(ident):
     return next((p["nome"] for p in _consts_do_painel().get("PORTAS", []) if p.get("id") == ident), "")
 
 
-def porta_das_pendencias():
+def nome_da_porta_cuidar():
     return nome_da_porta("cuidar")
 
 
@@ -4874,7 +4874,7 @@ def _onde_da_acao(acao):
 
 
 def onde_na_tela(ident):
-    if not porta_das_pendencias():
+    if not nome_da_porta_cuidar():
         return ""
     if ident == PENDENCIA_EXTENSAO:
         return _onde_da_acao("vscode_instalar_extensao")
@@ -5576,7 +5576,7 @@ class Manipulador(BaseHTTPRequestHandler):
         "cursor": {
             "comando": ("cursor", "adicionar"),
             "extensoes": (".zip",),
-            "depois": "escolha o tema novo em \"Tema do ponteiro\" e salve",
+            "depois": "escolha o tema novo em \"Ponteiro\" e salve",
         },
         "fonte": {
             "comando": ("fontes", "adicionar"),

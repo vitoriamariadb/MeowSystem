@@ -211,7 +211,6 @@ meow_desinstalar() {
       tamanho="$(du -sh "$acervo" 2>/dev/null | cut -f1)"
       meow_pula "acervo de papel de parede PRESERVADO — é curadoria sua, não arquivo nosso"
       meow_info "  $acervo/  ($tamanho: $n_ativos ativos, $n_banidos banidos)"
-      meow_info "  para apagar mesmo assim:  MEOW_APAGAR_ACERVO=1 ./install.sh --uninstall"
     fi
   fi
 

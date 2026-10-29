@@ -179,7 +179,7 @@ _ci_remover() {
   rm -rf "$dir" || { meow_erro "não consegui remover $dir"; return "$MEOW_ERRO"; }
   meow_muda "tema de ícones '$nome' removido de $HOME/.local/share/icons"
   [ "$nome" = "$ICONES_BASE" ] && \
-    meow_aviso "esse era o ICONES_BASE — troque a chave antes do próximo 'meow aplicar'"
+    meow_aviso "esse era o ICONES_BASE, a base de que o tema do pack herda"
   meow_registrar "construir_icones.sh remover $nome"
   return "$MEOW_DIVERGENTE"
 }
