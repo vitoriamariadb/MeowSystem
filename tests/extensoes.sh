@@ -30,6 +30,7 @@ Icon=io.github.teste.Fake
 X-CosmicApplet=true
 FIM
 printf '<svg xmlns="http://www.w3.org/2000/svg"/>\n' > data/icons/scalable/apps/io.github.teste.Fake.svg
+printf '<component type="desktop-application"><id>io.github.teste.Fake</id></component>\n' > data/io.github.teste.Fake.metainfo.xml
 git add -A && git -c core.hooksPath=/dev/null commit -q -m um && C1="$(git rev-parse HEAD)"
 cd "$RAIZ"
 
@@ -45,6 +46,7 @@ APP_ID="io.github.teste.Fake"
 BIN="meowsystem-teste"
 DESKTOP="data/io.github.teste.Fake.desktop.in"
 ICONES="data/icons:."
+METAINFO="data/io.github.teste.Fake.metainfo.xml"
 SUBSTITUI="io.github.velho.Fake"
 LEGADO="io.github.velho.Fake:meow-fake-velho"
 FIM
@@ -85,6 +87,7 @@ arquivos() { (cd "$H" && find . -mindepth 1 ! -type d | sort); }
 BIN="$H/.local/bin/meowsystem-teste"
 SOMBRA="$H/.local/share/applications/io.github.teste.Fake.desktop"
 ICONE="$H/.local/share/icons/hicolor/scalable/apps/io.github.teste.Fake.svg"
+METAINFO_F="$H/.local/share/metainfo/io.github.teste.Fake.metainfo.xml"
 ESTADO="$H/.local/state/meowsystem/extensoes/fake"
 
 echo "== sem rede e sem cargo: o seco e o conferir não escrevem"
@@ -112,6 +115,8 @@ grep -q -- '--locked' "$T/cargo.log" && ok "e com --locked" || falha "faltou --l
 existe "binário" "$BIN"
 existe "sombra" "$SOMBRA"
 existe "ícone" "$ICONE"
+existe "metainfo" "$METAINFO_F"
+grep -qxF "$METAINFO_F" "$ESTADO/icones.lista" && ok "o metainfo entra na lista do que é nosso" || falha "metainfo fora da lista"
 grep -qx "Exec=$H/.local/bin/meowsystem-teste" "$SOMBRA" && ok "o Exec é o caminho absoluto" || falha "Exec: $(grep Exec "$SOMBRA")"
 ! grep -q '^extensao-fake' "$H/.local/state/meowsystem/pendencias.tsv" 2>/dev/null && ok "a pendência saiu" || falha "a pendência ficou"
 grep -q "$C1" "$ESTADO/carimbo" && ok "o carimbo guarda o commit" || falha "carimbo sem commit"
@@ -125,6 +130,18 @@ igual "nenhum build" "$(builds)" 0
 depois="$(cd "$H" && find . -mindepth 1 ! -type d -exec sha256sum {} + | sort | grep -v 'pendencias.tsv\|meow.log')"
 igual "nenhum arquivo mudou" "$depois" "$antes"
 saida="$(EBX fake --conferir)"; igual "conferir: rc 0" "$?" 0
+
+echo "== instalada antes do METAINFO: o metainfo volta sem compilar"
+rm -f "$METAINFO_F"; grep -vxF "$METAINFO_F" "$ESTADO/icones.lista" > "$T/lista" || true; cp "$T/lista" "$ESTADO/icones.lista"
+soma=""; while IFS= read -r f; do soma="$soma$(sha256sum "$f" | cut -d' ' -f1)"; done < "$ESTADO/icones.lista"
+sed -i "s/^icones .*/icones $(printf '%s' "$soma" | sha256sum | cut -d' ' -f1)/" "$ESTADO/carimbo"
+saida="$(EBX fake --conferir)"; igual "sem o metainfo o conferir diverge" "$?" 1
+: > "$T/cargo.log"
+saida="$(EBX EXTENSOES_COMPILAR=1 fake --aplicar)"; rc=$?
+igual "rc 1 (mudou)" "$rc" 1
+igual "sem cargo" "$(builds)" 0
+existe "metainfo de volta" "$METAINFO_F"
+saida="$(EBX fake --conferir)"; igual "e o conferir fecha" "$?" 0
 
 echo "== o estado diz o que a página precisa"
 saida="$(EBX fake --estado)"
@@ -226,8 +243,17 @@ some "e nada rodou" "$T/pwn"
 echo "== reverter tira o que é nosso e deixa a configuração"
 mkdir -p "$H/.config/cosmic/io.github.teste.Fake/v1"; echo x > "$H/.config/cosmic/io.github.teste.Fake/v1/chave"
 saida="$(EBX fake --reverter)"
-some "binário" "$BIN"; some "sombra" "$SOMBRA"; some "ícone" "$ICONE"; some "árvore" "$ESTADO"
+some "binário" "$BIN"; some "sombra" "$SOMBRA"; some "ícone" "$ICONE"; some "metainfo" "$METAINFO_F"; some "árvore" "$ESTADO"
+sobra="$(cd "$H/.local" && find bin share/applications share/icons share/metainfo -type f 2>/dev/null | sort)"
+igual "nada do build sobra em bin, applications, icons e metainfo" "$sobra" ""
 existe "a configuração fica" "$H/.config/cosmic/io.github.teste.Fake/v1/chave"
+
+echo "== METAINFO fora do lugar não executa nada"
+for ruim in "../fora.metainfo.xml" "data/a.xml" "/etc/a.metainfo.xml"; do
+  printf 'URL="https://exemplo.com/a.git"\nCOMMIT="abcdef1"\nAPP_ID="a.b"\nBIN="x"\nDESKTOP="d/a.desktop"\nMETAINFO="%s"\n' "$ruim" > "$PINOS/ruim.pino"
+  saida="$(EBX ruim --conferir)"; igual "METAINFO=$ruim: recusa" "$?" 2
+done
+rm -f "$PINOS/ruim.pino"
 
 echo "== EXTENSOES manda no --todas"
 rm -f "$PINOS/ruim.pino"
