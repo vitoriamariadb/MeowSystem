@@ -1,7 +1,7 @@
 # `app/`: o painel
 
 Uma página local que faz pela tela tudo o que se faz editando o `~/.config/meow/meow.conf` ou
-digitando `meow`. As 126 chaves, com o valor escolhido, o de fábrica e o porquê atrás do **?**; e
+digitando `meow`. As 127 chaves, com o valor escolhido, o de fábrica e o porquê atrás do **?**; e
 73 ações, com a saída aparecendo ao vivo enquanto rodam.
 
 ```bash

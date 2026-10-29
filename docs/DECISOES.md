@@ -11,7 +11,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 3 | O seletor, a aba Sistema e a Biblioteca mostram só o acervo do pack em edição (e dos que ele herda, até o primeiro pack do projeto); ícone de um pack nunca aparece no outro | sim de 26/10: «o que eu falei hoje sobrescreve» |
 | 4 | `calcdeirao` fica fora do pack; `jogos`, `rede` e `clima2` entram | projeto pessoal fora do pack (23/09) |
 | 5 | Askpass da Aurora ativo (600, só do usuário); a senha nunca vai para arquivo, commit ou documento | «askpass ativa» (15/10) |
-| 6 | GPU do compositor na RTX: `COSMIC_RENDER_DEVICE="0x10de:0x25a2"` no `/etc/environment`; o `aurora-gpu-compositor` (Spellbook-OS) devolve a linha se ela sumir | «tudo nvidia de fato» (17/09), «sim por favor» (15/10) |
+| 6 | GPU do compositor na placa dedicada, detectada em cada máquina: `COSMIC_RENDER_DEVICE="0x<vendor>:0x<device>"` no `/etc/environment`, gravado pela ponte root (`gpu-compositor`); com uma GPU só não há linha; `GPU_COMPOSITOR="padrao"` no `meow.conf` não toca | «tudo nvidia de fato» (17/09), «sim por favor» (15/10); sim de 28/10: «Pensa num produto universal. Pra ser usado em outras máquinas no meu caso é a 4060 aí reapontamos pra lá» |
 | 7 | O «Consertar» do doctor baixa com o selo «baixa da internet», sem caixa de pergunta; a pergunta fica só para o que baixa e é opcional | «O doctor não tem que avisar nada. Tem que corrigir.» (09/10) |
 | 8 | QA do painel só com HOME temporário; o `run.sh --sem-abrir` recusa o HOME da conta sem `MEOW_QA_HOME_REAL=1` | o painel escreve no sistema real |
 | 9 | Só pack do repositório instala extensão do VS Code; pack importado mostra o pedido e instala só por gesto | pack é dado, nunca código |

@@ -226,6 +226,8 @@ declare -A ORIGEM=(
   [libreoffice-remover]="a lista do dpkg, gravada em /var/lib/meowsystem"
   [som]="stdin: um Ogg de até 1 MB, só para um dos sete eventos da lista, com o de fábrica guardado em /var/lib/meowsystem"
   [som-padrao]="o de fábrica que o verbo som guardou, devolvido ao lugar"
+  [gpu-compositor]="a placa dedicada achada em /sys, gravada como a única linha COSMIC_RENDER_DEVICE do /etc/environment, com o de antes guardado em /var/lib/meowsystem"
+  [gpu-compositor-tirar]="o /etc/environment de antes, devolvido do que o verbo gpu-compositor guardou"
 )
 escrevem="$(por_verbo | awk -F'\t' '$2 ~ /(^|[ \t])(install -m|cp -a|mv -f|tee|dd) / { print $1 }' | sort -u | tr '\n' ' ')"
 esperados="$(printf '%s\n' "${!ORIGEM[@]}" | sort | tr '\n' ' ')"

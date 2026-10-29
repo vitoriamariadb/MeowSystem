@@ -126,15 +126,25 @@ else
 fi
 registro 5 'askpass ativa' && ok "o registro diz «askpass ativa»" || falha "a decisão 5 saiu do registro"
 
-echo "== D6. a GPU do compositor na RTX"
+echo "== D6. a GPU do compositor na placa dedicada"
 if [ -d /usr/local/lib/aurora ]; then
-  grep -qxF 'COSMIC_RENDER_DEVICE="0x10de:0x25a2"' "$ETC_ENV" \
-    && ok "COSMIC_RENDER_DEVICE da RTX ativo no /etc/environment" \
-    || falha "a GPU do compositor não está na RTX: sem sim explícito de quem usa, ninguém reverte (GSD.md §1)"
+  dedicada="$(bash "$RAIZ/scripts/gpu_compositor.sh" detectar 2>/dev/null)"
+  atual="$(sed -n 's/^COSMIC_RENDER_DEVICE="\(.*\)"$/\1/p' "$ETC_ENV" | head -n1)"
+  if [ -n "$dedicada" ]; then
+    [ "$atual" = "$dedicada" ] \
+      && ok "COSMIC_RENDER_DEVICE do /etc/environment é a placa dedicada desta máquina ($dedicada)" \
+      || falha "a GPU do compositor não está na dedicada ($dedicada): o /etc/environment diz '${atual:-ausente}'; sem sim explícito de quem usa, ninguém reverte (GSD.md §1)"
+  else
+    [ -z "$atual" ] \
+      && ok "uma GPU só: o /etc/environment não tem COSMIC_RENDER_DEVICE" \
+      || falha "uma GPU só e o /etc/environment tem COSMIC_RENDER_DEVICE='$atual'"
+  fi
 else
   pula "sem /usr/local/lib/aurora: esta não é a máquina de quem usa"
 fi
-registro 6 '0x10de:0x25a2' && ok "o registro guarda o dispositivo e o aval" || falha "a decisão 6 saiu do registro"
+registro 6 'GPU_COMPOSITOR' && registro 6 '28/10' && ok "o registro guarda a chave e o aval de 28/10" || falha "a decisão 6 saiu do registro"
+grep -q '^GPU_COMPOSITOR="dedicada"' "$RAIZ/meow.conf.exemplo" && grep -q 'etapa_compositor etapa_gpu ' "$RAIZ/install.sh" \
+  && ok "a fábrica é a dedicada e o instalador tem a etapa" || falha "a decisão 6 perdeu a chave de fábrica ou a etapa"
 
 echo "== o shim do compositor ligado (ESTADO.md de 15/10), no HOME de brinquedo"
 grep -q '^COMPOSITOR="sim"' "$RAIZ/meow.conf.exemplo" && grep -qE 'etapa_extensoes etapa_compositor ' "$RAIZ/install.sh" \

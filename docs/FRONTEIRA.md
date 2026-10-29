@@ -80,7 +80,8 @@ a máquina gerou.
   `greeter-aplicar`, `apt-hook-instalar` e `apt-hook-remover`, `completion-instalar` e
   `completion-remover`, `flatpak-global-limpar` (só as chaves de tema que apontam para tema
   ausente), `libreoffice-remover` e `libreoffice-devolver`, `atualizar` e `limpar` (só os
-  repositórios já configurados), `pacotes` (só a lista literal de dentro da ponte; o
+  repositórios já configurados), `gpu-compositor` e `gpu-compositor-tirar` (só a linha
+  `COSMIC_RENDER_DEVICE` do `/etc/environment`, com o arquivo de antes guardado), `pacotes` (só a lista literal de dentro da ponte; o
   `tests/doctor-veredito.sh` cobra que ela seja a do `etapa_pacotes`) e `estado`, que só lê.
 - **Cada uso vai para o journal:** `journalctl -t meowsystem-ponte`.
 - **A ponte não se instala nem se atualiza.** Trocá-la pede a senha, no `install.sh`; por isso
