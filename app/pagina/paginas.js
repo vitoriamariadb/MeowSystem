@@ -447,6 +447,13 @@ function gradeDoAcervo(pasta, grupo) {
     && (!termo || semAcento(i.rotulo || i.nome).includes(termo) || semAcento(i.nome).includes(termo)));
   const grade = elemento("div", { class: "grade-apps pastas so-" + packEmEdicao(), "aria-busy": pronto ? null : "true",
     "data-acervo": pasta, "data-grupo": grupo || null });
+  const paleta = vinteSeis();
+  if (paleta.base && paleta.text) {
+    grade.style.setProperty("--cartao-previa", paleta.base);
+    grade.style.setProperty("--tinta-previa", paleta.text);
+    grade.style.setProperty("--nome-previa", paleta.subtext1 || paleta.text);
+    grade.style.setProperty("--linha-previa", paleta.surface1 || paleta.overlay0 || paleta.text);
+  }
   for (const i of itens) {
     grade.append(elemento("div", { class: "app", "data-nome": i.nome }, [
       elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })]));

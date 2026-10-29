@@ -115,6 +115,7 @@ MAQUINA=(
   app-layout.py
   oficina.sh
   icones-por-pack.py
+  sistema-latte-e-rotulos.py
   pastas-do-pack.sh
   restos-do-painel.sh
   folha-dos-resgatados.sh
