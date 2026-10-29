@@ -32,7 +32,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 24 | Saem do dev (o git e a branch `arquivo` guardam): `docs/folhas/`, `docs/pesquisas/`, a etapa do `catppuccin-apps`, `docs/sprints/` antigas, `docs/historico/` e todo teste, script ou documento que nada alcança | pedidos de 23/10 e 26/10 |
 | 25 | Papéis de parede separados por pack: só a coleção do pack no ar gira; a imagem sem pack gira com qualquer um | pedido de 23/10 |
 | 26 | O starship desce com o install (salvo recusa gravada); o doctor não o baixa: ausente é pulado de rotina | pedido de 23/10 |
-| 27 | Pendência não aparece na tela: o papel de parede devolvido fica devolvido e vai para o Registro; a imagem dela se autoriza nas «Pastas suas» | «Não deveria aparecer» (28/10, P137) |
+| 27 | Pendência não aparece na tela; o que dá para consertar se conserta. O papel de parede devolvido fica devolvido, sem autorizar | show, don't tell; «Não deveria aparecer» (28/10) |
 | 28 | Ícone enviado e retoque da oficina moram no estado de quem usa; o repositório só recebe pelo «Levar para o pack» | usar o produto não é commit |
 | 29 | `hefesto` e `fogstripper` fora dos autorais dos packs; `ICONES_LOGO_HEFESTO` só da máquina, vazia de fábrica | decisão 4 |
 | 30 | O lançador de fábrica não esconde Chrome, Steam nem github-desktop | são apps de quem usa |
