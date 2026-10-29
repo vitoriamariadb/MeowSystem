@@ -22,6 +22,8 @@ PORTATIL=(
   higiene.sh
   app.sh
   modificacoes.sh
+  modificacoes-no-install.sh
+  logo-do-programa.sh
   estilo.sh
   reversao.sh
   seco.sh
@@ -118,12 +120,16 @@ MAQUINA=(
   p113-navegador.py
   gate-link-externo.py
   extensoes-pagina.py
+  modificacoes-pagina.py
+  logo-pagina.py
 )
 
 SEM_PULO=(
   app-completo.py
   app-uso-real.py
   extensoes-pagina.py
+  modificacoes-pagina.py
+  logo-pagina.py
 )
 
 MODO="tudo"

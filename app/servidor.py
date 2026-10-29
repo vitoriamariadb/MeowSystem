@@ -832,6 +832,13 @@ def _com_o_vocabulario_do_pack(esquema, vocab, efetivos):
         item["opcoes"] = oferta
         item["rotulos"] = {i: (mod.campo(i, "nome") or i) for i in oferta}
 
+    item = por_chave.get("LOGO_PROGRAMA")
+    if item:
+        oferta = _packs_com_logo()
+        item["opcoes"] = [""] + oferta
+        item["rotulos"] = {"": "Do pack no ar", **{i: (mod.campo(i, "nome") or i) for i in oferta}}
+        item["previa"] = "logo"
+
     item = por_chave.get("TERMINAL_CURSOR")
     if item:
         item["frase"] = "A cor de destaque, ou a que o tema «%s» escolhe." % nome_pack
@@ -1882,6 +1889,10 @@ def validar_valor(item, valor):
         fechadas = _flavors_dos_packs() or fechadas
     if item["chave"] == "PACK":
         fechadas = sorted(_packs_no_disco()) or fechadas
+    if item["chave"] == "LOGO_PROGRAMA":
+        fechadas = _packs_com_logo()
+        if valor not in fechadas:
+            return "LOGO_PROGRAMA aceita o nome de um pack com logo: %s" % (" | ".join(fechadas) or "nenhum")
     if fechadas and valor not in fechadas:
         return "%s aceita %s" % (item["chave"], " | ".join(fechadas))
 
@@ -2278,6 +2289,37 @@ def logo_do_painel(flavor, accent):
         return bruto.encode("utf-8")
     return re.sub(r'stroke="#[0-9A-Fa-f]{3,8}"',
                   'stroke="%s"' % tinta, bruto).encode("utf-8")
+
+
+def _packs_com_logo():
+    mod = modulo_pack()
+    if not mod:
+        return []
+    saida = []
+    for ident in sorted(_packs_no_disco()):
+        try:
+            mod.logo(ident)
+        except Exception:
+            continue
+        saida.append(ident)
+    return saida
+
+
+def logo_de_pack(ident, flavor, accent):
+    mod = modulo_pack()
+    if not mod or ident not in _packs_no_disco():
+        return None
+    try:
+        _p, dados, _dir = mod.validar(ident, silencioso=True)
+        return mod.logo(ident, flavor if flavor in dados["flavors"] else None,
+                        accent if accent in mod.SLOTS else None).encode("utf-8")
+    except Exception:
+        return None
+
+
+def logo_escolhida():
+    valor = valores_efetivos(["LOGO_PROGRAMA"]).get("LOGO_PROGRAMA") or ""
+    return valor if valor in _packs_com_logo() else ""
 
 
 def _areas_alfinetadas():
@@ -2679,14 +2721,181 @@ def _mod_correcoes():
     return sorted({alvo for _c, tipo, alvo, _r in _mod_declaracoes() if tipo == "correcao"})
 
 
+def _mod_chave_da_correcao():
+    saida = {}
+    try:
+        with open(MODIFICACOES, encoding="utf-8") as fh:
+            for linha in fh:
+                campos = linha.rstrip("\n").split("\t")
+                if len(campos) >= 6 and campos[1] == "correcao" and campos[5]:
+                    saida[campos[2]] = campos[5]
+    except OSError:
+        pass
+    return saida
+
+
+def _mod_aceita():
+    saida = {}
+    for pasta, tipo, ext, _r in _mod_declaracoes():
+        if tipo == "aceita" and ext.startswith("."):
+            saida.setdefault(pasta, []).append(ext.lower())
+    return saida
+
+
+TEMA_ADICIONADO_TETO = 4 << 20
+RE_NOME_DE_TEMA = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._ -]{0,79}$")
+
+
+def _mod_casa_de_temas(pasta):
+    return _oficina_do_usuario("temas-de-apps", pasta)
+
+
+def _mod_adicionados(pasta):
+    casa = _mod_casa_de_temas(pasta)
+    try:
+        nomes = sorted(n for n in os.listdir(casa) if n != "padrao" and not n.endswith(".meow-parcial")
+                       and os.path.isfile(os.path.join(casa, n)))
+    except OSError:
+        return [], ""
+    try:
+        with open(os.path.join(casa, "padrao"), encoding="utf-8") as fh:
+            padrao = fh.readline().strip()
+    except OSError:
+        padrao = ""
+    return nomes, padrao if padrao in nomes else ""
+
+
+def _mod_nome_do_tema(nome, aceita):
+    nome = os.path.basename(str(nome or "")).strip()
+    nome = re.sub(r"[^A-Za-z0-9._ -]", "-", nome).lstrip(".- ")[:80]
+    if not nome or not RE_NOME_DE_TEMA.match(nome):
+        return "", "nome de arquivo vazio"
+    if os.path.splitext(nome)[1].lower() not in aceita:
+        return "", "só aceito %s aqui" % ", ".join(aceita)
+    return nome, ""
+
+
+def _mod_baixar_tema(url):
+    import urllib.request
+    alvo = urlparse(url)
+    if alvo.scheme != "https" or not alvo.netloc:
+        return None, "", "o endereço precisa começar com https://"
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "MeowSystem"}),
+                                    timeout=20) as resposta:
+            dados = resposta.read(TEMA_ADICIONADO_TETO + 1)
+            final = resposta.geturl()
+    except (OSError, ValueError) as erro:
+        return None, "", "não consegui baixar: %s" % texto_na_tela(str(erro))
+    if urlparse(final).scheme != "https":
+        return None, "", "o endereço desviou para fora do https"
+    return dados, os.path.basename(urlparse(final).path) or os.path.basename(alvo.path), ""
+
+
+def _mod_gravar_padrao(pasta, nome):
+    casa = _mod_casa_de_temas(pasta)
+    arquivo = os.path.join(casa, "padrao")
+    if not nome:
+        try:
+            os.unlink(arquivo)
+        except FileNotFoundError:
+            pass
+        return
+    os.makedirs(casa, exist_ok=True)
+    tmp = arquivo + ".meow-parcial"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        fh.write(nome + "\n")
+    os.replace(tmp, arquivo)
+
+
+def _mod_formato_confere(ext, dados):
+    if ext == ".qbtheme":
+        return dados[:4] == b"qres"
+    try:
+        texto = dados.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return False
+    if "\0" in texto:
+        return False
+    if ext == ".json":
+        try:
+            return isinstance(json.loads(texto), dict)
+        except ValueError:
+            return False
+    if ext == ".dconf":
+        return "[/]" in (linha.strip() for linha in texto.splitlines())
+    return True
+
+
+def _mod_tema_adicionar(corpo):
+    pasta = str(corpo.get("app", ""))
+    aceita = _mod_aceita().get(pasta)
+    if pasta not in _mod_pastas() or not aceita:
+        return {"erro": "esse programa não recebe tema de fora"}, 400
+    url = str(corpo.get("url", "") or "").strip()
+    if url:
+        dados, nome_da_url, queixa = _mod_baixar_tema(url)
+        if queixa:
+            return {"erro": queixa}, 400
+        nome_cru = corpo.get("nome") or nome_da_url
+    else:
+        import base64
+        try:
+            dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+        except ValueError:
+            return {"erro": "conteúdo não é base64"}, 400
+        nome_cru = corpo.get("nome")
+    nome, queixa = _mod_nome_do_tema(nome_cru, aceita)
+    if queixa:
+        return {"erro": queixa}, 400
+    if not dados:
+        return {"erro": "arquivo vazio"}, 400
+    if len(dados) > TEMA_ADICIONADO_TETO:
+        return {"erro": "arquivo maior que 4 MB"}, 413
+    if not _mod_formato_confere(os.path.splitext(nome)[1].lower(), dados):
+        return {"erro": "isso não parece um tema %s" % os.path.splitext(nome)[1].lower()}, 400
+    casa = _mod_casa_de_temas(pasta)
+    destino = os.path.join(casa, nome)
+    tmp = destino + ".meow-parcial"
+    try:
+        os.makedirs(casa, exist_ok=True)
+        with open(tmp, "wb") as fh:
+            fh.write(dados)
+        os.replace(tmp, destino)
+        _mod_gravar_padrao(pasta, nome)
+    except OSError as erro:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        return {"erro": "não consegui gravar: %s" % erro}, 500
+    return {"app": pasta, "nome": nome}, 200
+
+
+def _mod_tema_padrao(corpo):
+    pasta = str(corpo.get("app", ""))
+    if pasta not in _mod_pastas():
+        return {"erro": "programa desconhecido"}, 400
+    nome = str(corpo.get("nome", "") or "")
+    if nome and nome not in _mod_adicionados(pasta)[0]:
+        return {"erro": "esse tema não foi adicionado"}, 400
+    try:
+        _mod_gravar_padrao(pasta, nome)
+    except OSError as erro:
+        return {"erro": "não consegui gravar: %s" % erro}, 500
+    return {"app": pasta, "nome": nome}, 200
+
+
 def _mod_estado(itens):
-    ativos = [i for i in itens if i.get("ligado", True) and i["rc"] != 3]
+    ativos = [i for i in itens if i.get("ligado", True) and i["rc"] != 3 and i.get("instalado", True)]
     if any(i["rc"] == 2 for i in ativos):
         return "erro"
     if any(i["rc"] == 1 for i in ativos):
         return "fora"
     if ativos:
         return "ok"
+    if itens and not any(i.get("instalado", True) for i in itens):
+        return "nao_instalado"
     if any(not i.get("ligado", True) for i in itens):
         return "desligado"
     return "nao_aplica"
@@ -2711,20 +2920,33 @@ def _mod_dados():
     dono = {alvo: cartao for cartao, tipo, alvo, _r in decl if tipo == "modulo"}
     nome = {cartao: alvo for cartao, tipo, alvo, _r in decl if tipo == "nome"}
     figura = {cartao: alvo for cartao, tipo, alvo, _r in decl if tipo == "icone"}
+    chave_de = _mod_chave_da_correcao()
+    aceita = _mod_aceita()
+    valores = valores_brutos()
+    mod = modulo_pack()
+    no_ar = _pack_no_ar()
+    pack = str((mod.campo(no_ar, "nome") if mod and no_ar else "") or no_ar)
     cartoes = {}
 
     def cartao(ident):
-        return cartoes.setdefault(ident, {"id": ident, "nome": nome.get(ident, ""),
-                                          "icone": figura.get(ident, ""), "temas": [], "correcoes": []})
+        return cartoes.setdefault(ident, {"id": ident, "nome": nome.get(ident, ""), "icone": figura.get(ident, ""),
+                                          "temas": [], "correcoes": [], "chaves": []})
     for cartao_id, tipo, alvo, rotulo in decl:
-        if tipo == "correcao" and alvo in correcoes and correcoes[alvo] != 3:
-            cartao(cartao_id)["correcoes"].append({"nome": alvo, "rotulo": rotulo, "rc": correcoes[alvo]})
+        if tipo == "correcao" and alvo in correcoes:
+            chave = chave_de.get(alvo, "")
+            c = cartao(cartao_id)
+            c["correcoes"].append({"nome": alvo, "rotulo": rotulo, "rc": correcoes[alvo], "chave": chave,
+                                   "ligado": not chave or valores.get(chave, "") != "nao"})
+            if chave and chave not in c["chaves"]:
+                c["chaves"].append(chave)
     for m in modulos:
-        if m["instalado"]:
-            cartao(dono.get(m["pasta"], m["pasta"]))["temas"].append(m)
+        adicionados, padrao = _mod_adicionados(m["pasta"])
+        m.update({"aceita": aceita.get(m["pasta"], []), "adicionados": adicionados, "padrao": padrao,
+                  "no_ar": padrao or pack})
+        cartao(dono.get(m["pasta"], m["pasta"]))["temas"].append(m)
     for c in cartoes.values():
         c["estado"] = _mod_estado(c["temas"] + c["correcoes"])
-    return {"cartoes": list(cartoes.values())}
+    return {"cartoes": list(cartoes.values()), "pack": pack}
 
 
 PROVEDORES = {
@@ -5150,11 +5372,15 @@ class Manipulador(BaseHTTPRequestHandler):
         finally:
             _pulso_sai()
 
-    def _logo_do_painel(self):
+    def _logo_do_painel(self, pack=None):
         valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
         flavor = _flavor_do_conf(valores)
         flavor = _flavor_da_pagina(flavor, valores)
-        return logo_do_painel(flavor, _acento_da_pagina(flavor, valores))
+        acento = _acento_da_pagina(flavor, valores)
+        escolhida = logo_escolhida() if pack is None else pack
+        if escolhida:
+            return logo_de_pack(escolhida, flavor, acento)
+        return logo_do_painel(flavor, acento)
 
     def do_GET(self):
         alvo = urlparse(self.path)
@@ -5208,7 +5434,8 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/logo.svg":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
-            corpo = self._logo_do_painel()
+            corpo = self._logo_do_painel(consulta.get("pack", [""])[0]
+                                         if "pack" in consulta or "de" in consulta else None)
             if corpo is None:
                 return self._recusar(404, "a logo autoral não está no acervo")
             return self._responder(corpo, tipo=TIPOS[".svg"])
@@ -7474,7 +7701,8 @@ class Manipulador(BaseHTTPRequestHandler):
         tamanho = int(self.headers.get("Content-Length") or 0)
         teto = {"/api/acervo": 96 << 20,
                 "/api/pack-importar": 64 << 20,
-                "/api/criar": 8 << 20}.get(alvo.path, 1 << 20)
+                "/api/criar": 8 << 20,
+                "/api/modificacao-tema": 6 << 20}.get(alvo.path, 1 << 20)
         if tamanho > teto:
             return self._recusar(413, "corpo grande demais")
         try:
@@ -8105,6 +8333,14 @@ class Manipulador(BaseHTTPRequestHandler):
             except OSError as erro:
                 return self._json({"erro": str(erro)}, 500)
             return self._json({"id": ident})
+
+        if caminho == "/api/modificacao-tema":
+            dados, codigo = _mod_tema_adicionar(corpo)
+            return self._json(dados, codigo)
+
+        if caminho == "/api/modificacao-tema-padrao":
+            dados, codigo = _mod_tema_padrao(corpo)
+            return self._json(dados, codigo)
 
         if caminho == "/api/definir":
             chave = str(corpo.get("chave", ""))

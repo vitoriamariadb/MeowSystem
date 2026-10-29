@@ -187,6 +187,9 @@ const AJUSTES = [
         { c: "FASTFETCH_LOGO_BLOCOS", r: "Detalhe", sub: true },
         { c: "FASTFETCH_LOGO_CONF", r: "Corrigir o Fastfetch", sub: true },
       ] },
+      { titulo: "No programa", linhas: [
+        { c: "LOGO_PROGRAMA", r: "Logo do programa", larga: true },
+      ] },
     ] },
   { id: "dia-e-noite", nome: "Dia e noite", icone: "lua",
     blocos: [
@@ -334,6 +337,7 @@ const LUGAR_MODIFICACOES = {
     { a: "modificacao_aplicar", r: "Pôr no lugar" },
     { a: "modificacao_reverter", r: "Tirar o tema" },
     { a: "modificacao_corrigir", r: "Pôr a correção no lugar" },
+    { c: "FLATPAK_CORRECOES", r: "Correções do Flatpak" },
   ],
   chaves: [
     { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify", cartao: "spotify", bloco: "Spotify" },

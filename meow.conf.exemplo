@@ -394,6 +394,12 @@ AREAS_ENCAIXE=""
 #   sendo os mascotes da casa. O que muda é o título: quem chega a este arquivo sem
 #   ter os dois mascotes lê `Logo do sistema` e sabe do que se trata.
 
+# @ Logo do programa
+# > A do cabeçalho do painel e a do ícone no lançador.
+# Vazio segue o pack no ar. O nome de um pack instalado fixa a logo dele, qualquer que seja o
+# pack no ar.
+LOGO_PROGRAMA=""
+
 # --- NO DOCK ----------------------------------------------------------------
 
 # @ Qual mascote fica no dock
@@ -1813,6 +1819,11 @@ APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,
 # FLAVOR e do ACCENT. Temas baixados pelo Marketplace exigiriam
 # `current_theme=marketplace`, e aí o doctor e o Marketplace brigariam todo dia.
 SPOTIFY_MARKETPLACE="sim"
+
+# @ Correções do Flatpak
+# > Os apps libadwaita sem tema quebrado, sem ícones em dobro e no runtime validado.
+# "nao" devolve o override do Flatpak de antes e tira o runtime forçado.
+FLATPAK_CORRECOES="sim"            # sim | nao
 
 # @ Arrumar o lançador
 # > Esconde programas de sistema e encurta nomes longos. A lista é de uma máquina só — leia antes de ligar.

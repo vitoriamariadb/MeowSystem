@@ -52,16 +52,37 @@ meow_app_pendente() {
 MEOW_APP_TEMA=""
 MEOW_APP_TEMA_PACK=""
 
+meow_app_tema_adicionado() {
+  local casa nome
+  casa="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/temas-de-apps/$1"
+  [ -f "$casa/padrao" ] || return 1
+  IFS= read -r nome < "$casa/padrao" || [ -n "$nome" ] || return 1
+  case "$nome" in ''|.*|*/*|padrao) return 1 ;; esac
+  [ -f "$casa/$nome" ] || return 1
+  printf '%s/%s\n' "$casa" "$nome"
+}
+
 meow_app_tema_do_pack() {
-  local trilha="$1" saida
+  local trilha="$1" saida="" achou=0 adicionado
   MEOW_APP_TEMA=""
   MEOW_APP_TEMA_PACK=""
   meow_tem python3 || return 1
   saida="$(FLAVOR="${FLAVOR:-}" python3 "$MEOW_RAIZ/scripts/pack.py" \
-             app "$(meow_pack_dir)" "apps.$trilha" 2>/dev/null)" || return 1
+             app "$(meow_pack_dir)" "apps.$trilha" 2>/dev/null)" && achou=1
   MEOW_APP_TEMA_PACK="$(printf '%s\n' "$saida" | sed -n 's/^pack=//p')"
   MEOW_APP_TEMA="$(printf '%s\n' "$saida" | sed -n 's/^valor=//p')"
-  return 0
+  case "$trilha" in
+    *.arquivo|*.sha256)
+      adicionado="$(meow_app_tema_adicionado "${trilha%%.*}")" || return $((1 - achou))
+      [ -n "$MEOW_APP_TEMA_PACK" ] || MEOW_APP_TEMA_PACK="meowsystem"
+      if [ "${trilha##*.}" = "arquivo" ]; then
+        MEOW_APP_TEMA="$adicionado"
+      else
+        MEOW_APP_TEMA="$(sha256sum < "$adicionado" | cut -d' ' -f1)"
+      fi
+      return 0 ;;
+  esac
+  return $((1 - achou))
 }
 
 _meow_temas_mantidos() { printf '%s/temas-mantidos.tsv' "$MEOW_ESTADO"; }
