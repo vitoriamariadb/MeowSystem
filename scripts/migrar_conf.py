@@ -166,6 +166,24 @@ def vestigios(texto: str, exemplo: str, antes: tuple[str, str] | None = None) ->
     return texto, feitas
 
 
+def par_do_pack(texto: str) -> tuple[str, str]:
+    pack_cru, flavor_cru = _valor_cru(texto, "PACK"), _valor_cru(texto, "FLAVOR")
+    if not pack_cru or not flavor_cru:
+        return texto, ""
+    try:
+        novo = _pack().par_do_conf(pack_cru, flavor_cru)
+    except Exception:
+        return texto, ""
+    if not novo:
+        return texto, ""
+    ident, flavor, porque = novo
+    if ident != pack_cru:
+        texto = _trocar_valor(texto, "PACK", ident)
+    if flavor != flavor_cru:
+        texto = _trocar_valor(texto, "FLAVOR", flavor)
+    return texto, f'PACK="{ident}" e FLAVOR="{flavor}" ({porque})'
+
+
 MASCOTE = (("LOGO", ("dia", "noite")), ("LOGO_DIA", ("dia",)), ("LOGO_NOITE", ("noite",)),
            ("FASTFETCH_LOGO_GATO", ("dia", "noite")))
 
@@ -285,13 +303,16 @@ def main() -> int:
         atual, orfaos = tirar_blocos_orfaos(atual)
         atual, renomeadas = renomear(atual)
         faltando = blocos_faltando(exemplo, chaves_de(atual))
+    atual, par = par_do_pack(atual)
     atual, vestigiais = vestigios(atual, exemplo,
                                   tuple(args.pack_de_antes) if args.pack_de_antes else None)
-    if not faltando and not renomeadas and not aposentadas and not vestigiais and not orfaos:
+    if not faltando and not renomeadas and not aposentadas and not vestigiais and not orfaos and not par:
         return 0
 
     nomes = ", ".join(n for n, _ in faltando)
     if args.conferir:
+        if par:
+            print("PACK e FLAVOR não combinam, viraria: " + par)
         if aposentadas:
             print("aposentada(s), ainda no meow.conf: "
                   + "; ".join(f"{n} ({APOSENTADAS[n]})" for n in aposentadas))
@@ -328,8 +349,15 @@ def main() -> int:
         )
 
     tmp = args.conf.with_suffix(args.conf.suffix + ".tmp")
-    tmp.write_text(novo, encoding="utf-8")
-    tmp.replace(args.conf)
+    try:
+        tmp.write_text(novo, encoding="utf-8")
+        tmp.replace(args.conf)
+    except OSError as erro:
+        tmp.unlink(missing_ok=True)
+        print(f"ERRO: não consegui gravar {args.conf}: {erro}", file=sys.stderr)
+        return 2
+    if par:
+        print("PACK e FLAVOR não combinavam, agora: " + par)
     if aposentadas:
         print(f"aposentadas, linha tirada do meow.conf: {', '.join(aposentadas)}")
     if renomeadas:

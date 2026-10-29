@@ -2051,7 +2051,7 @@ def _ambiente_do_painel(seco=False):
     return ambiente
 
 
-def definir_varias(pares, conf=None):
+def _recusa_de_gravar(pares):
     for chave, valor in pares:
         if not RE_CHAVE.match(chave + "="):
             return [(chave, 2, "nome de chave inválido")]
@@ -2060,13 +2060,26 @@ def definir_varias(pares, conf=None):
         perigo = expansao_perigosa(valor)
         if perigo:
             return [(chave, 2, perigo)]
+    return None
+
+
+def definir_varias(pares, conf=None):
+    recusa = _recusa_de_gravar(pares)
+    if recusa:
+        return recusa
     if not pares:
         return []
+    pares = _par_do_pack_junto(pares, conf)
+    recusa = _recusa_de_gravar(pares)
+    if recusa:
+        return recusa
     programa = ('. "$1/lib/comum.sh"; shift; '
-                'while [ $# -ge 2 ]; do '
-                'meow_conf_definir "$1" "$2"; r=$?; '
-                'printf "\\n@@meow-rc %s %s\\n" "$1" "$r"; '
-                'shift 2; done')
+                'cru() { [ -f "$MEOW_CONF_ARQUIVO" ] && sed -n "s/^$1=//p" "$MEOW_CONF_ARQUIVO" | tail -1; }; '
+                'antes=(); i=1; while [ $i -le $# ]; do antes+=("$(cru "${!i}")"); i=$((i + 2)); done; '
+                'meow_conf_definir "$@"; r=$?; '
+                'i=1; while [ $i -le $# ]; do k=$r; '
+                '[ "$r" = 1 ] && [ "${antes[$((i / 2))]}" = "$(cru "${!i}")" ] && k=0; '
+                'printf "\\n@@meow-rc %s %s\\n" "${!i}" "$k"; i=$((i + 2)); done')
     argv = ["bash", "-c", programa, "_", RAIZ]
     for chave, valor in pares:
         argv += [chave, valor]
@@ -2090,6 +2103,37 @@ def definir_varias(pares, conf=None):
             trecho.append(linha)
     sem_resposta = (2, saida.strip() or "o bash saiu sem dizer o que gravou")
     return [(chave,) + achados.get(chave, sem_resposta) for chave, _valor in pares]
+
+
+PAR_DO_PACK = ("PACK", "FLAVOR")
+
+
+def _par_do_pack_junto(pares, conf=None):
+    pedidas = dict(pares)
+    if not any(c in pedidas for c in PAR_DO_PACK):
+        return pares
+    atual = {}
+    for arquivo in (CONF_PADRAO, conf or CONF):
+        try:
+            with open(arquivo, "r", encoding="utf-8") as fh:
+                for linha in fh:
+                    achado = RE_CHAVE.match(linha.strip())
+                    if achado and achado.group(1) in PAR_DO_PACK:
+                        atual[achado.group(1)] = _valor_da_linha(linha.strip())
+        except OSError:
+            continue
+    pack = pedidas.get("PACK", atual.get("PACK", ""))
+    flavor = pedidas.get("FLAVOR", atual.get("FLAVOR", ""))
+    mod = modulo_pack()
+    try:
+        novo = mod.par_coerente(pack, flavor, "pack" if "PACK" in pedidas else "flavor") if mod else None
+    except Exception:
+        novo = None
+    if not novo:
+        return pares
+    certo = dict(zip(PAR_DO_PACK, novo[:2]))
+    saida = [(c, certo.get(c, v)) for c, v in pares]
+    return saida + [(c, certo[c]) for c in PAR_DO_PACK if c not in pedidas]
 
 
 def definir(chave, valor):
