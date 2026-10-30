@@ -122,7 +122,7 @@ cmd_aplicar() {
     _auto_lista | grep -qxF -- "$reg" && continue
     [ "$(_auto_antes_de "$reg" 2>/dev/null)" = "masked-antes-de-nos" ] && continue
     meow_aviso "'$reg' saiu de AUTOSTART_BLOQUEADOS mas continua mascarado."
-    meow_aviso "  para devolvê-lo:  scripts/autostart.sh remover $reg"
+    meow_aviso "  tirar o nome da lista não desfaz a máscara"
   done <<< "$(_auto_ids_registrados)"
 
   meow_registrar "autostart.sh aplicar rc=$rc lista=$AUTOSTART_BLOQUEADOS"

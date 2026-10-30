@@ -76,7 +76,7 @@ if ! meow_tem python3; then
 fi
 if [ -z "$AUTORAIS" ]; then
   meow_erro "não sei onde mora o acervo autoral do pack ativo"
-  meow_info "  quem responde esse endereço é 'scripts/pack.py onde', e ele precisa de python3"
+  meow_info "  quem responde esse endereço é o pack.py, e ele precisa de python3"
   meow_info "  (ou o pack no ar não valida)"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
@@ -320,10 +320,6 @@ done
 if [ ${#faltando[@]} -gt 0 ] && ! meow_seco; then
   meow_aviso "não chegaram ao tema: ${faltando[*]}"
   avisos=1
-fi
-
-if ! meow_seco && [ -x "$RAIZ/scripts/auditar_icones.sh" ]; then
-  meow_info "auditoria completa da máquina: ./scripts/auditar_icones.sh"
 fi
 
 if [ "$mudou" = "0" ]; then
