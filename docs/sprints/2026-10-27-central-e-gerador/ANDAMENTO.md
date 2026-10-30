@@ -1,6 +1,21 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- FECHO (30/10, 15h): v2.3.0. P150 (o `.deb`, a árvore só leitura; o upload de papel de parede vai para
+  `~/.local/share/backgrounds/meowsystem/ativos`), P151 (as pontas soltas: `meow.conf.exemplo`, 14 saídas que mandavam
+  rodar script, a ação «Baixar o spicetify», o `.obsolete` do VS Code, o autostart desmascara o que sai da lista, a
+  Biblioteca) e P152 (máquina nova sem atrito: `./install.sh` sem flag pede a senha uma vez, instala os pacotes de
+  compilar das etapas ligadas, de `assets/pacotes/compilar.tsv`, que também gera o `Recommends` do `.deb`, e traz o
+  Rust pelo rustup pinado; roda de uma árvore sem `.git`). O vermelho do `app-completo.py` era o teste esperando
+  ação de cartão com o ⋮ fechado (8f6c2027). Suíte 132/132 verde. Install com o HOME real (askpass): `rc=0`,
+  2 passagens, nada mais a escrever; doctor sem nada a consertar. Soneca no painel, trava do coordenador parada.
+  Publicado: `dev` na `master` do `origin`, tag v2.3.0 e release com o `.deb`.
+  ELA CONFERE COM A MÃO: a lista do fecho de 03h abaixo, e na máquina nova o roteiro do README (clone e
+  `./install.sh`, sair e entrar quando o compositor terminar).
+  PRÓXIMO: capturas dos applets com ela na máquina. Anotado: o `_pacotes_fastfetch` usa `sudo` comum (hoje dentro
+  do carimbo do começo); o bloco «uma passagem só» imprime `./install.sh`; o `lib/preflight.sh` diz «instale à mão»
+  para outras distros; a pendência do starship guarda o comando `./scripts/prompt.sh`; o `pack.py:1835` cita um
+  comando para autor de pack.
 - FECHO (30/10, 03h): P140 a P149 no `dev`, cada bloco com conferente Opus; suíte da integração 128/128 verde
   (0 pulado, 0 vermelho; os aceitos do `restaurar.sh` e do `readme.sh` curados). Blocos: apps (P140 Spotify e
   spicetify calado, P126 Vencord pelo meow com vigia `meow-discord.path`, P141 frases e o fundo do chat do ZapZap),
