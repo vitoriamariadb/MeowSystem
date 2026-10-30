@@ -49,3 +49,25 @@ Anotada em 28/10 (conferências da P130 e da P131), escrita em 29/10.
   JavaScript, laranja do Android...) e não passam de 3:1 em nenhum fundo claro da paleta. É a cor da arte do pack,
   não o traço do texto que a sprint mediu; o teste conta esses itens e os deixa fora da conta. Mudar a cor da arte
   seria mudar o pack.
+
+### Conferência
+
+- **Lote**: a cura está certa em todos os caminhos lidos (erro de rede e lote recusado tiram só as chaves de que o
+  lote é o último; chaves diferentes no mesmo lote; a fila serializa os envios, então «fora de ordem» é o velho
+  voltando enquanto o novo espera; recarregar zera tudo e o conf manda). A seção 8 reproduz a corrida: rodada no
+  `app.js` de antes, falha nas duas conferências do meio. Faltava o caminho de duas chaves que cai na rede: a seção 9
+  de `tests/grava-ao-soltar.py` manda {LOG_NIVEL, FLAVOR} e derruba a conexão com um LOG_NIVEL mais novo na fila;
+  no código de antes falha 2, no novo passa (37 conferências). Commit `dc517605`.
+- **Latte**: o cartão segue a maquete b (`--fundo`, `--linha`, `--tinta-2` do flavor), conferido em captura headless
+  nas abas Sistema e Biblioteca em 390 e 1280, com Latte, Mocha e Dracula. O teste media só Latte e Mocha; passou a
+  medir o Dracula também (Sistema 112 e Biblioteca 21 medidos, nenhum abaixo de 3:1). Commit `3d3518e8`.
+- **Tipos de arquivo**: o mapa cobre os 68 glifos que os dois packs mostram, sem sobra. O `tests/icones-do-sistema.sh`
+  confere isso a cada rodada, para um glifo novo não cair no nome em inglês. Commit `e013ab90`.
+- Conferido sem achado: CSS no `oficina.css` (a tela de Personalizar), zero comentário, a escolha do mapa em vez do
+  `shared-mime-info` não toca decisão.
+- **Fora da sprint, anotado**: a Biblioteca ainda mostra «File», «Folder», «Folder open», «Root» (nomes de arquivo
+  do acervo); o `depois` do envio de tema de ícones cita «Tema de onde herdar», que a tela não tem (o painel não mostra
+  esse `depois`).
+- **Suíte inteira** na worktree, depois das correções: 121 testes, 119 verdes, 0 pulados, 2 vermelhos aceitos
+  (`readme.sh`, o badge v2.2.0; `restaurar.sh`, `pack_usar` e `desinstalar`, de outro bloco). `grava-ao-soltar.py`,
+  `app-layout.py`, `sistema-latte-e-rotulos.py`, `nada-manda-digitar.sh`, `icones-do-sistema.sh` e `pack.sh` verdes.
