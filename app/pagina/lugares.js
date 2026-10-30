@@ -333,6 +333,7 @@ const LUGAR_MODIFICACOES = {
   ],
   chaves: [
     { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify", cartao: "spotify", bloco: "Spotify" },
+    { c: "DISCORD_VENCORD", r: "Vencord no Discord", cartao: "discord", bloco: "Discord" },
   ],
   detalhes: [
     { id: "terminal", nome: "Terminal", icone: "terminal",

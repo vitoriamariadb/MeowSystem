@@ -1,0 +1,18 @@
+[Unit]
+Description=MeowSystem — repõe o Vencord no app novo do Discord
+Documentation=file:%h/.local/state/meowsystem/discord.log
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+StartLimitIntervalSec=600s
+StartLimitBurst=15
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${DISCORD_VENCORD:-sim}" = "sim" ] && case ",${APPS_ATIVOS:-}," in *,discord,*) ;; *) exit 1 ;; esac'
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStartPre=-/usr/bin/sleep 30
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/aplicar_apps.sh" ] || exit 3; . %h/.config/meow/meow.conf; export FLAVOR ACCENT PACK DISCORD_VENCORD; APPS_ATIVOS=discord exec "$R/scripts/aplicar_apps.sh" aplicar'
+SuccessExitStatus=1 3
+TimeoutStartSec=5min
+StandardOutput=append:%h/.local/state/meowsystem/discord.log
+StandardError=inherit
+SyslogIdentifier=meow-discord

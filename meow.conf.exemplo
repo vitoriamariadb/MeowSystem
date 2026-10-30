@@ -1820,6 +1820,16 @@ APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,
 # `current_theme=marketplace`, e aí o doctor e o Marketplace brigariam todo dia.
 SPOTIFY_MARKETPLACE="sim"
 
+# @ Vencord no Discord
+# > O Discord oficial não carrega tema; o meow injeta o Vencord em cada versão nova que ele baixa.
+# O Discord oficial (o .deb) se atualiza sozinho para `~/.config/discord/app-<versão>/`, e o cliente
+# dele não lê tema. Com "sim", o módulo `scripts/temas-de-apps/discord` injeta o Vencord (instalador
+# de versão fixada, com sha256, guardado em `~/.local/share/meowsystem/vencord/`) na versão mais nova,
+# com o Discord fechado, e o par `meow-discord.path`/`meow-discord.service` repõe o Vencord depois de
+# cada atualização. "nao" não injeta nada, e tira o vigia. O Vencord que já está lá só sai com
+# `meow apps reverter discord`.
+DISCORD_VENCORD="sim"
+
 # @ Correções do Flatpak
 # > Os apps libadwaita sem tema quebrado, sem ícones em dobro e no runtime validado.
 # "nao" devolve o override do Flatpak de antes e tira o runtime forçado.
