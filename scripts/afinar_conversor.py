@@ -255,8 +255,8 @@ def main():
             fh.write("\n".join(saiu))
     print("%d linha(s) do mapa mudaram." % mexeu, file=sys.stderr)
     if mexeu:
-        print("A ARTE NÃO MUDOU AINDA — o mapa é a receita, não o desenho.\n"
-              "Para regerar o acervo:  ./scripts/construir_convertidos.sh",
+        print("A ARTE NÃO MUDOU AINDA — o mapa é a receita, não o desenho; o acervo convertido\n"
+              "muda na próxima passada do construir_convertidos.sh.",
               file=sys.stderr)
     return 0
 
