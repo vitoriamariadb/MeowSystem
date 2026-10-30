@@ -55,3 +55,30 @@ Bloco `apps`, branch `bloco/apps-p140`, 29/10/2026.
   comentário da linha; a segunda passada não escreve; a saída não tem «meow.conf», «abra», «rode», «digite»; Waterfox sem
   perfil sem ordem e, com o perfil criado, a passada seguinte aplica e a outra não escreve; o CSS do ZapZap com as paletas
   `meowsystem` e `dracula` tem a regra do fundo da conversa, com os canais RGB.
+
+### Conferência (29/10)
+
+- **ZapZap, provado offline.** No cache do WhatsApp Web, `WAWebConversationPanelWrapper` põe o `wallpaperStyle` do tema
+  de conversa (`WAWebChatThemeDefinitions.stylex`, 236 classes, 17 variáveis `--WDS-*`) no `div#main`. O `bubbleStyle`
+  e o `WAWebVibrantOutgoingOverrides` vão nos descendentes da mensagem. Esses elementos declaram as variáveis eles
+  mesmos, e o `!important` do `:root` não alcança variável redeclarada num descendente. Cura no modelo:
+  - `#main` entrou na lista de seletores;
+  - uma regra `#main *` põe `inherit !important` nas 17 variáveis do tema de conversa.
+
+  Prova: `tests/zapzap-tema-de-conversa.py`, headless e no `todos.sh`. Sem o `#main`, o tema de conversa vence; com
+  ele, fundo, frente, bolhas e acento ficam no pack.
+- **`meow_app_desligar`.** Usa a escrita única (`meow_conf_definir`), não desliga no `desinstalar`
+  (`MEOW_REVERTER_SEM_DESLIGAR=1`), e o painel fica coerente. Faltava em heroic, krita, libadwaita, obs e waterfox,
+  e o `--help` prometia para todos: os cinco ganharam a chamada.
+- **Frases.** «feche-o» saiu do OnlyOffice e do Obsidian. O desfazer com o app aberto dizia «sai na próxima passada»
+  (qBittorrent, Heroic, Obsidian), e nenhuma passada refaz um desfazer: agora diz «nada foi desfeito, e o tema fica».
+- **Commits.**
+  - `fix(zapzap): o tema de conversa do WhatsApp não vence a paleta no #main nem nas bolhas`
+  - `fix(apps): heroic, krita, libadwaita, obs e waterfox também se desligam do APPS_ATIVOS ao desfazer`
+  - `fix(apps): app aberto no desfazer diz que nada foi desfeito, sem «feche-o» nem promessa de passada`
+- **Anotado para a P142.** O reverter do ZapZap ainda manda `flatpak update com.rtosta.zapzap`.
+- **Só a máquina prova.** O ZapZap aberto, com um tema de conversa escolhido, no pack.
+- **Suíte inteira (conferência).** `./tests/todos.sh`: 124 testes, 122 verdes, 0 pulados, 2 vermelhos.
+  - `restaurar.sh` é vermelho aceito.
+  - `temas-por-app.sh` caiu porque o `meow.conf` que o desfazer cria no HOME de brinquedo traz `#1E1E2E` no texto
+    do exemplo. O teste deixou de contar o `meow.conf` como arquivo com tema, e rodado sozinho dá 78 provas, tudo verde.
