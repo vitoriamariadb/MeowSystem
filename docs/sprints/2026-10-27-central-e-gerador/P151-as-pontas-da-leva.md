@@ -86,6 +86,56 @@ que falha antes e passa depois.
   rótulos. Não é vão.
 - No Latte, 50 itens do Sistema e 142 da Biblioteca ficam abaixo de 3:1. As cores são a arte do pack e não mudam.
 
+## 6. As pontas que a primeira passada deixou (pedido de 30/10: «conclua todas as pontas soltas»)
+
+### O que se mediu
+- A pendência `spicetify-ausente`:
+  - não tinha ação no painel;
+  - guardava «scripts/spicetify_setup.sh instalar» como comando;
+  - e nada baixava o spicetify.
+- Três saídas ainda mandavam fazer algo:
+  - `prompt.sh`: «a alternativa, pelo cargo: cargo install starship --locked»;
+  - o desfazer do VS Code: «tire pela interface do editor»;
+  - `afinar_conversor.py`: «Para regerar o acervo: ./scripts/construir_convertidos.sh».
+- Os dois testes não pegavam essas saídas:
+  - a seção 1b do `nada-manda-digitar.sh` não lia os manifestos;
+  - a seção 10 não lia Python.
+- O autostart só avisava quando um nome saía de `AUTOSTART_BLOQUEADOS`, e a máscara ficava. Com a lista vazia, nem
+  avisava. Não havia teste do autostart.
+
+### Cura na origem
+- O painel ganha a ação `spicetify_instalar` («Baixar o spicetify», no «⋮» do cartão do Spotify). Ela:
+  - roda o `spicetify_setup.sh instalar`, com rede e confirmação;
+  - fica indisponível quando o spicetify já existe.
+- A pendência aponta para essa ação, pelo `ACAO_DA_PENDENCIA`, como as outras pendências acionáveis. O manifesto
+  não cita mais o script.
+- As três saídas dizem o fato, ou saem.
+- O `autostart.sh aplicar` desmascara, pelo `cmd_remover`, o que o MeowSystem mascarou e saiu da lista, também
+  com a lista vazia. O que já vinha mascarado de fora fica.
+- O `conferir` diverge enquanto um nome que saiu da lista segue mascarado.
+- O texto de `AUTOSTART_BLOQUEADOS` no exemplo diz isso.
+
+### Prova
+- `tests/app.sh`:
+  - a pendência tem a ação que baixa o spicetify, e o `--onde` leva à Modificações;
+  - a pendência some com o spicetify em `~/.spicetify`;
+  - o manifesto não cita o script.
+- `tests/modificacoes-pagina.py`: o «⋮» do Spotify mostra o botão quando o spicetify falta.
+- `tests/nada-manda-digitar.sh`:
+  - a seção 1b lê os manifestos e conhece as duas formas;
+  - a seção 10 lê `scripts/*.py` e `app/*.py`, e tem autoprova.
+- `tests/autostart.sh` (novo), com `systemctl` falso:
+  - tirar um nome desmascara;
+  - esvaziar a lista desmascara;
+  - o mascarado de fora fica;
+  - o `conferir` diverge e depois fecha;
+  - a segunda passada não mexe em nada.
+
+## 7. O `auditar_icones.sh` fica
+
+Decisão do coordenador (30/10): ele fica como ferramenta de quem desenvolve. Nenhuma saída o chama, e a isenção no
+`tests/orfaos.sh` fica.
+
 ## Execução
 - Item 1: `d937d732` (exemplo) e `e360a04e` (`tests/numeros.sh`).
   - O teste novo falha no exemplo velho: faltavam ascii-battery, clipboard, drives, eyedropper e soneca.
