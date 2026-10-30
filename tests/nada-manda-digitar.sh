@@ -17,9 +17,9 @@ fi
 
 printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
 MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
-FORMAS="(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com '|acrescente .*à mão|tire a linha à mão|faça uma vez, à mão)"
-achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh 2>/dev/null \
-             | grep -vE '"uso: meow ')"
+FORMAS="(instale com|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com '|acrescente .*à mão|tire a linha à mão|faça uma vez, à mão|tire pela interface|a alternativa, pelo cargo)"
+achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh \
+             scripts/temas-de-apps/*/manifesto.sh 2>/dev/null | grep -vE '"uso: meow ')"
 if [ -z "$achados" ]; then
   ok "nenhuma mensagem manda armar o supervisor, rodar o install.sh, instalar com apt ou rustup, capturar o tema, adicionar papel de parede ou rodar sudo -l"
 else
@@ -240,6 +240,21 @@ achados="$(cd "$RAIZ" && grep -nP "$SCRIPT_A_RODAR" scripts/*.sh lib/*.sh bin/me
              scripts/temas-de-apps/*/manifesto.sh 2>/dev/null | grep -v 'uso: ')"
 [ -z "$achados" ] && ok "nenhuma saída de scripts, lib, bin/meow, install.sh ou manifesto manda rodar ./scripts/ ou scripts/<algo>.sh" \
   || falha "saídas que mandam rodar um script" "$achados"
+SCRIPT_A_RODAR_PY="^[^#]*[\"'][^\"']*\\./scripts/"
+pega="$(printf '%s\n' \
+  '        print("Para regerar o acervo:  ./scripts/qualquer.sh", file=sys.stderr)' \
+  '              "e depois rode ./scripts/qualquer.py",' | grep -cP "$SCRIPT_A_RODAR_PY")"
+deixa="$(printf '%s\n' \
+  '    print("falta scripts/qualquer.py", file=sys.stderr)' \
+  '# ./scripts/qualquer.sh refaz o acervo' | grep -cP "$SCRIPT_A_RODAR_PY")"
+if [ "$pega" = 2 ] && [ "$deixa" = 0 ]; then
+  ok "o padrão do Python pega o ./scripts/ dentro de um texto e deixa o fato e o comentário"
+else
+  falha "o padrão de script a rodar no Python errou a amostra" "pegou $pega de 2 comandos e $deixa de 2 fatos"
+fi
+achados="$(cd "$RAIZ" && grep -nP "$SCRIPT_A_RODAR_PY" scripts/*.py app/*.py 2>/dev/null)"
+[ -z "$achados" ] && ok "nenhum texto dos scripts e do painel em Python manda rodar ./scripts/" \
+  || falha "textos em Python que mandam rodar um script" "$achados"
 
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
