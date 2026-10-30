@@ -24,3 +24,24 @@ ou escolher qual eu quero».
   arquivo que não é SVG/PNG ou grande demais recusa; `/logo.svg` segue a nova; segunda gravação igual não escreve.
 - Teste de navegador headless (HOME temporário): clicar a logo do cartão pessoal, escolher o gato, e o cartão e o
   cabeçalho mostram o gato; os cartões Dracula e MeowSystem não têm o botão.
+
+## Execução
+
+Três commits na `bloco/logo-p145`: `5d193470` (servidor), `69cf7740` (painel) e `a681253b` (testes).
+
+- Servidor: o pack pessoal lista as opções (a gerada, a logo de cada pack e os desenhos do mascote, com prévia nas
+  cores dele) e grava a escolhida em `logo.svg`. Pack que vem com o programa recusa (400). O arquivo aberto é SVG
+  sem `script`, `on*` nem href externo, ou PNG (vira SVG vetorial, porque a capa da vitrine só aceita SVG); acima de
+  512 KB recusa (413); SVG que não é quadrado fica centrado numa área quadrada. A escrita é atômica e a segunda
+  gravação igual não escreve. Com `LOGO_PROGRAMA` vazio e o pack pessoal no ar, `/logo.svg` segue a logo dele.
+- Painel: a logo do cartão do pack pessoal abre a grade (`.escolha`, o mesmo seletor do mascote) com a atual
+  marcada, «Abrir um arquivo» e o erro na própria janela. Dracula e MeowSystem não ganham o botão.
+- `LOGO_PROGRAMA` já oferecia as logos como grade (`previa: "logo"`, P138) e lista todo pack do disco; o teste
+  confere que o pack pessoal entra na oferta e é servido.
+
+Prova: `tests/logo-do-pack-pessoal.sh` (23 conferências) e `tests/logo-do-pack-pessoal-pagina.py` (20 conferências,
+sem erro de JavaScript e sem pedido à internet), os dois entrando em `tests/todos.sh`. `tests/todos.sh` inteiro:
+120 verdes e dois vermelhos, nenhum da P145.
+
+- `readme.sh` (README velho e badge de versão fora de v2.2.0) falha igual na `dev` limpa (`3d86c17c`).
+- `restaurar.sh` (`pack_usar` e `desinstalar`) é o vermelho aceito que a P146 cura.
