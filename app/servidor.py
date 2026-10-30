@@ -2369,7 +2369,8 @@ def logo_escolhida():
 
 TETO_DA_LOGO_ENVIADA = 512 << 10
 LADO_DO_PNG_NA_LOGO = 64
-RE_RAIZ_DA_LOGO = re.compile(r"<svg\b[^>]*>", re.S)
+LADO_MAXIMO_DO_PNG = 1024
+RE_INICIO_DA_LOGO = re.compile(r"<svg\b")
 RE_VIEWBOX_DA_LOGO = re.compile(r"""\sviewBox\s*=\s*(["'])([^"']*)\1""")
 RE_MEDIDA_DA_LOGO = re.compile(r"""\s(?:width|height)\s*=\s*(["'])[^"']*\1""")
 
@@ -2402,10 +2403,12 @@ def _numero_curto(valor):
 
 
 def _logo_quadrada(texto):
-    achado = RE_RAIZ_DA_LOGO.search(texto)
-    if not achado:
+    achado = RE_INICIO_DA_LOGO.search(texto)
+    fim = texto.find(">", achado.end()) + 1 if achado else 0
+    if not fim:
         raise ValueError("isso não parece um SVG")
-    raiz = achado.group(0)
+    inicio = achado.start()
+    raiz = texto[inicio:fim]
     caixa = RE_VIEWBOX_DA_LOGO.search(raiz)
     partes = [x for x in re.split(r"[\s,]+", caixa.group(2).strip()) if x] if caixa else []
     if not caixa:
@@ -2429,7 +2432,7 @@ def _logo_quadrada(texto):
         nova = RE_VIEWBOX_DA_LOGO.sub(lambda _m: novo, sem_medidas, count=1)
     else:
         nova = sem_medidas[:-1].rstrip("/") + novo + sem_medidas[-1:]
-    return texto[:achado.start()] + nova + texto[achado.end():]
+    return texto[:inicio] + nova + texto[fim:]
 
 
 def _pixels_do_png(dados):
@@ -2455,8 +2458,8 @@ def _pixels_do_png(dados):
         raise ValueError("o PNG está incompleto")
     larg, alt, fundo, cor, _compressao, _filtro, entrelacado = struct.unpack(">IIBBBBB", cabeca[:13])
     canais = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(cor)
-    if fundo != 8 or not canais or entrelacado or not (0 < larg <= 4096 and 0 < alt <= 4096):
-        raise ValueError("esse PNG não serve: use 8 bits, sem entrelaçar, até 4096 de lado")
+    if fundo != 8 or not canais or entrelacado or not (0 < larg <= LADO_MAXIMO_DO_PNG and 0 < alt <= LADO_MAXIMO_DO_PNG):
+        raise ValueError("esse PNG não serve: use 8 bits, sem entrelaçar, até %d de lado" % LADO_MAXIMO_DO_PNG)
     passo = larg * canais
     esperado = alt * (passo + 1)
     descompressor = zlib.decompressobj()
@@ -2559,6 +2562,11 @@ def _svg_do_png(dados):
             % (_numero_curto(deslocamento_x), _numero_curto(deslocamento_y), _numero_curto(unidade), corpo))
 
 
+def _primeira_frase(erro):
+    plano = " ".join(str(erro).split())
+    return re.split(r"(?<=[.!?])\s", plano, maxsplit=1)[0]
+
+
 def _logo_confere(mod, texto):
     with tempfile.TemporaryDirectory(prefix="meow-logo-") as pasta:
         with open(os.path.join(pasta, "logo.svg"), "w", encoding="utf-8") as fh:
@@ -2566,8 +2574,7 @@ def _logo_confere(mod, texto):
         try:
             mod._validar_logo(pasta, {})
         except mod.Recusa as erro:
-            frase = str(erro).strip().splitlines()[0]
-            raise ValueError(re.sub(r"^logo\.svg:\s*", "", frase)) from None
+            raise ValueError(re.sub(r"^logo\.svg:\s*", "", _primeira_frase(erro))) from None
 
 
 def _logo_sem_papeis(mod, texto):
@@ -2680,7 +2687,7 @@ def gravar_logo_do_pack_pessoal(corpo):
     except ValueError as erro:
         return {"erro": str(erro)}, 400
     except Exception as erro:
-        return {"erro": str(erro).strip().splitlines()[0] if str(erro).strip() else "não deu"}, 400
+        return {"erro": _primeira_frase(erro) or "não deu"}, 400
     try:
         with open(destino, "r", encoding="utf-8") as fh:
             igual = _logo_sem_papeis(mod, fh.read()) == _logo_sem_papeis(mod, texto)
@@ -2688,16 +2695,19 @@ def gravar_logo_do_pack_pessoal(corpo):
         igual = False
     if igual:
         return {"ok": True, "mudou": False, "pack": ident}, 200
-    tmp = destino + ".meow-parcial"
+    tmp = None
     try:
-        with open(tmp, "w", encoding="utf-8") as fh:
+        descritor, tmp = tempfile.mkstemp(prefix=".logo-", suffix=".meow-parcial", dir=os.path.dirname(destino))
+        with os.fdopen(descritor, "w", encoding="utf-8") as fh:
             fh.write(texto)
+        os.chmod(tmp, 0o644)
         os.replace(tmp, destino)
     except OSError as erro:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
+        if tmp:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
         return {"erro": "não consegui gravar: %s" % erro}, 500
     return {"ok": True, "mudou": True, "pack": ident}, 200
 
