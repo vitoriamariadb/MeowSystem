@@ -968,8 +968,20 @@ cat > "$BIN10/code" <<'CODE'
 #!/usr/bin/env python3
 # code de mentira (P55): as extensões moram em ~/.vscode/extensions, como no de verdade.
 import json, os, shutil, sys, zipfile
-ext = os.path.join(os.environ["HOME"], ".vscode", "extensions")
 a = sys.argv[1:] or [""]
+def opcao(nome, padrao):
+    if nome in a:
+        i = a.index(nome); v = a[i + 1]; del a[i:i + 2]; return v
+    return padrao
+ext = opcao("--extensions-dir", os.path.join(os.environ["HOME"], ".vscode", "extensions"))
+dados = opcao("--user-data-dir", os.path.join(os.environ["HOME"], ".config", "Code"))
+if a[0] != "--version":
+    os.makedirs(os.path.join(dados, "logs"), exist_ok=True)
+    open(os.path.join(dados, "logs", "cli.log"), "a").write(" ".join(a) + "\n")
+    open(os.path.join(dados, "machineid"), "w").write("maquina\n")
+if os.environ.get("PARALELO") and a[0] == "--install-extension":
+    os.makedirs(os.path.dirname(os.environ["PARALELO"]), exist_ok=True)
+    open(os.environ["PARALELO"], "w").write("o editor dela, enquanto o CLI instalava\n")
 def pastas():
     return sorted(d for d in os.listdir(ext) if os.path.isdir(os.path.join(ext, d))) if os.path.isdir(ext) else []
 def id_de(d):
@@ -1481,6 +1493,31 @@ done
 [ -z "$faltam" ] \
   && ok "P61: o tema de ícones que só um pack inválido declara não é de pack nenhum, e a régua dos packs válidos é uma só" \
   || falha "P61: o VS Code e o pack inválido:$faltam"
+
+faltam=""
+semear10
+mkdir -p "$CASA10/.config/Code/User/globalStorage"
+printf '{"dela": 1}\n' > "$CASA10/.config/Code/User/globalStorage/storage.json"
+GUARDA10="$T10/guarda-vscode"; PARALELO10="$CASA10/.config/Code/User/paralelo.json"
+antes_vsc="$(cat "$VSC10")"
+saida="$(mod10 vscode aplicar catppuccin mocha MEOW_BACKUPS="$GUARDA10" PARALELO="$PARALELO10")"; rc=$?
+[ "$rc" = 1 ] && [ -d "$CASA10/.vscode/extensions/catppuccin.catppuccin-vsc-3.19.0" ] && [ -f "$PARALELO10" ] \
+  || faltam+=" aplicar (rc=$rc: $saida);"
+[ ! -e "$CASA10/.config/Code/logs" ] && [ ! -e "$CASA10/.config/Code/machineid" ] && [ -z "$(ls -A "$T10/tmp")" ] \
+  || faltam+=" o CLI escreveu na pasta do editor dela ou deixou sobra [$(cd "$CASA10/.config/Code" && find . -maxdepth 1 | tr '\n' ' ')];"
+fora="$(cut -f1 "$GUARDA10/tocados.tsv" 2>/dev/null | grep -vxF "$VSC10" \
+  | grep -v -e "^$CASA10/\.vscode/extensions/catppuccin\.catppuccin-vsc-[0-9]" -e "^$CASA10/\.vscode/extensions/catppuccin\.catppuccin-vsc-icons-[0-9]" \
+            -e "^$CASA10/\.vscode/extensions/extensions\.json\$" -e "^$CASA10/\.vscode/extensions/\.obsolete\$")"
+[ -z "$fora" ] || faltam+=" o registro leva o que não é do MeowSystem: $fora;"
+saida="$(env -i PATH="$BIN10:$PATH" HOME="$CASA10" XDG_CONFIG_HOME="$CASA10/.config" XDG_DATA_HOME="$CASA10/.local/share" \
+  MEOW_ESTADO="$T10/estado" NO_COLOR=1 bash "$RAIZ/bin/meow" restaurar "$GUARDA10" </dev/null 2>&1)"; rc=$?
+[ "$rc" = 1 ] && [ "$(cat "$PARALELO10" 2>/dev/null)" = "o editor dela, enquanto o CLI instalava" ] \
+  && [ "$(cat "$CASA10/.config/Code/User/globalStorage/storage.json")" = '{"dela": 1}' ] \
+  && [ -z "$(ls -A "$CASA10/.vscode/extensions")" ] && [ "$(cat "$VSC10")" = "$antes_vsc" ] \
+  || faltam+=" o restaurar (rc=$rc, extensões: $(ls -A "$CASA10/.vscode/extensions" | tr '\n' ' ')): $saida;"
+[ -z "$faltam" ] \
+  && ok "P146: o VS Code instala com o CLI isolado, o registro leva só a extensão e o settings, e o arquivo que o editor dela criou em paralelo sobrevive ao Restaurar" \
+  || falha "P146: o Restaurar do VS Code:$faltam"
 
 faltam=""
 semear10
