@@ -151,6 +151,8 @@ MOLDE_JS = """
 
 def main():
     ambiente = montar()
+    ambiente["PATH"] = os.pathsep.join(d for d in ambiente.get("PATH", "").split(os.pathsep)
+                                       if not os.path.exists(os.path.join(d, "spicetify")))
     proc, url = casa.sobe_servidor(ambiente)
     if not url:
         print("ERRO: o painel não subiu")
@@ -258,6 +260,11 @@ def main():
                 abrir_menu(pag, "spotify")
                 checa(cartao(pag, "spotify").locator('[data-linha~="SPOTIFY_MARKETPLACE"]').is_visible(),
                       "a chave da loja mora no «⋮» do cartão")
+                falta = pag.evaluate("() => !!((MOD.dados.cartoes || []).find((c) => c.id === 'spotify') || {})"
+                                     ".falta_spicetify")
+                checa(falta, "sem o spicetify na casa, o cartão do Spotify sabe que ele falta")
+                checa(cartao(pag, "spotify").locator('[data-controle="acao:spicetify_instalar"]').is_visible(),
+                      "e o «⋮» do Spotify tem o «Baixar o spicetify»")
                 pag.keyboard.press("Escape")
 
             if FOTOS:
