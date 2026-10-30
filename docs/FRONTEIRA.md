@@ -48,6 +48,7 @@ a máquina gerou.
 | `~/.local/bin/meowsystem-*`, `~/.local/state/meowsystem/extensoes/` | **Meow** |
 | `~/.config/cosmic/io.github.meowsystem.NowPlaying/v1/*`, `~/.config/meowsystem/extensoes/*/tema.conf` | **Meow** |
 | `album-color-enabled` do applet de mídia, `ultima_{temperatura,textura}` do applet de leitura | **quem usa** |
+| `~/.local/state/cosmic/io.github.meowsystem.Soneca/v1/modo` (o modo Desperto ou Ronronar do applet Soneca) | **quem usa**; o Meow não lê nem escreve |
 | `CosmicComp/v1/leitura_{temperatura,textura}` | **Meow** escreve o degrau da hora; **quem usa** escreve à mão pelo applet |
 | `CosmicComp/v1/leitura_{agenda,hora_inicio,hora_fim}` | **quem usa**; o Meow lê e obedece |
 | `pinned_workspaces` | **Meow** (`scripts/areas.sh`) |
