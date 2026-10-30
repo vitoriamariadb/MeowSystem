@@ -77,7 +77,7 @@ fi
 if [ -z "$AUTORAIS" ]; then
   meow_erro "não sei onde mora o acervo autoral do pack ativo"
   meow_info "  quem responde esse endereço é 'scripts/pack.py onde', e ele precisa de python3"
-  meow_info "  (ou o pack no ar não valida: o motivo está no cartão dele, em Tema)"
+  meow_info "  (ou o pack no ar não valida)"
   exit "$MEOW_SEM_DEPENDENCIA"
 fi
 
