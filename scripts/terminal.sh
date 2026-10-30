@@ -499,7 +499,7 @@ main() {
 
   if [ "$ESQUEMA" != "sim" ]; then
     if _tem_nosso; then
-      meow_muda "TERMINAL_ESQUEMA=\"$ESQUEMA\" pede sem esquema, mas o esquema nosso continua instalado"
+      meow_muda "TERMINAL_ESQUEMA=\"$ESQUEMA\" dispensa o esquema nosso, que continua instalado"
       [ "$ACAO" = "conferir" ] && return "$MEOW_DIVERGENTE"
       _remover; return $?
     fi
