@@ -451,7 +451,7 @@ meow_app_conferir() {
     return "$MEOW_OK"
   fi
   if _meow_obsidian_rodando; then
-    meow_aviso "obsidian: está ABERTO — feche-o para o MeowSystem poder aplicar"
+    meow_aviso "obsidian: está ABERTO — o tema entra na próxima passada, com ele fechado"
   fi
   return "$MEOW_DIVERGENTE"
 }
@@ -693,7 +693,6 @@ meow_app_reverter() {
   if _meow_obsidian_rodando; then
     meow_aviso "obsidian: o app está ABERTO — nada foi escrito."
     meow_aviso "obsidian: ele regrava o appearance.json ao sair e traria o tema de volta."
-    meow_aviso "obsidian: aberto agora; a próxima passada com ele fechado aplica."
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 

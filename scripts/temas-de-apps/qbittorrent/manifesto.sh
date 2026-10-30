@@ -408,7 +408,7 @@ meow_app_reverter() {
 
   if [ "$MEOW_QBT_ESCRITOR" = "proprio" ]; then
     if _meow_qbt_aberto; then
-      meow_pula "qBittorrent: o app está aberto — o tema sai na próxima passada, com ele fechado"
+      meow_pula "qBittorrent: o app está aberto e reescreve o conf ao sair — nada foi desfeito, e o tema fica"
       return "$MEOW_SEM_DEPENDENCIA"
     fi
     if grep -qxF "General\\CustomUIThemePath=$destino" "$conf_dir/qBittorrent.conf" 2>/dev/null; then
