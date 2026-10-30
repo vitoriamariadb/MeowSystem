@@ -98,13 +98,14 @@ def main():
                 confere(r["total"] > 20 and not r["ruins"],
                         f"Latte, {aba}: nenhum desenho no traço do texto abaixo de 3:1 no cartão ({r['total']} medidos, ruins: {len(r['ruins'])}: {r['ruins'][:6]}; {r['coloridos']} de cor própria fora da conta)")
 
-            partir_do_flavor(pag, "meowsystem", "mocha")
-            for aba in ("sistema", "biblioteca"):
-                vizinho.aba(pag, aba)
-                pag.wait_for_timeout(800)
-                r = pag.evaluate(MEDIR)
-                confere(r["total"] > 20 and not r["ruins"],
-                        f"Mocha, {aba}: nenhum desenho no traço do texto abaixo de 3:1 no cartão ({r['total']} medidos, ruins: {len(r['ruins'])}: {r['ruins'][:6]}; {r['coloridos']} de cor própria fora da conta)")
+            for pack, flavor, nome in (("meowsystem", "mocha", "Mocha"), ("dracula", "dracula", "Dracula")):
+                confere(partir_do_flavor(pag, pack, flavor), f"o rascunho parte do {nome}")
+                for aba in ("sistema", "biblioteca"):
+                    vizinho.aba(pag, aba)
+                    pag.wait_for_timeout(800)
+                    r = pag.evaluate(MEDIR)
+                    confere(r["total"] > 20 and not r["ruins"],
+                            f"{nome}, {aba}: nenhum desenho no traço do texto abaixo de 3:1 no cartão ({r['total']} medidos, ruins: {len(r['ruins'])}: {r['ruins'][:6]}; {r['coloridos']} de cor própria fora da conta)")
 
             for larg in (390, 1280):
                 pag.set_viewport_size({"width": larg, "height": 800})
