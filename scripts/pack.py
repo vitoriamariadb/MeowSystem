@@ -1775,7 +1775,7 @@ PAPEIS_DO_LOGO = {
 }
 ACCENT_PADRAO_DO_LOGO = "mauve"
 RE_ESTILO_PAPEIS = re.compile(
-    r"""\s*<style\b[^>]*?\bid\s*=\s*(["'])meow-papeis\1[^>]*?(?:/>|>.*?</style>)""", re.S)
+    r"""(?<!\s)\s*<style\b[^>]*?\bid\s*=\s*(["'])meow-papeis\1[^>]*?(?:/>|>.*?</style>)""", re.S)
 RE_RAIZ_SVG = re.compile(r"<svg\b[^>]*>")
 RE_URL_CSS = re.compile(r"""url\(\s*['"]?\s*([^)'"\s]*)""", re.I)
 RE_ESCAPE_CSS = re.compile(r"\\(?:([0-9a-fA-F]{1,6})[ \t\n\r\f]?|(.))", re.S)

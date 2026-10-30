@@ -24,3 +24,43 @@ ou escolher qual eu quero».
   arquivo que não é SVG/PNG ou grande demais recusa; `/logo.svg` segue a nova; segunda gravação igual não escreve.
 - Teste de navegador headless (HOME temporário): clicar a logo do cartão pessoal, escolher o gato, e o cartão e o
   cabeçalho mostram o gato; os cartões Dracula e MeowSystem não têm o botão.
+
+## Execução
+
+Três commits na `bloco/logo-p145`: `5d193470` (servidor), `69cf7740` (painel) e `a681253b` (testes).
+
+- Servidor: o pack pessoal lista as opções (a gerada, a logo de cada pack e os desenhos do mascote, com prévia nas
+  cores dele) e grava a escolhida em `logo.svg`. Pack que vem com o programa recusa (400). O arquivo aberto é SVG
+  sem `script`, `on*` nem href externo, ou PNG (vira SVG vetorial, porque a capa da vitrine só aceita SVG); acima de
+  512 KB recusa (413); SVG que não é quadrado fica centrado numa área quadrada. A escrita é atômica e a segunda
+  gravação igual não escreve. Com `LOGO_PROGRAMA` vazio e o pack pessoal no ar, `/logo.svg` segue a logo dele.
+- Painel: a logo do cartão do pack pessoal abre a grade (`.escolha`, o mesmo seletor do mascote) com a atual
+  marcada, «Abrir um arquivo» e o erro na própria janela. Dracula e MeowSystem não ganham o botão.
+- `LOGO_PROGRAMA` já oferecia as logos como grade (`previa: "logo"`, P138) e lista todo pack do disco; o teste
+  confere que o pack pessoal entra na oferta e é servido.
+
+Prova: `tests/logo-do-pack-pessoal.sh` (49 conferências) e `tests/logo-do-pack-pessoal-pagina.py` (27 conferências,
+sem erro de JavaScript e sem pedido à internet), os dois entrando em `tests/todos.sh`. `tests/todos.sh` inteiro:
+120 verdes e dois vermelhos, nenhum da P145.
+
+- `readme.sh` (README velho e badge de versão fora de v2.2.0) falha igual na `dev` limpa (`3d86c17c`).
+- `restaurar.sh` (`pack_usar` e `desinstalar`) é o vermelho aceito que a P146 cura.
+
+### Conferência
+
+O validador do `pack.py` já recusava `script`, `on*` em qualquer caixa, href e `javascript:` de fora, `foreignObject`,
+`image`, entidades, `url()` e `@import` (até escapados) e `xml-stylesheet`. A rota pede token, host e origem, como as
+vizinhas. Achados e correções:
+
+- `9b86dc2e`: o `RE_ESTILO_PAPEIS` era quadrático numa corrida de espaços. Um SVG de 500 KB de espaços passava no
+  validador, e depois cada `/logo.svg` levava minutos. Agora a busca só começa no início da corrida, com o mesmo resultado.
+- `32d39a30`: a raiz do SVG agora se acha com `find`, porque o `<svg ` repetido sem `>` custava segundos. O PNG vai
+  até 1024 de lado: um de 4096 cabia em 70 KB e levava 9 s e 140 MB. O parcial tem nome único (`mkstemp`): o nome fixo
+  seguia um link plantado e escrevia fora do pack. A queixa leva a frase inteira, não a linha cortada.
+- `99fc1581`: em Definir, a opção do pack pessoal no `LOGO_PROGRAMA` seguia com a logo velha, porque a URL não mudava
+  e o Chromium reaproveitava a imagem. A versão da troca agora entra na URL.
+- `719492e8`: provas do que está acima, mais pack em link, nome com `../`, `logo.svg` em link, validador e
+  `vitrine.capa` depois da troca, o lançador seguindo a logo nova, 390 e 1280 px e a rota sem token, host ou origem.
+  A busca do parcial que sobra agora usa `ls -A`.
+
+`tests/todos.sh` inteiro deu 120 verdes, 0 pulados e 2 vermelhos, os dois aceitos: `readme.sh` e `restaurar.sh`.
