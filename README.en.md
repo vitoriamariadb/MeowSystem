@@ -9,8 +9,8 @@
 [![license](https://img.shields.io/badge/license-GPL--3.0-CBA6F7?style=for-the-badge&labelColor=1E1E2E)](LICENSE)
 [![platform](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
 ![version](https://img.shields.io/badge/version-v2.2.0-FAB387?style=for-the-badge&labelColor=1E1E2E)
-[![installer](https://img.shields.io/badge/installer-71%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-81%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![installer](https://img.shields.io/badge/installer-72%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-82%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 
 <img src="docs/capturas/desktop.jpg" width="920" alt="The desktop dressed by MeowSystem">
 
@@ -29,16 +29,23 @@ What a pack does not declare it inherits, and `meow pack info` tells you where e
 ## Install
 
 ```bash
-git clone https://github.com/vitoriamariadb/MeowSystem.git
-cd MeowSystem
-./install.sh --wizard
+git clone https://github.com/vitoriamariadb/MeowSystem.git && cd MeowSystem && ./install.sh
 ```
 
-71 steps. `--wizard` asks the essential settings; `./install.sh --perfil <name>` installs with the
-choices saved in `perfis/<name>/`. The sudo password is asked **once**, to register the root bridge;
+Without `git`, from the GitHub archive:
+
+```bash
+curl -L https://github.com/vitoriamariadb/MeowSystem/archive/refs/heads/master.tar.gz | tar xz && cd MeowSystem-master && ./install.sh
+```
+
+72 steps. None needs a flag. The sudo password is asked **once**, to register the root bridge;
 after that, no screen asks for a password. The installer downloads what Pop!_OS does not ship: the
-compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse first:
-`./install.sh --dry-run`.
+compiler and libraries for the applets, the compositor and the Files menu, Rust (through `rustup`,
+in `~/.cargo`), `fastfetch` and `starship`. The compositor builds in the background and takes
+effect at the next login. `--wizard` asks the essential settings first; `./install.sh --perfil
+<name>` installs with the choices saved in `perfis/<name>/`; `./install.sh --dry-run` rehearses
+without writing. From the archive the install is the same, and the installer itself brings the
+`git` the applets use to fetch their source.
 
 ### From the `.deb` package
 
@@ -84,7 +91,7 @@ The format is in [`docs/PACKS.md`](docs/PACKS.md) (Portuguese).
 
 ## Keeping it right
 
-`meow doctor` runs 81 checks without writing anything; `meow doctor --consertar` fixes what is out
+`meow doctor` runs 82 checks without writing anything; `meow doctor --consertar` fixes what is out
 of place, without asking anyone to type. It runs on its own at 5 a.m., and the **Consertar** button
 in the Cuidar door is the same gesture.
 
