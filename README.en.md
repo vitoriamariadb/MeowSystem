@@ -56,7 +56,7 @@ installs; `meow aplicar` installs without asking. To remove it:
 
 ## The panel
 
-`meow abrir`, or the MeowSystem icon in the launcher. 130 settings and 69 actions behind six doors (the panel speaks Portuguese):
+`meow abrir`, or the MeowSystem icon in the launcher. 130 settings and 70 actions behind six doors (the panel speaks Portuguese):
 
 <table>
 <tr>
