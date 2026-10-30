@@ -7,6 +7,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 PINOS_CASA="${EXTENSOES_PINOS:-$RAIZ/assets/extensoes}"
 BASE="$MEOW_ESTADO/extensoes"
+ALVO_UNICO="$BASE/.target"
 PINOS_USUARIO="$BASE/usuario"
 COMPILAR="${EXTENSOES_COMPILAR:-0}"
 
@@ -31,7 +32,7 @@ GUARDA_MENU="${GB_FILES_GUARDA:-$MEOW_ESTADO/cosmic-files}"
 TRAVA_BUILDS="${GB_TRAVA:-$MEOW_ESTADO/builds.lock}"
 
 ID=""; CASA=0; PASSADA=0
-ESTADO=""; ARVORE=""; ALVO=""; CARIMBO=""; BINARIO=""; SOMBRA=""
+ESTADO=""; ARVORE=""; ALVO=""; ALVO_VELHO=""; CARIMBO=""; BINARIO=""; SOMBRA=""
 
 _sha() { sha256sum -- "$1" 2>/dev/null | cut -d' ' -f1; }
 
@@ -120,7 +121,8 @@ _carregar() {
   ID="$id"
   ESTADO="$BASE/$id"
   ARVORE="$ESTADO/src"
-  ALVO="$ESTADO/target"
+  ALVO="$ALVO_UNICO"
+  ALVO_VELHO="$ESTADO/target"
   CARIMBO="$ESTADO/carimbo"
   BINARIO="$BINDIR/$P_BIN"
   SOMBRA="$APPS/$P_APP_ID.desktop"
@@ -285,6 +287,10 @@ _nucleo() {
 }
 
 _conferir() {
+  if [ -d "$ALVO_VELHO" ]; then
+    meow_muda "$(_nome) ainda tem uma pasta de build própria ($ALVO_VELHO)"
+    return "$MEOW_DIVERGENTE"
+  fi
   if ! _nucleo; then
     meow_muda "$NUCLEO_MOTIVO"
     return "$MEOW_DIVERGENTE"
@@ -381,6 +387,21 @@ _sem_cargo() {
   _conferir >/dev/null 2>&1
 }
 
+_alvo_velho_sair() {
+  [ -d "$ALVO_VELHO" ] || return 1
+  if meow_seco; then
+    meow_muda "removeria a pasta de build própria de $(_nome) ($ALVO_VELHO): as extensões compilam numa só"
+    return 0
+  fi
+  rm -rf "$ALVO_VELHO" 2>/dev/null
+  if [ -d "$ALVO_VELHO" ]; then
+    meow_aviso "não consegui tirar a pasta de build própria de $(_nome) ($ALVO_VELHO)"
+    return 1
+  fi
+  meow_muda "a pasta de build própria de $(_nome) saiu: as extensões compilam numa só ($ALVO_UNICO)"
+  return 0
+}
+
 _instalar_binario() {
   local recem="$1" tmp
   mkdir -p "$BINDIR" || return 1
@@ -402,15 +423,17 @@ _sombra_orfa() {
 }
 
 _aplicar() {
-  local id_pend="extensao-$ID"
+  local id_pend="extensao-$ID" migrou=1 rc
+  _alvo_velho_sair && migrou=0
   if _nucleo; then
     if _legado_sobra; then
       _legado_limpar
       return "$MEOW_DIVERGENTE"
     fi
     meow_pendencia_resolvida "$id_pend"
-    _conferir
-    return $?
+    _conferir; rc=$?
+    [ "$migrou" = 0 ] && [ "$rc" = "$MEOW_OK" ] && rc="$MEOW_DIVERGENTE"
+    return "$rc"
   fi
 
   if _sem_cargo; then
@@ -744,6 +767,14 @@ _todas_reverter() {
     _reverter; rc=$?
     geral="$(_pior "$geral" "$rc")"
   done
+  if [ -d "$ALVO_UNICO" ]; then
+    if meow_seco; then
+      meow_muda "removeria a pasta de build das extensões ($ALVO_UNICO)"
+    else
+      rm -rf "$ALVO_UNICO"
+    fi
+    geral="$(_pior "$geral" "$MEOW_DIVERGENTE")"
+  fi
   return "$geral"
 }
 
