@@ -3950,7 +3950,7 @@ def cmd_importar(caminho, opcoes):
     else:
         print(f"  ok   instalado em {destino}")
     print("  --   nada foi aplicado: importar é ganhar uma opção, não trocar de tema.")
-    print(f"       Para aplicar: PACK=\"{ident}\" e FLAVOR=\"{r['flavor_padrao']}\" no meow.conf.")
+    print("       O cartão dele já está em Tema, com o «Aplicar tema».")
     return OK
 
 
@@ -3998,8 +3998,8 @@ def remocao(ident, pack_conf="", flavor_conf=""):
                       f"importar grava — só de lá um pack sai")
     nome = campo(casa, "nome") or ident
     if ident in (pack_conf, adocao(pack_conf, flavor_conf)[0]):
-        return casa, (f"o {nome} está no ar — troque de pack antes, com o «Usar este» "
-                      f"de outro cartão ou o meow pack usar")
+        return casa, (f"o {nome} está no ar — troque de pack antes, com o «Aplicar tema» "
+                      f"de outro cartão")
     herdeiros = [campo(h, "nome") or h for h in _quem_herda_de(ident)]
     if herdeiros:
         return casa, (f"o {', '.join(herdeiros)} herda{'m' if len(herdeiros) > 1 else ''} "
@@ -4080,12 +4080,11 @@ def cmd_novo(ident, opcoes):
     if csv:
         print(f"       de {os.path.basename(csv)}: a paleta ({len(paleta['flavors'])} flavor(s), "
               f"padrão {flavor}), os ícones autorais nas cores dela, um logo gerado e os créditos")
-        print(f"  --   o resto vem do {de!r}, o pack padrão, pela herança — "
-              f"meow pack info {ident} diz o quê")
+        print(f"  --   o resto vem do {de!r}, o pack padrão, pela herança")
         return OK
     print(f"       a partir do {de!r}: a paleta ({len(paleta['flavors'])} flavor(s), "
           f"padrão {flavor}), " + ("o timbre, " if "som" in p else "") + "um logo gerado e os créditos")
-    print(f"  --   o resto vem do {de!r} pela herança — meow pack info {ident} diz o quê")
+    print(f"  --   o resto vem do {de!r} pela herança")
     print("  --   papel de parede e ponteiro não entram: o formato ainda não tem onde "
           "guardá-los dentro de um pack")
     return OK
@@ -4558,6 +4557,7 @@ def _com_a_tinta(texto, tinta):
 
 
 CONTRATO_DO_SISTEMA = os.path.join(RAIZ, "assets", "contratos", "nomes-de-sistema.tsv")
+CONTRATO_DOS_TIPOS = os.path.join(RAIZ, "assets", "contratos", "tipos-de-arquivo.tsv")
 GRUPOS_DO_SISTEMA = ("barra", "configuracoes", "botoes", "pastas", "tipos")
 ESPESSURA_DA_PREVIA = "2.5"
 
@@ -4571,6 +4571,19 @@ def _contrato_do_sistema():
                 if linha.startswith("#") or len(campos) < 4:
                     continue
                 saida[campos[0]] = (campos[2], campos[3])
+    except (OSError, UnicodeDecodeError):
+        return {}
+    return saida
+
+
+def _rotulos_dos_tipos():
+    saida = {}
+    try:
+        with open(CONTRATO_DOS_TIPOS, encoding="utf-8") as fh:
+            for linha in fh:
+                campos = linha.rstrip("\n").split("\t")
+                if len(campos) == 2 and campos[0] and campos[1]:
+                    saida[campos[0]] = campos[1]
     except (OSError, UnicodeDecodeError):
         return {}
     return saida
@@ -4636,12 +4649,13 @@ def sistema_do_pack(dir_pack, cores=None):
                 _previa_do_glifo(_ler_svg(cheio), tinta), grupo)
     for d in pastas_do_pack(dir_pack, cores):
         por(d["nome"], d["caminho"], d["rotulo"], d["svg"], d["svg"], "pastas")
+    rotulos_dos_tipos = _rotulos_dos_tipos()
     for nome, glifo, cheio in _glifos_do_bloco(dir_pack, "mimetypes"):
         bruto = _ler_svg(cheio)
         pintado = _pintar_molde(bruto, cores) if RE_VAR_CTP.search(bruto) else None
         if RE_VAR_CTP.search(bruto) and pintado is None:
             continue
-        por(nome, cheio, _rotulo_do_nome(glifo), pintado, pintado or _com_a_tinta(bruto, tinta), "tipos")
+        por(nome, cheio, rotulos_dos_tipos.get(glifo) or _rotulo_do_nome(glifo), pintado, pintado or _com_a_tinta(bruto, tinta), "tipos")
     return saida
 
 

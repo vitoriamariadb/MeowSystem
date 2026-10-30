@@ -2489,7 +2489,7 @@ cmd_configurar() {
   if [ -n "$so_uma" ]; then
     for chave in "${WIZ_CHAVES[@]}"; do [ "$chave" = "$so_uma" ] && achou=1; done
     [ "$achou" = "1" ] || {
-      meow_erro "não existe a chave '$so_uma' no meow.conf"
+      meow_erro "não existe a chave '$so_uma'"
       meow_info "as que existem: $(printf '%s\n' "${WIZ_CHAVES[@]}" | em_linha)"
       return "$MEOW_SEM_DEPENDENCIA"; }
   fi
@@ -3197,7 +3197,7 @@ PY
       if [ -n "$restos" ]; then
         meow_aviso "continuam valendo, citando outro pack que não o «$novo_pack»: $restos"
         meow_info "  o meow.conf vence o pack, então elas seguem valendo; no painel, cada uma com cartão aparece como «Vestígio do pack»"
-        [ -z "$fora" ] || meow_info "  sem cartão no painel, só no meow.conf: $fora"
+        [ -z "$fora" ] || meow_info "  sem cartão no painel: $fora"
       fi
 
       local par

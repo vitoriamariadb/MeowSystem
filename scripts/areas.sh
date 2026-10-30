@@ -680,8 +680,8 @@ _areas_planejar() {
     if [ "$uniforme" = "0" ] || { [ -n "$jt" ] && [ "$jt" != "$primeiro" ]; }; then
       meow_aviso "AREAS_ENCAIXE e JANELAS_TILING discordam sobre o mesmo campo."
       meow_aviso "o janelas.sh grava tiling_enabled em TODAS as áreas de uma vez, e o"
-      meow_aviso "'meow doctor' o chama todo dia — o que eu gravar por área ele achata."
-      meow_aviso "esvazie JANELAS_TILING no meow.conf para o encaixe ser por área."
+      meow_aviso "o doctor o chama todo dia — o que eu gravar por área ele achata."
+      meow_aviso "enquanto JANELAS_TILING tiver valor, o encaixe vale igual para todas as áreas."
       meow_aviso "não gravei o encaixe: gravar e ver voltar amanhã é pior que não gravar."
       for i in "${!AREAS_ALVO_ENCAIXE[@]}"; do AREAS_ALVO_ENCAIXE[i]=""; done
       pendencia="$AREAS_PENDENCIA"

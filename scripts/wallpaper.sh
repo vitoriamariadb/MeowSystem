@@ -965,11 +965,11 @@ fontes_no_conf() {
 
 cmd_dispensar() {
   if meow_seco; then
-    meow_muda "tiraria da Início o aviso do papel de parede devolvido (o meow.conf fica como está)"
+    meow_muda "tiraria o aviso do papel de parede devolvido (o meow.conf fica como está)"
     return "$MEOW_DIVERGENTE"
   fi
   meow_pendencia_resolvida wallpaper-fonte-revertida
-  meow_ok "a imagem devolvida fica como está — o aviso saiu da Início"
+  meow_ok "a imagem devolvida fica como está — o aviso saiu"
   return "$MEOW_OK"
 }
 
@@ -1741,7 +1741,7 @@ cmd_base() {
 
   if [ -n "$(conf_bruto WALLPAPER_BASE)" ]; then
     meow_conf_definir WALLPAPER_BASE "$novo"
-    case $? in 2) meow_erro "não consegui reescrever o WALLPAPER_BASE no meow.conf"; return "$MEOW_ERRO" ;; esac
+    case $? in 2) meow_erro "não consegui gravar o WALLPAPER_BASE"; return "$MEOW_ERRO" ;; esac
   fi
   apontar_fundo_para "$novo" "$BASE" "$velho_real" "$RAIZ/assets/papeis-de-parede" || return "$MEOW_ERRO"
   meow_ok "as $n_antes imagens moraram em $novo; o WALLPAPER_BASE e o fundo apontam para lá"

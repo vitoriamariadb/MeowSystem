@@ -1,0 +1,68 @@
+arduino	Arduino
+audio	Áudio
+bash	Bash
+c	C
+c-header	C (cabeçalho)
+certificate	Certificado
+changelog	Histórico de mudanças
+cmake	CMake
+cobol	COBOL
+coffeescript	CoffeeScript
+cpp	C++
+cpp-header	C++ (cabeçalho)
+csharp	C#
+css	CSS
+csv	CSV
+dart	Dart
+database	Banco de dados
+diff	Diferenças
+docker	Docker
+elixir	Elixir
+erlang	Erlang
+exe	Executável
+font	Fonte
+fortran	Fortran
+git	Git
+go	Go
+gradle	Gradle
+haskell	Haskell
+html	HTML
+image	Imagem
+java	Java
+javascript	JavaScript
+json	JSON
+julia	Julia
+key	Chave
+kotlin	Kotlin
+lisp	Lisp
+log	Registro
+lua	Lua
+makefile	Makefile
+markdown	Markdown
+matlab	MATLAB
+midi	MIDI
+nim	Nim
+ocaml	OCaml
+org	Org
+pdf	PDF
+perl	Perl
+php	PHP
+python	Python
+r	R
+readme	Leia-me
+ruby	Ruby
+rust	Rust
+sass	Sass
+scala	Scala
+scheme	Scheme
+svg	SVG
+symlink	Link simbólico
+text	Texto
+toml	TOML
+twig	Twig
+vala	Vala
+video	Vídeo
+vue	Vue
+xml	XML
+yaml	YAML
+zip	Arquivo zip

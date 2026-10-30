@@ -28,3 +28,46 @@ Anotada em 28/10 (conferências da P130 e da P131), escrita em 29/10.
   do segundo; `tests/app-layout.py` verde três vezes seguidas com carga (`stress` ou laço de CPU).
 - Contraste medido no navegador: com Latte, nenhum item do Sistema ou da Biblioteca abaixo de 3:1.
 - Nenhum rótulo de bateria com reticências em 390 e 1280; nenhum rótulo em inglês na aba Sistema.
+
+## Execução
+
+- **Corrida do lote**, commit `989b7e0f`. Cada lote leva um número e cada chave guarda o último; a resposta de um
+  lote mais velho não tira a mudança pendente do mais novo. Prova: `tests/grava-ao-soltar.py`, seção 8, dois lotes
+  da mesma chave com a primeira resposta segurada na rede; no código velho as duas conferências novas falham, no
+  novo passam (32 conferências). O `app-layout.py` rodou três vezes seguidas com todos os núcleos em laço de CPU
+  : três rodadas seguidas, 198 conferências cada, todas verdes.
+- **Tipos de arquivo em português**, commit `a87ef86a`. O rótulo vem de `assets/contratos/tipos-de-arquivo.tsv`
+  (glifo e nome), lido por `scripts/pack.py`; escolhi um mapa em vez do `shared-mime-info` porque o rótulo parte do
+  glifo do pack (`zip`, `changelog`), não do tipo MIME, e porque o mapa funciona sem a máquina.
+- **Latte e rótulos**, commit `a7260d83`. Escolhi a primeira via da sprint: o cartão das abas Sistema e Biblioteca
+  leva base, texto, linha e nome do rascunho (`gradeDoAcervo`, `oficina.css`), então o traço do texto fica sempre
+  sobre a base do mesmo flavor. O rótulo quebra em linhas (`white-space: normal`), sem reticências.
+- **Prova**: `tests/sistema-latte-e-rotulos.py` (novo, entra no `todos.sh`), headless, medindo no navegador. No
+  código velho: 186 itens do Sistema abaixo de 3:1 com o Latte e rótulos cortados; no novo: 0 no Latte e no Mocha,
+  os 37 rótulos de bateria inteiros em 390 e 1280 px, nenhum tipo em inglês.
+- **Ficou de fora, por quê**: no Latte, 50 itens do Sistema e 142 da Biblioteca têm cor própria (amarelo do
+  JavaScript, laranja do Android...) e não passam de 3:1 em nenhum fundo claro da paleta. É a cor da arte do pack,
+  não o traço do texto que a sprint mediu; o teste conta esses itens e os deixa fora da conta. Mudar a cor da arte
+  seria mudar o pack.
+
+### Conferência
+
+- **Lote**: a cura está certa em todos os caminhos lidos (erro de rede e lote recusado tiram só as chaves de que o
+  lote é o último; chaves diferentes no mesmo lote; a fila serializa os envios, então «fora de ordem» é o velho
+  voltando enquanto o novo espera; recarregar zera tudo e o conf manda). A seção 8 reproduz a corrida: rodada no
+  `app.js` de antes, falha nas duas conferências do meio. Faltava o caminho de duas chaves que cai na rede: a seção 9
+  de `tests/grava-ao-soltar.py` manda {LOG_NIVEL, FLAVOR} e derruba a conexão com um LOG_NIVEL mais novo na fila;
+  no código de antes falha 2, no novo passa (37 conferências). Commit `dc517605`.
+- **Latte**: o cartão segue a maquete b (`--fundo`, `--linha`, `--tinta-2` do flavor), conferido em captura headless
+  nas abas Sistema e Biblioteca em 390 e 1280, com Latte, Mocha e Dracula. O teste media só Latte e Mocha; passou a
+  medir o Dracula também (Sistema 112 e Biblioteca 21 medidos, nenhum abaixo de 3:1). Commit `3d3518e8`.
+- **Tipos de arquivo**: o mapa cobre os 68 glifos que os dois packs mostram, sem sobra. O `tests/icones-do-sistema.sh`
+  confere isso a cada rodada, para um glifo novo não cair no nome em inglês. Commit `e013ab90`.
+- Conferido sem achado: CSS no `oficina.css` (a tela de Personalizar), zero comentário, a escolha do mapa em vez do
+  `shared-mime-info` não toca decisão.
+- **Fora da sprint, anotado**: a Biblioteca ainda mostra «File», «Folder», «Folder open», «Root» (nomes de arquivo
+  do acervo); o `depois` do envio de tema de ícones cita «Tema de onde herdar», que a tela não tem (o painel não mostra
+  esse `depois`).
+- **Suíte inteira** na worktree, depois das correções: 121 testes, 119 verdes, 0 pulados, 2 vermelhos aceitos
+  (`readme.sh`, o badge v2.2.0; `restaurar.sh`, `pack_usar` e `desinstalar`, de outro bloco). `grava-ao-soltar.py`,
+  `app-layout.py`, `sistema-latte-e-rotulos.py`, `nada-manda-digitar.sh`, `icones-do-sistema.sh` e `pack.sh` verdes.

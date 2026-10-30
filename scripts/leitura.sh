@@ -384,9 +384,8 @@ cmd_conferir() {
   fi
   meow_muda "modo de leitura divergente ($LEITURA_FASE): disco=${LEITURA_DISCO_T:-<ausente>}K/${LEITURA_DISCO_X:-<ausente>}, a hora pede ${alvo_t}K/$alvo_x"
   meow_aviso "os dois sliders do applet escrevem NAS MESMAS chaves."
-  meow_aviso "se foi você quem arrastou, desligue o 'Agendar' no applet — ou"
-  meow_aviso "esvazie LEITURA_AGENDA no meow.conf. Com o relógio armado, ele"
-  meow_aviso "devolve o valor da hora no próximo minuto."
+  meow_aviso "com o 'Agendar' do applet ligado e o relógio armado, o valor"
+  meow_aviso "da hora volta no próximo minuto."
   return "$MEOW_DIVERGENTE"
 }
 
