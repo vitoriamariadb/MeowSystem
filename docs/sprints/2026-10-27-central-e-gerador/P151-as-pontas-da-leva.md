@@ -87,3 +87,23 @@ que falha antes e passa depois.
 - No Latte, 50 itens do Sistema e 142 da Biblioteca ficam abaixo de 3:1. As cores são a arte do pack e não mudam.
 
 ## Execução
+- Item 1: `d937d732` (exemplo) e `e360a04e` (`tests/numeros.sh`).
+  - O teste novo falha no exemplo velho: faltavam ascii-battery, clipboard, drives, eyedropper e soneca.
+  - Também falha se o texto disser «nove» com 10 pinos.
+- Item 2: `a35f74be` (as seis saídas), `2bde4904` (seção 10 do `nada-manda-digitar.sh`) e `b6c69322` (`orfaos.sh`).
+  - Antes da cura, a seção 10 achava 11 saídas; depois, nenhuma.
+- Item 3: `c9b84f56` (manifesto) e `5c074c09` (`temas-de-apps.sh`).
+  - No código velho, o segundo desfazer avisava «não consegui remover»; no novo, diz «já estava sem».
+- Item 4: `a0d031a7` (catálogo) e `0a6faa55` (`biblioteca-em-portugues.sh`).
+  - No catálogo velho, a grafia das quatro marcas não batia; no novo, bate.
+- Verdes: `numeros`, `frases-velhas`, `nada-manda-digitar`, `biblioteca-em-portugues`, `orfaos` e `temas-de-apps`.
+  - Também `decisoes`, `chaves-aposentadas`, `leitura-fonte-unica`, `painel-fantasma`, `garantir-builds` e
+    `chave-etapa`, que leem o exemplo.
+- Não tem teste novo para o `todos.sh`: só os existentes foram estendidos.
+- Anotado para o próximo bloco, fora do escopo:
+  - O `spicetify-ausente` não tem ação no painel; a pendência ainda cita `scripts/spicetify_setup.sh instalar`.
+  - O `prompt.sh` diz «a alternativa, pelo cargo: ...».
+  - O desfazer do VS Code manda «tire pela interface do editor».
+  - O `afinar_conversor.py` imprime «./scripts/construir_convertidos.sh».
+  - O autostart não desmascara o nome que sai da lista.
+  - Aposentar o `auditar_icones.sh` (decisão 24) é da coordenação.
