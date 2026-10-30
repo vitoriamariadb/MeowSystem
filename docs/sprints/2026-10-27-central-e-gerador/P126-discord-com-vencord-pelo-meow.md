@@ -54,3 +54,25 @@ Bloco `apps`, branch `bloco/apps-p140`, 29/10/2026.
   e o `.path` só passa a valer depois do próximo `install.sh` com o HOME real, que este bloco não roda. Atualização com o
   Discord reaberto sozinho antes do serviço rodar deixa o Vencord para o doctor das 05:00 ou para a próxima mudança do
   `installer.db`; um vigia do processo ficou de fora para não crescer o escopo.
+
+### Conferência (29/10)
+
+- **Achado 1: `DISCORD_VENCORD=nao` deixava o Vencord no lugar.** Agora o `aplicar` tira o Vencord de cada `app-<versão>`
+  (com `_app.asar` de volta a `app.asar`, byte a byte), só com o Discord fechado, e o `conferir` acusa o Vencord que
+  sobrou. O texto do `meow.conf.exemplo` mudou junto. Prova 5 refeita em `tests/discord-vencord.sh` (19 provas).
+- **Achado 2: o vigia olhava um arquivo que não existe.** O `build_info.json` mora em `app-<v>/resources/`, não em
+  `~/.config/discord/`; a linha saiu do `.path`.
+- **Conferido sem achado.**
+  - O instalador pinado nunca roda sem o sha256: o do cache é conferido, e o baixado também.
+  - Só injeta com o Discord fechado.
+  - Etapa e unidade estão no install e no desinstalar.
+  - `chave-etapa.tsv` e `lugares.js` concordam.
+  - O serviço não escreve o que o `.path` vigia, então não há laço.
+- **No HOME dela (só leitura).** `app-1.0.166/resources` tem `_app.asar` e um `app.asar` de 208 bytes com
+  `require(".../Vencord/dist/patcher.js")`: `_dc_com_vencord` reconhece, e a primeira passada não chama o instalador.
+- **Commits.** `fix(discord): DISCORD_VENCORD=nao tira o Vencord de cada app-<versão>, com o Discord fechado`;
+  `fix(discord): o vigia não olha o build_info.json que não existe na raiz`.
+- **Só a máquina prova.**
+  - O sha256 pinado contra o release v1.4.2 real.
+  - O `.path` disparando depois de uma atualização real. O `installer.db` muda a cada uso do Discord, então o serviço
+    roda e pula (`rc=3`) com ele aberto.

@@ -38,3 +38,17 @@ Bloco `apps`, branch `bloco/apps-p140`, 29/10/2026.
   o que ela confere com a mão depois do merge. Dois efeitos além do pedido: a frase «tire 'spotify' de APPS_ATIVOS»
   saiu do reverter (ver P141), e a conferência passou a divergir uma vez no HOME dela, até o primeiro apply bom
   gravar o `aplicado`.
+
+### Conferência (29/10)
+
+- **Achado 1: janela em branco.** Com o backup de outra versão e o app já modificado, o refazer rodava
+  `restore backup apply` e copiava a UI velha para o app novo. Agora isso dá erro antes de qualquer `spicetify config`,
+  e nada é mexido (prova 3b nova em `tests/spotify-atualizado.sh`).
+- **Achado 2: pergunta do spicetify.** A cadeia `restore backup apply` pergunta «There is available backup… [y/N]».
+  Sem terminal ela recusa; com o stdin num tty, a saída capturada por `$()` trava sem aparecer. Agora roda com `-q`, só
+  quando o backup é da versão do app, e toda chamada ao spicetify roda com `</dev/null`. O `spicetify` falso do teste
+  pergunta como o real, e a prova 2 só fica verde com o `-q`.
+- **Commit.** `fix(spotify): backup de outra versão com app modificado não restaura; cadeia do spicetify com -q e sem terminal`.
+- **No HOME dela (só leitura).** `[Backup] version` é igual ao flatpak (1.2.95.453), o app está tematizado e o
+  spicetify é o 2.46.4. O caminho real é `apply`, ou `-q restore backup apply` se o spicetify disser «outdated».
+- **Só a máquina prova.** Que o `-q` do spicetify 2.46.4 responde sim nessa pergunta, e que o Spotify abre com o tema.
