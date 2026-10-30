@@ -1,0 +1,18 @@
+Package: meowsystem
+Version: @VERSAO@
+Architecture: all
+Maintainer: @MANTENEDOR@
+Installed-Size: @TAMANHO@
+Depends: bash (>= 4.3), python3, python3-numpy, git, curl, xz-utils, unzip, librsvg2-bin, imagemagick, libgtk-3-bin, fontconfig, libglib2.0-bin, desktop-file-utils, libnotify-bin, procps, psmisc, systemd, papirus-icon-theme, btop, bat
+Recommends: sudo, fzf, flatpak, pipewire-bin, pop-fonts, software-properties-common, build-essential, pkgconf, libxkbcommon-dev, libwayland-dev, libdbus-1-dev, just, cmake, patch, dpkg-dev, libegl1-mesa-dev, libfontconfig-dev, libgbm-dev, libinput-dev, libpixman-1-dev, libseat-dev, libsystemd-dev, libudev-dev, libxcb1-dev, libdisplay-info-dev, libclang-dev, libglib2.0-dev
+Suggests: fastfetch
+Section: misc
+Priority: optional
+Homepage: https://github.com/vitoriamariadb/MeowSystem
+Description: veste o COSMIC inteiro a partir de um theme pack
+ Tema, ícones, painel, dock, terminal, tela de login, papel de parede e os
+ temas de dentro dos programas, tudo a partir de um theme pack. Um doctor
+ confere e conserta sozinho.
+ .
+ O pacote traz o programa em /usr/share/meowsystem. A instalação é de cada
+ pessoa: depois do apt, rode meow configurar.

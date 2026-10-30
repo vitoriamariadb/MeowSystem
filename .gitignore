@@ -69,3 +69,4 @@ STATE.md
 /.playwright-mcp/
 /src/applets/
 /assets/papeis-de-parede/
+dist/
