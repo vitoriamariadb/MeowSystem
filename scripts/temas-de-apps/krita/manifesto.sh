@@ -54,4 +54,7 @@ meow_app_reverter() {
   done < <(_kr_alvos)
   [ "${#rcs[@]}" -gt 0 ] || { meow_ok "krita: não está instalado — nada a desfazer"; return "$MEOW_OK"; }
   meow_tarq_somar "${rcs[@]}"
+  local soma=$?
+  [ "$soma" = "$MEOW_DIVERGENTE" ] && meow_app_desligar krita
+  return "$soma"
 }

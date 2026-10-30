@@ -93,4 +93,7 @@ meow_app_reverter() {
   done < <(_wf_perfis)
   [ "${#rcs[@]}" -gt 0 ] || { meow_ok "waterfox: nenhum perfil — nada a desfazer"; return "$MEOW_OK"; }
   meow_tarq_somar "${rcs[@]}"
+  local soma=$?
+  [ "$soma" = "$MEOW_DIVERGENTE" ] && meow_app_desligar waterfox
+  return "$soma"
 }

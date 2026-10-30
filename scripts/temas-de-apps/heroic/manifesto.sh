@@ -345,7 +345,7 @@ meow_app_reverter() {
   pasta="$dir/themes"
 
   if _heroic_rodando; then
-    meow_pula "o Heroic está aberto — a próxima passada com ele fechado aplica"
+    meow_pula "o Heroic está aberto — nada foi desfeito, e o tema fica"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -365,7 +365,7 @@ meow_app_reverter() {
     rmdir "$pasta" 2>/dev/null || true
   fi
 
-  [ "$mudou" = "1" ] && { meow_ok "Heroic de volta ao midnightMirage"; return "$MEOW_DIVERGENTE"; }
+  [ "$mudou" = "1" ] && { meow_ok "Heroic de volta ao midnightMirage"; meow_app_desligar heroic; return "$MEOW_DIVERGENTE"; }
   meow_ok "Heroic já estava de fábrica"
   return "$MEOW_OK"
 }

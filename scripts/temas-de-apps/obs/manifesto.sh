@@ -61,4 +61,7 @@ meow_app_reverter() {
   done < <(_obs_pastas)
   [ "${#rcs[@]}" -gt 0 ] || { meow_ok "obs: não está instalado — nada a desfazer"; return "$MEOW_OK"; }
   meow_tarq_somar "${rcs[@]}"
+  local soma=$?
+  [ "$soma" = "$MEOW_DIVERGENTE" ] && meow_app_desligar obs
+  return "$soma"
 }

@@ -57,4 +57,7 @@ meow_app_reverter() {
   done
   [ "$achou" = 1 ] || { meow_ok "libadwaita: nenhum gtk.css do MeowSystem no disco — nada a desfazer"; return "$MEOW_OK"; }
   meow_tarq_somar "${rcs[@]}"
+  local soma=$?
+  [ "$soma" = "$MEOW_DIVERGENTE" ] && meow_app_desligar libadwaita
+  return "$soma"
 }
