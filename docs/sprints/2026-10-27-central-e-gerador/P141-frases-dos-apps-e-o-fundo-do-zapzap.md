@@ -26,3 +26,32 @@ Anotada em 29/10, das pendências legadas do `ANDAMENTO.md` (28/10 e 29/10).
   escreve; nenhuma saída dos módulos tocados contém «meow.conf», «abra», «rode», «digite».
 - Waterfox: HOME sem perfil não sai com ordem; com o perfil criado, a passada seguinte aplica.
 - ZapZap: o CSS gerado com as paletas `meowsystem` e `dracula` tem a regra do fundo; teste do módulo verde.
+
+## Execução
+
+Bloco `apps`, branch `bloco/apps-p140`, 29/10/2026.
+
+- **qBittorrent e a mesma frase nos outros.** `meow_app_desligar` (em `lib/comum.sh`) tira o slug do `APPS_ATIVOS`
+  por `meow_conf_definir`, o caminho único que o painel usa, e diz só o fato («qbittorrent desligado — o doctor das 05:00
+  não reaplica»). Idempotente: a segunda passada não acha o slug e não escreve; no «ver sem mudar» não escreve.
+  A mesma frase de ordem existia em doze módulos (vscode, onlyoffice, telegram, kitty, toolkits-gtk-qt, btop-bat,
+  gnome-terminal, zapzap, discord, obsidian, qbittorrent, spotify), e todos passaram a chamar a função (a sprint
+  mandava estender se houvesse). `lib/desinstalar.sh` roda o reverter com `MEOW_REVERTER_SEM_DESLIGAR=1`: desinstalar
+  apaga o `meow.conf` inteiro e não precisa reescrevê-lo antes. Mais duas frases de ordem do qBittorrent saíram
+  («veja a PROCEDENCIA.md», «feche-o»). Ficam, fora do pedido, «feche-o» no OnlyOffice (`:221`) e no Obsidian (`:454`).
+- **Waterfox.** «ainda sem perfil; o tema entra quando o perfil existir». Mais simples e provado: a passada normal
+  seguinte, sem vigia novo.
+- **ZapZap, a medida.** O WhatsApp Web (cache do ZapZap) define o papel de parede do chat em duas variáveis,
+  `--WDS-systems-chat-background-wallpaper` e a irmã `-RGB`, e o mesmo vale para a bolha recebida e a bolha sobreposta.
+  O modelo pintava a cor, mas deixava os três `-RGB` de fábrica: o que usa os canais (`rgba(var(...), alfa)`)
+  continuava com a cor de fábrica. Defeito real, confirmado; o modelo ganhou as três linhas `-RGB` (`{{crust:rgb}}`,
+  `{{base:rgb}}`, `{{mantle:rgb}}`). **Não provado offline:** se a classe do tema de conversa que o usuário escolhe
+  fica num descendente que sobrescreve a regra de `:root`. Só a vista dela no ZapZap aberto fecha isso.
+- **Commits.**
+  - `fix(apps): reverter um app desliga o app no APPS_ATIVOS pela escrita única do meow.conf, e a frase vira só o fato`
+  - `fix(apps): Waterfox sem perfil diz o estado, e o fundo da conversa do ZapZap ganha os canais RGB do pack`
+  - o fecho do bloco, com as frases do qBittorrent, o `--help` do `meow apps reverter` e os números dos README.
+- **Prova.** `tests/apps-frases.sh` (11 provas, no `todos.sh`): o reverter do qBittorrent tira o slug e mantém o
+  comentário da linha; a segunda passada não escreve; a saída não tem «meow.conf», «abra», «rode», «digite»; Waterfox sem
+  perfil sem ordem e, com o perfil criado, a passada seguinte aplica e a outra não escreve; o CSS do ZapZap com as paletas
+  `meowsystem` e `dracula` tem a regra do fundo da conversa, com os canais RGB.
