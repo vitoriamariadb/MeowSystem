@@ -40,6 +40,15 @@ INGLES = {
 }
 falhas = []
 
+GRAFIA = {
+    ("meowsystem", "npm"): "npm", ("meowsystem", "pnpm"): "pnpm", ("meowsystem", "esbuild"): "esbuild",
+    ("meowsystem", "macos"): "macOS", ("meowsystem", "webpack"): "webpack", ("meowsystem", "uv"): "uv",
+    ("meowsystem", "mdbook"): "mdBook", ("meowsystem", "_folder"): "Pasta",
+    ("meowsystem", "slidesk"): "SliDesk", ("meowsystem", "network"): "Network, atalho da rede do celular",
+    ("meowsystem", "player"): "Player, da TVN", ("meowsystem", "star"): "Star+, da Disney",
+    ("dracula", "dbt"): "dbt, transformação de dados", ("dracula", "005-potion"): "Poção",
+}
+
 
 def confere(cond, frase, detalhe=""):
     print(("ok: " if cond else "FALHOU: ") + frase)
@@ -65,16 +74,11 @@ for ident in ("meowsystem", "dracula"):
     confere(len(ofertados) == len(svgs),
             f"{ident}: o painel oferece os {len(svgs)} ícones da Biblioteca ({len(ofertados)})")
     ingleses = sorted({i["rotulo"] for i in ofertados
-                       if INGLES & set(re.findall(r"[a-z]+", i["rotulo"].lower()))})
+                       if (ident, i["nome"]) not in GRAFIA
+                       and INGLES & set(re.findall(r"[a-z]+", i["rotulo"].lower()))})
     confere(not ingleses, f"{ident}: nenhum rótulo da Biblioteca é palavra comum em inglês",
             f"{len(ingleses)}: {ingleses[:8]}")
 
-GRAFIA = {
-    ("meowsystem", "npm"): "npm", ("meowsystem", "pnpm"): "pnpm", ("meowsystem", "esbuild"): "esbuild",
-    ("meowsystem", "macos"): "macOS", ("meowsystem", "webpack"): "webpack", ("meowsystem", "uv"): "uv",
-    ("meowsystem", "mdbook"): "mdBook", ("meowsystem", "_folder"): "Pasta",
-    ("dracula", "dbt"): "dbt, transformação de dados", ("dracula", "005-potion"): "Poção",
-}
 for ident in ("meowsystem", "dracula"):
     servidos = {i["nome"]: i["rotulo"] for i in pack.acervo_para_levar(None, "biblioteca", ident) if i["de"] == ident}
     erradas = [f"{nome}: {servidos.get(nome)!r} em vez de {certo!r}"
