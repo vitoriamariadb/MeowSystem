@@ -139,6 +139,38 @@ else
   passou "ocultar_apps.sh e LANCADOR_OCULTAR dizem os mesmos $_script_n aplicativos"
 fi
 
+applets_dos_pinos() {
+  grep -l '^TIPO="applet"' "$RAIZ"/assets/extensoes/*.pino 2>/dev/null \
+    | sed 's|.*/||; s|\.pino$||' | LC_ALL=C sort
+}
+texto_de_extensoes() {
+  awk '/^#/ { bloco = bloco $0 "\n"; next } /^EXTENSOES=/ { printf "%s", bloco; exit } { bloco = "" }' \
+    "$RAIZ/meow.conf.exemplo"
+}
+
+_applets_n="$(applets_dos_pinos | grep -c .)"
+_texto_ext="$(texto_de_extensoes)"
+if [ "$_applets_n" = "0" ] || [ -z "$_texto_ext" ]; then
+  falhou "não achei os pinos de applet ($_applets_n) ou o texto da chave EXTENSOES"
+else
+  _faltam="$(applets_dos_pinos | while IFS= read -r id; do
+               printf '%s' "$_texto_ext" | grep -qE "(^|[^a-z-])$id([^a-z-]|$)" || printf '%s ' "$id"
+             done)"
+  _numeros="$(printf '%s' "$_texto_ext" | sed 's|~/[^ ]*||g; s|`[^`]*`||g' \
+                | grep -oiE '\b([0-9]+|duas|dois|três|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quinze)\b' \
+                | sed 's/^duas$/2/I; s/^dois$/2/I; s/^três$/3/I; s/^quatro$/4/I; s/^cinco$/5/I; s/^seis$/6/I;
+                      s/^sete$/7/I; s/^oito$/8/I; s/^nove$/9/I; s/^dez$/10/I; s/^onze$/11/I; s/^doze$/12/I;
+                      s/^treze$/13/I; s/^catorze$/14/I; s/^quinze$/15/I' | sort -u)"
+  _errados="$(printf '%s\n' "$_numeros" | grep -v "^$_applets_n\$" | grep . | tr '\n' ' ')"
+  if [ -n "$_faltam" ]; then
+    falhou "o texto de EXTENSOES no meow.conf.exemplo não cita os applets: $_faltam"
+  elif [ -n "$_errados" ]; then
+    falhou "o texto de EXTENSOES conta ${_errados% } applet(s), e os pinos de applet são $_applets_n"
+  else
+    passou "o texto de EXTENSOES cita os $_applets_n applets dos pinos, e só esse número"
+  fi
+fi
+
 printf '\n'
 if [ "$FALHAS" -gt 0 ]; then
   printf '%s número(s) fora do lugar.\n' "$FALHAS" >&2
