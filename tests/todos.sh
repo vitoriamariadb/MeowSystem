@@ -92,6 +92,7 @@ PORTATIL=(
   vizinhos.sh
   qbittorrent-tema-do-pack.sh
   segunda-passada-sem-rede.sh
+  maquina-nova.sh
   lancador-do-meow.sh
   flatpak-tema.sh
   escritorio.sh
