@@ -758,7 +758,6 @@ cmd_aplicar() {
     meow_muda "geraria o(a) $FASTFETCH_LOGO_GATO em $FASTFETCH_LOGO_COLUNAS x $(_ffl_linhas) células em $FFL_ALVO"
   elif [ "$rc" = "$MEOW_DIVERGENTE" ]; then
     meow_muda "$FASTFETCH_LOGO_GATO em ANSI ($FASTFETCH_LOGO_COLUNAS x $(_ffl_linhas) células)${FFL_PORQUE:+ — $FFL_PORQUE}"
-    meow_info "para ver: scripts/fastfetch_logo.sh ver"
   else
     meow_ok "o logo ANSI já estava gerado (${FASTFETCH_LOGO_GATO}${FFL_PORQUE:+ — $FFL_PORQUE})"
   fi

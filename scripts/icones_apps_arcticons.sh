@@ -294,7 +294,6 @@ _avisar_faltantes() {
     [ -f "${ARTE[$nome]}" ] && continue
     if [ "${ACERVO[$nome]}" = "convertido" ]; then
       meow_aviso "'$nome' está no apps-convertidos.map mas a arte não está no acervo"
-      meow_info "  gere o acervo com: ./scripts/construir_convertidos.sh"
       continue
     fi
     glifo="${GLIFO[$nome]}"

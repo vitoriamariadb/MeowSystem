@@ -34,7 +34,6 @@ cmd_conferir() {
     return "$MEOW_OK"
   fi
   meow_muda "o spicetify não está instalado — é ele que pinta o Spotify"
-  meow_info "o conserto é: scripts/spicetify_setup.sh instalar"
   return "$MEOW_DIVERGENTE"
 }
 

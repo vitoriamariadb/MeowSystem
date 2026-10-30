@@ -642,7 +642,8 @@ _areas_planejar() {
   if [ "${#pedidos[@]}" -lt "${#AREAS_NOME[@]}" ]; then
     meow_erro "AREAS_NOMES tem ${#pedidos[@]} área(s) e o disco tem ${#AREAS_NOME[@]}"
     meow_aviso "faltar um nome aqui TIRARIA um alfinete, e tirar alfinete apaga a área."
-    meow_aviso "para tirar de propósito:  MEOW_SIM=1 ./scripts/areas.sh desalfinetar <nome>"
+    local onde; onde="$(meow_onde_no_painel areas_desalfinetar)"
+    meow_aviso "tirar uma de propósito é no painel: ${onde:-Definir, Áreas de trabalho}"
     return "$MEOW_ERRO"
   fi
 
@@ -764,7 +765,8 @@ cmd_alfinetar_primeira() {
 cmd_aplicar() {
   if [ -z "$AREAS_NOMES" ] && [ -z "$AREAS_ENCAIXE" ]; then
     meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"
-    meow_info "para ver as de agora e a linha pronta:  ./scripts/areas.sh estado"
+    local onde; onde="$(meow_onde_no_painel areas_ver)"
+    meow_info "as de agora estão no painel: ${onde:-Definir, Áreas de trabalho}"
     return "$MEOW_OK"
   fi
   _areas_dependencia || return $?
@@ -985,7 +987,8 @@ cmd_desalfinetar() {
   done
   if [ "$achado" -lt 0 ]; then
     meow_erro "não há área alfinetada chamada '$alvo'"
-    meow_info "as que existem:  ./scripts/areas.sh estado"
+    local onde; onde="$(meow_onde_no_painel areas_ver)"
+    meow_info "as que existem estão no painel: ${onde:-Definir, Áreas de trabalho}"
     return "$MEOW_ERRO"
   fi
   if [ "${#AREAS_NOME[@]}" -le 1 ]; then
@@ -1000,8 +1003,8 @@ cmd_desalfinetar() {
   meow_aviso "  · as áreas seguintes ANDAM uma posição, e o que dependia da"
   meow_aviso "    posição delas (atalhos, parking de janela) passa a mirar outra."
   if [ "${MEOW_SIM:-0}" != "1" ]; then
-    meow_erro "não fiz nada. Se é isso mesmo que você quer:"
-    meow_erro "  MEOW_SIM=1 ./scripts/areas.sh desalfinetar '$alvo'"
+    local onde; onde="$(meow_onde_no_painel areas_desalfinetar)"
+    meow_erro "não fiz nada: tirar um alfinete só vale confirmado, no painel: ${onde:-Definir, Áreas de trabalho}"
     return "$AREAS_PENDENCIA"
   fi
   local novo erro
@@ -1018,7 +1021,8 @@ cmd_desalfinetar() {
     "$MEOW_DIVERGENTE")
       meow_seco && meow_muda "tiraria o alfinete de '$alvo'" \
                 || { meow_muda "alfinete de '$alvo' retirado"; _areas_so_no_login
-                     meow_info "para voltar atrás:  ./scripts/areas.sh reverter" ; } ;;
+                     local onde; onde="$(meow_onde_no_painel areas_reverter)"
+                     meow_info "voltar atrás é no painel: ${onde:-Definir, Áreas de trabalho}" ; } ;;
   esac
   meow_registrar "areas.sh desalfinetar '$alvo' rc=$rc"
   return "$rc"
