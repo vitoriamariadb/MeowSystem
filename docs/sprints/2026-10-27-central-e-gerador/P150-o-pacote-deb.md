@@ -71,8 +71,8 @@ instalar o MeowSystem inteiro numa outra máquina com Pop!_OS 24.04 e COSMIC.
   `meow configurar`, não o `meow` sozinho, que só abre o menu.
 - `lintian` (2.117): zero erro. O `pkg-config` virou `pkgconf` (era o único erro). Avisos aceitos:
   `script-not-executable` ×26 (os `lib/*.sh`, `scripts/meow-lancador-apt.sh` e os `manifesto.sh` têm shebang e
-  são lidos com `source`), `uses-dpkg-database-directly` (o `ponte_root.sh` lê o `/var/lib/dpkg` para saber o
-  que o apt mexeu), `no-manual-page` (a ajuda é o `meow --help`). As cinco imagens com o bit de execução no git
+  são lidos com `source`), `uses-dpkg-database-directly` (o `ponte_root.sh` lê o `cosmic-comp.md5sums` do
+  `/var/lib/dpkg/info` para saber se o binário do compositor ainda é o do apt), `no-manual-page` (a ajuda é o `meow --help`). As cinco imagens com o bit de execução no git
   (`steam_tray_mono.png.original` e quatro `equalizer-animated-sapphire.gif`) saem 644: o `deb.sh` só dá 755 ao
   que começa com `#!` ou é ELF.
 - Provas: `tests/deb.sh` verde (3 min, com `strace`); `readme.sh`, `nada-manda-digitar.sh`, `higiene.sh`,
