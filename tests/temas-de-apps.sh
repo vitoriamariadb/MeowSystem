@@ -982,8 +982,16 @@ if a[0] != "--version":
 if os.environ.get("PARALELO") and a[0] == "--install-extension":
     os.makedirs(os.path.dirname(os.environ["PARALELO"]), exist_ok=True)
     open(os.environ["PARALELO"], "w").write("o editor dela, enquanto o CLI instalava\n")
+OBSOLETO = os.path.join(ext, ".obsolete")
+def obsoletas():
+    if not os.environ.get("CODE_OBSOLETO") or not os.path.isfile(OBSOLETO):
+        return {}
+    return json.load(open(OBSOLETO))
+def gravar_obsoletas(d):
+    open(OBSOLETO, "w").write(json.dumps(d, separators=(",", ":")))
 def pastas():
-    return sorted(d for d in os.listdir(ext) if os.path.isdir(os.path.join(ext, d))) if os.path.isdir(ext) else []
+    fora = obsoletas()
+    return sorted(d for d in os.listdir(ext) if os.path.isdir(os.path.join(ext, d)) and d not in fora) if os.path.isdir(ext) else []
 def id_de(d):
     p = json.load(open(os.path.join(ext, d, "package.json")))
     return ("%s.%s" % (p["publisher"], p["name"])).lower()
@@ -1003,10 +1011,19 @@ elif a[0] == "--install-extension":
         if n.startswith("extension/") and not n.endswith("/"):
             os.makedirs(os.path.dirname(os.path.join(dest, n[len("extension/"):])), exist_ok=True)
             open(os.path.join(dest, n[len("extension/"):]), "wb").write(z.read(n))
+    fora = obsoletas()
+    if os.path.basename(dest) in fora:
+        del fora[os.path.basename(dest)]
+        gravar_obsoletas(fora)
 elif a[0] == "--uninstall-extension":
     for d in pastas():
         if id_de(d) == a[1].lower():
-            shutil.rmtree(os.path.join(ext, d))
+            if os.environ.get("CODE_OBSOLETO"):
+                fora = obsoletas()
+                fora[d] = True
+                gravar_obsoletas(fora)
+            else:
+                shutil.rmtree(os.path.join(ext, d))
             sys.exit(0)
     sys.exit(1)
 CODE
@@ -1365,6 +1382,30 @@ saida="$(mod10 vscode reverter catppuccin mocha)"; rc=$?
   && [ "$(printf '%s\n' "$saida" | grep -c 'extensão removida')" = 2 ] \
   && ok "P55: com o Catppuccin no ar, o desfazer do VS Code tira as duas do Catppuccin, e a extensão de outro pack fica" \
   || falha "P55: o desfazer do VS Code mexeu na extensão de outro pack, ou não tirou as do Catppuccin (rc=$rc)" "$saida"
+
+semear10
+mod10 vscode aplicar catppuccin mocha >/dev/null
+saida="$(mod10 vscode reverter catppuccin mocha CODE_OBSOLETO=1)"; rc=$?
+OBS10="$CASA10/.vscode/extensions/.obsolete"
+faltam=""
+[ "$rc" = 1 ] && [ -d "$CASA10/.vscode/extensions/catppuccin.catppuccin-vsc-3.19.0" ] \
+  && grep -qF '"catppuccin.catppuccin-vsc-3.19.0":true' "$OBS10" \
+  && grep -qF '"catppuccin.catppuccin-vsc-icons-1.26.0":true' "$OBS10" \
+  && [ "$(printf '%s\n' "$saida" | grep -c 'extensão removida')" = 2 ] \
+  || faltam+=" o primeiro desfazer não deixou as duas no .obsolete, como o VS Code faz (rc=$rc: $saida);"
+saida="$(mod10 vscode reverter catppuccin mocha CODE_OBSOLETO=1)"; rc=$?
+[ "$rc" = 0 ] && printf '%s' "$saida" | grep -q 'VS Code já estava sem o' \
+  && ! printf '%s' "$saida" | grep -qE 'extensão removida|não consegui remover|desinstalaria' \
+  || faltam+=" o segundo desfazer ainda vê a extensão do .obsolete como instalada (rc=$rc: $saida);"
+saida="$(mod10 vscode conferir catppuccin mocha CODE_OBSOLETO=1)"; rc=$?
+[ "$rc" = 1 ] || faltam+=" a conferência deu a extensão do .obsolete como no lugar (rc=$rc: $saida);"
+saida="$(mod10 vscode aplicar catppuccin mocha CODE_OBSOLETO=1)"; rc=$?
+[ "$rc" = 1 ] && ! grep -qF 'catppuccin.catppuccin-vsc-3.19.0' "$OBS10" \
+  && grep -q '"workbench.colorTheme": "Catppuccin Mocha"' "$VSC10" \
+  || faltam+=" o aplicar depois do desfazer não reinstalou a extensão do .obsolete (rc=$rc: $saida);"
+[ -z "$faltam" ] \
+  && ok "P151: a extensão listada no .obsolete do VS Code conta como não instalada: o segundo desfazer não a vê, e o aplicar a põe de volta" \
+  || falha "P151: o VS Code e o .obsolete:$faltam"
 
 semear10
 mod10 vscode aplicar catppuccin mocha >/dev/null
