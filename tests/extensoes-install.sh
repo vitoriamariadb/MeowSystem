@@ -167,7 +167,7 @@ ids=()
 for f in "$RAIZ"/assets/extensoes/*.pino; do
   [ -n "$(campo "$f" URL)" ] && ids+=("$(basename "$f" .pino)")
 done
-igual "nove pinos com URL" "${#ids[@]}" 9
+igual "dez pinos com URL" "${#ids[@]}" 10
 
 arvore_com_o_commit() {
   local pino="$RAIZ/assets/extensoes/$1.pino" commit url a
