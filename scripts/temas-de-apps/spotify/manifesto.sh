@@ -384,7 +384,7 @@ meow_app_detectar() {
   if ! _spot_cli >/dev/null; then
     meow_pendencia_acionavel spicetify-ausente \
       "O Spotify está instalado, mas falta o spicetify — é ele que pinta o app. Posso baixá-lo (versão pinada) para ~/.spicetify, sem tocar na configuração do seu terminal" \
-      "scripts/spicetify_setup.sh instalar"
+      "spicetify_instalar"
     meow_app_sem "Spotify: falta o spicetify — é ele que tematiza o app desde 10/08/2026"
     return
   fi
