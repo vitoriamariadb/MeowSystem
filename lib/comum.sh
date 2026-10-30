@@ -675,11 +675,20 @@ meow_travar() {
       return "$MEOW_ERRO" ;;
   esac
 
-  meow_erro "o cadeado está preso em:$nomes"
-  meow_aviso "isso não é outro meow — é descritor vazado. Um módulo lançou esse"
-  meow_aviso "app enquanto a trava estava de pé, e ele levou o cadeado junto."
-  meow_aviso "saídas: feche o app acima, ou solte à força com"
-  meow_aviso "  flock -u \"$lock\" true  &&  rm -f \"$lock\""
+  local preso troca rc
+  preso="$(stat -L -c %i "/proc/$$/fd/$MEOW_FD" 2>/dev/null)"
+  exec {troca}>"$lock.troca" || return "$MEOW_ERRO"
+  flock "$troca"
+  exec {MEOW_FD}>&-
+  [ -n "$preso" ] && [ "$(stat -c %i "$lock" 2>/dev/null)" = "$preso" ] && rm -f -- "$lock"
+  exec {MEOW_FD}>"$lock"
+  flock -n "$MEOW_FD"; rc=$?
+  exec {troca}>&-
+  if [ "$rc" = 0 ]; then
+    meow_aviso "o cadeado estava preso em:$nomes, que o herdou de um passo antigo; troquei o cadeado"
+    return 0
+  fi
+  meow_aviso "outro meow está rodando (lock em $lock) — saindo"
   return "$MEOW_ERRO"
 }
 
