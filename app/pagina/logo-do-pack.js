@@ -1,3 +1,5 @@
+const LOGO_DO_PACK = { versao: "" };
+
 function logoDoCartao(p) {
   const img = elemento("img", { class: "logo", src: p.capa, alt: "" });
   if (!p.pessoal) return img;
@@ -34,7 +36,8 @@ async function gravarLogoDoPack(p, corpo) {
   if (r.erro) { queixa.textContent = maiuscula(r.erro); return; }
   d.close();
   await Promise.all([recarregarPacks(), recarregarEsquema()]);
-  const versao = "?v=" + Date.now();
+  LOGO_DO_PACK.versao = String(Date.now());
+  const versao = "?v=" + LOGO_DO_PACK.versao;
   const marca = document.querySelector("#topo .marca img");
   if (marca) marca.src = "/logo.svg" + versao;
   const aba = document.querySelector("link[rel=icon]");
