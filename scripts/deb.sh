@@ -94,7 +94,10 @@ MANTENEDOR="$QUEM <$CORREIO>"
 chmod 644 "$DOC/changelog.gz"
 
 TAMANHO="$(du -sk --apparent-size --exclude=DEBIAN "$ARV" | cut -f1)"
-sed -e "s|@VERSAO@|$VERSAO|" -e "s|@TAMANHO@|$TAMANHO|" -e "s|@MANTENEDOR@|$MANTENEDOR|" "$RAIZ/packaging/deb/control" > "$ARV/DEBIAN/control" || exit 2
+COMPILAR="$(cut -f2 "$RAIZ/assets/pacotes/compilar.tsv" | awk 'NF && !v[$0]++' | paste -sd, - | sed 's/,/, /g')"
+[ -n "$COMPILAR" ] || { erro "a lista de pacotes de compilar está vazia: assets/pacotes/compilar.tsv"; exit 2; }
+sed -e "s|@VERSAO@|$VERSAO|" -e "s|@TAMANHO@|$TAMANHO|" -e "s|@MANTENEDOR@|$MANTENEDOR|" -e "s|@COMPILAR@|$COMPILAR|" \
+  "$RAIZ/packaging/deb/control" > "$ARV/DEBIAN/control" || exit 2
 (cd "$ARV" && find usr -type f -print0 | LC_ALL=C sort -z | xargs -0 md5sum) > "$ARV/DEBIAN/md5sums" || exit 2
 chmod 644 "$ARV/DEBIAN/control" "$ARV/DEBIAN/md5sums"
 

@@ -44,10 +44,11 @@ done
 [ -z "$faltam" ] && ok "Depends traz o que o install.sh exige" || falha "Depends sem: $faltam" "$dep"
 rec="$(campo Recommends)"
 faltam=""
-for p in build-essential pkgconf libxkbcommon-dev libwayland-dev libdbus-1-dev just libinput-dev libseat-dev; do
+while IFS= read -r p; do
   [[ ", $rec," == *", $p"[\ ,]* ]] || faltam+="$p "
-done
-[ -z "$faltam" ] && ok "Recommends traz o que os applets e o compositor pedem para compilar" || falha "Recommends sem: $faltam" "$rec"
+done < <(cut -f2 "$RAIZ/assets/pacotes/compilar.tsv" | sort -u)
+[ -z "$faltam" ] && ok "Recommends traz toda a lista de compilar (assets/pacotes/compilar.tsv)" || falha "Recommends sem: $faltam" "$rec"
+[[ $rec == *@* ]] && falha "Recommends ficou com marcador: $rec" || ok "Recommends sem marcador"
 if dpkg-deb --ctrl-tarfile "$DEB" | tar -t 2>/dev/null | grep -qE '(pre|post)(inst|rm)$'; then
   falha "o pacote tem script de manutenção: o install é por pessoa, o apt não roda nada no HOME"
 else
