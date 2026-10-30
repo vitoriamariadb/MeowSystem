@@ -37,7 +37,9 @@ Spotify, o `meow apps aplicar` refaz o backup sozinho, com o Spotify fechado:
 
 - app de fábrica (o Spotify acabou de atualizar): o backup velho vai para
   `~/.local/state/meowsystem/backups/spotify-spicetify-<data>` e roda `spicetify backup apply`;
-- app já com o tema (o spicetify é que mudou): roda `spicetify restore backup apply`, com o backup do app de agora.
+- app já com o tema (o spicetify é que mudou): roda `spicetify -q restore backup apply`, só quando o backup é da
+  versão do app de agora; o `-q` responde sim à pergunta do backup existente, que sem terminal travaria a passada;
+- app já com o tema e backup de outra versão: erro, e nada é mexido, porque restaurar esse backup daria janela em branco.
 
 A conferência compara o que o spicetify aplicou (tema, cor, versão do spicetify e pasta do app) com o registro
 `~/.local/state/meowsystem/temas-de-apps/spotify/aplicado`: apply que falhou não deixa «nada a fazer».

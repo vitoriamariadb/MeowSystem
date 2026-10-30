@@ -30,7 +30,13 @@ F="$HOME/.fake"; mkdir -p "$F"
 ini="$HOME/.config/spicetify/config-xpui.ini"
 base="$HOME/.local/share/flatpak/app/com.spotify.Client/current/active/files/extra/share/spotify"
 backup="$HOME/.local/state/spicetify/Backup"
+q=0; [ "${1:-}" = -q ] && { q=1; shift; }
 printf '%s\n' "$*" >> "$F/chamadas"
+perguntar() {
+  [ "$q" = 1 ] && return 0
+  printf '%s [y/N] ' "$1"; read -r r || r=""
+  [ "$r" = y ] || { echo "abortado"; exit 1; }
+}
 gravar() {
   [ -f "$ini" ] || printf '[Setting]\n' > "$ini"
   grep -v "^$1 *=" "$ini" > "$ini.n"; printf '%s = %s\n' "$1" "$2" >> "$ini.n"; mv "$ini.n" "$ini"
@@ -62,6 +68,7 @@ case "$*" in
     [ -f "$base/Apps/xpui.spa" ] || { echo "Error: o app já está modificado" >&2; exit 1; }
     fazer_backup; aplicar ;;
   "restore backup apply")
+    [ -d "$backup" ] && perguntar "There is available backup. Continue backing up anyway?"
     fazer_backup
     aplicar ;;
   "restore") rm -rf "$base/Apps/xpui"; : > "$base/Apps/xpui.spa" ;;
@@ -158,6 +165,30 @@ antes="$(retrato)"
 s="$(spot aplicar)"
 [ "$(rc_de "$s")" = 0 ] && [ "$antes" = "$(retrato)" ] \
   && ok "3. a passada seguinte não escreve nada" || falha "3. a passada seguinte escreveu" "$s"
+
+printf '1.2.92\n' > "$CASA/.fake/spotify-versao"
+implantar commit3
+rm -f "$(APPS_DE commit3)/xpui.spa"; mkdir -p "$(APPS_DE commit3)/xpui"
+printf ':root { --spice-text: #000000; }\n' > "$(APPS_DE commit3)/xpui/colors.css"
+touch -d '2020-01-01' "$CASA/.local/state/spicetify/Backup/xpui.spa" "$CASA/.local/state/spicetify/Backup"
+zerar
+antes="$(retrato)"
+s="$(spot aplicar)"
+if [ "$(rc_de "$s")" = 2 ] && ! chamadas | grep -qE '^(restore backup apply|backup apply|restore)$' \
+   && [ -f "$CASA/.local/state/spicetify/Backup/xpui.spa" ] && [ "$antes" = "$(retrato)" ] \
+   && printf '%s\n' "$s" | grep -q 'janela em branco'; then
+  ok "3b. app já modificado e backup de outra versão: erro, sem restaurar o backup velho nem mexer no disco"
+else
+  falha "3b. o módulo mexeu no Spotify com o backup de outra versão" "$s
+$(chamadas)"
+fi
+s="$(spot conferir)"
+[ "$(rc_de "$s")" = 1 ] \
+  && ok "3b. e a conferência fica divergente" || falha "3b. a conferência fechou com o backup de outra versão" "$s"
+printf '1.2.91\n' > "$CASA/.fake/spotify-versao"
+ln -sfn commit2 "$BASE/x86_64/stable/active"
+s="$(spot aplicar)"
+[ "$(rc_de "$s")" = 0 ] || falha "3b. voltar ao deploy anterior não fechou em 0" "$s"
 
 printf '2.46.5\n' > "$CASA/.fake/spicetify-versao"
 : > "$CASA/.fake/apply-quebrado"
