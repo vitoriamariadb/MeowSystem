@@ -57,6 +57,7 @@ PORTATIL=(
   pack-dracula-completo.sh
   biblioteca-em-portugues.sh
   trava-herdada.sh
+  autostart.sh
   icones-do-sistema.sh
   compositor-shim.sh
   decisoes.sh
