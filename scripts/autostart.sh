@@ -75,8 +75,18 @@ _auto_ids_registrados() {
 
 _auto_vivo() { pgrep -i -x -- "${1##*.}" >/dev/null 2>&1; }
 
+_auto_saidos() {
+  local reg
+  while IFS= read -r reg; do
+    [ -n "$reg" ] || continue
+    _auto_lista | grep -qxF -- "$reg" && continue
+    [ "$(_auto_antes_de "$reg" 2>/dev/null)" = "masked-antes-de-nos" ] && continue
+    printf '%s\n' "$reg"
+  done <<< "$(_auto_ids_registrados)"
+}
+
 cmd_aplicar() {
-  if [ -z "$AUTOSTART_BLOQUEADOS" ]; then
+  if [ -z "$AUTOSTART_BLOQUEADOS" ] && [ -z "$(_auto_saidos)" ]; then
     meow_pula "AUTOSTART_BLOQUEADOS vazio — nenhum autostart a bloquear"
     return "$MEOW_OK"
   fi
@@ -116,21 +126,21 @@ cmd_aplicar() {
     fi
   done <<< "$(_auto_lista)"
 
-  local reg
-  while IFS= read -r reg; do
-    [ -n "$reg" ] || continue
-    _auto_lista | grep -qxF -- "$reg" && continue
-    [ "$(_auto_antes_de "$reg" 2>/dev/null)" = "masked-antes-de-nos" ] && continue
-    meow_aviso "'$reg' saiu de AUTOSTART_BLOQUEADOS mas continua mascarado."
-    meow_aviso "  tirar o nome da lista não desfaz a máscara"
-  done <<< "$(_auto_ids_registrados)"
+  local -a saidos=()
+  mapfile -t saidos < <(_auto_saidos)
+  if [ "${#saidos[@]}" -gt 0 ]; then
+    local rc_saidos
+    cmd_remover "${saidos[@]}"; rc_saidos=$?
+    if [ "$rc_saidos" = "$MEOW_ERRO" ]; then rc="$MEOW_ERRO"
+    elif [ "$rc_saidos" = "$MEOW_DIVERGENTE" ] && [ "$rc" = "$MEOW_OK" ]; then rc="$MEOW_DIVERGENTE"; fi
+  fi
 
   meow_registrar "autostart.sh aplicar rc=$rc lista=$AUTOSTART_BLOQUEADOS"
   return "$rc"
 }
 
 cmd_conferir() {
-  if [ -z "$AUTOSTART_BLOQUEADOS" ]; then
+  if [ -z "$AUTOSTART_BLOQUEADOS" ] && [ -z "$(_auto_saidos)" ]; then
     meow_pula "AUTOSTART_BLOQUEADOS vazio — nada a conferir"
     return "$MEOW_OK"
   fi
@@ -147,6 +157,14 @@ cmd_conferir() {
       [ "$rc" = "$MEOW_ERRO" ] || rc="$MEOW_DIVERGENTE"
     fi
   done <<< "$(_auto_lista)"
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    unidade="$(_auto_unidade "$id")" || continue
+    if _auto_mascarada "$unidade"; then
+      meow_muda "$id saiu da lista e segue mascarado; a próxima passada o desmascara"
+      [ "$rc" = "$MEOW_ERRO" ] || rc="$MEOW_DIVERGENTE"
+    fi
+  done <<< "$(_auto_saidos)"
   return "$rc"
 }
 
