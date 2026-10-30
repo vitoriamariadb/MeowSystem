@@ -2813,7 +2813,7 @@ cmd_log() {
 menu_itens() {
   printf 'status\tPainel de estado: flavor, accent, tema, ícones, papel de parede e o que está divergente.\n'
   printf 'doctor\tRoda todas as conferências em ensaio e lista as divergências. Não escreve nada.\n'
-  printf 'doctor --consertar\tConfere e aplica só o que falhou. Não usa sudo e não baixa nada.\n'
+  printf 'doctor --consertar\tConfere e aplica só o que falhou. Não usa sudo.\n'
   printf 'tema\tMostra o tema escolhido, o que está no ar, e os temas prontos.\n'
   local n
   while IFS= read -r n; do
