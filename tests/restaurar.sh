@@ -37,7 +37,10 @@ printf '[\n    (\n        output: (\n            name: "DP-1",\n            edid
 
 unset DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR WAYLAND_DISPLAY DISPLAY \
       XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME MEOW_CONF MEOW_ESTADO
-export HOME="$CASA" PATH="$TMP/falso:$PATH" MEOW_PONTE="$TMP/sem-ponte" MEOW_SEM_REDE=1
+mkdir -p "$TMP/apt-arquivos"
+versao_comp="$(dpkg-query -W -f='${Version}' cosmic-comp 2>/dev/null)"
+[ -n "$versao_comp" ] && printf 'deb de brinquedo\n' > "$TMP/apt-arquivos/cosmic-comp_${versao_comp//:/%3a}_amd64.deb"
+export HOME="$CASA" PATH="$TMP/falso:$PATH" MEOW_PONTE="$TMP/sem-ponte" MEOW_SEM_REDE=1 AS_ARQUIVOS="$TMP/apt-arquivos"
 
 python3 -I - "$TMP/raiz" "$@" <<'PY'
 import hashlib, importlib.util, os, sys, time
@@ -104,6 +107,10 @@ for ident, acao in sv.ACOES.items():
         continue
     vistas += 1
     depois = foto()
+    brinquedo = hashlib.sha256(b"deb de brinquedo\n").hexdigest()
+    reais = [k for k, v in depois.items() if "/meowsystem/debs/" in k and v != brinquedo]
+    if reais:
+        falhas.append(f"{ident}: copiou um .deb do sistema real para a casa: {reais[:2]}")
     tem = ident in sv.restauros()
     if not sv.escreve(acao):
         if tem:
