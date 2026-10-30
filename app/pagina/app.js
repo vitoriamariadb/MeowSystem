@@ -623,7 +623,7 @@ function controleLogo(item, aplica) {
   const valor = valorEmVigor(item) || "";
   const caixa = elemento("div", { class: "escolhas", role: "group", "aria-label": item.titulo || item.chave });
   for (const op of item.opcoes) {
-    const src = "/logo.svg?" + (op ? "pack=" + encodeURIComponent(op) : "de=pack") + "&v=" + encodeURIComponent(vale("FLAVOR") + vale("ACCENT"));
+    const src = "/logo.svg?" + (op ? "pack=" + encodeURIComponent(op) : "de=pack") + "&v=" + encodeURIComponent(vale("FLAVOR") + vale("ACCENT") + LOGO_DO_PACK.versao);
     caixa.append(elemento("button", {
       type: "button", class: "escolha", "aria-pressed": String(op === valor),
       controle: "chave:" + item.chave + "=" + op, onclick: () => aplica(op),
@@ -635,7 +635,7 @@ function controleLogo(item, aplica) {
 const MARCA = { logo: null };
 function marcaDoPrograma() {
   if (EM_VOO) return;
-  const logo = [vale("LOGO_PROGRAMA"), vale("PACK"), vale("FLAVOR"), vale("ACCENT")].join("|");
+  const logo = [vale("LOGO_PROGRAMA"), vale("PACK"), vale("FLAVOR"), vale("ACCENT"), LOGO_DO_PACK.versao].join("|");
   if (MARCA.logo === null) { MARCA.logo = logo; return; }
   if (MARCA.logo === logo) return;
   MARCA.logo = logo;
