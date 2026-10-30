@@ -219,6 +219,28 @@ grep -q "escolha-o em «Ponteiro», em Definir" <<< "$saida" && ! grep -q 'meow.
   && ok "o ponteiro adicionado diz onde escolher, pelo nome que o painel mostra" \
   || falha "o ponteiro adicionado não diz onde escolher" "$saida"
 
+printf '\n--- 10. nenhuma saída manda rodar um script do repositório (P151) ---\n'
+SCRIPT_A_RODAR="^[^#]*\\bmeow_(?:info|aviso|pula|ok|erro|muda)\\b.*(?:\\./scripts/|(?<![\\w/\$}])scripts/[\\w.-]+\\.(?:sh|py)'? +(?!(?:não|nem|e|é|ou|que|para|com|no|na|do|da|de|em)\\b)(?:--?[a-z]|[a-z])|:\\s+'?(?:MEOW_\\w+=\\S+\\s+)?scripts/[\\w.-]+\\.(?:sh|py))"
+pega="$(printf '%s\n' \
+  '  meow_info "auditoria completa: ./scripts/qualquer.sh"' \
+  '  meow_aviso "  para devolvê-lo:  scripts/qualquer.sh remover $reg"' \
+  '  meow_info "o conserto é: scripts/qualquer.sh"' \
+  '  meow_info "quem responde é '"'"'scripts/pack.py onde'"'"'"' | grep -cP "$SCRIPT_A_RODAR")"
+deixa="$(printf '%s\n' \
+  '  meow_aviso "scripts/qualquer.py não respondeu as raízes"' \
+  '  meow_aviso "falta $RAIZ/scripts/qualquer.sh — repositório incompleto"' \
+  '  meow_info "o terminal liga o starship pelo bloco do MeowSystem (scripts/qualquer.sh)"' \
+  '  meow_pula "sem scripts/qualquer.py — nada a converter"' | grep -cP "$SCRIPT_A_RODAR")"
+if [ "$pega" = 4 ] && [ "$deixa" = 0 ]; then
+  ok "o padrão pega o script como comando e deixa o script citado como fato"
+else
+  falha "o padrão de script a rodar errou a amostra" "pegou $pega de 4 comandos e $deixa de 4 fatos"
+fi
+achados="$(cd "$RAIZ" && grep -nP "$SCRIPT_A_RODAR" scripts/*.sh lib/*.sh bin/meow install.sh \
+             scripts/temas-de-apps/*/manifesto.sh 2>/dev/null | grep -v 'uso: ')"
+[ -z "$achados" ] && ok "nenhuma saída de scripts, lib, bin/meow, install.sh ou manifesto manda rodar ./scripts/ ou scripts/<algo>.sh" \
+  || falha "saídas que mandam rodar um script" "$achados"
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: nada manda digitar\n'
