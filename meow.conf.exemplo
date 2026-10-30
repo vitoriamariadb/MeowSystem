@@ -1918,10 +1918,12 @@ LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,inf
 # NASCE VAZIO — 21/09/2026
 #   Estava `org.qbittorrent.qBittorrent`, que é o cliente de torrent DESTA
 #   casa. Na sua máquina, o instalador mascarava o autostart de um programa que
-#   você escolheu deixar subindo no login — e o comentário acima avisa que tirar
-#   o nome daqui depois NÃO desmascara sozinho. Um padrão que é fácil de ligar
-#   e difícil de desligar não pode vir ligado de fábrica.
-#   Vazio já era caso tratado: o `scripts/autostart.sh` não mascara nada.
+#   você escolheu deixar subindo no login. Um padrão que é fácil de ligar e
+#   difícil de desligar não pode vir ligado de fábrica.
+#   TIRAR UM NOME DAQUI DESMASCARA (30/10/2026): a passada seguinte do install
+#   ou do conserto do doctor devolve ao login o que o MeowSystem mascarou e saiu
+#   da lista; o que já estava mascarado antes dele fica como estava. Vazio não
+#   mascara nada, e devolve o que estava mascarado por nós.
 #   Para bloquear algum, use o ID do `.desktop` (sem `.desktop`), separado por
 #   vírgula. `meow autostart` lista o que sobe no login desta máquina.
 AUTOSTART_BLOQUEADOS=""
