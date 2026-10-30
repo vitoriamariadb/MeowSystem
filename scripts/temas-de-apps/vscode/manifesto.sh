@@ -865,7 +865,7 @@ meow_app_reverter() {
     if _meow_vscode_cli --uninstall-extension "$ext" >/dev/null 2>&1; then
       mudou=1; meow_muda "extensão removida: $ext"
     else
-      meow_aviso "não consegui remover $ext — tire pela interface do editor"
+      meow_aviso "não consegui remover $ext: o VS Code recusou a desinstalação"
     fi
   done
   _MEOW_VSCODE_LISTA=""

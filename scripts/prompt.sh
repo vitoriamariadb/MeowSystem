@@ -10,7 +10,6 @@ PROMPT_FONTE="$MEOW_RAIZ/assets/prompt/starship.toml"
 PROMPT_ALVO="${PROMPT_ALVO:-$HOME/.config/starship.toml}"
 
 PROMPT_INSTALAR='curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"'
-PROMPT_INSTALAR_ALT='cargo install starship --locked'
 
 _prompt_onde_starship() {
   local lugar
@@ -165,7 +164,6 @@ cmd_instalar_starship() {
   mkdir -p "$HOME/.local/bin" 2>/dev/null || true
   if ! sh -c "$PROMPT_INSTALAR" || ! _prompt_tem_starship; then
     meow_erro "o instalador do starship falhou (sem rede?)"
-    meow_info "a alternativa, pelo cargo: $PROMPT_INSTALAR_ALT"
     return "$MEOW_ERRO"
   fi
   meow_muda "starship instalado em $HOME/.local/bin"
