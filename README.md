@@ -40,6 +40,20 @@ a ponte root; depois, nenhuma tela pede senha. O instalador baixa o que o Pop!_O
 compilador e as bibliotecas dos applets, o `fastfetch` e o `starship`. Para ensaiar antes:
 `./install.sh --dry-run`.
 
+### Pelo pacote `.deb`
+
+Sem clone, com o `meowsystem_<versão>_all.deb` em mãos (o `scripts/deb.sh` o gera em `dist/`):
+
+```bash
+sudo apt install ./meowsystem_*.deb
+meow configurar
+```
+
+O apt traz as dependências e põe o programa em `/usr/share/meowsystem`, só leitura; tudo o que é de
+quem usa fica no HOME. O `meow configurar` pergunta as chaves essenciais e instala; o `meow aplicar`
+instala sem perguntar. Para tirar: `/usr/share/meowsystem/install.sh --uninstall` e depois
+`sudo apt remove meowsystem`.
+
 ## O painel
 
 `meow abrir`, ou o ícone MeowSystem no lançador. 130 ajustes e 69 ações em seis portas:

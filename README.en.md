@@ -40,6 +40,20 @@ after that, no screen asks for a password. The installer downloads what Pop!_OS 
 compiler and libraries for the applets, `fastfetch` and `starship`. To rehearse first:
 `./install.sh --dry-run`.
 
+### From the `.deb` package
+
+No clone needed, with `meowsystem_<version>_all.deb` at hand (`scripts/deb.sh` builds it in `dist/`):
+
+```bash
+sudo apt install ./meowsystem_*.deb
+meow configurar
+```
+
+apt brings the dependencies and puts the program in `/usr/share/meowsystem`, read-only; everything
+that belongs to the user stays in their HOME. `meow configurar` asks the essential settings and
+installs; `meow aplicar` installs without asking. To remove it:
+`/usr/share/meowsystem/install.sh --uninstall`, then `sudo apt remove meowsystem`.
+
 ## The panel
 
 `meow abrir`, or the MeowSystem icon in the launcher. 130 settings and 69 actions behind six doors (the panel speaks Portuguese):
