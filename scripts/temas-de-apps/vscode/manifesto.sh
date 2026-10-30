@@ -311,13 +311,24 @@ _meow_vscode_lista() {
   printf '%s\n' "$_MEOW_VSCODE_LISTA"
 }
 
+_meow_vscode_obsoleta() {
+  local lista
+  [ -f "$MEOW_VSCODE_EXTDIR/.obsolete" ] || return 1
+  lista="$(tr -d ' \t\r\n' < "$MEOW_VSCODE_EXTDIR/.obsolete" 2>/dev/null)"
+  case "$lista" in *"\"$1\":true"*) return 0 ;; esac
+  return 1
+}
+
 _meow_vscode_pkg() {
-  local id_min achado
+  local id_min achado p
   id_min="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
   [ -d "$MEOW_VSCODE_EXTDIR" ] || return 1
   achado="$(find "$MEOW_VSCODE_EXTDIR" -mindepth 2 -maxdepth 2 -name package.json \
               -path "$MEOW_VSCODE_EXTDIR/$id_min-[0-9]*/package.json" \
-              -print 2>/dev/null | sort -V | tail -n 1)"
+              -print 2>/dev/null | sort -V \
+              | while IFS= read -r p; do
+                  _meow_vscode_obsoleta "$(basename "$(dirname "$p")")" || printf '%s\n' "$p"
+                done | tail -n 1)"
   [ -n "$achado" ] || return 1
   printf '%s\n' "$achado"
 }
