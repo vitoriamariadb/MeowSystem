@@ -18,6 +18,7 @@ meow_desinstalar() {
       meow-leitura.timer meow-leitura.service \
       meow-gato.timer meow-gato.service meow-ativos.path \
       meow-heroic.path meow-heroic.service \
+      meow-discord.path meow-discord.service \
       meow-pos-apt.path meow-pos-apt.service meow-builds-login.service \
       meow-sentinela.timer meow-sentinela.service meow-sentinela.path \
       meow-painel.service meow-painel-raio.path meow-painel-raio.service \
@@ -93,7 +94,7 @@ meow_desinstalar() {
 
   meow_passo "2/6 Temas por aplicativo"
   if [ -n "${APPS_ATIVOS:-}" ]; then
-    APPS_ATIVOS="$APPS_ATIVOS" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+    MEOW_REVERTER_SEM_DESLIGAR=1 APPS_ATIVOS="$APPS_ATIVOS" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
       "$MEOW_RAIZ/scripts/aplicar_apps.sh" reverter || true
   else
     meow_pula "APPS_ATIVOS vazio no meow.conf — nenhum tema de aplicativo para desfazer"

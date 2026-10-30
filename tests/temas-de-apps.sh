@@ -365,10 +365,10 @@ zz_valores_fora=""
 for zz_par in dracula/dracula dracula/alucard meowsystem/mocha meowsystem/latte; do
   zz_valores_fora+="$(python3 "$MODELO_PY" "$ACERVO/zapzap/zapzap.modelo.css" "$RAIZ/packs/${zz_par%/*}/paleta.json" "${zz_par#*/}" "${zz_par%/*}" \
     | sed -n 's/^ *--[A-Za-z0-9-]*: \(.*\) !important;$/\1/p' \
-    | grep -vE '^(#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?|color-mix\(in srgb, #[0-9A-Fa-f]{6} [0-9]+%, #[0-9A-Fa-f]{6}\)|[0-9]{1,3}, [0-9]{1,3}, [0-9]{1,3})$')"
+    | grep -vE '^(#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?|color-mix\(in srgb, #[0-9A-Fa-f]{6} [0-9]+%, #[0-9A-Fa-f]{6}\)|[0-9]{1,3}, [0-9]{1,3}, [0-9]{1,3}|inherit)$')"
 done
 [ -z "$zz_valores_fora" ] \
-  && ok "zapzap: todo valor que a paleta põe no CSS é cor (#hex, mistura de #hex ou canais)" \
+  && ok "zapzap: todo valor que a paleta põe no CSS é cor (#hex, mistura de #hex ou canais), e o resto é inherit" \
   || falha "zapzap: há valor no CSS que não é cor" "$zz_valores_fora"
 zz_marcas="$(grep -oE '\{\{[^}]*\}\}' "$ACERVO/zapzap/zapzap.modelo.css" | grep -vE '^\{\{[a-z0-9_]+(:([0-9A-Fa-f]{2}|rgb))?\}\}$|^\{\{(pack|flavor)\}\}$')"
 zz_texto="$(grep -nE '\{\{(pack|flavor|nome|tipo|tipo_inverso)\}\}' "$ACERVO/zapzap/zapzap.modelo.css")"

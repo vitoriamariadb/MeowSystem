@@ -15,6 +15,9 @@ PORTATIL=(
   sem-dracula-os-theme.sh
   sem-receita-no-log.sh
   temas-de-apps.sh
+  spotify-atualizado.sh
+  discord-vencord.sh
+  apps-frases.sh
   temas-por-app.sh
   leitura-fonte-unica.sh
   flavor-padrao.sh
@@ -130,6 +133,7 @@ MAQUINA=(
   modificacoes-pagina.py
   logo-pagina.py
   logo-do-pack-pessoal-pagina.py
+  zapzap-tema-de-conversa.py
 )
 
 SEM_PULO=(

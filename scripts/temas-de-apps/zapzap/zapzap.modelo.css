@@ -18,7 +18,8 @@
 .dark.color-refresh,
 .app-wrapper-web.app-wrapper-web,
 .app-wrapper-web.app-wrapper-web:root,
-.dark .app-wrapper-web.app-wrapper-web {
+.dark .app-wrapper-web.app-wrapper-web,
+#main {
   --WDS-accent: {{green}} !important;
   --WDS-accent-RGB: {{green:rgb}} !important;
   --WDS-accent-deemphasized: {{green:4D}} !important;
@@ -68,9 +69,11 @@
   --WDS-persistent-always-branded: {{green}} !important;
 
   --WDS-systems-bubble-surface-incoming: {{base}} !important;
+  --WDS-systems-bubble-surface-incoming-RGB: {{base:rgb}} !important;
   --WDS-systems-bubble-surface-outgoing: color-mix(in srgb, {{green}} 20%, {{base}}) !important;
   --WDS-systems-bubble-content-deemphasized: {{text:80}} !important;
   --WDS-systems-bubble-surface-overlay: {{mantle}} !important;
+  --WDS-systems-bubble-surface-overlay-RGB: {{mantle:rgb}} !important;
   --WDS-systems-bubble-surface-system: {{mantle}} !important;
   --WDS-systems-bubble-surface-e2e: color-mix(in srgb, {{yellow}} 20%, {{mantle}}) !important;
   --WDS-systems-bubble-content-e2e: {{yellow}} !important;
@@ -78,6 +81,7 @@
 
   --WDS-systems-chat-surface-composer: {{base}} !important;
   --WDS-systems-chat-background-wallpaper: {{crust}} !important;
+  --WDS-systems-chat-background-wallpaper-RGB: {{crust:rgb}} !important;
   --WDS-systems-chat-foreground-wallpaper: {{mantle}} !important;
   --WDS-systems-chat-surface-tray: {{base}} !important;
   --WDS-systems-status-seen: {{text:80}} !important;
@@ -91,6 +95,26 @@
   --startup-icon: {{surface1}} !important;
   --startup-background: {{crust}} !important;
   --progress-background: {{surface0}} !important;
+}
+
+#main * {
+  --WDS-accent: inherit !important;
+  --WDS-accent-RGB: inherit !important;
+  --WDS-accent-deemphasized: inherit !important;
+  --WDS-accent-emphasized: inherit !important;
+  --WDS-content-action-emphasized: inherit !important;
+  --WDS-content-external-link: inherit !important;
+  --WDS-content-read: inherit !important;
+  --WDS-systems-bubble-content-deemphasized: inherit !important;
+  --WDS-systems-bubble-surface-incoming: inherit !important;
+  --WDS-systems-bubble-surface-incoming-RGB: inherit !important;
+  --WDS-systems-bubble-surface-outgoing: inherit !important;
+  --WDS-systems-bubble-surface-outgoing-RGB: inherit !important;
+  --WDS-systems-bubble-surface-overlay: inherit !important;
+  --WDS-systems-bubble-surface-overlay-RGB: inherit !important;
+  --WDS-systems-chat-background-wallpaper: inherit !important;
+  --WDS-systems-chat-background-wallpaper-RGB: inherit !important;
+  --WDS-systems-chat-foreground-wallpaper: inherit !important;
 }
 
 /* A tela de abertura traz as cores no atributo `style` do elemento. */

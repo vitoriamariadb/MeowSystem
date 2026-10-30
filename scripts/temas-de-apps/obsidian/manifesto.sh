@@ -451,7 +451,7 @@ meow_app_conferir() {
     return "$MEOW_OK"
   fi
   if _meow_obsidian_rodando; then
-    meow_aviso "obsidian: está ABERTO — feche-o para o MeowSystem poder aplicar"
+    meow_aviso "obsidian: está ABERTO — o tema entra na próxima passada, com ele fechado"
   fi
   return "$MEOW_DIVERGENTE"
 }
@@ -693,7 +693,6 @@ meow_app_reverter() {
   if _meow_obsidian_rodando; then
     meow_aviso "obsidian: o app está ABERTO — nada foi escrito."
     meow_aviso "obsidian: ele regrava o appearance.json ao sair e traria o tema de volta."
-    meow_aviso "obsidian: aberto agora; a próxima passada com ele fechado aplica."
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -770,6 +769,6 @@ meow_app_reverter() {
   while IFS= read -r nome; do
     [ -n "$nome" ] && meow_info "o snippet '$nome' continua no disco, desmarcado: Aparência > Snippets CSS"
   done < <(_meow_obsidian_snippets_desmarcados "$_OBS_PACKS" ${com_algo[@]+"${com_algo[@]}"})
-  meow_info "tire 'obsidian' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar obsidian
   return "$MEOW_DIVERGENTE"
 }

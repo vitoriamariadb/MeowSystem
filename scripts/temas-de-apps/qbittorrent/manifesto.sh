@@ -225,7 +225,7 @@ _meow_qbt_pronto() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -s "$MEOW_QBT_ORIGEM" ]; then
-    meow_aviso "falta o tema em $MEOW_QBT_ORIGEM (veja a PROCEDENCIA.md do pack para rebaixar)"
+    meow_aviso "falta o tema em $MEOW_QBT_ORIGEM (a origem dele está na PROCEDENCIA.md do pack)"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   meow_pendencia_resolvida qbittorrent-conf-fora-de-escopo
@@ -408,7 +408,7 @@ meow_app_reverter() {
 
   if [ "$MEOW_QBT_ESCRITOR" = "proprio" ]; then
     if _meow_qbt_aberto; then
-      meow_pula "qBittorrent: o app está aberto — feche-o para o tema sair"
+      meow_pula "qBittorrent: o app está aberto e reescreve o conf ao sair — nada foi desfeito, e o tema fica"
       return "$MEOW_SEM_DEPENDENCIA"
     fi
     if grep -qxF "General\\CustomUIThemePath=$destino" "$conf_dir/qBittorrent.conf" 2>/dev/null; then
@@ -442,7 +442,7 @@ meow_app_reverter() {
     fi
     meow_seco && return "$MEOW_DIVERGENTE"
     [ "$mudou" = "0" ] && { meow_ok "qBittorrent já estava sem o tema do pack"; return "$MEOW_OK"; }
-    [ -n "${antes:-}" ] || meow_info "tire 'qbittorrent' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+    meow_app_desligar qbittorrent
     return "$MEOW_DIVERGENTE"
   fi
 
@@ -480,6 +480,6 @@ meow_app_reverter() {
 
   [ "$mudou" = "0" ] && { meow_ok "qBittorrent já estava sem o tema do pack"; return "$MEOW_OK"; }
   meow_ok "qBittorrent de volta ao tema $_MEOW_QBT_TEMA_AURORA_PADRAO do Aurora"
-  meow_info "tire 'qbittorrent' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar qbittorrent
   return "$MEOW_DIVERGENTE"
 }

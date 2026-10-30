@@ -933,6 +933,10 @@ chk_heroicvigia() {
   HEROIC_VIGIA="${HEROIC_VIGIA:-sim}" "$RAIZ/scripts/vigia_heroic.sh" --conferir 2>&1
 }
 
+chk_discordvigia() {
+  DISCORD_VENCORD="${DISCORD_VENCORD:-sim}" "$RAIZ/scripts/vigia_discord.sh" --conferir 2>&1
+}
+
 chk_greeter() {
   MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1
 }
@@ -1309,6 +1313,8 @@ fix_steamvigia(){ STEAM_VIGIA="${STEAM_VIGIA:-sim}" \
                     "$RAIZ/scripts/vigia_steam.sh" --aplicar 2>&1; }
 fix_heroicvigia(){ HEROIC_VIGIA="${HEROIC_VIGIA:-sim}" \
                     "$RAIZ/scripts/vigia_heroic.sh" --aplicar 2>&1; }
+fix_discordvigia(){ DISCORD_VENCORD="${DISCORD_VENCORD:-sim}" \
+                    "$RAIZ/scripts/vigia_discord.sh" --aplicar 2>&1; }
 fix_jogos()     { "$RAIZ/scripts/jogos_steam.sh" 2>&1; }
 fix_jogosheroic(){ "$RAIZ/scripts/jogos_heroic.sh" --aplicar 2>&1; }
 fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" --sem-sudo 2>&1; }
@@ -1497,7 +1503,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 if ! meow_ponte_viva; then
   SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal gpu libreoffice "
@@ -2940,7 +2946,7 @@ cmd_ajuda() {
 
   meow apps                    tabela: módulo, instalado, tema
   meow apps aplicar [slug]     tematiza um app, ou todos
-  meow apps reverter <slug>    desfaz num app (só o spotify sabe hoje; slug obrigatório)
+  meow apps reverter <slug>    desfaz num app e o desliga do APPS_ATIVOS (slug obrigatório)
 
   meow pack                    os theme packs instalados, e se cada um valida
   meow pack info <id>          o que é próprio e o que é herdado no pack

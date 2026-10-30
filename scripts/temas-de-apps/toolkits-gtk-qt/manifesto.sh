@@ -360,6 +360,6 @@ meow_app_reverter() {
   [ "$erro" = "1" ] && return "$MEOW_ERRO"
   [ "$mudou" = "0" ] && { meow_ok "toolkits: já estavam sem a sincronia do MeowSystem"; return "$MEOW_OK"; }
   meow_seco || meow_ok "toolkits: GTK e Qt desligados do tema do COSMIC (vale ao reabrir os apps)"
-  meow_seco || meow_info "tire 'qt5ct' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar qt5ct gtk qt
   return "$MEOW_DIVERGENTE"
 }

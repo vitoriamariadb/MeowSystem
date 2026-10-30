@@ -3,6 +3,9 @@
 _DC_ARQ_NOME="MeowSystem.theme.css"
 _DC_MODELO_PY="$MEOW_RAIZ/scripts/temas-de-apps/modelo.py"
 _DC_CONF="${XDG_CONFIG_HOME:-$HOME/.config}"
+_DC_VENCORD_VERSAO="v1.4.2"
+_DC_VENCORD_SHA="52642c8521a866ad241c10337144a4f513672c54b9c86a8169954785054c815d"
+_DC_VENCORD_URL="${MEOW_VENCORD_URL:-https://github.com/Vencord/Installer/releases/download/$_DC_VENCORD_VERSAO/VencordInstallerCli-linux}"
 
 _dc_pastas() {
   local d
@@ -19,7 +22,90 @@ _dc_pastas() {
 
 _dc_instalado() {
   meow_flatpak_tem com.discordapp.Discord || meow_flatpak_tem dev.vencord.Vesktop \
-    || meow_tem discord || meow_tem Discord || meow_tem vesktop
+    || meow_tem discord || meow_tem Discord || meow_tem vesktop || [ -n "$(_dc_app_novo)" ]
+}
+
+_dc_app_novo() {
+  local d
+  d="$(find "$_DC_CONF/discord" -mindepth 1 -maxdepth 1 -type d -name 'app-*' 2>/dev/null | sort -V | tail -n 1)"
+  [ -n "$d" ] && [ -d "$d/resources" ] && printf '%s' "$d"
+}
+
+_dc_com_vencord() {
+  [ -f "$1/resources/_app.asar" ] && grep -qa 'Vencord' "$1/resources/app.asar" 2>/dev/null
+}
+
+_dc_quer_vencord() {
+  [ "${DISCORD_VENCORD:-sim}" = "sim" ] && [ -n "$(_dc_app_novo)" ]
+}
+
+_dc_apps_com_vencord() {
+  local app
+  while IFS= read -r app; do
+    [ -n "$app" ] && _dc_com_vencord "$app" && printf '%s\n' "$app"
+  done <<< "$(find "$_DC_CONF/discord" -mindepth 1 -maxdepth 1 -type d -name 'app-*' 2>/dev/null | sort -V)"
+}
+
+_dc_instalador() {
+  local dir bin sha tmp
+  sha="${MEOW_VENCORD_SHA256:-$_DC_VENCORD_SHA}"
+  dir="${XDG_DATA_HOME:-$HOME/.local/share}/meowsystem/vencord/$_DC_VENCORD_VERSAO"
+  bin="$dir/VencordInstallerCli-linux"
+  _DC_INSTALADOR=""
+  if [ -x "$bin" ] && echo "$sha  $bin" | sha256sum --status -c - 2>/dev/null; then
+    _DC_INSTALADOR="$bin"
+    return "$MEOW_OK"
+  fi
+  meow_tem curl || { meow_pula "Discord: sem curl — o Vencord fica para a próxima passada"; return "$MEOW_SEM_DEPENDENCIA"; }
+  mkdir -p "$dir" || return "$MEOW_ERRO"
+  tmp="$(mktemp -p "$dir" ".baixando.XXXXXX")" || return "$MEOW_ERRO"
+  if ! curl -sSfL --connect-timeout 15 --max-time 300 --retry 3 --retry-delay 2 -o "$tmp" "$_DC_VENCORD_URL" 2>/dev/null; then
+    rm -f "$tmp"
+    meow_pula "Discord: sem rede para baixar o instalador do Vencord — fica para a próxima passada"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if ! echo "$sha  $tmp" | sha256sum --status -c - 2>/dev/null; then
+    rm -f "$tmp"
+    meow_erro "Discord: o instalador do Vencord baixado não bate com o sha256 pinado de $_DC_VENCORD_VERSAO — nada injetado"
+    return "$MEOW_ERRO"
+  fi
+  chmod 755 "$tmp" && mv -f "$tmp" "$bin" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+  _DC_INSTALADOR="$bin"
+  return "$MEOW_OK"
+}
+
+_dc_injetar() {
+  local app="$1" rc
+  if meow_seco; then
+    meow_muda "Discord: injetaria o Vencord em $app"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if _dc_aberto; then
+    meow_pula "Discord: o cliente está aberto — o Vencord entra na próxima passada com ele fechado"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  _dc_instalador
+  rc=$?
+  [ "$rc" = "$MEOW_OK" ] || return "$rc"
+  if ! "$_DC_INSTALADOR" -install -location "$app" >/dev/null 2>&1 || ! _dc_com_vencord "$app"; then
+    meow_erro "Discord: o instalador do Vencord não injetou em $app"
+    return "$MEOW_ERRO"
+  fi
+  meow_ok "Discord: Vencord injetado em $app"
+  return "$MEOW_DIVERGENTE"
+}
+
+_dc_tirar_vencord() {
+  local app="$1"
+  _dc_com_vencord "$app" || return "$MEOW_OK"
+  if meow_seco; then
+    meow_muda "Discord: tiraria o Vencord de $app"
+    return "$MEOW_DIVERGENTE"
+  fi
+  mv -f -- "$app/resources/_app.asar" "$app/resources/app.asar" \
+    || { meow_erro "Discord: não consegui devolver o app.asar original em $app"; return "$MEOW_ERRO"; }
+  meow_ok "Discord: o Vencord saiu de $app"
+  return "$MEOW_DIVERGENTE"
 }
 
 _dc_marca() {
@@ -88,7 +174,12 @@ meow_app_detectar() {
   MEOW_APP_MOTIVO=""
   meow_app_instalado || { meow_app_sem "Discord: não está instalado"; return; }
   _DC_PASTAS="$(_dc_pastas)"
-  [ -n "$_DC_PASTAS" ] || { meow_app_sem "Discord: o cliente oficial não carrega tema — falta um cliente modificado (BetterDiscord, Vencord ou Vesktop)"; return; }
+  if _dc_quer_vencord; then
+    printf '%s\n' "$_DC_PASTAS" | grep -qx "$_DC_CONF/Vencord/themes" \
+      || _DC_PASTAS="${_DC_PASTAS:+$_DC_PASTAS
+}$_DC_CONF/Vencord/themes"
+  fi
+  [ -n "$_DC_PASTAS" ] || { meow_app_sem "Discord: o cliente oficial não carrega tema; o tema entra quando houver um cliente modificado (BetterDiscord, Vencord ou Vesktop)"; return; }
   meow_tem python3 || { meow_app_sem "Discord: falta python3, que monta o tema com a paleta do pack"; return; }
   meow_app_tema_do_pack discord.arquivo
   _DC_DE="$MEOW_APP_TEMA_PACK"
@@ -102,7 +193,20 @@ meow_app_detectar() {
 
 meow_app_conferir() {
   meow_app_detectar || return "$MEOW_SEM_DEPENDENCIA"
-  local pasta arq marca rc="$MEOW_OK"
+  local pasta arq marca rc="$MEOW_OK" app
+  if _dc_quer_vencord; then
+    app="$(_dc_app_novo)"
+    if ! _dc_com_vencord "$app"; then
+      meow_muda "Discord: o Vencord não está em $app"
+      rc="$MEOW_DIVERGENTE"
+    fi
+  elif [ "${DISCORD_VENCORD:-sim}" != "sim" ]; then
+    while IFS= read -r app; do
+      [ -n "$app" ] || continue
+      meow_muda "Discord: o Vencord está em $app, e DISCORD_VENCORD é '${DISCORD_VENCORD}'"
+      rc="$MEOW_DIVERGENTE"
+    done <<< "$(_dc_apps_com_vencord)"
+  fi
   while IFS= read -r pasta; do
     arq="$pasta/$_DC_ARQ_NOME"
     marca="$(_dc_marca "$arq")"
@@ -127,7 +231,33 @@ meow_app_conferir() {
 
 meow_app_aplicar() {
   meow_app_detectar || { meow_app_pendente discord; return; }
-  local pasta arq marca mudou=0 pulou=0 ajustes
+  local pasta arq marca mudou=0 pulou=0 ajustes app rc
+  if _dc_quer_vencord; then
+    app="$(_dc_app_novo)"
+    if ! _dc_com_vencord "$app"; then
+      _dc_injetar "$app"
+      rc=$?
+      case "$rc" in
+        "$MEOW_DIVERGENTE") mudou=1 ;;
+        "$MEOW_SEM_DEPENDENCIA") pulou=1 ;;
+        *) return "$rc" ;;
+      esac
+    fi
+  elif [ "${DISCORD_VENCORD:-sim}" != "sim" ]; then
+    while IFS= read -r app; do
+      [ -n "$app" ] || continue
+      if ! meow_seco && _dc_aberto; then
+        meow_pula "Discord: o cliente está aberto — o Vencord sai de $app na próxima passada com ele fechado"
+        pulou=1
+        continue
+      fi
+      _dc_tirar_vencord "$app"
+      case $? in
+        "$MEOW_DIVERGENTE") mudou=1 ;;
+        "$MEOW_ERRO") return "$MEOW_ERRO" ;;
+      esac
+    done <<< "$(_dc_apps_com_vencord)"
+  fi
   while IFS= read -r pasta; do
     arq="$pasta/$_DC_ARQ_NOME"
     marca="$(_dc_marca "$arq")"
@@ -177,7 +307,14 @@ meow_app_aplicar() {
 }
 
 meow_app_reverter() {
-  local pasta arq mudou=0
+  local pasta arq mudou=0 app rc
+  while IFS= read -r app; do
+    [ -n "$app" ] || continue
+    _dc_tirar_vencord "$app"
+    rc=$?
+    [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+    mudou=1
+  done <<< "$(_dc_apps_com_vencord)"
   while IFS= read -r pasta; do
     [ -n "$pasta" ] || continue
     arq="$pasta/$_DC_ARQ_NOME"
@@ -195,6 +332,6 @@ meow_app_reverter() {
     meow_ok "Discord: nenhum tema do MeowSystem no disco — nada a desfazer"
     return "$MEOW_OK"
   fi
-  meow_seco || meow_info "tire 'discord' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar discord
   return "$MEOW_DIVERGENTE"
 }

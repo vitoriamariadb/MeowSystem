@@ -31,7 +31,7 @@ meow_app_instalado() {
 meow_app_detectar() {
   MEOW_APP_MOTIVO=""
   meow_app_instalado || { meow_app_sem "waterfox: não está instalado"; return; }
-  [ -n "$(_wf_perfis | head -n 1)" ] || { meow_app_sem "waterfox: nenhum perfil em profiles.ini ainda — abra o Waterfox uma vez"; return; }
+  [ -n "$(_wf_perfis | head -n 1)" ] || { meow_app_sem "waterfox: ainda sem perfil; o tema entra quando o perfil existir"; return; }
   meow_tarq_detectar waterfox waterfox
 }
 
@@ -93,4 +93,7 @@ meow_app_reverter() {
   done < <(_wf_perfis)
   [ "${#rcs[@]}" -gt 0 ] || { meow_ok "waterfox: nenhum perfil — nada a desfazer"; return "$MEOW_OK"; }
   meow_tarq_somar "${rcs[@]}"
+  local soma=$?
+  [ "$soma" = "$MEOW_DIVERGENTE" ] && meow_app_desligar waterfox
+  return "$soma"
 }
