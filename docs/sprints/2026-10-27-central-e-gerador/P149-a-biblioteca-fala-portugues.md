@@ -24,3 +24,13 @@ saem do nome do arquivo.
 - Teste que falha hoje: todo SVG da Biblioteca dos dois packs tem `descricao` no catálogo, e nenhum rótulo da
   Biblioteca servido pelo painel é uma palavra da lista de inglês comum (`file`, `folder`, `open`, `root`, ...).
 - `tests/todos.sh` sem vermelho novo; captura headless da aba Biblioteca em 1280.
+
+## Execução
+- **Catálogo** (`b3ce7ddf`). `packs/meowsystem/icones/biblioteca/catalog.json`, no formato do Dracula (`nome`, `descricao`, `tags`, `tamanho_bytes`, e `cores_dominantes` quando o SVG tem cor), 622 entradas, uma por SVG. O gerador foi um script descartável do scratchpad: dicionário revisado à mão para as palavras comuns e as marcas, regra para `folder_X` e `folder_X_open` (com o dicionário dos nomes de pasta) e para `_file`, `_folder`, `_root`. A lista inteira foi relida depois de gerada.
+  - `cores_dominantes`: os SVG usam `var(--vscode-ctp-*)`, então a cor é a da paleta do flavor padrão (mocha) mais os `#hex` literais, as cinco mais frequentes. Os 41 de traço `currentColor` (Arcticons) ficam sem o campo, como 37 do Dracula. Nada no `pack.py` nem no painel lê `cores_dominantes`; `tags` só entra na busca do painel.
+  - `tags`: uma categoria (`pastas`, `linguagens`, `frameworks`, `configuracao`, `aplicativos`, `servicos`, `sistema`, `ferramentas`) e, onde há família, a família (`java`, `angular`, `nest`, `lua`, `luau`, `adobe`...).
+  - O validador de pack aceita o arquivo (`pack.py validar meowsystem` verde; o `catalog.json` já era exceção da forma da pasta). Nada mudou em `pack.py`, e o `biblioteca-origem.sha256` é só do Dracula.
+- **Dracula** (`253653b0`). A prova achou «Camera · feito à mão» no catálogo do Dracula; virou «Câmera · feito à mão».
+- **Prova** (`45278ce6`). `tests/biblioteca-em-portugues.sh` (portátil, em `todos.sh`): para `meowsystem` e `dracula`, todo SVG da Biblioteca tem `descricao` e nenhum rótulo oferecido por `acervo_para_levar` (o que a aba serve) contém palavra da lista de inglês comum. Sem o catálogo o teste falha (622 sem descrição, 292 rótulos em inglês); com ele passa.
+- **Captura**: o painel com HOME temporário, aba Biblioteca em 1280 px, mostra «Modelo 3D», «Arquivo», «Pasta», «Pasta aberta», «Raiz», «Microsoft Access», «Adobe After Effects».
+- Fora: o painel põe a primeira letra em maiúscula (`desc[:1].upper()`), então marcas de grafia minúscula aparecem como «Esbuild», «Pnpm», «Npm», «Commitlint». Pedir outra regra é mexer no `pack.py` e no `servidor.py`; ficou como anotação. Duas frases iguais: `rust-config` e `rust-alt-config` («configuração do Rust»).
