@@ -145,6 +145,7 @@
     "tamanho_bytes": 473
   },
   "alex.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#cba6f7"
     ],
@@ -736,6 +737,7 @@
     "tamanho_bytes": 417
   },
   "commitlint.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#74c7ec",
       "#f38ba8"
@@ -904,6 +906,7 @@
     "tamanho_bytes": 336
   },
   "darklua.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#7f849c",
       "#cdd6f4"
@@ -1037,6 +1040,7 @@
     "tamanho_bytes": 993
   },
   "drawio.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#fab387"
     ],
@@ -1176,6 +1180,7 @@
     "tamanho_bytes": 1128
   },
   "esbuild.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#f9e2af"
     ],
@@ -1210,6 +1215,7 @@
     "tamanho_bytes": 355
   },
   "fastlane.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#74c7ec",
       "#f38ba8",
@@ -4045,6 +4051,7 @@
     "tamanho_bytes": 1250
   },
   "git-cliff.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#fab387",
       "#7f849c"
@@ -4184,6 +4191,7 @@
     "tamanho_bytes": 490
   },
   "gulp.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#f38ba8"
     ],
@@ -4330,6 +4338,7 @@
     "tamanho_bytes": 410
   },
   "humans.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#fab387",
       "#ffffff"
@@ -4606,6 +4615,7 @@
     "tamanho_bytes": 531
   },
   "just.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#cdd6f4"
     ],
@@ -4743,6 +4753,7 @@
     "tamanho_bytes": 322
   },
   "lint-staged.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#fab387",
       "#f38ba8"
@@ -4925,6 +4936,7 @@
     "tamanho_bytes": 411
   },
   "macos.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#89b4fa",
       "#cdd6f4",
@@ -4975,6 +4987,7 @@
     "tamanho_bytes": 491
   },
   "mdbook.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#cdd6f4"
     ],
@@ -5038,6 +5051,7 @@
     "tamanho_bytes": 331
   },
   "moonrepo.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#cba6f7",
       "#b4befe"
@@ -5324,6 +5338,7 @@
     "tamanho_bytes": 631
   },
   "nodemon.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#a6e3a1"
     ],
@@ -5367,6 +5382,7 @@
     "tamanho_bytes": 523
   },
   "npm.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#f38ba8",
       "#cdd6f4"
@@ -5483,6 +5499,7 @@
     "tamanho_bytes": 1418
   },
   "package-json.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#a6e3a1"
     ],
@@ -5525,6 +5542,7 @@
     "tamanho_bytes": 1509
   },
   "pesde.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#f9e2af"
     ],
@@ -5588,6 +5606,7 @@
     "tamanho_bytes": 1366
   },
   "pixi.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#f9e2af",
       "#cdd6f4"
@@ -5655,6 +5674,7 @@
     "tamanho_bytes": 583
   },
   "pnpm.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#fab387",
       "#cdd6f4"
@@ -5711,6 +5731,7 @@
     "tamanho_bytes": 430
   },
   "pre-commit.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#f9e2af"
     ],
@@ -6025,6 +6046,7 @@
     "tamanho_bytes": 360
   },
   "robots.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#cba6f7"
     ],
@@ -6220,6 +6242,7 @@
     "tamanho_bytes": 733
   },
   "semantic-release.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#cdd6f4"
     ],
@@ -6822,6 +6845,7 @@
     "tamanho_bytes": 306
   },
   "uv.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#f5c2e7"
     ],
@@ -6844,6 +6868,7 @@
     "tamanho_bytes": 275
   },
   "vanilla-extract.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#f5c2e7",
       "#89dceb"
@@ -7062,6 +7087,7 @@
     "tamanho_bytes": 414
   },
   "webpack.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#89dceb",
       "#89b4fa"
@@ -7159,6 +7185,7 @@
     "tamanho_bytes": 1223
   },
   "xmake.svg": {
+    "caixa_da_marca": true,
     "cores_dominantes": [
       "#74c7ec",
       "#94e2d5",

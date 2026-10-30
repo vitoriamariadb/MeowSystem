@@ -690,7 +690,8 @@ escolheu. **Os projetos da autora entram na biblioteca do Dracula**, direto em
 `icones/biblioteca/`. Nenhum desenho
 da biblioteca veste um programa sozinho: quem veste é uma linha do `apps.map`.
 De onde veio cada arquivo está no `PROCEDENCIA.md`, e o `catalog.json` da pasta
-dá o rótulo do seletor.
+dá o rótulo do seletor: a `descricao` com a primeira letra em maiúscula, ou tal como
+está escrita quando a ficha traz `"caixa_da_marca": true` (npm, macOS, esbuild).
 
 ### As três pastas
 
@@ -999,7 +1000,7 @@ conta o disco contra ela. Os grupos são pack × `apps/`/`biblioteca/`; fica de
 fora, de propósito, todo o `sistema/` (um ícone de pasta no lugar de um programa
 no lançador seria engano). O PNG de uma pasta aparece num grupo à parte, travado.
 A busca casa pelo nome do arquivo e, onde houver, pela descrição em português
-do `catalog.json` da pasta (a biblioteca do Dracula e os resgatados têm um).
+do `catalog.json` da pasta (as bibliotecas do Dracula e do MeowSystem e os resgatados têm um).
 
 **A ficha marca o que veste o programa agora**, nesta ordem: a escolha de quem
 usa, a linha do mapa do pack no ar, o traço. **Usar este ícone** grava a

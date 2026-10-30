@@ -4531,10 +4531,15 @@ def _rotulos_da_biblioteca(pasta):
         return {}
     saida = {}
     for arq, ficha in (catalogo.items() if isinstance(catalogo, dict) else ()):
-        desc = str(ficha.get("descricao") or "").strip() if isinstance(ficha, dict) else ""
-        if desc:
-            saida[str(arq)] = desc[:1].upper() + desc[1:]
+        rotulo = rotulo_da_ficha(ficha)
+        if rotulo:
+            saida[str(arq)] = rotulo
     return saida
+
+
+def rotulo_da_ficha(ficha):
+    desc = str(ficha.get("descricao") or "").strip() if isinstance(ficha, dict) else ""
+    return desc if desc and ficha.get("caixa_da_marca") is True else desc[:1].upper() + desc[1:]
 
 
 def _rotulo_do_nome(nome):
