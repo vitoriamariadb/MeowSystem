@@ -347,11 +347,40 @@ meow_motivo_do_cargo() {
   fi
 }
 
-MEOW_DEPS_DOS_APPLETS="/usr/bin/cc|build-essential
-/usr/bin/pkg-config|pkg-config
-/usr/include/xkbcommon/xkbcommon.h|libxkbcommon-dev
-/usr/include/wayland-client.h|libwayland-dev
-/usr/include/dbus-1.0/dbus/dbus.h|libdbus-1-dev"
+MEOW_PACOTES_DE_COMPILAR="${MEOW_PACOTES_DE_COMPILAR:-$MEOW_RAIZ/assets/pacotes/compilar.tsv}"
+
+meow_pacote_instalado() {
+  [ "$(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null)" = installed ]
+}
+
+meow_grupos_de_compilar() {
+  local q
+  [ -n "$(EXTENSOES="${EXTENSOES:-}" MIDIA="${MIDIA:-}" LEITURA_APPLET="${LEITURA_APPLET:-}" \
+          "$MEOW_RAIZ/scripts/extensoes_build.sh" --queridas 2>/dev/null)" ] && printf 'applets\n'
+  q="${COMPOSITOR:-}"; [ -n "$q" ] || q="$(meow_conf_valor COMPOSITOR 2>/dev/null)" || q=sim
+  [ "${q:-sim}" != nao ] && meow_pacote_instalado cosmic-comp && printf 'compositor\n'
+  q="${FILES_MENU:-}"; [ -n "$q" ] || q="$(meow_conf_valor FILES_MENU 2>/dev/null)" || q=sim
+  [ "${q:-sim}" = sim ] && meow_pacote_instalado cosmic-files && printf 'menu-arquivos\n'
+  return 0
+}
+
+meow_pacotes_de_compilar() {
+  local grupos
+  grupos=" $(printf '%s ' "$@") "
+  [ -f "$MEOW_PACOTES_DE_COMPILAR" ] || return 0
+  awk -F'\t' -v g="$grupos" 'NF == 2 && index(g, " " $1 " ") && !visto[$2]++ { print $2 }' "$MEOW_PACOTES_DE_COMPILAR"
+}
+
+meow_pacotes_de_compilar_faltando() {
+  local -a grupos=()
+  local p
+  mapfile -t grupos < <(meow_grupos_de_compilar)
+  [ "${#grupos[@]}" -gt 0 ] || return 0
+  while IFS= read -r p; do
+    [ -n "$p" ] && ! meow_pacote_instalado "$p" && printf '%s\n' "$p"
+  done < <(meow_pacotes_de_compilar "${grupos[@]}")
+  return 0
+}
 
 meow_mascote_dir() {
   python3 "$MEOW_RAIZ/scripts/pack.py" mascote "$(meow_pack_dir)" 2>/dev/null \
@@ -808,23 +837,21 @@ meow_precisa_de_gente_resolvida() {
 
 meow_tem() { command -v "$1" >/dev/null 2>&1; }
 
+meow_rust_no_path() {
+  local d="${CARGO_HOME:-$HOME/.cargo}/bin"
+  [ -x "$d/cargo" ] || return 0
+  case "$PATH:" in "$d:"*) return 0 ;; esac
+  PATH="$d:$PATH"
+  export PATH
+}
+
 meow_garantir_cargo() {
-  meow_tem cargo && return 0
-  if [ -x "$HOME/.cargo/bin/cargo" ]; then PATH="$HOME/.cargo/bin:$PATH"; return 0; fi
-  meow_seco && { meow_muda "instalaria o rust pelo rustup, em ~/.cargo (baixa da internet)"; return 1; }
-  meow_tem curl || return 1
-  local instalador
-  instalador="$(mktemp)" || return 1
-  meow_info "instalando o rust pelo rustup, em ~/.cargo (baixa da internet)"
-  if curl --proto '=https' --tlsv1.2 -sSf --max-time 120 https://sh.rustup.rs -o "$instalador" \
-     && sh "$instalador" -y --profile minimal --no-modify-path >/dev/null 2>&1; then
-    rm -f "$instalador"
-    PATH="$HOME/.cargo/bin:$PATH"
-    meow_tem cargo
-    return $?
-  fi
-  rm -f "$instalador"
-  return 1
+  meow_rust_no_path
+  RUST_PRECISA=sim "$MEOW_RAIZ/scripts/rust.sh" conferir >/dev/null 2>&1 && return 0
+  meow_seco && { meow_muda "baixaria o rustup pinado e instalaria o rust em ~/.cargo (BAIXA DA INTERNET)"; return 1; }
+  RUST_PRECISA=sim "$MEOW_RAIZ/scripts/rust.sh" aplicar >&2
+  meow_rust_no_path
+  RUST_PRECISA=sim "$MEOW_RAIZ/scripts/rust.sh" conferir >/dev/null 2>&1
 }
 
 meow_flatpak_tem() {

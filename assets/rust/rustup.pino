@@ -1,0 +1,6 @@
+VERSAO="1.29.2"
+URL="https://static.rust-lang.org/rustup/archive/1.29.2/@ALVO@/rustup-init"
+SHA256_x86_64="5be191e8c70a5007074254cb74d78dbfdd25cd5a61c27de7b8e5410122ec24f4"
+SHA256_aarch64="a9c168dbea81a84671c6b7a5c1795cb0eb699020110d107ddfca427bd797e697"
+TAMANHO="21 MB"
+RUST_MINIMO="1.93"
