@@ -113,11 +113,20 @@ _spot_backup_de_lado() {
   mkdir -p "$(dirname -- "$dest")" && mv -- "$dir" "$dest"
 }
 
+_spot_spicetify() {
+  local cli="$1"; shift
+  if [ -n "${MEOW_FD:-}" ]; then
+    "$cli" -n "$@" </dev/null {MEOW_FD}>&- 2>&1
+  else
+    "$cli" -n "$@" </dev/null 2>&1
+  fi
+}
+
 _spot_aplicar_refazendo() {
   local cli="$1" vb vi
   if _spot_app_de_fabrica; then
     _spot_backup_de_lado || { _spot_saida="não consegui pôr de lado o backup velho do spicetify"; return 1; }
-    _spot_saida="$("$cli" backup apply </dev/null 2>&1)"
+    _spot_saida="$(_spot_spicetify "$cli" backup apply)"
     return
   fi
   vb="$(_spot_ini_ler version)"; vi="$(_spot_versao)"
@@ -125,7 +134,7 @@ _spot_aplicar_refazendo() {
     _spot_saida="o backup do spicetify é da versão ${vb:-desconhecida}, o Spotify é a ${vi:-desconhecida} e o app não está de fábrica: restaurar daria janela em branco, nada foi mexido"
     return 1
   fi
-  _spot_saida="$("$cli" -q restore backup apply </dev/null 2>&1)"
+  _spot_saida="$(_spot_spicetify "$cli" -q restore backup apply)"
 }
 
 _spot_carimbar_versao() {
@@ -574,7 +583,7 @@ meow_app_aplicar() {
   if [ "$refazer" = 1 ]; then
     meow_info "o Spotify atualizou ($vb -> $vi): refaço o backup do spicetify"
     _spot_aplicar_refazendo "$cli" && aplicou=1
-  elif _spot_saida="$("$cli" apply </dev/null 2>&1)"; then
+  elif _spot_saida="$(_spot_spicetify "$cli" apply)"; then
     aplicou=1
   elif printf '%s\n' "$_spot_saida" | grep -qiE 'outdated|restore backup apply'; then
     meow_info "o spicetify pediu o backup de novo: refaço"
@@ -626,7 +635,7 @@ meow_app_reverter() {
 
   local cli; cli="$(_spot_cli)"
   local _saida
-  if ! _saida="$("$cli" restore </dev/null 2>&1)"; then
+  if ! _saida="$(_spot_spicetify "$cli" restore)"; then
     meow_erro "o 'spicetify restore' falhou — o Spotify segue com o tema do MeowSystem"
     printf '%s\n' "$_saida" | tail -n 4 | sed 's/^/        /' >&2
     return "$MEOW_ERRO"
