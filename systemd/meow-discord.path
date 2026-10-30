@@ -4,7 +4,6 @@ Documentation=file:%h/.local/state/meowsystem/discord.log
 
 [Path]
 PathChanged=%h/.config/discord/installer.db
-PathChanged=%h/.config/discord/build_info.json
 Unit=meow-discord.service
 
 [Install]
