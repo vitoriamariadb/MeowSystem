@@ -108,7 +108,8 @@ cmd_build() {
   [ -n "$ver" ] || { meow_erro "o cosmic-files não está instalado por pacote"; return "$MEOW_SEM_DEPENDENCIA"; }
   dir="$(artefato_de "$ver")"
   [ -f "${PATCHES[0]}" ] || { meow_erro "falta ${PATCHES[0]}"; return "$MEOW_ERRO"; }
-  meow_tem cargo   || { meow_erro "falta o cargo (rustup ou o pacote cargo)"; return "$MEOW_SEM_DEPENDENCIA"; }
+  meow_rust_no_path
+  meow_tem cargo   || { meow_erro "falta o cargo: o rust vem pelo rustup que a etapa rust do install e o doctor baixam"; return "$MEOW_SEM_DEPENDENCIA"; }
   meow_tem apt-get || { meow_erro "falta apt-get";                            return "$MEOW_SEM_DEPENDENCIA"; }
 
   if [ -d "$dir" ] && [ -f "$dir/cosmic-files-applet" ]; then
@@ -121,8 +122,14 @@ cmd_build() {
   trap 'rm -rf "$tmpdir"' RETURN
 
   meow_info "baixando o fonte do cosmic-files $ver…"
-  ( cd "$tmpdir" && apt-get source "cosmic-files=$ver" ) >/dev/null 2>&1 \
-    || { meow_erro "apt-get source falhou — o deb-src está habilitado?"; return "$MEOW_ERRO"; }
+  if ! ( cd "$tmpdir" && apt-get source "cosmic-files=$ver" ) >"$tmpdir/baixar.log" 2>&1; then
+    if grep -qiE "deb-src|'source'" "$tmpdir/baixar.log" 2>/dev/null; then
+      meow_erro "as fontes do apt desta máquina não servem código-fonte (sem deb-src): o Arquivos segue o de fábrica"
+    else
+      meow_erro "o apt-get source do cosmic-files $ver falhou (sem rede?) — a próxima passada tenta de novo"
+    fi
+    return "$MEOW_ERRO"
+  fi
   fonte="$(find "$tmpdir" -maxdepth 1 -type d -name 'cosmic-files-*' | head -1)"
   [ -n "$fonte" ] || { meow_erro "não achei a árvore de fonte baixada"; return "$MEOW_ERRO"; }
 
