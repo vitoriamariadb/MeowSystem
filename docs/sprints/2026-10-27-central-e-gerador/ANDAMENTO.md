@@ -1,6 +1,32 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- FECHO (30/10, 03h): P140 a P149 no `dev`, cada bloco com conferente Opus; suíte da integração 128/128 verde
+  (0 pulado, 0 vermelho; os aceitos do `restaurar.sh` e do `readme.sh` curados). Blocos: apps (P140 Spotify e
+  spicetify calado, P126 Vencord pelo meow com vigia `meow-discord.path`, P141 frases e o fundo do chat do ZapZap),
+  saídas (P142 nenhuma saída manda digitar, P143 lote/Latte/rótulos), Bandeja P144 (fork status-hub, popup do
+  tamanho dos ícones), logo do pack pessoal P145, builds (P146 restaurar sem vazamento e VS Code em home
+  descartável, P147 um `.target` só), Soneca P148 (repo `vitoriamariadb/meowsystem-soneca`, pino `72c506e4`) e
+  P149 (os 622 rótulos da Biblioteca do pack MeowSystem em português; `caixa_da_marca` para npm, macOS...).
+  Install com o HOME real (askpass): 1ª `rc=0` (71 etapas); a 2ª parou: o `spicetify apply` abriu o Spotify,
+  que herdou o descritor da trava. Curado na origem no `dev`: o spicetify roda com `-n` e sem a trava
+  (5c946379, teste 5d526e7e), e um cadeado herdado por app se troca sozinho em vez de mandar digitar `flock`
+  (18ceb2c0, `tests/trava-herdada.sh`). 2ª passagem: `rc=0`, 1 passagem, nada a escrever. `cargo clean` nos dez
+  clones `~/Desenvolvimento/meowsystem-*` (44 GB; o disco foi de 91% a 75%).
+  Soneca compilado e instalado, mas a barra não o cita (a ordem dos applets é dela): enquanto ela não o puser no
+  painel, a trava do coordenador `meow-desperto-coordenador` fica de pé; tirar com
+  `systemctl --user stop meow-desperto-coordenador` depois de ver a trava do Soneca em `systemd-inhibit --list`.
+  ELA CONFERE COM A MÃO: Spotify com o tema (reabrir o app); ZapZap com as cores do pack num tema de conversa;
+  Discord com Vencord depois de uma atualização; Bandeja sem vão (com um menu de item aberto o popup volta a 360,
+  decisão dela se isso também é vão); a logo do pack pessoal no Tema; a aba Biblioteca em português; o Soneca no
+  painel (Desperto segura a tampa, Ronronar solta).
+  PRÓXIMO: capturas dos applets quando ela estiver na máquina (Desempenho, Conta-gotas, Bandeja, Soneca); publicar
+  o `dev` na `master` do `origin` só com a palavra dela. Anotado: um `.deb` (o Flatpak não serve, a sandbox não
+  alcança o COSMIC); o `meow.conf.exemplo` com o texto velho de `EXTENSOES` (~1496); as cores próprias de 50 itens
+  do Sistema e 142 da Biblioteca abaixo de 3:1 no Latte (arte, decisão dela); a Biblioteca: `slidesk` talvez
+  «SliDesk», `network`/`player`/`star` desenham logos; o VS Code guarda a extensão desinstalada em `.obsolete` e o
+  `_meow_vscode_pkg` não lê esse arquivo; a frase «auditoria completa: ./scripts/auditar_icones.sh» do
+  `completar_icones.sh` cita um script.
 - 29/10 20:20, EM VOO (pedido dela: «siga até a conclusão completa de todas as sprints» e as legadas viram sprint;
   install no fim com o askpass): bloco apps (P140, P126, P141) em `~/Desenvolvimento/MeowSystem-apps-p140`, branch
   `bloco/apps-p140`; bloco saídas (P142, P143) em `~/Desenvolvimento/MeowSystem-saidas-p142`, branch
