@@ -330,6 +330,7 @@ const LUGAR_MODIFICACOES = {
     { a: "modificacao_corrigir", r: "Pôr a correção no lugar" },
     { c: "FLATPAK_CORRECOES", r: "Correções do Flatpak" },
     { a: "vscode_instalar_extensao", r: "Extensão do pack", b: "Instalar" },
+    { a: "spicetify_instalar", r: "Pintor do Spotify", b: "Baixar o spicetify" },
   ],
   chaves: [
     { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify", cartao: "spotify", bloco: "Spotify" },

@@ -164,6 +164,17 @@ function linhaDeExtensao(e) {
   ]);
 }
 
+function linhaDoSpicetify() {
+  const acao = ACAO.get("spicetify_instalar");
+  if (!acao) return null;
+  return elemento("ul", { class: "itens-mod" }, [elemento("li", { class: "item-mod", "data-linha": "spicetify" }, [
+    elemento("span", { class: "rot-mod" }, [elemento("span", { texto: "Pintor do Spotify" })]),
+    elemento("span", { class: "ctl-mod" }, [botao("Baixar o spicetify", { class: "bt pequeno",
+      controle: "acao:spicetify_instalar",
+      onclick: () => { fecharMenus(); rodar(acao, "", { depois: releModificacoes }); } })]),
+  ])]);
+}
+
 function menuDoCartao(c) {
   const detalhe = LUGAR_MODIFICACOES.detalhes.find((d) => d.id === c.id);
   const chaves = LUGAR_MODIFICACOES.chaves.filter((l) => l.cartao === c.id && CHAVE.has(l.c));
@@ -172,6 +183,7 @@ function menuDoCartao(c) {
     ...temas,
     c.correcoes.length ? elemento("ul", { class: "itens-mod" }, c.correcoes.map(linhaDeCorrecao)) : null,
     (c.extensoes || []).length ? elemento("ul", { class: "itens-mod" }, c.extensoes.map(linhaDeExtensao)) : null,
+    c.falta_spicetify ? linhaDoSpicetify() : null,
     chaves.length ? lista(chaves) : null,
     detalhe ? elemento("a", { href: "#modificacoes/" + detalhe.id, role: "menuitem", controle: "modificacao:" + detalhe.id,
       onclick: fecharMenus }, [elemento("span", { texto: "Abrir" }), icone("seta")]) : null,
