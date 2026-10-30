@@ -7053,8 +7053,7 @@ class Manipulador(BaseHTTPRequestHandler):
                     junta(os.path.join(pasta_cat, str(arq)), descricao,
                           *[str(t).replace("_", " ") for t in etiquetas])
                     if com_rotulo and descricao:
-                        rotulos[os.path.normpath(os.path.join(pasta_cat, str(arq)))] = (
-                            descricao[:1].upper() + descricao[1:])
+                        rotulos[os.path.normpath(os.path.join(pasta_cat, str(arq)))] = mod.rotulo_da_ficha(ficha)
         conv = os.path.join(ICONES_DO_MOTOR, "apps-convertidos.map")
         try:
             with open(conv, encoding="utf-8") as fh:

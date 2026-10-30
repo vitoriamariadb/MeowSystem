@@ -55,6 +55,7 @@ PORTATIL=(
   notas-de-funcao.sh
   frases-velhas.sh
   pack-dracula-completo.sh
+  biblioteca-em-portugues.sh
   icones-do-sistema.sh
   compositor-shim.sh
   decisoes.sh
