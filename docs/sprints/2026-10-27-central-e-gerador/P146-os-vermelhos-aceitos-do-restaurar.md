@@ -39,3 +39,25 @@ verde, e vermelho aceito esconde vermelho novo.
   o coordenador regera na integração). `decisoes.sh` ficou verde. `00-leva.md` sem `restaurar.sh` nos aceitos.
 - Fora: um usuário com VS Code em uso, ao restaurar, perde também os arquivos novos que o editor criou em
   `~/.config/Code` durante a janela do `--install-extension` (cache e log); o que já existia não é tocado.
+
+### Conferência
+- O vigia registrava tudo o que nascia em `~/.vscode/extensions`, `~/.config/Code` e `~/.dotnet` durante o
+  `--install-extension`, e o Restaurar apagaria o que o editor dela criasse em paralelo. Saiu o vigia; o CLI roda
+  numa casa descartável (`HOME`, `XDG_*` e `--user-data-dir` temporários, `--extensions-dir` real), e o registro é só
+  a pasta `<publisher.nome-versão>` (`pasta-nova`), o `extensions.json` e o `.obsolete` com a cópia de antes. O
+  `--list-extensions` não roda sem `extensions.json`, porque o CLI o criaria. Prova em `tests/temas-de-apps.sh`: um
+  arquivo criado em `~/.config/Code/User/` durante a instalação sobrevive ao Restaurar (vermelho com a cura antiga).
+  Commit `7c28fd67`.
+- `~/.dotnet` é do comando: é o cache de CRL do `vsce-sign` (.NET), filho do CLI, que segue o `HOME`; agora fica na
+  casa descartável.
+- O vazamento do `sistema_limpar` existia: o `_as_guardar_debs` copiava para o HOME de brinquedo o `.deb` real do
+  cosmic-comp de `/var/cache/apt/archives`, e só ficava verde porque o Restaurar o apagava. O teste agora aponta
+  `AS_ARQUIVOS` para uma pasta própria com um `.deb` de brinquedo e falha se outro `.deb` aparecer. Commit `93c6b140`.
+- Fontes e shim conferidos: todo `mv`/`rm` de face e do shim passa por `meow_guardar_antes`. O Restaurar do `ativar`
+  e do `desativar` deixa um compositor que sobe, com e sem build (o shim volta e cai no de fábrica sem build). Commit
+  `bb89b70d`.
+- Anotado, não mexido: depois do `--uninstall-extension` a pasta fica marcada no `.obsolete`, e o
+  `_meow_vscode_pkg` não lê o `.obsolete`.
+- Suíte depois das correções: 119 de 120; o único vermelho é `readme.sh` (badge v2.2.0). `decisoes.sh`, `restaurar.sh`,
+  `extensoes.sh`, `temas-de-apps.sh` e `compositor-shim.sh` verdes.
+- `tests/restaurar.sh` avulso mais duas vezes depois das correções: verde nas duas.
