@@ -393,7 +393,11 @@ _alvo_velho_sair() {
     meow_muda "removeria a pasta de build própria de $(_nome) ($ALVO_VELHO): as extensões compilam numa só"
     return 0
   fi
-  rm -rf "$ALVO_VELHO"
+  rm -rf "$ALVO_VELHO" 2>/dev/null
+  if [ -d "$ALVO_VELHO" ]; then
+    meow_aviso "não consegui tirar a pasta de build própria de $(_nome) ($ALVO_VELHO)"
+    return 1
+  fi
   meow_muda "a pasta de build própria de $(_nome) saiu: as extensões compilam numa só ($ALVO_UNICO)"
   return 0
 }

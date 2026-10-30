@@ -345,6 +345,9 @@ for n in 1 2 3 4 5 6 7 8 9; do
   existe "e$n: o binário saiu pelo nome dela" "$H9/.local/bin/meowsystem-e$n"
 done
 existe "a pasta única existe, com nome que nenhuma extensão pode ter" "$ALVO9/release"
+for n in 1 2 3 4 5 6 7 8 9; do
+  [ -d "$E9/e$n/src" ] && [ -f "$E9/e$n/carimbo" ] || falha "e$n: a migração levou o src/ ou o carimbo"
+done
 antes="$(cd "$H9" && find . -mindepth 1 ! -type d -exec sha256sum {} + | sort | grep -v 'pendencias.tsv\|meow.log')"
 : > "$T/alvos.log"
 saida="$(EB9 EXTENSOES="$LISTA9" EXTENSOES_COMPILAR=1 --todas --aplicar)"; rc=$?
@@ -357,6 +360,18 @@ existe "e o seco não apagou" "$E9/e2/target/lixo"
 saida="$(EB9 EXTENSOES="$LISTA9" EXTENSOES_COMPILAR=1 e2 --aplicar)"; igual "uma extensão já instalada também migra (rc 1)" "$?" 1
 some "e a target/ velha dela saiu" "$E9/e2/target"
 igual "sem build" "$(wc -l < "$T/alvos.log")" 0
+mkdir -p "$E9/e3/target"; printf 'x\n' > "$E9/e3/target/lixo"; antes="$(sha256sum "$H9/.local/bin/meowsystem-e3")"; : > "$T/alvos.log"
+saida="$(EB9 EXTENSOES="$LISTA9" --todas --aplicar)"; igual "sem poder compilar, a target/ velha sai mesmo assim (rc 1)" "$?" 1
+some "a target/ velha da e3 saiu" "$E9/e3/target"
+existe "o src/ da e3 ficou" "$E9/e3/src/Cargo.toml"
+igual "o binário da e3 não mudou" "$(sha256sum "$H9/.local/bin/meowsystem-e3")" "$antes"
+saida="$(EB9 EXTENSOES="$LISTA9" --todas --aplicar)"; igual "e a passada seguinte fecha (rc 0), sem laço" "$?" 0
+igual "sem build nas duas" "$(wc -l < "$T/alvos.log")" 0
+mkdir -p "$E9/e4/target"; printf 'x\n' > "$E9/e4/target/lixo"; chmod 555 "$E9/e4/target"
+saida="$(EB9 EXTENSOES_COMPILAR=1 e4 --aplicar)"; igual "a target/ velha que não sai: diverge (rc 1)" "$?" 1
+grep -q 'não consegui tirar' <<< "$saida" && ok "e avisa, sem dizer que saiu" || falha "a target/ presa não avisou: $saida"
+grep -q 'saiu: as extensões compilam numa só' <<< "$saida" && falha "disse que saiu sem sair" || ok "e não diz que saiu"
+chmod 755 "$E9/e4/target"; rm -rf "$E9/e4/target"
 cd "$REPO" && echo nove >> data/novo && git add -A && git -c core.hooksPath=/dev/null commit -q -m nove && C9="$(git rev-parse HEAD)"; cd "$RAIZ"
 sed -i "s/^COMMIT=.*/COMMIT=\"$C9\"/" "$P9/e1.pino"
 antes="$(sha256sum "$H9/.local/bin/meowsystem-e1")"; touch "$T/cargo9-falha"; : > "$T/alvos.log"
