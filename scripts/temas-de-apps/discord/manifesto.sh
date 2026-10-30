@@ -39,6 +39,13 @@ _dc_quer_vencord() {
   [ "${DISCORD_VENCORD:-sim}" = "sim" ] && [ -n "$(_dc_app_novo)" ]
 }
 
+_dc_apps_com_vencord() {
+  local app
+  while IFS= read -r app; do
+    [ -n "$app" ] && _dc_com_vencord "$app" && printf '%s\n' "$app"
+  done <<< "$(find "$_DC_CONF/discord" -mindepth 1 -maxdepth 1 -type d -name 'app-*' 2>/dev/null | sort -V)"
+}
+
 _dc_instalador() {
   local dir bin sha tmp
   sha="${MEOW_VENCORD_SHA256:-$_DC_VENCORD_SHA}"
@@ -193,6 +200,12 @@ meow_app_conferir() {
       meow_muda "Discord: o Vencord não está em $app"
       rc="$MEOW_DIVERGENTE"
     fi
+  elif [ "${DISCORD_VENCORD:-sim}" != "sim" ]; then
+    while IFS= read -r app; do
+      [ -n "$app" ] || continue
+      meow_muda "Discord: o Vencord está em $app, e DISCORD_VENCORD é '${DISCORD_VENCORD}'"
+      rc="$MEOW_DIVERGENTE"
+    done <<< "$(_dc_apps_com_vencord)"
   fi
   while IFS= read -r pasta; do
     arq="$pasta/$_DC_ARQ_NOME"
@@ -230,6 +243,20 @@ meow_app_aplicar() {
         *) return "$rc" ;;
       esac
     fi
+  elif [ "${DISCORD_VENCORD:-sim}" != "sim" ]; then
+    while IFS= read -r app; do
+      [ -n "$app" ] || continue
+      if ! meow_seco && _dc_aberto; then
+        meow_pula "Discord: o cliente está aberto — o Vencord sai de $app na próxima passada com ele fechado"
+        pulou=1
+        continue
+      fi
+      _dc_tirar_vencord "$app"
+      case $? in
+        "$MEOW_DIVERGENTE") mudou=1 ;;
+        "$MEOW_ERRO") return "$MEOW_ERRO" ;;
+      esac
+    done <<< "$(_dc_apps_com_vencord)"
   fi
   while IFS= read -r pasta; do
     arq="$pasta/$_DC_ARQ_NOME"
@@ -283,12 +310,11 @@ meow_app_reverter() {
   local pasta arq mudou=0 app rc
   while IFS= read -r app; do
     [ -n "$app" ] || continue
-    _dc_com_vencord "$app" || continue
     _dc_tirar_vencord "$app"
     rc=$?
     [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
     mudou=1
-  done <<< "$(find "$_DC_CONF/discord" -mindepth 1 -maxdepth 1 -type d -name 'app-*' 2>/dev/null | sort -V)"
+  done <<< "$(_dc_apps_com_vencord)"
   while IFS= read -r pasta; do
     [ -n "$pasta" ] || continue
     arq="$pasta/$_DC_ARQ_NOME"
