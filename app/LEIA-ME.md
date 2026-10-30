@@ -2,7 +2,7 @@
 
 Uma página local que faz pela tela tudo o que se faz editando o `~/.config/meow/meow.conf` ou
 digitando `meow`. As 130 chaves, com o valor escolhido, o de fábrica e o porquê atrás do **?**; e
-69 ações, com a saída aparecendo ao vivo enquanto rodam.
+70 ações, com a saída aparecendo ao vivo enquanto rodam.
 
 ```bash
 ./app/run.sh        # ou: meow abrir, ou o ícone MeowSystem no lançador

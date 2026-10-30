@@ -3338,6 +3338,8 @@ def _mod_dados():
         c["estado"] = _mod_estado(c["temas"] + c["correcoes"])
         c["extensoes"] = (_extensoes_de_terceiro()
                           if any(t["pasta"] == "vscode" and t["ligado"] for t in c["temas"]) else [])
+        c["falta_spicetify"] = (any(t["pasta"] == "spotify" and t["ligado"] for t in c["temas"])
+                                and not _spicetify_no_lugar())
     return {"cartoes": list(cartoes.values()), "pack": pack}
 
 
@@ -3563,6 +3565,17 @@ def _areas_ja_alfinetadas():
         return None
     return {"feito": "areas_aplicar",
             "porque": "há área fixada nesta máquina"}
+
+
+def _spicetify_no_lugar():
+    binario = os.path.join(os.path.expanduser("~"), ".spicetify", "spicetify")
+    return os.access(binario, os.X_OK) or bool(shutil.which("spicetify"))
+
+
+def _spicetify_ja_instalado():
+    if not _spicetify_no_lugar():
+        return None
+    return {"feito": "apps_aplicar", "porque": "o spicetify já está nesta máquina"}
 
 
 def indisponivel(acao_id):
@@ -4132,6 +4145,17 @@ ACOES = {
         "argv": _meow("apps", "corrigir", "@ARG@"), "arg": "correcoes_de_app",
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Faz de novo a correção deste programa.",
+    },
+    "spicetify_instalar": {
+        "rotulo": "Baixar o spicetify",
+        "grupo": "Lançadores e jogos",
+        "natureza": "baixar",
+        "argv": [os.path.join(RAIZ, "scripts", "spicetify_setup.sh"), "instalar"],
+        "escreve": True, "sudo": False, "confirma": True, "rede": True,
+        "oculta": True,
+        "indisponivel": _spicetify_ja_instalado,
+        "ajuda": "Baixa o spicetify, na versão fixada, para ~/.spicetify. É ele que pinta o "
+                 "Spotify; a configuração do terminal fica como está.",
     },
     "vscode_instalar_extensao": {
         "rotulo": "Instalar a extensão",
@@ -5005,6 +5029,7 @@ ACAO_DA_PENDENCIA = {
     "libreoffice-sistema": "instalar",
     "starship-ausente": "instalar",
     "spicetify-tema-ausente": "apps_aplicar",
+    "spicetify-ausente": "spicetify_instalar",
 }
 
 NOME_DA_PENDENCIA = {
@@ -5015,6 +5040,7 @@ NOME_DA_PENDENCIA = {
     "libreoffice-sistema": "LibreOffice do sistema",
     "aplicar-ajuste": "Ajuste pendente",
     "spicetify-tema-ausente": "Tema do Spotify",
+    "spicetify-ausente": "Pintor do Spotify",
 }
 
 BUILD_DA_PENDENCIA = {}
