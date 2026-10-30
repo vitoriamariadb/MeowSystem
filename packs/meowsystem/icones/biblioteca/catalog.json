@@ -148,7 +148,7 @@
     "cores_dominantes": [
       "#cba6f7"
     ],
-    "descricao": "Alex",
+    "descricao": "alex",
     "nome": "alex",
     "tags": [
       "ferramentas"
@@ -908,7 +908,7 @@
       "#7f849c",
       "#cdd6f4"
     ],
-    "descricao": "Darklua",
+    "descricao": "darklua",
     "nome": "darklua",
     "tags": [
       "ferramentas"
@@ -1217,7 +1217,7 @@
       "#a6e3a1",
       "#cba6f7"
     ],
-    "descricao": "Fastlane",
+    "descricao": "fastlane",
     "nome": "fastlane",
     "tags": [
       "ferramentas"
@@ -2183,7 +2183,7 @@
       "#a6e3a1",
       "#89b4fa"
     ],
-    "descricao": "pasta Fastlane",
+    "descricao": "pasta fastlane",
     "nome": "folder_fastlane",
     "tags": [
       "pastas"
@@ -2198,7 +2198,7 @@
       "#a6e3a1",
       "#89b4fa"
     ],
-    "descricao": "pasta Fastlane aberta",
+    "descricao": "pasta fastlane aberta",
     "nome": "folder_fastlane_open",
     "tags": [
       "pastas"
@@ -4187,7 +4187,7 @@
     "cores_dominantes": [
       "#f38ba8"
     ],
-    "descricao": "Gulp",
+    "descricao": "gulp",
     "nome": "gulp",
     "tags": [
       "ferramentas"
@@ -4609,7 +4609,7 @@
     "cores_dominantes": [
       "#cdd6f4"
     ],
-    "descricao": "Just",
+    "descricao": "just",
     "nome": "just",
     "tags": [
       "ferramentas"
@@ -5327,7 +5327,7 @@
     "cores_dominantes": [
       "#a6e3a1"
     ],
-    "descricao": "Nodemon",
+    "descricao": "nodemon",
     "nome": "nodemon",
     "tags": [
       "ferramentas"
@@ -5456,7 +5456,7 @@
     "tamanho_bytes": 763
   },
   "onlyoffice-documents.svg": {
-    "descricao": "ONLYOFFICE Documentos",
+    "descricao": "ONLYOFFICE Documents",
     "nome": "onlyoffice-documents",
     "tags": [
       "aplicativos"
@@ -5580,7 +5580,7 @@
       "#7f849c",
       "#cdd6f4"
     ],
-    "descricao": "trava do Pixi",
+    "descricao": "trava do pixi",
     "nome": "pixi-lock",
     "tags": [
       "configuracao"
@@ -5592,7 +5592,7 @@
       "#f9e2af",
       "#cdd6f4"
     ],
-    "descricao": "Pixi",
+    "descricao": "pixi",
     "nome": "pixi",
     "tags": [
       "ferramentas"
@@ -6170,7 +6170,7 @@
       "#7f849c",
       "#fab387"
     ],
-    "descricao": "configuração do Rust",
+    "descricao": "configuração do Rust (Ferris)",
     "nome": "rust-config",
     "tags": [
       "configuracao",
@@ -6848,7 +6848,7 @@
       "#f5c2e7",
       "#89dceb"
     ],
-    "descricao": "Vanilla Extract",
+    "descricao": "vanilla-extract",
     "nome": "vanilla-extract",
     "tags": [
       "frameworks"
