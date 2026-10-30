@@ -260,15 +260,51 @@ sys.exit(2)
 PYFIM
 }
 
+_meow_vscode_cli() {
+  local casa rc prazo=()
+  meow_tem timeout && prazo=(timeout 300)
+  casa="$(mktemp -d -p "${TMPDIR:-/tmp}" .meow-vscode-cli.XXXXXX)" || return 125
+  ${prazo[@]+"${prazo[@]}"} env HOME="$casa" XDG_CONFIG_HOME="$casa/.config" XDG_CACHE_HOME="$casa/.cache" \
+    XDG_DATA_HOME="$casa/.local/share" \
+    "$MEOW_VSCODE_BIN" "$@" --extensions-dir "$MEOW_VSCODE_EXTDIR" --user-data-dir "$casa/Code"
+  rc=$?
+  rm -rf -- "$casa"
+  return "$rc"
+}
+
+_meow_vscode_pastas_da() {
+  local id_min
+  id_min="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  [ -d "$MEOW_VSCODE_EXTDIR" ] || return 0
+  find "$MEOW_VSCODE_EXTDIR" -mindepth 1 -maxdepth 1 -type d -name "$id_min-[0-9]*" -print 2>/dev/null | sort
+}
+
+_meow_vscode_guardar_ext() {
+  local p
+  meow_guardar_antes "$MEOW_VSCODE_EXTDIR/extensions.json"
+  meow_guardar_antes "$MEOW_VSCODE_EXTDIR/.obsolete"
+  while IFS= read -r p; do
+    [ -n "$p" ] && meow_guardar_pasta "$p"
+  done < <(_meow_vscode_pastas_da "$1")
+}
+
+_meow_vscode_marcar_novas() {
+  local antes="$1" p
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    printf '%s\n' "$antes" | grep -qxF -- "$p" || meow_marcar_pasta_nova "$p"
+  done < <(_meow_vscode_pastas_da "$2")
+}
+
 _meow_vscode_lista() {
   if [ -z "$_MEOW_VSCODE_LISTA" ]; then
-    if [ ! -d "$MEOW_VSCODE_EXTDIR" ] && [ ! -d "$HOME/.config/Code/User" ]; then
-      meow_debug "VS Code sem perfil em $MEOW_VSCODE_EXTDIR nem ~/.config/Code/User"
+    if [ ! -f "$MEOW_VSCODE_EXTDIR/extensions.json" ]; then
+      meow_debug "VS Code sem extensions.json em $MEOW_VSCODE_EXTDIR: o CLI o criaria só para listar"
       _MEOW_VSCODE_LISTA=$'\n'
       printf '%s\n' "$_MEOW_VSCODE_LISTA"
       return 0
     fi
-    _MEOW_VSCODE_LISTA="$("$MEOW_VSCODE_BIN" --list-extensions 2>/dev/null \
+    _MEOW_VSCODE_LISTA="$(_meow_vscode_cli --list-extensions 2>/dev/null \
                           | tr '[:upper:]' '[:lower:]')"
     if [ -z "$_MEOW_VSCODE_LISTA" ]; then _MEOW_VSCODE_LISTA=$'\n'; fi
   fi
@@ -613,7 +649,7 @@ meow_app_conferir() {
 meow_app_aplicar() {
   meow_app_detectar || { meow_pendencia_resolvida "$_VSC_PENDENCIA_GESTO"; meow_app_pendente vscode; return; }
 
-  local ext faltando=() mudou=0 saida novo antigo aud linha erro_json alvo
+  local ext faltando=() mudou=0 saida novo antigo aud linha erro_json alvo pastas_antes
   local rc_set rc_ext rc_json rc_esc
 
   for ext in "$MEOW_VSCODE_EXT_TEMA" ${MEOW_VSCODE_EXT_ICONES:+"$MEOW_VSCODE_EXT_ICONES"}; do
@@ -675,14 +711,10 @@ meow_app_aplicar() {
         *) return "$MEOW_ERRO" ;;
       esac
     fi
-    meow_guardar_antes "$MEOW_VSCODE_EXTDIR/extensions.json"
-    meow_vigiar_inicio "$MEOW_VSCODE_EXTDIR" "$HOME/.config/Code" "$HOME/.dotnet"
-    if meow_tem timeout; then
-      saida="$(timeout 300 "$MEOW_VSCODE_BIN" --install-extension "$alvo" 2>&1)"; rc_ext=$?
-    else
-      saida="$("$MEOW_VSCODE_BIN" --install-extension "$alvo" 2>&1)"; rc_ext=$?
-    fi
-    meow_vigiar_fim
+    pastas_antes="$(_meow_vscode_pastas_da "$ext")"
+    _meow_vscode_guardar_ext "$ext"
+    saida="$(_meow_vscode_cli --install-extension "$alvo" 2>&1)"; rc_ext=$?
+    _meow_vscode_marcar_novas "$pastas_antes" "$ext"
     if [ -n "$_VSC_VSIX_ARQ" ]; then rm -rf -- "$(dirname -- "$_VSC_VSIX_ARQ")"; _VSC_VSIX_ARQ=""; fi
     if [ "$rc_ext" != "0" ]; then
       meow_erro "falhou ao instalar $ext (rc=$rc_ext): $(printf '%s' "$saida" | tail -3)"
@@ -818,7 +850,8 @@ meow_app_reverter() {
   fi
 
   for ext in ${instaladas[@]+"${instaladas[@]}"}; do
-    if "$MEOW_VSCODE_BIN" --uninstall-extension "$ext" >/dev/null 2>&1; then
+    _meow_vscode_guardar_ext "$ext"
+    if _meow_vscode_cli --uninstall-extension "$ext" >/dev/null 2>&1; then
       mudou=1; meow_muda "extensão removida: $ext"
     else
       meow_aviso "não consegui remover $ext — tire pela interface do editor"
