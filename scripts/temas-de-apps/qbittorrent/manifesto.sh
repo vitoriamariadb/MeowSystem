@@ -225,7 +225,7 @@ _meow_qbt_pronto() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   if [ ! -s "$MEOW_QBT_ORIGEM" ]; then
-    meow_aviso "falta o tema em $MEOW_QBT_ORIGEM (veja a PROCEDENCIA.md do pack para rebaixar)"
+    meow_aviso "falta o tema em $MEOW_QBT_ORIGEM (a origem dele está na PROCEDENCIA.md do pack)"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   meow_pendencia_resolvida qbittorrent-conf-fora-de-escopo
@@ -408,7 +408,7 @@ meow_app_reverter() {
 
   if [ "$MEOW_QBT_ESCRITOR" = "proprio" ]; then
     if _meow_qbt_aberto; then
-      meow_pula "qBittorrent: o app está aberto — feche-o para o tema sair"
+      meow_pula "qBittorrent: o app está aberto — o tema sai na próxima passada, com ele fechado"
       return "$MEOW_SEM_DEPENDENCIA"
     fi
     if grep -qxF "General\\CustomUIThemePath=$destino" "$conf_dir/qBittorrent.conf" 2>/dev/null; then
