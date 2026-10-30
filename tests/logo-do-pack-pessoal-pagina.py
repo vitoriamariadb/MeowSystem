@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import base64
 import importlib.util
+import json
+import urllib.error
+import urllib.request
 import os
 import re
 import shutil
@@ -34,6 +37,25 @@ TEXTO_DO_ARTE_JS = """
 async (id) => {
   const img = document.querySelector(`article.pack[data-pack="${id}"] img.logo`);
   return { texto: await (await fetch(img.src)).text(), carregou: img.complete && img.naturalWidth > 0 };
+}
+"""
+PINTURA_JS = """
+async (sel) => {
+  const img = document.querySelector(sel);
+  if (!img) return "";
+  if (!img.complete) await new Promise((ok) => { img.onload = img.onerror = ok; });
+  const tela = document.createElement("canvas");
+  tela.width = tela.height = 48;
+  tela.getContext("2d").drawImage(img, 0, 0, 48, 48);
+  return tela.toDataURL();
+}
+"""
+MEDIDAS_JS = """
+() => {
+  const d = document.getElementById("logo-do-pack").getBoundingClientRect();
+  const botoes = [...document.querySelectorAll("#logo-do-pack-grade .escolha")].map((b) => b.getBoundingClientRect());
+  return { largura: innerWidth, rolagem: document.documentElement.scrollWidth, esquerda: d.left, direita: d.right,
+           botoes: botoes.length, visiveis: botoes.every((b) => b.width >= 100 && b.right <= d.right + 1) };
 }
 """
 CABECALHO_JS = """
@@ -92,6 +114,16 @@ def png_de_teste(caminho):
     with open(caminho, "wb") as fh:
         fh.write(b"\x89PNG\r\n\x1a\n" + bloco(b"IHDR", struct.pack(">IIBBBBB", 16, 16, 8, 6, 0, 0, 0))
                  + bloco(b"IDAT", zlib.compress(linhas)) + bloco(b"IEND", b""))
+
+
+def pedido(url, corpo, cabecalhos):
+    req = urllib.request.Request(url, data=json.dumps(corpo).encode(), method="POST",
+                                 headers={"Content-Type": "application/json", **cabecalhos})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
 
 
 def main():
@@ -201,6 +233,48 @@ def main():
                 pag.screenshot(path=os.path.join(FOTOS, "p145-recusa-800.png"))
                 pag.set_viewport_size({"width": 1920, "height": 1080})
             pag.keyboard.press("Escape")
+
+            print("5. em 390 e 1280 px a janela cabe na tela")
+            for largura in (390, 1280):
+                pag.set_viewport_size({"width": largura, "height": 900})
+                pag.wait_for_timeout(300)
+                pag.locator(f'[data-controle="pack:{ID}:logo"]').click()
+                pag.wait_for_selector("#logo-do-pack[open] .escolha")
+                pag.wait_for_timeout(300)
+                m = pag.evaluate(MEDIDAS_JS)
+                checa(m["rolagem"] <= m["largura"] and m["esquerda"] >= 0 and m["direita"] <= m["largura"]
+                      and m["botoes"] >= 4 and m["visiveis"], f"{largura} px: a grade cabe ({m})")
+                if FOTOS:
+                    pag.screenshot(path=os.path.join(FOTOS, f"p145-grade-{largura}.png"))
+                pag.keyboard.press("Escape")
+            pag.set_viewport_size({"width": 1920, "height": 1080})
+
+            print("6. a grade da logo do programa acompanha a troca")
+            alvo = f'[data-controle="chave:LOGO_PROGRAMA={ID}"] img'
+            pag.evaluate("() => { location.hash = '#ajustes/mascote'; }")
+            esperar(pag, 600)
+            pag.locator(alvo).scroll_into_view_if_needed()
+            pintura_antes = pag.evaluate(PINTURA_JS, alvo)
+            pag.evaluate("() => { location.hash = '#tema'; }")
+            esperar(pag, 600)
+            pag.locator(f'[data-controle="pack:{ID}:logo"]').click()
+            pag.wait_for_selector("#logo-do-pack[open] .escolha")
+            pag.locator('[data-controle="logo-do-pack:pack:dracula"]').click()
+            eventual(lambda: not pag.evaluate("() => document.getElementById('logo-do-pack').open"))
+            pag.evaluate("() => { location.hash = '#ajustes/mascote'; }")
+            esperar(pag, 600)
+            pag.locator(alvo).scroll_into_view_if_needed()
+            checa(bool(pintura_antes) and eventual(lambda: pag.evaluate(PINTURA_JS, alvo) != pintura_antes, 8),
+                  "a opção do pack pessoal em Definir mostra a logo nova")
+
+            print("7. a rota pede o token, o host e a origem")
+            base, token = url.split("/?t=")
+            rota = base + "/api/logo-do-pack"
+            corpo = {"pack": ID, "de": "gerada", "id": ""}
+            checa(pedido(rota, corpo, {}) == 403, "sem token, 403")
+            checa(pedido(rota, corpo, {"X-Meow-Token": token, "Origin": "http://e.com"}) == 403, "origem de fora, 403")
+            checa(pedido(rota, corpo, {"X-Meow-Token": token, "Host": "e.com"}) == 403, "host de fora, 403")
+            checa(pedido(rota, corpo, {"X-Meow-Token": token}) == 200, "com o token, 200")
 
             checa(not pedidos, f"a página não pediu nada à internet ({pedidos[:2]})")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")

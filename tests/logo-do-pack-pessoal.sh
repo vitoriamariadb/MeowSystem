@@ -134,7 +134,7 @@ sleep 1
 r="$(servidor gravar pack dracula)"
 [ "$(campo "$r" mudou)" = "False" ] && [ "$(guardada)" = "$antes" ] && [ "$(stat -c %Y.%N "$DIR/logo.svg")" = "$marca" ] \
   && ok "a segunda gravação igual não escreve" || falha "a segunda gravação reescreveu: $r"
-[ -z "$(ls "$DIR" | grep 'meow-parcial')" ] && ok "nenhum arquivo parcial sobra" || falha "sobrou arquivo parcial"
+[ -z "$(ls -A "$DIR" | grep 'meow-parcial')" ] && ok "nenhum arquivo parcial sobra" || falha "sobrou arquivo parcial"
 
 r="$(servidor gravar gato coquinha)"
 [ "$(campo "$r" codigo)" = "200" ] && grep -q 'viewBox="[^"]*"' "$DIR/logo.svg" && ! cmp -s "$DIR/logo.svg" "$RAIZ/packs/dracula/logo.svg" \
@@ -184,6 +184,102 @@ printf 'PACK="meu-tema"\nFLAVOR="meutema"\nACCENT="mauve"\nLOGO_PROGRAMA="meowsy
 
 [ "$(servidor oferta)" = "true" ] \
   && ok "o LOGO_PROGRAMA oferece e serve a logo do pack pessoal" || falha "o LOGO_PROGRAMA não oferece o pack pessoal"
+
+printf 'PACK="meu-tema"\nFLAVOR="meutema"\nACCENT="mauve"\nLOGO_PROGRAMA=""\n' > "$CONF"
+servidor gravar gato coquinha >/dev/null
+amb python3 "$RAIZ/scripts/pack.py" validar meu-tema >/dev/null 2>&1 \
+  && ok "o pack pessoal passa no validador depois da troca" || falha "o validador recusou o pack pessoal"
+[ "$(amb python3 -c "import sys; sys.path.insert(0, '$RAIZ/scripts'); import pack; print(pack.campo('meu-tema', 'vitrine.capa'))")" = "logo.svg" ] \
+  && ok "e a vitrine.capa aponta para a logo.svg gravada" || falha "a vitrine.capa não aponta para logo.svg"
+
+ICONES="$CASA/.local/share/icons/MeowSystem-Icons"
+mkdir -p "$ICONES/scalable/apps"
+printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scalable/apps]\nSize=48\nType=Scalable\n' > "$ICONES/index.theme"
+amb PACK=meu-tema FLAVOR=meutema ACCENT=mauve LOGO_PROGRAMA="" "$RAIZ/scripts/completar_icones.sh" >/dev/null 2>&1
+lancado="$(cat "$ICONES/scalable/apps/com.meowsystem.Painel.svg" 2>/dev/null)"
+[ -n "$lancado" ] && [ "$lancado" = "$(amb python3 "$RAIZ/scripts/pack.py" logo meu-tema meutema mauve 2>/dev/null)" ] \
+  && ok "o lançador do MeowSystem segue a logo nova do pack pessoal" || falha "o lançador não seguiu a logo nova"
+
+boa="$(guardada)"
+H='<svg xmlns="http://www.w3.org/2000/svg" xmlns:xl="http://www.w3.org/1999/xlink" viewBox="0 0 10 10">'
+printf '%s<a href="javascript:alert(1)"><rect width="5" height="5"/></a></svg>' "$H" > "$T/js.svg"
+printf '%s<use xl:href="http://e.com/a.svg#b"/></svg>' "$H" > "$T/xlink.svg"
+printf '%s<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">x</div></foreignObject></svg>' "$H" > "$T/foreign.svg"
+printf '<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]>%s<text>&x;</text></svg>' "$H" > "$T/xxe.svg"
+printf '<!DOCTYPE svg [<!ENTITY a "aaaa"><!ENTITY b "&a;&a;&a;&a;">]>%s<text>&b;</text></svg>' "$H" > "$T/risos.svg"
+printf '%s<style>rect{fill:u\\72l(http://e.com/x)}</style><rect/></svg>' "$H" > "$T/css-url.svg"
+printf '%s<style>@\\69mport "http://e.com/x.css";</style></svg>' "$H" > "$T/css-import.svg"
+printf '%s<rect xl:onclick="x()"/></svg>' "$H" > "$T/on-ns.svg"
+printf '%s<rect style="fill:url(https://e.com/x)"/></svg>' "$H" > "$T/estilo.svg"
+printf '%s<a href="#q"><set attributeName="href" to="javascript:alert(1)"/></a></svg>' "$H" > "$T/set.svg"
+printf '<?xml-stylesheet href="http://e.com/x.css"?>%s</svg>' "$H" > "$T/pi.svg"
+for ruim in js.svg xlink.svg foreign.svg xxe.svg risos.svg css-url.svg css-import.svg on-ns.svg estilo.svg set.svg pi.svg; do
+  r="$(servidor arquivo "$ruim")"
+  [ "$(campo "$r" codigo)" = "400" ] && [ "$(guardada)" = "$boa" ] \
+    && ok "$ruim recusa e a logo fica" || falha "$ruim: $r"
+done
+r="$(servidor arquivo foreign.svg)"
+case "$(campo "$r" erro)" in
+  *.) ok "a queixa é uma frase inteira" ;;
+  *) falha "a queixa veio cortada: $(campo "$r" erro)" ;;
+esac
+
+python3 - "$T" <<'PY'
+import os, struct, sys, zlib
+def bloco(t, d):
+    return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+def png(nome, larg, alt, linhas):
+    with open(os.path.join(sys.argv[1], nome), "wb") as fh:
+        fh.write(b"\x89PNG\r\n\x1a\n" + bloco(b"IHDR", struct.pack(">IIBBBBB", larg, alt, 8, 6, 0, 0, 0))
+                 + bloco(b"IDAT", zlib.compress(linhas, 9)) + bloco(b"IEND", b""))
+png("gigante.png", 4096, 4096, (b"\x00" + b"\xff\x00\x80\xff" * 4096) * 4096)
+png("bomba.png", 16, 16, b"\x00" * (64 << 20))
+png("mil.png", 1024, 1024, (b"\x00" + b"\xff\x00\x80\xff" * 1024) * 1024)
+SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+with open(os.path.join(sys.argv[1], "espacos.svg"), "w") as fh:
+    fh.write(SVG + " " * 500000 + '<rect width="5" height="5"/></svg>')
+with open(os.path.join(sys.argv[1], "sem-fecho.svg"), "w") as fh:
+    fh.write("<svg " * 100000)
+PY
+ms() { printf '%s' $(( ($(date +%s%N) - $1) / 1000000 )); }
+for ruim in gigante.png bomba.png sem-fecho.svg; do
+  inicio="$(date +%s%N)"
+  r="$(servidor arquivo "$ruim")"
+  gasto="$(ms "$inicio")"
+  [ "$(campo "$r" codigo)" = "400" ] && [ "$(guardada)" = "$boa" ] && [ "$gasto" -lt 5000 ] \
+    && ok "$ruim recusa em $gasto ms" || falha "$ruim ($gasto ms): $r"
+done
+for bom in mil.png espacos.svg; do
+  inicio="$(date +%s%N)"
+  r="$(servidor arquivo "$bom")"
+  gasto="$(ms "$inicio")"
+  [ "$(campo "$r" codigo)" = "200" ] && [ "$gasto" -lt 8000 ] \
+    && ok "$bom grava em $gasto ms" || falha "$bom ($gasto ms): $r"
+done
+inicio="$(date +%s%N)"
+servidor logo "" >/dev/null
+gasto="$(ms "$inicio")"
+[ "$gasto" -lt 5000 ] && ok "e a /logo.svg responde em $gasto ms" || falha "/logo.svg levou $gasto ms"
+
+servidor gravar gerada >/dev/null
+mkdir -p "$T/fora"
+printf 'de fora\n' > "$T/fora/alvo.txt"
+cp -r "$DIR" "$T/fora/pack-fora"
+ln -s "$T/fora/pack-fora" "$CASA/.local/share/meowsystem/packs/ligado"
+[ "$(servidor pack-alheio ligado)" = "400" ] && ok "pack que é link para fora da pasta dos packs recusa" || falha "o link para fora foi aceito"
+[ "$(servidor pack-alheio "../packs/meu-tema")" = "400" ] && ok "nome com ../ recusa" || falha "../ foi aceito"
+rm "$CASA/.local/share/meowsystem/packs/ligado"
+mv "$DIR/logo.svg" "$T/fora/logo-guardada.svg"
+ln -s "$T/fora/alvo.txt" "$DIR/logo.svg"
+r="$(servidor gravar pack dracula)"
+[ "$(campo "$r" codigo)" = "400" ] && [ "$(cat "$T/fora/alvo.txt")" = "de fora" ] \
+  && ok "logo.svg que é link para fora recusa e o alvo fica intacto" || falha "logo.svg em link: $r"
+rm "$DIR/logo.svg"; mv "$T/fora/logo-guardada.svg" "$DIR/logo.svg"
+ln -s "$T/fora/alvo.txt" "$DIR/logo.svg.meow-parcial"
+r="$(servidor gravar pack dracula)"
+[ "$(campo "$r" codigo)" = "200" ] && [ "$(cat "$T/fora/alvo.txt")" = "de fora" ] && [ ! -L "$DIR/logo.svg" ] \
+  && ok "um parcial plantado como link não é seguido" || falha "o parcial plantado foi seguido: $r"
+rm -f "$DIR/logo.svg.meow-parcial"
 
 if [ "$falhas" = 0 ]; then echo "logo-do-pack-pessoal: tudo verde"; exit 0; fi
 echo "logo-do-pack-pessoal: $falhas falha(s)"; exit 1
