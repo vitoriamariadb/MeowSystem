@@ -45,3 +45,23 @@ sem erro de JavaScript e sem pedido à internet), os dois entrando em `tests/tod
 
 - `readme.sh` (README velho e badge de versão fora de v2.2.0) falha igual na `dev` limpa (`3d86c17c`).
 - `restaurar.sh` (`pack_usar` e `desinstalar`) é o vermelho aceito que a P146 cura.
+
+### Conferência
+
+O validador do `pack.py` já recusava `script`, `on*` em qualquer caixa, href e `javascript:` de fora, `foreignObject`,
+`image`, entidades, `url()` e `@import` (até escapados) e `xml-stylesheet`. A rota pede token, host e origem, como as
+vizinhas. Achados e correções:
+
+- `9b86dc2e`: o `RE_ESTILO_PAPEIS` era quadrático numa corrida de espaços. Um SVG de 500 KB de espaços passava no
+  validador, e depois cada `/logo.svg` levava minutos. Agora a busca só começa no início da corrida, com o mesmo resultado.
+- `32d39a30`: a raiz do SVG agora se acha com `find`, porque o `<svg ` repetido sem `>` custava segundos. O PNG vai
+  até 1024 de lado: um de 4096 cabia em 70 KB e levava 9 s e 140 MB. O parcial tem nome único (`mkstemp`): o nome fixo
+  seguia um link plantado e escrevia fora do pack. A queixa leva a frase inteira, não a linha cortada.
+- `99fc1581`: em Definir, a opção do pack pessoal no `LOGO_PROGRAMA` seguia com a logo velha, porque a URL não mudava
+  e o Chromium reaproveitava a imagem. A versão da troca agora entra na URL.
+- `719492e8`: provas do que está acima, mais pack em link, nome com `../`, `logo.svg` em link, validador e
+  `vitrine.capa` depois da troca, o lançador seguindo a logo nova, 390 e 1280 px e a rota sem token, host ou origem.
+  A busca do parcial que sobra agora usa `ls -A`.
+
+`tests/logo-do-pack-pessoal.sh` tem 49 conferências e `tests/logo-do-pack-pessoal-pagina.py` tem 27.
+`tests/todos.sh` inteiro deu 120 verdes, 0 pulados e 2 vermelhos, os dois aceitos: `readme.sh` e `restaurar.sh`.
