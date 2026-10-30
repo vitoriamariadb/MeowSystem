@@ -30,8 +30,19 @@ F="$HOME/.fake"; mkdir -p "$F"
 ini="$HOME/.config/spicetify/config-xpui.ini"
 base="$HOME/.local/share/flatpak/app/com.spotify.Client/current/active/files/extra/share/spotify"
 backup="$HOME/.local/state/spicetify/Backup"
-q=0; [ "${1:-}" = -q ] && { q=1; shift; }
+q=0 n=0
+while :; do
+  case "${1:-}" in -q) q=1 ;; -n) n=1 ;; *) break ;; esac
+  shift
+done
 printf '%s\n' "$*" >> "$F/chamadas"
+case "$*" in
+  *apply*|restore*)
+    [ "$n" = 1 ] || printf '%s\n' "$*" >> "$F/reiniciaria"
+    for fd in /proc/$$/fd/*; do
+      case "$(readlink "$fd")" in */lock) printf '%s\n' "$*" >> "$F/trava-vazada" ;; esac
+    done ;;
+esac
 perguntar() {
   [ "$q" = 1 ] && return 0
   printf '%s [y/N] ' "$1"; read -r r || r=""
@@ -103,6 +114,7 @@ spot() {
       PACK=meowsystem FLAVOR=mocha ACCENT=mauve SPOTIFY_MARKETPLACE=nao NO_COLOR=1 \
       bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2
                . "$MEOW_RAIZ/scripts/temas-de-apps/spotify/manifesto.sh" || exit 2
+               meow_travar || exit 2
                meow_app_$1; printf "rc=%s\n" "$?"' _ "$1" </dev/null 2>&1
 }
 rc_de() { printf '%s\n' "$1" | sed -n 's/^rc=//p' | tail -1; }
@@ -227,6 +239,13 @@ if grep -nEi '(meow_(info|pula|aviso|muda|ok|erro)) .*(meow\.conf|\babra\b|\brod
     "$(grep -nEi '(meow_(info|pula|aviso|muda|ok|erro)) .*(meow\.conf|\babra\b|\brode\b|digite|RECUPERACAO|\bveja\b)' "$RAIZ/scripts/temas-de-apps/spotify/manifesto.sh")"
 else
   ok "6. nenhuma saída do módulo do Spotify manda ler, abrir ou digitar"
+fi
+
+if [ -f "$CASA/.fake/reiniciaria" ] || [ -f "$CASA/.fake/trava-vazada" ]; then
+  falha "7. o spicetify reiniciaria o Spotify ou levaria a trava do meow junto" \
+    "$(cat "$CASA/.fake/reiniciaria" "$CASA/.fake/trava-vazada" 2>/dev/null)"
+else
+  ok "7. o spicetify nunca abre o Spotify e não leva a trava do meow"
 fi
 
 [ "$falhas" -eq 0 ] || { printf '\n%d falha(s)\n' "$falhas" >&2; exit 1; }
