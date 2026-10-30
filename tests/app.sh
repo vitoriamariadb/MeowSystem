@@ -517,6 +517,34 @@ if servidor.onde_na_tela("files-menu-build") != "«Tentar de novo», em Extensõ
     erros.append("--onde do build do menu não leva ao «Tentar de novo» da Extensões: %r"
                  % servidor.onde_na_tela("files-menu-build"))
 os.remove(servidor.PENDENCIAS)
+with open(os.path.join(raiz, "scripts", "temas-de-apps", "spotify", "manifesto.sh"), encoding="utf-8") as fh:
+    linha_spice = re.search(r"meow_pendencia_acionavel spicetify-ausente(?:[^\n]*\\\n)+[^\n]*", fh.read())
+if not linha_spice or "scripts/" in linha_spice.group(0):
+    erros.append("a pendência spicetify-ausente cita um script, ou sumiu do manifesto do Spotify: %r"
+                 % (linha_spice.group(0) if linha_spice else None))
+caminho_antes = os.environ.get("PATH", "")
+os.environ["PATH"] = os.pathsep.join(d for d in caminho_antes.split(os.pathsep)
+                                     if not os.path.exists(os.path.join(d, "spicetify")))
+with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
+    fh.write("spicetify-ausente\tmanifesto.sh\tFalta o spicetify\tspicetify\t2026-10-30T00:00:00-03:00\n")
+spice = [p for p in servidor.pendencias() if p["id"] == "spicetify-ausente"]
+acao_spice = servidor.ACOES.get((spice[0]["acao"] if spice else "") or "", {})
+if not spice or acao_spice.get("argv", [])[-2:] != [os.path.join(raiz, "scripts", "spicetify_setup.sh"), "instalar"] \
+        or not acao_spice.get("rede") or acao_spice.get("sudo"):
+    erros.append("a pendência spicetify-ausente não tem a ação que baixa o spicetify: %r / %r" % (spice, acao_spice))
+onde_spice = servidor.onde_na_tela("spicetify-ausente")
+if not onde_spice.startswith("«") or "Modificações" not in onde_spice:
+    erros.append("--onde da pendência spicetify-ausente não leva a um botão da Modificações: %r" % onde_spice)
+binario_spice = os.path.join(casa, ".spicetify", "spicetify")
+os.makedirs(os.path.dirname(binario_spice), exist_ok=True)
+with open(binario_spice, "w", encoding="utf-8") as fh:
+    fh.write("#!/bin/sh\n")
+os.chmod(binario_spice, 0o755)
+if [p for p in servidor.pendencias() if p["id"] == "spicetify-ausente"]:
+    erros.append("com o spicetify em ~/.spicetify, a pendência spicetify-ausente continua na lista")
+os.remove(binario_spice)
+os.remove(servidor.PENDENCIAS)
+os.environ["PATH"] = caminho_antes
 if longos:
     erros.append("12c: nome ou botão com mais de três palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))
 if servidor.onde_na_tela("sem-modulo-nenhum" + servidor.SUFIXO_TEMA_DE_TERCEIRO):
