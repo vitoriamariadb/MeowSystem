@@ -51,7 +51,7 @@ cmd_instalar() {
   local arq
   arq="$(_spice_arquitetura)" || {
     meow_erro "arquitetura sem release de linux no spicetify: $(uname -m)"
-    meow_info "o projeto publica amd64 e arm64; instale à mão se a sua for outra"
+    meow_info "o projeto publica só amd64 e arm64, e esta arquitetura fica sem spicetify"
     return "$MEOW_ERRO"
   }
 
