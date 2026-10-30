@@ -1178,12 +1178,10 @@ _pacotes_faltando() {
   python3 -I -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
   [ -d /usr/share/fonts/opentype/fira ] || ! apt-cache show pop-fonts >/dev/null 2>&1 \
     || faltam+=(pop-fonts)
-  local prova pacote
-  if [ "${MIDIA:-sim}" = "sim" ] || [ "${LEITURA_APPLET:-sim}" = "sim" ]; then
-    while IFS='|' read -r prova pacote; do
-      [ -e "$prova" ] || faltam+=("$pacote")
-    done <<< "$MEOW_DEPS_DOS_APPLETS"
-  fi
+  local pacote
+  while IFS= read -r pacote; do
+    [ -n "$pacote" ] && faltam+=("$pacote")
+  done < <(meow_pacotes_de_compilar_faltando)
   [ "${#faltam[@]}" -eq 0 ] || printf '%s\n' "${faltam[@]}"
   return 0
 }
@@ -1199,6 +1197,10 @@ chk_pacotes() {
     echo "faltam: ${faltam[*]} — sem a ponte root, instalar pacote pede a sua senha uma vez, no ./install.sh"
   fi
   return "$MEOW_DIVERGENTE"
+}
+
+chk_rust() {
+  "$RAIZ/scripts/rust.sh" conferir 2>&1
 }
 
 chk_escala() {
@@ -1456,6 +1458,7 @@ fix_pacotes() {
   meow_ok "instalados pela ponte root: $(printf '%s' "$lista" | em_linha)"
   return "$MEOW_DIVERGENTE"
 }
+fix_rust()      { "$RAIZ/scripts/rust.sh" aplicar 2>&1; }
 fix_upstream()  { "$RAIZ/scripts/baixar_upstream.sh" 2>&1; }
 fix_fontes()    { "$RAIZ/scripts/instalar_fontes.sh" 2>&1; }
 fix_cli() {
@@ -1503,7 +1506,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 if ! meow_ponte_viva; then
   SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal gpu libreoffice "

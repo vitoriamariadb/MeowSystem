@@ -379,12 +379,10 @@ etapa_pacotes() {
 
   python3 -I -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
 
-  local prova pacote
-  if [ "${MIDIA:-sim}" = "sim" ] || [ "${LEITURA_APPLET:-sim}" = "sim" ]; then
-    while IFS='|' read -r prova pacote; do
-      [ -e "$prova" ] || faltam+=("$pacote")
-    done <<< "$MEOW_DEPS_DOS_APPLETS"
-  fi
+  local pacote
+  while IFS= read -r pacote; do
+    [ -n "$pacote" ] && faltam+=("$pacote")
+  done < <(meow_pacotes_de_compilar_faltando)
   local ppa_fastfetch=0
   if [ "${FASTFETCH_LOGO:-sim}" != "nao" ] && ! meow_tem fastfetch; then
     ppa_fastfetch=1
@@ -402,27 +400,50 @@ etapa_pacotes() {
 
   meow_info "faltam: ${faltam[*]}"
   if meow_seco; then
-    meow_muda "rodaria: sudo apt-get install -y --no-install-recommends ${faltam[*]}"
+    meow_muda "instalaria do apt (BAIXA DA INTERNET): ${faltam[*]}"
     return "$MEOW_DIVERGENTE"
   fi
 
-  if ! meow_tem sudo; then
-    meow_aviso "sudo não encontrado — instale à mão:"
-    meow_info "  apt install ${faltam[*]}"
+  meow_info "BAIXA DA INTERNET: instalando do apt, como root: ${faltam[*]}"
+  if ! _pacotes_instalar "${faltam[@]}"; then
+    meow_aviso "os pacotes não desceram ($_PACOTES_POR_QUE): ${faltam[*]} — o doctor tenta de novo"
+    meow_pendencia_acionavel pacotes-do-sistema \
+      "Faltam pacotes do sistema: ${faltam[*]}" "meow doctor --consertar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
-
-  meow_info "vou rodar como root, e só isto:"
-  printf '      sudo apt-get install -y --no-install-recommends %s\n' "${faltam[*]}"
-
-  if ! sudo apt-get install -y --no-install-recommends "${faltam[@]}" >/dev/null 2>&1; then
-    meow_aviso "a instalação falhou (sem sudo? sem rede?) — seguindo sem esses pacotes"
-    meow_info "  sudo apt-get install ${faltam[*]}"
-    return "$MEOW_SEM_DEPENDENCIA"
-  fi
+  meow_pendencia_resolvida pacotes-do-sistema
   meow_ok "instalados: ${faltam[*]}"
   [ "$ppa_fastfetch" = 1 ] && _pacotes_fastfetch
   return "$MEOW_DIVERGENTE"
+}
+
+etapa_rust() {
+  passo "Rust (o compilador do que se compila aqui)"
+  "$MEOW_RAIZ/scripts/rust.sh" aplicar
+  local rc=$?
+  meow_rust_no_path
+  return "$rc"
+}
+
+_PACOTES_POR_QUE=""
+_pacotes_instalar() {
+  if meow_ponte_viva && printf '%s\n' "$@" | meow_ponte pacotes >/dev/null 2>&1; then
+    return 0
+  fi
+  if ! meow_tem sudo; then
+    _PACOTES_POR_QUE="esta máquina não tem sudo"
+    return 1
+  fi
+  if sudo -n true 2>/dev/null; then
+    sudo -n apt-get install -y --no-install-recommends "$@" >/dev/null 2>&1 && return 0
+  elif [ -t 0 ]; then
+    sudo apt-get install -y --no-install-recommends "$@" >/dev/null 2>&1 && return 0
+  else
+    _PACOTES_POR_QUE="sem a ponte root e sem terminal para a senha"
+    return 1
+  fi
+  _PACOTES_POR_QUE="o apt não instalou, sem rede ou com o apt ocupado"
+  return 1
 }
 
 _pacotes_fastfetch() {
@@ -1999,7 +2020,7 @@ main() {
 
   meow_travar || return 2
 
-  local etapas=(etapa_backup_tema etapa_conf etapa_cli etapa_ponte_root etapa_atalho etapa_pacotes etapa_gerar etapa_tema
+  local etapas=(etapa_backup_tema etapa_conf etapa_cli etapa_ponte_root etapa_atalho etapa_pacotes etapa_rust etapa_gerar etapa_tema
                 etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_apps_dracula etapa_icones_sistema etapa_icones_bandeja
@@ -2161,7 +2182,21 @@ main() {
   [ "$passagem" = "1" ] && plural="passagem"
   printf '\n  %sPronto.%s %d %s, %d etapas, nada mais a escrever.\n\n' \
     "$C_VERDE$C_FORTE" "$C_ZERO" "$passagem" "$plural" "$TOTAL"
+  fim_dos_builds
   return 0
+}
+
+fim_dos_builds() {
+  meow_seco && return 0
+  local estado oque="" verbo="compila" vale="vale"
+  estado="$("$MEOW_RAIZ/scripts/garantir_builds.sh" estado 2>/dev/null)" || return 0
+  grep -qx 'construindo=sim' <<< "$estado" || return 0
+  grep -qx 'compositor_estado=pendente' <<< "$estado" && oque="O compositor"
+  if grep -qx 'menu_estado=pendente' <<< "$estado"; then
+    if [ -n "$oque" ]; then oque="$oque e o Menu do Arquivos"; verbo="compilam"; vale="valem"; else oque="O Menu do Arquivos"; fi
+  fi
+  [ -n "$oque" ] || oque="O compositor"
+  printf '  %s ainda %s em segundo plano e %s no próximo login.\n\n' "$oque" "$verbo" "$vale"
 }
 
 main "$@"

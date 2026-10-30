@@ -121,6 +121,10 @@ meow_desinstalar() {
     EXTENSOES= "$MEOW_RAIZ/scripts/extensoes_build.sh" --todas --reverter || true
   fi
 
+  if [ -x "$MEOW_RAIZ/scripts/rust.sh" ]; then
+    "$MEOW_RAIZ/scripts/rust.sh" remover || true
+  fi
+
   if [ -x "$MEOW_RAIZ/scripts/atalho.sh" ]; then
     "$MEOW_RAIZ/scripts/atalho.sh" --reverter || true
   fi
