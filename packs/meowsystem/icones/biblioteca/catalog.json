@@ -5261,10 +5261,10 @@
     "tamanho_bytes": 338
   },
   "network.svg": {
-    "descricao": "rede",
+    "descricao": "Network, atalho da rede do celular",
     "nome": "network",
     "tags": [
-      "sistema"
+      "aplicativos"
     ],
     "tamanho_bytes": 830
   },
@@ -5630,10 +5630,10 @@
     "tamanho_bytes": 660
   },
   "player.svg": {
-    "descricao": "reprodutor",
+    "descricao": "Player, da TVN",
     "nome": "player",
     "tags": [
-      "sistema"
+      "aplicativos"
     ],
     "tamanho_bytes": 1153
   },
@@ -6332,7 +6332,7 @@
       "#7f849c",
       "#cdd6f4"
     ],
-    "descricao": "Slidesk",
+    "descricao": "SliDesk",
     "nome": "slidesk",
     "tags": [
       "linguagens"
@@ -6427,10 +6427,10 @@
     "tamanho_bytes": 237
   },
   "star.svg": {
-    "descricao": "estrela",
+    "descricao": "Star+, da Disney",
     "nome": "star",
     "tags": [
-      "sistema"
+      "aplicativos"
     ],
     "tamanho_bytes": 812
   },
