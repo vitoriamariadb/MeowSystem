@@ -413,7 +413,7 @@ atualizar)
   ;;
 
 pacotes)
-  PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy curl xz-utils unzip pop-fonts build-essential pkg-config libxkbcommon-dev libwayland-dev libdbus-1-dev software-properties-common "
+  PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy curl xz-utils unzip pop-fonts build-essential pkgconf libxkbcommon-dev libwayland-dev libdbus-1-dev libudev-dev just cmake patch dpkg-dev libegl1-mesa-dev libfontconfig-dev libgbm-dev libinput-dev libpixman-1-dev libseat-dev libsystemd-dev libxcb1-dev libdisplay-info-dev libglib2.0-dev software-properties-common "
   pedidos=()
   while IFS= read -r nome || [ -n "${nome:-}" ]; do
     [ -n "$nome" ] || continue

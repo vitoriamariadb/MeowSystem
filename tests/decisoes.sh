@@ -392,11 +392,16 @@ for k in 'NOPASSWD' 'HOME temporário' 'troca palavras' '/tmp' 'Senha nunca'; do
   && ok "20: o bloco do terminal é do MeowSystem, e o do Spellbook sai pelo vizinhos.tsv" \
   || falha "20: falta o bloco do terminal, a remoção dele ou os itens do Spellbook"
 faltam=""
-for p in build-essential pkg-config libxkbcommon-dev libwayland-dev libdbus-1-dev; do
-  grep -qE "\\|$p\"?\$" <(sed -n '/^MEOW_DEPS_DOS_APPLETS=/,/"$/p' "$RAIZ/lib/comum.sh") || faltam+=" $p"
+for p in build-essential pkgconf libxkbcommon-dev libwayland-dev libdbus-1-dev libudev-dev; do
+  grep -qxF "applets	$p" "$RAIZ/assets/pacotes/compilar.tsv" || faltam+=" $p"
 done
+for p in just cmake libinput-dev libseat-dev libdisplay-info-dev; do
+  grep -qxF "compositor	$p" "$RAIZ/assets/pacotes/compilar.tsv" || faltam+=" $p"
+done
+grep -q 'meow_pacotes_de_compilar_faltando' <(sed -n '/^etapa_pacotes()/,/^}/p' "$RAIZ/install.sh") \
+  || faltam+=" (a etapa_pacotes não lê a lista)"
 [ -z "$faltam" ] && grep -q 'ppa:zhangsongcui3371/fastfetch' "$RAIZ/install.sh" \
-  && ok "21: o instalador declara o que os applets compilam e o PPA do fastfetch" \
+  && ok "21: o instalador declara o que os applets e o compositor compilam e o PPA do fastfetch" \
   || falha "21: falta dependência declarada:${faltam:- o PPA do fastfetch}"
 grep -q 'git clone https://github.com/vitoriamariadb/MeowSystem.git' "$RAIZ/README.md" \
   && ok "22: o README manda baixar de vitoriamariadb/MeowSystem" || falha "22: o README não aponta para vitoriamariadb/MeowSystem"
