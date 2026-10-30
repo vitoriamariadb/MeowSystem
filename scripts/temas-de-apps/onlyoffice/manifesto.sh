@@ -218,7 +218,7 @@ meow_app_reverter() {
   local mudou=0 antes_id="theme-system" antes_ui="theme-system" linha
   if [ "$_OO_NO_AR" = "$_OO_TEMA_ID" ]; then
     if _oo_aberto; then
-      meow_app_sem "OnlyOffice: está aberto, e ele reescreve o conf ao sair — feche-o e desfaça de novo"
+      meow_app_sem "OnlyOffice: está aberto, e ele reescreve o conf ao sair — nada foi desfeito, e o tema fica"
       meow_app_pendente onlyoffice
       return "$MEOW_SEM_DEPENDENCIA"
     fi
