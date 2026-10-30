@@ -40,3 +40,25 @@ popup abre largo, o ícone fica à esquerda e o «| ⚙» colado na borda direit
   engrenagem ficam juntos à esquerda. Configurações também seguem em `SURFACE_WIDTH`.
 - Falta: o install do binário e a captura da Bandeja aberta sem vão (o coordenador instala no fim). A largura
   exata do encaixe do `flex_row` (soma igual ao máximo) não foi vista numa tela real.
+
+### Conferência (29/10)
+
+- O diff do fork confere com o que a libcosmic faz: o `flex_row` (taffy, `flex_wrap`) recebe do `container`
+  `Fixed(icons_width)` exatamente colunas × item + (colunas − 1) × espaço; a linha tem item, espaço `ACTION_GAP`,
+  traço de 1, `ACTION_GAP`, engrenagem de 32 e margem 16, o que é a `action_column()`. O `autosize` do hub mede o
+  conteúdo com os próprios limites (1 a `SURFACE_WIDTH`), então o popup encolhe e cresce junto. Vazio, um ícone,
+  quebra de linha, densidade (o `spacing` do painel entra igual na conta e no `flex_row`) e painel vertical (o
+  mesmo `button_size()` na conta e no botão) não deixam vão nem cortam ícone. Zero comentário.
+- Achado: os testes do implementador provavam só a aritmética; nada mostrava o `flex_row` deitando os ícones na
+  largura calculada, e o caso da soma igual ao máximo ficou sem prova. Correção: fork `ebce4f6`, teste que monta o
+  `tray_row` dentro do `hub_surface` e faz o layout de verdade (renderizador tiny-skia, sem GPU), para 0 a 12 ícones
+  em quatro geometrias, conferindo a largura do popup, o número de linhas, a borda direita dos ícones, o traço e a
+  engrenagem a 16 da borda; e o caso de encaixe exato (5 × 51 + 4 × 6 = 279, a grade inteira) numa linha só. Com a
+  grade 1 px menor o teste fica vermelho. `cargo build --release --locked`, `cargo test --release --locked` (264 da
+  lib) e o `clippy -D warnings` da CI verdes; push na `main`.
+- Pino: `COMMIT=ebce4f6…` (commit `27724160`), `VERSAO` segue 1.7.1 (só teste), `LIBCOSMIC` a401af8 igual ao
+  `Cargo.lock`; o clone `~/Desenvolvimento/forks/meowsystem-status-hub` avançou para o `ebce4f6`.
+- `./tests/todos.sh` inteiro na worktree: 118 verdes, 2 vermelhos aceitos (`readme.sh`, badge v2.2.0;
+  `restaurar.sh`, `pack_usar` e `desinstalar`).
+- Fica para a tela: com o menu de um item aberto o popup volta a 360 e sobra espaço à direita da engrenagem (o
+  menu precisa da largura); o popup centraliza sob o botão (gravidade do painel) ao mudar de largura.
