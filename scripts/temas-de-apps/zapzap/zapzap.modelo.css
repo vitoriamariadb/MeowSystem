@@ -18,7 +18,8 @@
 .dark.color-refresh,
 .app-wrapper-web.app-wrapper-web,
 .app-wrapper-web.app-wrapper-web:root,
-.dark .app-wrapper-web.app-wrapper-web {
+.dark .app-wrapper-web.app-wrapper-web,
+#main {
   --WDS-accent: {{green}} !important;
   --WDS-accent-RGB: {{green:rgb}} !important;
   --WDS-accent-deemphasized: {{green:4D}} !important;
@@ -94,6 +95,26 @@
   --startup-icon: {{surface1}} !important;
   --startup-background: {{crust}} !important;
   --progress-background: {{surface0}} !important;
+}
+
+#main * {
+  --WDS-accent: inherit !important;
+  --WDS-accent-RGB: inherit !important;
+  --WDS-accent-deemphasized: inherit !important;
+  --WDS-accent-emphasized: inherit !important;
+  --WDS-content-action-emphasized: inherit !important;
+  --WDS-content-external-link: inherit !important;
+  --WDS-content-read: inherit !important;
+  --WDS-systems-bubble-content-deemphasized: inherit !important;
+  --WDS-systems-bubble-surface-incoming: inherit !important;
+  --WDS-systems-bubble-surface-incoming-RGB: inherit !important;
+  --WDS-systems-bubble-surface-outgoing: inherit !important;
+  --WDS-systems-bubble-surface-outgoing-RGB: inherit !important;
+  --WDS-systems-bubble-surface-overlay: inherit !important;
+  --WDS-systems-bubble-surface-overlay-RGB: inherit !important;
+  --WDS-systems-chat-background-wallpaper: inherit !important;
+  --WDS-systems-chat-background-wallpaper-RGB: inherit !important;
+  --WDS-systems-chat-foreground-wallpaper: inherit !important;
 }
 
 /* A tela de abertura traz as cores no atributo `style` do elemento. */
