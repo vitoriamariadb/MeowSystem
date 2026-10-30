@@ -157,3 +157,22 @@ Decisão do coordenador (30/10): ele fica como ferramenta de quem desenvolve. Ne
   - O `afinar_conversor.py` imprime «./scripts/construir_convertidos.sh».
   - O autostart não desmascara o nome que sai da lista.
   - Aposentar o `auditar_icones.sh` (decisão 24) é da coordenação.
+- Item 6, o spicetify:
+  - commits `61308c7d` (painel), `4e892dc4` (manifesto), `02d351fc` (`app.sh`) e `e1a27ecb`
+    (`modificacoes-pagina.py`);
+  - no código velho, o `app.sh` falhava em 4 asserções, e a página falhava em 2 de 54;
+  - no novo, os dois passam.
+- Item 6, as saídas:
+  - commits `9982fc3d` e `9d182170`;
+  - no código velho, o `nada-manda-digitar.sh` achava `prompt.sh:168`, `vscode/manifesto.sh:868` e
+    `afinar_conversor.py:259`; no novo, passa.
+- Item 6, o autostart:
+  - commits `b379ccdd`, `d9ea4810` (exemplo) e `48852f4d` (`tests/autostart.sh`);
+  - no código velho, o teste falhava em 4 dos 6 casos; no novo, passa nos 6.
+- O `app/LEIA-ME.md` passou a 70 ações.
+- Verdes depois do item 6:
+  - `app`, `modificacoes-pagina.py`, `modificacoes`, `nada-manda-digitar` e `temas-de-apps`;
+  - `spotify-atualizado`, `apps-frases`, `numeros` e `frases-velhas`;
+  - `orfaos`, `decisoes`, `chaves-aposentadas` e `doctor-so-le`.
+- Para ligar no `todos.sh`: `tests/autostart.sh`, no grupo `PORTATIL`, porque usa `systemctl` falso e não precisa
+  do COSMIC.
