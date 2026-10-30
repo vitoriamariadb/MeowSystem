@@ -97,6 +97,6 @@ meow_app_reverter() {
   rmdir -- "$_TG_DIR" 2>/dev/null || true
   meow_ok "Telegram: o arquivo do tema do pack saiu"
   meow_info "se você aplicou o tema no Telegram, ele fica lá até você escolher outro nas configurações do app"
-  meow_info "tire 'telegram' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar telegram
   return "$MEOW_DIVERGENTE"
 }

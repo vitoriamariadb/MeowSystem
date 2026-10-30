@@ -116,6 +116,7 @@ FLATPAK_VIGIA	vigia_flatpak	nao
 FLATPAK_VIGIA_NOTIFICAR	-	nao
 STEAM_VIGIA	vigia_steam	nao
 HEROIC_VIGIA	vigia_heroic	nao
+DISCORD_VENCORD	apps,vigia_discord	nao
 BACKUPS_MANTIDOS	-	nao
 LOG_NIVEL	-	nao
 SOM	som	nao

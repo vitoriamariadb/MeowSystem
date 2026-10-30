@@ -182,6 +182,6 @@ meow_app_reverter() {
     meow_ok "GNOME Terminal: nenhum perfil do MeowSystem — nada a desfazer"
     return "$MEOW_OK"
   fi
-  meow_seco || meow_info "tire 'gnome-terminal' de APPS_ATIVOS no meow.conf, ou o doctor das 05:00 reaplica"
+  meow_app_desligar gnome-terminal
   return "$MEOW_DIVERGENTE"
 }

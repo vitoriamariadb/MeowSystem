@@ -590,6 +590,38 @@ meow_conf_definir() {
   meow_escrever "$MEOW_CONF_ARQUIVO" "$novo$fim" 644
 }
 
+meow_apps_ativos_lista() {
+  local linha arquivo="$MEOW_CONF_ARQUIVO"
+  grep -q '^[[:space:]]*APPS_ATIVOS=' "$arquivo" 2>/dev/null || arquivo="$MEOW_CONF_PADRAO"
+  linha="$(sed -n 's/^[[:space:]]*APPS_ATIVOS=//p' "$arquivo" 2>/dev/null | tail -1)"
+  linha="${linha%%#*}"
+  linha="$(printf '%s' "$linha" | tr -d '"'"'"' \t\r')"
+  [ -n "$linha" ] || return 1
+  printf '%s' "$linha"
+}
+
+meow_app_desligar() {
+  [ "${MEOW_REVERTER_SEM_DESLIGAR:-0}" = "1" ] && return "$MEOW_OK"
+  meow_seco && return "$MEOW_OK"
+  local atual item tira novo="" tirou="" ficou
+  atual="$(meow_apps_ativos_lista)" || return "$MEOW_OK"
+  local -a itens=()
+  IFS=',' read -ra itens <<< "$atual"
+  for item in "${itens[@]}"; do
+    [ -n "$item" ] || continue
+    ficou=1
+    for tira in "$@"; do
+      [ "$item" = "$tira" ] && { ficou=0; tirou="${tirou:+$tirou, }$item"; break; }
+    done
+    [ "$ficou" = 1 ] && novo="${novo:+$novo,}$item"
+  done
+  [ -n "$tirou" ] || return "$MEOW_OK"
+  meow_conf_definir APPS_ATIVOS "$novo" >/dev/null
+  [ "$?" -ge "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+  meow_info "$tirou desligado — o doctor das 05:00 não reaplica"
+  return "$MEOW_OK"
+}
+
 MEOW_ESTADO="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}"
 MEOW_CACHE="${MEOW_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/meowsystem}"
 

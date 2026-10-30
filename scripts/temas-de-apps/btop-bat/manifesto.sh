@@ -505,7 +505,7 @@ meow_app_reverter() {
   fi
   case "$pior" in
     0) meow_ok "$rotulo: já estavam sem o tema ${sem:-$(_bb_flavor)}" ;;
-    1) meow_seco || meow_info "tire 'bat'/'btop' de APPS_ATIVOS, ou o doctor das 05:00 reaplica" ;;
+    1) meow_app_desligar bat btop ;;
   esac
   return "$pior"
 }

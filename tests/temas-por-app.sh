@@ -94,7 +94,7 @@ csv() {
 }
 com_cor() {
   { grep -rIil -- "$1" "$CASA" 2>/dev/null; grep -rIl -- "$(csv "$1")" "$CASA" 2>/dev/null; } \
-    | grep -v -e '/.cache/' -e '/.local/state/' | sort -u | wc -l
+    | grep -v -e '/.cache/' -e '/.local/state/' -e '/.config/meow/meow.conf$' | sort -u | wc -l
 }
 arquivos() { find "$CASA" -type f -not -path '*/.cache/*' -printf '%P %s %T@\n' 2>/dev/null | LC_ALL=C sort | sha256sum; }
 mkdir -p "$T/packs"
