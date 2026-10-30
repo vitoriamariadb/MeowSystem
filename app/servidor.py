@@ -5576,7 +5576,7 @@ class Manipulador(BaseHTTPRequestHandler):
         "cursor": {
             "comando": ("cursor", "adicionar"),
             "extensoes": (".zip",),
-            "depois": "escolha o tema novo em \"Ponteiro\" e salve",
+            "depois": "o ponteiro novo aparece em «Ponteiro», entre as escolhas",
         },
         "fonte": {
             "comando": ("fontes", "adicionar"),

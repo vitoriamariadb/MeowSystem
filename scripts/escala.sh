@@ -78,7 +78,7 @@ if [ -z "$ESCALA_TELA" ]; then
         meow_info "  o app desenha em 1x e o compositor reamostra: 1 px de traço vira ${escala} px"
         meow_info "  isso não tem conserto do lado do arquivo — o vetor já é rasterizado no tamanho certo"
         onde="$(meow_onde_no_painel ESCALA_TELA)"
-        [ -z "$onde" ] || meow_info "  nitidez no lugar do tamanho: escala 1.0 em $onde"
+        [ -z "$onde" ] || meow_info "  nitidez no lugar do tamanho: 100% em $onde"
       fi
     done < <(saidas)
   fi
