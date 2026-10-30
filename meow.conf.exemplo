@@ -336,7 +336,7 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 #   dois nomes, sem perguntar — e o comentário acima diz, com todas as letras,
 #   que um nome a mais aqui CRIA área. Era a chave deste arquivo com o efeito
 #   mais visível e menos pedido.
-#   Vazio já era caso tratado no código desde antes: `scripts/areas.sh:980`
+#   Vazio já era caso tratado no código desde antes: o `scripts/areas.sh`
 #   responde `AREAS_NOMES vazio — as áreas de trabalho são suas` e se pula.
 #   Para assumir as áreas, escreva os nomes na ordem em que você os quer na
 #   barra; `meow areas` imprime a linha pronta a partir do que está no disco.
@@ -967,13 +967,13 @@ RELOGIO_SEGUNDOS="nao"            # sim | nao | vazio (= não toca)
 #   NASCE LIGADO, a pedido: "se é requisição, nosso install teria que
 #   por default trazer a cura".
 #
-#   "nao" não é só deixar de instalar: o `midia.sh` REVERTE — tira a nossa
-#   sombra e o binário, e o applet do flatpak volta no próximo login. Desligar
-#   e continuar vendo o de antes seria o pior sintoma possível, porque não há
-#   onde olhar.
+#   "nao" não é só deixar de instalar: a passada seguinte do install ou do
+#   conserto do doctor REVERTE — tira a nossa sombra e o binário, e o applet do
+#   flatpak volta no próximo login. Desligar e continuar vendo o de antes seria o
+#   pior sintoma possível, porque não há onde olhar.
 #
-#   Compilar não é do doctor (é a única porta do projeto que chama o cargo):
-#   quem atravessa esse caminho é o `install.sh` e o botão da página Extensões.
+#   Quem compila é o install, o conserto do doctor e o botão da página Extensões,
+#   pelo pino (veja EXTENSOES).
 # sim | nao
 MIDIA="sim"
 
@@ -993,7 +993,7 @@ MIDIA="sim"
 #   Os ~215 px de folga do parágrafo acima são da asa direita da dock DESTA
 #   casa, com a Área de status do lado. Noutra tela, noutra dock, o número é
 #   outro — e cravá-lo aqui fazia o exemplo parecer um padrão universal.
-#   Vazio NÃO muda nada hoje: `scripts/midia.sh:66` já tem `${MIDIA_LARGURA:-440}`,
+#   Vazio NÃO muda nada hoje: `scripts/midia.sh` já tem `${MIDIA_LARGURA:-440}`,
 #   o mesmo número. O que muda é o que o arquivo DIZ: que isto se mede.
 #   Para medir a sua: deixe tocar uma música de nome longo e suba o número até
 #   o "…" sumir sem empurrar a Área de status.
@@ -1467,37 +1467,50 @@ LEITURA_RAMPA_MIN="0"             # 0 a 60 min  (0 = virada seca)
 # @ Controle no painel
 # > Um ícone com dois deslizantes, para mexer sem abrir este painel.
 # O APPLET DA TOPBAR — o ícone com os dois sliders (30/08/2026).
-#   sim  o `./install.sh` compila o applet pinado em `assets/extensoes/leitura.pino` e planta o `.desktop`.
+#   sim  o install e o conserto do doctor compilam o applet pinado em
+#        `assets/extensoes/leitura.pino` e plantam o `.desktop`.
 #   nao  DESLIGA DE VERDADE: a sombra sai primeiro, o binário depois, e a topbar
 #        volta sem ele no próximo login. As cinco chaves NÃO são apagadas — elas
 #        são o seu ajuste, e o relógio continua lendo e escrevendo nelas.
 #
-# TRÊS COISAS PRECISAM SER VERDADE PARA O ÍCONE APARECER, e só duas são nossas:
+# TRÊS COISAS PRECISAM SER VERDADE PARA O ÍCONE APARECER:
 #   1. o binário em ~/.local/bin/meowsystem-leitura   (esta chave)
 #   2. a sombra .desktop em ~/.local/share/applications (esta chave)
-#   3. a linha "io.github.meowsystem.Leitura" no plugins_wings da topbar
-#      — arquivo da Aurora, escrito À MÃO, uma vez.
+#   3. a linha "io.github.meowsystem.Leitura" no plugins_wings da topbar. A ordem
+#      dos applets é sua: só o «Pôr no painel» da página Extensões a escreve, por
+#      gesto seu, no fim da barra.
 # O `meow leitura estado` mostra as três, uma por linha, justamente porque elas
 # somem por motivos diferentes.
 #
 # ESCREVER A TERCEIRA RECRIA A TOPBAR NA HORA — medido em 30/08/2026. O painel
 # ouve aquele diretório por inotify e `plugins_wings` está na lista que o obriga
-# a refazer o espaço: todos os applets renascem no mesmo segundo. Uma vez, à mão,
-# é barato e o ícone aparece sem logout. Num laço seria a fábrica do painel
-# fantasma — por isso nenhum script deste projeto escreve nesse arquivo.
+# a refazer o espaço: todos os applets renascem no mesmo segundo. Uma vez, por
+# gesto, é barato e o ícone aparece sem logout. Num laço seria a fábrica do
+# painel fantasma — por isso nem o install nem o doctor escrevem nesse arquivo.
 #
 # COMPILAR É CARO UMA VEZ E DE GRAÇA DEPOIS: o build frio do libcosmic leva
-# minutos e ~1,5 GB de target; a segunda passagem não invoca o cargo, porque o
-# carimbo (fonte, Cargo.toml, Cargo.lock, binário e rustc) bate e o script
-# devolve 0 na hora. Sem cargo na máquina, a etapa cai em "pulados" e nada mais
-# acontece.
+# minutos, e os applets da casa dividem uma pasta de build só
+# (~/.local/state/meowsystem/extensoes/.target); a segunda passagem não invoca o
+# cargo, porque o carimbo (fonte, Cargo.toml, Cargo.lock, binário e rustc) bate e
+# o script devolve 0 na hora. Sem cargo na máquina, o conserto instala o rust pelo
+# rustup em ~/.cargo; sem rede, a etapa cai em "pulados" e tenta de novo na
+# passada seguinte.
 LEITURA_APPLET="sim"              # sim | nao
 
-# EXTENSÕES DA CASA QUE O INSTALL COMPILA, pelo id: now-playing, status-hub,
-#   quick-settings, leitura, performance. Vazio quer as cinco, menos a que
-#   MIDIA ou LEITURA_APPLET acima dizem "nao"; "-" não quer nenhuma; uma lista
-#   (separada por vírgula) manda sozinha.
-#   A página Extensões escreve esta chave quando você instala ou remove um applet.
+# OS APPLETS DA CASA QUE O MEOWSYSTEM COMPILA E INSTALA, pelo id. São os 10 pinos
+#   de `assets/extensoes/*.pino` com TIPO="applet": ascii-battery, clipboard,
+#   drives, eyedropper, leitura, now-playing, performance, quick-settings, soneca e
+#   status-hub. O compositor e o menu do Arquivos também têm pino, mas quem manda
+#   neles é COMPOSITOR e FILES_MENU, não esta lista.
+#   Vazio quer os 10, menos o que MIDIA (now-playing) ou LEITURA_APPLET (leitura)
+#   dizem "nao"; "-" não quer nenhum; uma lista separada por vírgula manda sozinha,
+#   e o applet que sai dela é desinstalado na passada seguinte.
+#   Quem compila é o install e o conserto do doctor, que baixam da internet sem
+#   perguntar (o pino é da casa); os applets compilam todos numa pasta de build só,
+#   ~/.local/state/meowsystem/extensoes/.target.
+#   A página Extensões mostra o catálogo: os applets da casa e os repositórios que
+#   você adicionou, que só baixam e compilam por gesto seu e ficam fora desta
+#   lista. Instalar ou remover ali um applet da casa reescreve esta chave.
 EXTENSOES=""
 
 # O COMPOSITOR DA CASA: o cosmic-comp com os remendos (patches/series), ligado
@@ -1556,20 +1569,20 @@ TERMINAL_CURSOR="accent"    # accent | port
 # fosse qual fosse o pack, e com o Dracula no ar o prompt era Catppuccin).
 #
 #   ESTA CHAVE MANDA EM METADE DA COISA, E É DE PROPÓSITO. O preset é nosso e vai
-#   para ~/.config/starship.toml. A linha que LIGA o starship mora no arquivo de
-#   inicialização do seu shell, que não é deste projeto: o MeowSystem não lê nem
-#   escreve arquivo de shell. A linha é uma só, e o script a mostra:
-#       ./scripts/prompt.sh mostrar
-#   (até 24/09/2026 ela saía como um patch para o `env.zsh` de um repositório
-#   pessoal; o patch saiu na sprint P39.)
+#   para ~/.config/starship.toml. Quem LIGA o starship é o bloco marcado que o
+#   meow põe no .bashrc e no .zshrc (o «Bloco do terminal»): ele carrega
+#   ~/.config/meowsystem/terminal.sh, que inicia o starship sempre que ele existe
+#   na máquina, com esta chave em "sim" ou em "nao".
 #
-#   Com "nao" o módulo não mexe em nada — NÃO desfaz. Desfazer é tirar a linha
-#   do shell primeiro e só depois `./scripts/prompt.sh remover`; na ordem inversa
-#   o shell não volta ao prompt antigo, volta ao PADRÃO do starship.
+#   Com "nao" o módulo não mexe em nada — NÃO desfaz: o starship que já está
+#   instalado continua desenhando o prompt, com o nosso preset enquanto o arquivo
+#   existir e com o PADRÃO do starship depois que ele sai.
 #
 #   O starship NÃO está no apt do Pop!_OS (medido em 25/08/2026: `apt-cache
-#   policy starship` devolve vazio). Sem ele esta etapa se pula, sem escrever
-#   nada.
+#   policy starship` devolve vazio). Com "sim", o install o BAIXA DA INTERNET, de
+#   starship.rs para ~/.local/bin, sem sudo; se você recusou, ou sem rede, a
+#   etapa se pula sem escrever nada. O doctor não baixa: só confere e põe o
+#   preset quando o starship já existe.
 #
 #   O nome não é `PROMPT` porque `PROMPT` é a variável do prompt no zsh: um
 #   `. meow.conf` dado num zsh para inspecionar o arquivo transformaria o prompt
@@ -1736,7 +1749,7 @@ FASTFETCH_LOGO_RECUO="3"
 #   Nerd Font Mono em 16 px. Se você instala tudo deste projeto, cai nessa mesma
 #   fonte e o número serve; se mantém a sua fonte, tem outra célula, e o mascote
 #   sai achatado sem nada acusar.
-#   Vazio NÃO muda nada hoje: `scripts/fastfetch_logo.sh:231` já tem
+#   Vazio NÃO muda nada hoje: `scripts/fastfetch_logo.sh` já tem
 #   `${FASTFETCH_LOGO_CELULA:-2.556}`, o mesmo número. O que muda é o convite a
 #   medir: `meow fastfetch logo` diz quantas linhas dá para as colunas atuais, e
 #   é por aí que se descobre a proporção desta tela.
@@ -1908,7 +1921,7 @@ LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,inf
 #   você escolheu deixar subindo no login — e o comentário acima avisa que tirar
 #   o nome daqui depois NÃO desmascara sozinho. Um padrão que é fácil de ligar
 #   e difícil de desligar não pode vir ligado de fábrica.
-#   Vazio já era caso tratado: `scripts/autostart.sh:243`.
+#   Vazio já era caso tratado: o `scripts/autostart.sh` não mascara nada.
 #   Para bloquear algum, use o ID do `.desktop` (sem `.desktop`), separado por
 #   vírgula. `meow autostart` lista o que sobe no login desta máquina.
 AUTOSTART_BLOQUEADOS=""
