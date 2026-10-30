@@ -220,6 +220,44 @@ def main():
             pag.locator("#desfazer").click()
             assentar(pag)
 
+            print("9. P143: o lote de duas chaves que cai na rede não leva a mudança mais nova de uma delas")
+            outra9 = pag.evaluate("""(c) => [...CHAVE.values()].find((i) => i.chave !== c
+                && (i.opcoes || []).filter((x) => x && x !== String(i.valor ?? '')).length)?.chave""", chave8)
+            v_outra = pag.evaluate("(c) => String(CHAVE.get(c).valor ?? '')", outra9)
+            x_outra = pag.evaluate("(c) => CHAVE.get(c).opcoes.filter((x) => x && x !== String(CHAVE.get(c).valor ?? ''))[0]", outra9)
+            caidas, seguradas = [], []
+            pag.route("**/api/salvar", lambda rota: caidas.append(rota))
+            pag.route("**/api/definir", lambda rota: seguradas.append(rota))
+            pag.evaluate("([c, a, o, x, b]) => { gravarAgora({[c]: a, [o]: x}); gravarAgora({[c]: b}); }",
+                         [chave8, va, outra9, x_outra, vb])
+            for _ in range(100):
+                if caidas:
+                    break
+                pag.wait_for_timeout(50)
+            checa(len(caidas) == 1 and not seguradas, f"o lote de {chave8} e {outra9} está na rede e o novo espera")
+            caidas.pop(0).abort()
+            pag.unroute("**/api/salvar")
+            pag.wait_for_function("() => EM_VOO === 1", timeout=10000)
+            checa(pag.evaluate("(c) => MUDANCAS.get(c)", chave8) == vb and not pag.evaluate("(o) => MUDANCAS.has(o)", outra9),
+                  "com o lote caído, a mudança mais nova continua pendente e a da outra chave sai")
+            checa(pag.evaluate("(c) => valorEmVigor(CHAVE.get(c))", chave8) == vb
+                  and pag.evaluate("(o) => valorEmVigor(CHAVE.get(o))", outra9) == v_outra,
+                  "a tela fica no valor novo de uma e no de antes da outra")
+            for _ in range(100):
+                if seguradas:
+                    break
+                pag.wait_for_timeout(50)
+            seguradas.pop(0).continue_()
+            pag.unroute("**/api/definir")
+            assentar(pag)
+            checa(casa.valor_de(chave8) == vb and pag.evaluate("(c) => valorEmVigor(CHAVE.get(c))", chave8) == vb,
+                  "a chave que o lote novo repetiu fica com o valor dele, no conf e na tela")
+            checa(casa.valor_de(outra9) == v_outra and pag.evaluate("(c) => valorEmVigor(CHAVE.get(c))", outra9) == v_outra
+                  and pag.evaluate("() => MUDANCAS.size") == 0,
+                  "a outra chave volta ao valor de antes e nada fica pendente")
+            pag.locator("#desfazer").click()
+            assentar(pag)
+
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:
