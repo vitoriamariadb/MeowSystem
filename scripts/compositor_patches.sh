@@ -551,7 +551,10 @@ _cp_baixar_fonte() {
         meow_info "  o repositório já não serve o fonte desta versão (404)"
         meow_info "  o caminho é atualizar o cosmic-comp — o apt traz binário e fonte da mesma versão — e validar a série nela"
       else
-        meow_info "  o deb-src está habilitado nas fontes do apt? o registro está em $log"
+        if grep -qiE "deb-src|'source'" "$log" 2>/dev/null; then
+          meow_info "  as fontes do apt desta máquina não servem código-fonte (sem deb-src): a sessão segue no compositor de fábrica"
+        fi
+        meow_info "  o registro está em $log"
       fi
       return "$MEOW_ERRO"
     fi
@@ -626,10 +629,11 @@ cmd_compilar() {
   fi
 
   local -a faltam=()
+  meow_rust_no_path
   for i in patch cargo; do meow_tem "$i" || faltam+=("$i"); done
   if [ "${#faltam[@]}" -gt 0 ]; then
     meow_erro "falta para compilar: ${faltam[*]}"
-    meow_info "  o cargo é o do rustup de quem compila; o do apt costuma ser velho demais para o cosmic-comp"
+    meow_info "  o rust vem pelo rustup que a etapa rust do install e o doctor baixam; o patch, pelos pacotes do sistema"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
