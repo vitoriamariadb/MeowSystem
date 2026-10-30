@@ -102,6 +102,26 @@ CP conferir >/dev/null; igual "sem build e com o degrau 4 na matriz: 1" "$?" 1
 printf '%s' "$VER_INST" > "$T/versao"
 CP desativar >/dev/null
 
+echo "== o Restaurar do ativar e do desativar deixa um compositor que sobe"
+RESTAURAR() { HOME="$T/home" PATH="$T/bin:$PATH" MEOW_ESTADO="$T/home/.local/state/meowsystem" NO_COLOR=1 \
+              "$RAIZ/bin/meow" restaurar "$1" </dev/null >/dev/null 2>&1; }
+SHIM_NA_CASA="$T/home/.local/bin/cosmic-comp"
+MEOW_BACKUPS="$T/guarda-ativar" CP ativar >/dev/null
+RESTAURAR "$T/guarda-ativar"; igual "restaurar o ativar: rc 1" "$?" 1
+[ -e "$SHIM_NA_CASA" ] && falha "restaurar o ativar deixou o shim" || ok "restaurar o ativar tira o shim"
+igual "e o próximo login sobe a fábrica" "$(CP qual)" "$T/fabrica"
+CP ativar >/dev/null
+MEOW_BACKUPS="$T/guarda-desativar" CP desativar >/dev/null
+RESTAURAR "$T/guarda-desativar"; igual "restaurar o desativar: rc 1" "$?" 1
+cmp -s "$SHIM" "$SHIM_NA_CASA" && [ -x "$SHIM_NA_CASA" ] && ok "restaurar o desativar devolve o shim, executável" \
+  || falha "o shim devolvido não é o shim executável"
+igual "o shim devolvido com build sobe o build" "$(CP qual)" "$T/casa/$VER_INST/cosmic-comp"
+printf '0.1~sem-build' > "$T/versao"
+igual "o shim devolvido sem build sobe a fábrica" \
+  "$(PATH="$T/bin:$PATH" MEOW_SHIM_FABRICA="$T/fabrica" MEOW_SHIM_CASA="$T/casa" HOME="$T/home" "$SHIM_NA_CASA")" fabrica
+printf '%s' "$VER_INST" > "$T/versao"
+CP desativar >/dev/null
+
 printf '#!/bin/sh\necho alheio\n' > "$T/home/.local/bin/cosmic-comp"
 CP ativar >/dev/null; igual "ativar recusa um cosmic-comp alheio (2)" "$?" 2
 grep -q alheio "$T/home/.local/bin/cosmic-comp" && ok "o alheio ficou intocado" || falha "o alheio foi sobrescrito"
