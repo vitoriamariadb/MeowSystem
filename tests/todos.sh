@@ -130,6 +130,7 @@ MAQUINA=(
   extensoes-pagina.py
   modificacoes-pagina.py
   logo-pagina.py
+  zapzap-tema-de-conversa.py
 )
 
 SEM_PULO=(
