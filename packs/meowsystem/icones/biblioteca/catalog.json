@@ -1,0 +1,7227 @@
+{
+  "3d.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "modelo 3D",
+    "nome": "3d",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 487
+  },
+  "_file.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "arquivo",
+    "nome": "_file",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 287
+  },
+  "_folder.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "pasta",
+    "nome": "_folder",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 305
+  },
+  "_folder_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "pasta aberta",
+    "nome": "_folder_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 327
+  },
+  "_root.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "raiz",
+    "nome": "_root",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 468
+  },
+  "_root_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "raiz aberta",
+    "nome": "_root_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 791
+  },
+  "access.svg": {
+    "descricao": "Microsoft Access",
+    "nome": "access",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 618
+  },
+  "adobe-ae.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Adobe After Effects",
+    "nome": "adobe-ae",
+    "tags": [
+      "aplicativos",
+      "adobe"
+    ],
+    "tamanho_bytes": 821
+  },
+  "adobe-ai.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Adobe Illustrator",
+    "nome": "adobe-ai",
+    "tags": [
+      "aplicativos",
+      "adobe"
+    ],
+    "tamanho_bytes": 701
+  },
+  "adobe-id.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "Adobe InDesign",
+    "nome": "adobe-id",
+    "tags": [
+      "aplicativos",
+      "adobe"
+    ],
+    "tamanho_bytes": 667
+  },
+  "adobe-ps.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Adobe Photoshop",
+    "nome": "adobe-ps",
+    "tags": [
+      "aplicativos",
+      "adobe"
+    ],
+    "tamanho_bytes": 909
+  },
+  "adobe-xd.svg": {
+    "cores_dominantes": [
+      "#f5c2e7"
+    ],
+    "descricao": "Adobe XD",
+    "nome": "adobe-xd",
+    "tags": [
+      "aplicativos",
+      "adobe"
+    ],
+    "tamanho_bytes": 734
+  },
+  "adonis.svg": {
+    "cores_dominantes": [
+      "#b4befe"
+    ],
+    "descricao": "AdonisJS",
+    "nome": "adonis",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 473
+  },
+  "alex.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Alex",
+    "nome": "alex",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 385
+  },
+  "amber.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Amber",
+    "nome": "amber",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 233
+  },
+  "android.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Android",
+    "nome": "android",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 348
+  },
+  "angular-component.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#cdd6f4"
+    ],
+    "descricao": "componente do Angular",
+    "nome": "angular-component",
+    "tags": [
+      "frameworks",
+      "angular"
+    ],
+    "tamanho_bytes": 400
+  },
+  "angular-directive.svg": {
+    "cores_dominantes": [
+      "#cba6f7",
+      "#cdd6f4"
+    ],
+    "descricao": "diretiva do Angular",
+    "nome": "angular-directive",
+    "tags": [
+      "frameworks",
+      "angular"
+    ],
+    "tamanho_bytes": 401
+  },
+  "angular-guard.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#cdd6f4"
+    ],
+    "descricao": "guarda de rota do Angular",
+    "nome": "angular-guard",
+    "tags": [
+      "frameworks",
+      "angular"
+    ],
+    "tamanho_bytes": 401
+  },
+  "angular-pipe.svg": {
+    "cores_dominantes": [
+      "#94e2d5",
+      "#cdd6f4"
+    ],
+    "descricao": "pipe do Angular",
+    "nome": "angular-pipe",
+    "tags": [
+      "frameworks",
+      "angular"
+    ],
+    "tamanho_bytes": 400
+  },
+  "angular-service.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#cdd6f4"
+    ],
+    "descricao": "serviço do Angular",
+    "nome": "angular-service",
+    "tags": [
+      "frameworks",
+      "angular"
+    ],
+    "tamanho_bytes": 402
+  },
+  "angular.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#cdd6f4"
+    ],
+    "descricao": "Angular",
+    "nome": "angular",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 399
+  },
+  "ansible-lint.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "Ansible Lint",
+    "nome": "ansible-lint",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 553
+  },
+  "antlr.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "ANTLR",
+    "nome": "antlr",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 285
+  },
+  "apache.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#fab387"
+    ],
+    "descricao": "Apache",
+    "nome": "apache",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 505
+  },
+  "api-blueprint.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "API Blueprint",
+    "nome": "api-blueprint",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 616
+  },
+  "apollo.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Apollo",
+    "nome": "apollo",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 411
+  },
+  "apple.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Apple",
+    "nome": "apple",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1103
+  },
+  "asciidoc.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "AsciiDoc",
+    "nome": "asciidoc",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 261
+  },
+  "assembly.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Assembly",
+    "nome": "assembly",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 482
+  },
+  "astro-config.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7",
+      "#7f849c"
+    ],
+    "descricao": "configuração do Astro",
+    "nome": "astro-config",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1931
+  },
+  "astro.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "Astro",
+    "nome": "astro",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 1673
+  },
+  "autohotkey.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "AutoHotkey",
+    "nome": "autohotkey",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 1066
+  },
+  "azure-pipelines.svg": {
+    "cores_dominantes": [
+      "#b4befe"
+    ],
+    "descricao": "Azure Pipelines",
+    "nome": "azure-pipelines",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 326
+  },
+  "babel.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "Babel",
+    "nome": "babel",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 442
+  },
+  "batch.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "script em lote",
+    "nome": "batch",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 424
+  },
+  "bazel.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Bazel",
+    "nome": "bazel",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 345
+  },
+  "benchmark.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "teste de desempenho",
+    "nome": "benchmark",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 362
+  },
+  "bicep.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Bicep",
+    "nome": "bicep",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 767
+  },
+  "binary.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "arquivo binário",
+    "nome": "binary",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 481
+  },
+  "biome.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Biome",
+    "nome": "biome",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 447
+  },
+  "bitbucket.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Bitbucket",
+    "nome": "bitbucket",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 244
+  },
+  "blink.svg": {
+    "cores_dominantes": [
+      "#f5c2e7",
+      "#eba0ac",
+      "#cba6f7"
+    ],
+    "descricao": "Blink",
+    "nome": "blink",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1287
+  },
+  "blitz.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Blitz.js",
+    "nome": "blitz",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 308
+  },
+  "bluetooth.svg": {
+    "descricao": "Bluetooth",
+    "nome": "bluetooth",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 424
+  },
+  "books.svg": {
+    "descricao": "livros",
+    "nome": "books",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 582
+  },
+  "bower.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#89dceb",
+      "#a6e3a1",
+      "#eba0ac"
+    ],
+    "descricao": "Bower",
+    "nome": "bower",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1050
+  },
+  "brave.svg": {
+    "descricao": "Brave",
+    "nome": "brave",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1550
+  },
+  "browser.svg": {
+    "descricao": "navegador",
+    "nome": "browser",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 548
+  },
+  "browserslist.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "Browserslist",
+    "nome": "browserslist",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 722
+  },
+  "bun-lock.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#f5e0dc",
+      "#eba0ac",
+      "#cdd6f4"
+    ],
+    "descricao": "trava do Bun",
+    "nome": "bun-lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 657
+  },
+  "bun.svg": {
+    "cores_dominantes": [
+      "#f5e0dc",
+      "#eba0ac",
+      "#cdd6f4"
+    ],
+    "descricao": "Bun",
+    "nome": "bun",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 499
+  },
+  "cabal.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#b4befe",
+      "#89b4fa"
+    ],
+    "descricao": "Cabal",
+    "nome": "cabal",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 486
+  },
+  "caddy.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#89dceb"
+    ],
+    "descricao": "Caddy",
+    "nome": "caddy",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 572
+  },
+  "calculator.svg": {
+    "descricao": "calculadora",
+    "nome": "calculator",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 831
+  },
+  "camera.svg": {
+    "descricao": "câmera",
+    "nome": "camera",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 561
+  },
+  "capacitor.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "Capacitor",
+    "nome": "capacitor",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 757
+  },
+  "cargo-lock.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#7f849c"
+    ],
+    "descricao": "trava do Cargo",
+    "nome": "cargo-lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1144
+  },
+  "cargo.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Cargo",
+    "nome": "cargo",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 478
+  },
+  "circle-ci.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "CircleCI",
+    "nome": "circle-ci",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 330
+  },
+  "cleaner.svg": {
+    "descricao": "limpador",
+    "nome": "cleaner",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 822
+  },
+  "clojure.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#89b4fa",
+      "#cdd6f4"
+    ],
+    "descricao": "Clojure",
+    "nome": "clojure",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 692
+  },
+  "code-climate.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Code Climate",
+    "nome": "code-climate",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 320
+  },
+  "code-editor.svg": {
+    "descricao": "editor de código",
+    "nome": "code-editor",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 277
+  },
+  "code-of-conduct.svg": {
+    "cores_dominantes": [
+      "#f5c2e7"
+    ],
+    "descricao": "código de conduta",
+    "nome": "code-of-conduct",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 482
+  },
+  "codeowners.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "CODEOWNERS",
+    "nome": "codeowners",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 417
+  },
+  "commitlint.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#f38ba8"
+    ],
+    "descricao": "commitlint",
+    "nome": "commitlint",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 401
+  },
+  "compressor.svg": {
+    "descricao": "compactador",
+    "nome": "compressor",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 322
+  },
+  "config.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "configuração",
+    "nome": "config",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 352
+  },
+  "contributing.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "guia de contribuição",
+    "nome": "contributing",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 564
+  },
+  "crystal.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Crystal",
+    "nome": "crystal",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 841
+  },
+  "cspell.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#f38ba8"
+    ],
+    "descricao": "CSpell",
+    "nome": "cspell",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 518
+  },
+  "css-map.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#89b4fa",
+      "#cdd6f4"
+    ],
+    "descricao": "mapa de CSS",
+    "nome": "css-map",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 692
+  },
+  "css3.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#cdd6f4"
+    ],
+    "descricao": "CSS",
+    "nome": "css3",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 325
+  },
+  "cucumber.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Cucumber",
+    "nome": "cucumber",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 450
+  },
+  "cuda.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "CUDA",
+    "nome": "cuda",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 359
+  },
+  "cue.svg": {
+    "cores_dominantes": [
+      "#b4befe"
+    ],
+    "descricao": "CUE",
+    "nome": "cue",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 754
+  },
+  "cursor-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do Cursor",
+    "nome": "cursor-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 511
+  },
+  "cursor.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Cursor",
+    "nome": "cursor",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 503
+  },
+  "cypress.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Cypress",
+    "nome": "cypress",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 969
+  },
+  "d.svg": {
+    "cores_dominantes": [
+      "#eba0ac"
+    ],
+    "descricao": "linguagem D",
+    "nome": "d",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 336
+  },
+  "darklua.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#cdd6f4"
+    ],
+    "descricao": "Darklua",
+    "nome": "darklua",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 694
+  },
+  "dart-generated.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "código Dart gerado",
+    "nome": "dart-generated",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 344
+  },
+  "deno.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Deno",
+    "nome": "deno",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 361
+  },
+  "deno_lock.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#cdd6f4"
+    ],
+    "descricao": "trava do Deno",
+    "nome": "deno_lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 499
+  },
+  "dependabot.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Dependabot",
+    "nome": "dependabot",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 314
+  },
+  "devcontainer.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "Dev Container",
+    "nome": "devcontainer",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 396
+  },
+  "dhall.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Dhall",
+    "nome": "dhall",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 296
+  },
+  "discord.svg": {
+    "descricao": "Discord",
+    "nome": "discord",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 749
+  },
+  "django.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Django",
+    "nome": "django",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 561
+  },
+  "docker-compose.svg": {
+    "cores_dominantes": [
+      "#94e2d5"
+    ],
+    "descricao": "Docker Compose",
+    "nome": "docker-compose",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 399
+  },
+  "docker-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do Docker",
+    "nome": "docker-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 403
+  },
+  "docusaurus.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "Docusaurus",
+    "nome": "docusaurus",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 993
+  },
+  "drawio.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "draw.io",
+    "nome": "drawio",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 533
+  },
+  "drizzle-orm.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Drizzle ORM",
+    "nome": "drizzle-orm",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 340
+  },
+  "dub-selections.svg": {
+    "cores_dominantes": [
+      "#eba0ac",
+      "#7f849c"
+    ],
+    "descricao": "seleções do DUB",
+    "nome": "dub-selections",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1268
+  },
+  "dub.svg": {
+    "cores_dominantes": [
+      "#eba0ac"
+    ],
+    "descricao": "DUB",
+    "nome": "dub",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 917
+  },
+  "earth.svg": {
+    "descricao": "planeta Terra",
+    "nome": "earth",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1049
+  },
+  "editor.svg": {
+    "descricao": "editor",
+    "nome": "editor",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 425
+  },
+  "editorconfig.svg": {
+    "cores_dominantes": [
+      "#f5e0dc"
+    ],
+    "descricao": "EditorConfig",
+    "nome": "editorconfig",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1588
+  },
+  "ejs.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "EJS",
+    "nome": "ejs",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 307
+  },
+  "eleventy.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Eleventy",
+    "nome": "eleventy",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 372
+  },
+  "elm.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Elm",
+    "nome": "elm",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 352
+  },
+  "ember.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Ember.js",
+    "nome": "ember",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 317
+  },
+  "env.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "variáveis de ambiente",
+    "nome": "env",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 402
+  },
+  "envrc.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#7f849c"
+    ],
+    "descricao": "configuração do direnv",
+    "nome": "envrc",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1128
+  },
+  "esbuild.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "esbuild",
+    "nome": "esbuild",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 292
+  },
+  "eslint-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do ESLint",
+    "nome": "eslint-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 322
+  },
+  "eslint.svg": {
+    "cores_dominantes": [
+      "#cba6f7",
+      "#b4befe"
+    ],
+    "descricao": "ESLint",
+    "nome": "eslint",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 355
+  },
+  "fastlane.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#f38ba8",
+      "#89b4fa",
+      "#a6e3a1",
+      "#cba6f7"
+    ],
+    "descricao": "Fastlane",
+    "nome": "fastlane",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1158
+  },
+  "favicon.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "favicon",
+    "nome": "favicon",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 285
+  },
+  "figma.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#cba6f7",
+      "#f38ba8",
+      "#fab387",
+      "#89dceb"
+    ],
+    "descricao": "Figma",
+    "nome": "figma",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 568
+  },
+  "firebase.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "Firebase",
+    "nome": "firebase",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 260
+  },
+  "flutter.svg": {
+    "cores_dominantes": [
+      "#89dceb",
+      "#89b4fa"
+    ],
+    "descricao": "Flutter",
+    "nome": "flutter",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 928
+  },
+  "folder_admin.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta administração",
+    "nome": "folder_admin",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 457
+  },
+  "folder_admin_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta administração aberta",
+    "nome": "folder_admin_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 488
+  },
+  "folder_android.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta Android",
+    "nome": "folder_android",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 444
+  },
+  "folder_android_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta Android aberta",
+    "nome": "folder_android_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 475
+  },
+  "folder_animation.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "pasta animações",
+    "nome": "folder_animation",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 405
+  },
+  "folder_animation_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "pasta animações aberta",
+    "nome": "folder_animation_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 432
+  },
+  "folder_api.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta API",
+    "nome": "folder_api",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 578
+  },
+  "folder_api_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta API aberta",
+    "nome": "folder_api_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 607
+  },
+  "folder_app.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c",
+      "#89b4fa"
+    ],
+    "descricao": "pasta app",
+    "nome": "folder_app",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 492
+  },
+  "folder_app_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c",
+      "#89b4fa"
+    ],
+    "descricao": "pasta app aberta",
+    "nome": "folder_app_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 521
+  },
+  "folder_assets.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta recursos",
+    "nome": "folder_assets",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 590
+  },
+  "folder_assets_open.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta recursos aberta",
+    "nome": "folder_assets_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 621
+  },
+  "folder_audio_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#eba0ac"
+    ],
+    "descricao": "pasta áudio aberta",
+    "nome": "folder_audio_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 775
+  },
+  "folder_audit.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta auditoria",
+    "nome": "folder_audit",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 518
+  },
+  "folder_audit_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta auditoria aberta",
+    "nome": "folder_audit_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 531
+  },
+  "folder_aws.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta AWS",
+    "nome": "folder_aws",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 511
+  },
+  "folder_aws_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta AWS aberta",
+    "nome": "folder_aws_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 540
+  },
+  "folder_azure-devops.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#b4befe"
+    ],
+    "descricao": "pasta Azure DevOps",
+    "nome": "folder_azure-devops",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 483
+  },
+  "folder_azure-devops_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#b4befe"
+    ],
+    "descricao": "pasta Azure DevOps aberta",
+    "nome": "folder_azure-devops_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 531
+  },
+  "folder_azure-pipelines.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#b4befe"
+    ],
+    "descricao": "pasta Azure Pipelines",
+    "nome": "folder_azure-pipelines",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 584
+  },
+  "folder_azure-pipelines_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#b4befe"
+    ],
+    "descricao": "pasta Azure Pipelines aberta",
+    "nome": "folder_azure-pipelines_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 739
+  },
+  "folder_benchmark.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta testes de desempenho",
+    "nome": "folder_benchmark",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 413
+  },
+  "folder_benchmark_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta testes de desempenho aberta",
+    "nome": "folder_benchmark_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 442
+  },
+  "folder_caddy.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1",
+      "#89dceb"
+    ],
+    "descricao": "pasta Caddy",
+    "nome": "folder_caddy",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1158
+  },
+  "folder_caddy_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1",
+      "#89dceb"
+    ],
+    "descricao": "pasta Caddy aberta",
+    "nome": "folder_caddy_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1313
+  },
+  "folder_cargo.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta Cargo",
+    "nome": "folder_cargo",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 727
+  },
+  "folder_cargo_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta Cargo aberta",
+    "nome": "folder_cargo_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 837
+  },
+  "folder_circle-ci.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta CircleCI",
+    "nome": "folder_circle-ci",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 438
+  },
+  "folder_circle-ci_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta CircleCI aberta",
+    "nome": "folder_circle-ci_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 467
+  },
+  "folder_client.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta cliente",
+    "nome": "folder_client",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 445
+  },
+  "folder_client_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta cliente aberta",
+    "nome": "folder_client_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 474
+  },
+  "folder_cloud.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta nuvem",
+    "nome": "folder_cloud",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 572
+  },
+  "folder_cloud_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta nuvem aberta",
+    "nome": "folder_cloud_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 601
+  },
+  "folder_command.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta comandos",
+    "nome": "folder_command",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 637
+  },
+  "folder_command_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta comandos aberta",
+    "nome": "folder_command_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 666
+  },
+  "folder_components.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta componentes",
+    "nome": "folder_components",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 540
+  },
+  "folder_components_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta componentes aberta",
+    "nome": "folder_components_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 569
+  },
+  "folder_composables.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta composables",
+    "nome": "folder_composables",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 622
+  },
+  "folder_composables_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta composables aberta",
+    "nome": "folder_composables_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 651
+  },
+  "folder_config.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta configuração",
+    "nome": "folder_config",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 429
+  },
+  "folder_config_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta configuração aberta",
+    "nome": "folder_config_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 458
+  },
+  "folder_connection.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta conexão",
+    "nome": "folder_connection",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 431
+  },
+  "folder_connection_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta conexão aberta",
+    "nome": "folder_connection_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 460
+  },
+  "folder_constant.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta constantes",
+    "nome": "folder_constant",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 441
+  },
+  "folder_constant_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta constantes aberta",
+    "nome": "folder_constant_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 470
+  },
+  "folder_content.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta conteúdo",
+    "nome": "folder_content",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 753
+  },
+  "folder_content_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta conteúdo aberta",
+    "nome": "folder_content_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 692
+  },
+  "folder_controllers.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta controladores",
+    "nome": "folder_controllers",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 670
+  },
+  "folder_controllers_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta controladores aberta",
+    "nome": "folder_controllers_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 699
+  },
+  "folder_core.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta núcleo",
+    "nome": "folder_core",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 601
+  },
+  "folder_core_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta núcleo aberta",
+    "nome": "folder_core_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 630
+  },
+  "folder_coverage.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta cobertura de testes",
+    "nome": "folder_coverage",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 532
+  },
+  "folder_coverage_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta cobertura de testes aberta",
+    "nome": "folder_coverage_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 561
+  },
+  "folder_cursor.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Cursor",
+    "nome": "folder_cursor",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 567
+  },
+  "folder_cursor_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Cursor aberta",
+    "nome": "folder_cursor_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 601
+  },
+  "folder_cypress.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta Cypress",
+    "nome": "folder_cypress",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 677
+  },
+  "folder_cypress_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta Cypress aberta",
+    "nome": "folder_cypress_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 706
+  },
+  "folder_database.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta banco de dados",
+    "nome": "folder_database",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 790
+  },
+  "folder_database_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta banco de dados aberta",
+    "nome": "folder_database_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 945
+  },
+  "folder_debug.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f38ba8"
+    ],
+    "descricao": "pasta depuração",
+    "nome": "folder_debug",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 736
+  },
+  "folder_debug_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f38ba8"
+    ],
+    "descricao": "pasta depuração aberta",
+    "nome": "folder_debug_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 933
+  },
+  "folder_devcontainer.svg": {
+    "cores_dominantes": [
+      "#89dceb",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Dev Container",
+    "nome": "folder_devcontainer",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 490
+  },
+  "folder_devcontainer_open.svg": {
+    "cores_dominantes": [
+      "#89dceb",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Dev Container aberta",
+    "nome": "folder_devcontainer_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 562
+  },
+  "folder_direnv.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta direnv",
+    "nome": "folder_direnv",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 957
+  },
+  "folder_direnv_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta direnv aberta",
+    "nome": "folder_direnv_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1158
+  },
+  "folder_dist.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f38ba8"
+    ],
+    "descricao": "pasta distribuição",
+    "nome": "folder_dist",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 715
+  },
+  "folder_dist_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f38ba8"
+    ],
+    "descricao": "pasta distribuição aberta",
+    "nome": "folder_dist_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 870
+  },
+  "folder_docker.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta Docker",
+    "nome": "folder_docker",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 732
+  },
+  "folder_docker_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta Docker aberta",
+    "nome": "folder_docker_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 927
+  },
+  "folder_docs_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta documentação aberta",
+    "nome": "folder_docs_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 738
+  },
+  "folder_download_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta downloads aberta",
+    "nome": "folder_download_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 662
+  },
+  "folder_drizzle-orm.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Drizzle ORM",
+    "nome": "folder_drizzle-orm",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 520
+  },
+  "folder_drizzle-orm_open.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Drizzle ORM aberta",
+    "nome": "folder_drizzle-orm_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 591
+  },
+  "folder_examples.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta exemplos",
+    "nome": "folder_examples",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 957
+  },
+  "folder_examples_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta exemplos aberta",
+    "nome": "folder_examples_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1112
+  },
+  "folder_fastlane.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#74c7ec",
+      "#cba6f7",
+      "#a6e3a1",
+      "#89b4fa"
+    ],
+    "descricao": "pasta Fastlane",
+    "nome": "folder_fastlane",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 952
+  },
+  "folder_fastlane_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#74c7ec",
+      "#cba6f7",
+      "#a6e3a1",
+      "#89b4fa"
+    ],
+    "descricao": "pasta Fastlane aberta",
+    "nome": "folder_fastlane_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 981
+  },
+  "folder_firebase.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta Firebase",
+    "nome": "folder_firebase",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 529
+  },
+  "folder_firebase_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta Firebase aberta",
+    "nome": "folder_firebase_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 684
+  },
+  "folder_fonts.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f2cdcd"
+    ],
+    "descricao": "pasta fontes",
+    "nome": "folder_fonts",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 582
+  },
+  "folder_fonts_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f2cdcd"
+    ],
+    "descricao": "pasta fontes aberta",
+    "nome": "folder_fonts_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 737
+  },
+  "folder_forgejo.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#f38ba8",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Forgejo",
+    "nome": "folder_forgejo",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1029
+  },
+  "folder_forgejo_open.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#f38ba8",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Forgejo aberta",
+    "nome": "folder_forgejo_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1100
+  },
+  "folder_functions.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta funções",
+    "nome": "folder_functions",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 736
+  },
+  "folder_functions_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta funções aberta",
+    "nome": "folder_functions_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 891
+  },
+  "folder_fvm.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta FVM",
+    "nome": "folder_fvm",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 547
+  },
+  "folder_fvm_open.svg": {
+    "cores_dominantes": [
+      "#cba6f7",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta FVM aberta",
+    "nome": "folder_fvm_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 618
+  },
+  "folder_git.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta Git",
+    "nome": "folder_git",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1026
+  },
+  "folder_git_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta Git aberta",
+    "nome": "folder_git_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1181
+  },
+  "folder_github.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta GitHub",
+    "nome": "folder_github",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1074
+  },
+  "folder_github_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta GitHub aberta",
+    "nome": "folder_github_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1229
+  },
+  "folder_gitlab.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta GitLab",
+    "nome": "folder_gitlab",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 531
+  },
+  "folder_gitlab_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta GitLab aberta",
+    "nome": "folder_gitlab_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 686
+  },
+  "folder_gradle.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#74c7ec"
+    ],
+    "descricao": "pasta Gradle",
+    "nome": "folder_gradle",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 975
+  },
+  "folder_gradle_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#74c7ec"
+    ],
+    "descricao": "pasta Gradle aberta",
+    "nome": "folder_gradle_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1130
+  },
+  "folder_graphql.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "pasta GraphQL",
+    "nome": "folder_graphql",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 625
+  },
+  "folder_graphql_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "pasta GraphQL aberta",
+    "nome": "folder_graphql_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 644
+  },
+  "folder_hooks.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta hooks",
+    "nome": "folder_hooks",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 651
+  },
+  "folder_hooks_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta hooks aberta",
+    "nome": "folder_hooks_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 807
+  },
+  "folder_husky.svg": {
+    "cores_dominantes": [
+      "#f5e0dc",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Husky",
+    "nome": "folder_husky",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 2096
+  },
+  "folder_husky_open.svg": {
+    "cores_dominantes": [
+      "#f5e0dc",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Husky aberta",
+    "nome": "folder_husky_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 2249
+  },
+  "folder_images_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1",
+      "#74c7ec",
+      "#f9e2af"
+    ],
+    "descricao": "pasta imagens aberta",
+    "nome": "folder_images_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 996
+  },
+  "folder_include.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta includes",
+    "nome": "folder_include",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 602
+  },
+  "folder_include_open.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta includes aberta",
+    "nome": "folder_include_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 631
+  },
+  "folder_intellij.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7",
+      "#f38ba8",
+      "#89b4fa"
+    ],
+    "descricao": "pasta IntelliJ",
+    "nome": "folder_intellij",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 638
+  },
+  "folder_intellij_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7",
+      "#f38ba8",
+      "#89b4fa"
+    ],
+    "descricao": "pasta IntelliJ aberta",
+    "nome": "folder_intellij_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 793
+  },
+  "folder_javascript.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta JavaScript",
+    "nome": "folder_javascript",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 886
+  },
+  "folder_javascript_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta JavaScript aberta",
+    "nome": "folder_javascript_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 923
+  },
+  "folder_kubernetes.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta Kubernetes",
+    "nome": "folder_kubernetes",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 896
+  },
+  "folder_kubernetes_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta Kubernetes aberta",
+    "nome": "folder_kubernetes_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1051
+  },
+  "folder_layouts.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta layouts",
+    "nome": "folder_layouts",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 676
+  },
+  "folder_layouts_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta layouts aberta",
+    "nome": "folder_layouts_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 831
+  },
+  "folder_lib.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta bibliotecas",
+    "nome": "folder_lib",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1227
+  },
+  "folder_lib_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta bibliotecas aberta",
+    "nome": "folder_lib_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1247
+  },
+  "folder_linux.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c",
+      "#f9e2af"
+    ],
+    "descricao": "pasta Linux",
+    "nome": "folder_linux",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1037
+  },
+  "folder_linux_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c",
+      "#f9e2af"
+    ],
+    "descricao": "pasta Linux aberta",
+    "nome": "folder_linux_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1060
+  },
+  "folder_locales.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta idiomas",
+    "nome": "folder_locales",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 608
+  },
+  "folder_locales_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta idiomas aberta",
+    "nome": "folder_locales_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 763
+  },
+  "folder_luau.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta Luau",
+    "nome": "folder_luau",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 615
+  },
+  "folder_luau_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta Luau aberta",
+    "nome": "folder_luau_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 644
+  },
+  "folder_lune.svg": {
+    "cores_dominantes": [
+      "#f5c2e7",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Lune",
+    "nome": "folder_lune",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 724
+  },
+  "folder_lune_open.svg": {
+    "cores_dominantes": [
+      "#f5c2e7",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Lune aberta",
+    "nome": "folder_lune_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 756
+  },
+  "folder_macos.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa",
+      "#89dceb"
+    ],
+    "descricao": "pasta macOS",
+    "nome": "folder_macos",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1482
+  },
+  "folder_macos_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa",
+      "#89dceb"
+    ],
+    "descricao": "pasta macOS aberta",
+    "nome": "folder_macos_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1497
+  },
+  "folder_messages.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f2cdcd"
+    ],
+    "descricao": "pasta mensagens",
+    "nome": "folder_messages",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 694
+  },
+  "folder_messages_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f2cdcd"
+    ],
+    "descricao": "pasta mensagens aberta",
+    "nome": "folder_messages_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 735
+  },
+  "folder_middleware.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta middleware",
+    "nome": "folder_middleware",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 975
+  },
+  "folder_middleware_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta middleware aberta",
+    "nome": "folder_middleware_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1130
+  },
+  "folder_mocks.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta mocks",
+    "nome": "folder_mocks",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 765
+  },
+  "folder_mocks_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta mocks aberta",
+    "nome": "folder_mocks_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 920
+  },
+  "folder_moonrepo.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7",
+      "#b4befe"
+    ],
+    "descricao": "pasta moonrepo",
+    "nome": "folder_moonrepo",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 846
+  },
+  "folder_moonrepo_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7",
+      "#b4befe"
+    ],
+    "descricao": "pasta moonrepo aberta",
+    "nome": "folder_moonrepo_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 876
+  },
+  "folder_next.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta Next.js",
+    "nome": "folder_next",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 748
+  },
+  "folder_next_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta Next.js aberta",
+    "nome": "folder_next_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 903
+  },
+  "folder_nix.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#89b4fa",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Nix",
+    "nome": "folder_nix",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1026
+  },
+  "folder_nix_open.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#89b4fa",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Nix aberta",
+    "nome": "folder_nix_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1181
+  },
+  "folder_node.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta Node.js",
+    "nome": "folder_node",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 560
+  },
+  "folder_node_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta Node.js aberta",
+    "nome": "folder_node_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 715
+  },
+  "folder_nuxt.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta Nuxt",
+    "nome": "folder_nuxt",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1095
+  },
+  "folder_nuxt_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta Nuxt aberta",
+    "nome": "folder_nuxt_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1250
+  },
+  "folder_packages.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta pacotes",
+    "nome": "folder_packages",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 592
+  },
+  "folder_packages_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta pacotes aberta",
+    "nome": "folder_packages_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 783
+  },
+  "folder_pesde.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta pesde",
+    "nome": "folder_pesde",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 970
+  },
+  "folder_pesde_open.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta pesde aberta",
+    "nome": "folder_pesde_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1000
+  },
+  "folder_plugins.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta plugins",
+    "nome": "folder_plugins",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 783
+  },
+  "folder_plugins_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta plugins aberta",
+    "nome": "folder_plugins_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 938
+  },
+  "folder_pre-commit.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta pre-commit",
+    "nome": "folder_pre-commit",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 839
+  },
+  "folder_pre-commit_open.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta pre-commit aberta",
+    "nome": "folder_pre-commit_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 991
+  },
+  "folder_prisma.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta Prisma",
+    "nome": "folder_prisma",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 522
+  },
+  "folder_prisma_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta Prisma aberta",
+    "nome": "folder_prisma_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 677
+  },
+  "folder_private.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta privada",
+    "nome": "folder_private",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 573
+  },
+  "folder_private_open.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta privada aberta",
+    "nome": "folder_private_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 602
+  },
+  "folder_proto.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f38ba8",
+      "#89b4fa",
+      "#f9e2af",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta Protobuf",
+    "nome": "folder_proto",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 838
+  },
+  "folder_proto_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f38ba8",
+      "#89b4fa",
+      "#f9e2af",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta Protobuf aberta",
+    "nome": "folder_proto_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1034
+  },
+  "folder_public_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#74c7ec"
+    ],
+    "descricao": "pasta pública aberta",
+    "nome": "folder_public_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 955
+  },
+  "folder_queue.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta filas",
+    "nome": "folder_queue",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 538
+  },
+  "folder_queue_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta filas aberta",
+    "nome": "folder_queue_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 693
+  },
+  "folder_redux.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta Redux",
+    "nome": "folder_redux",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1017
+  },
+  "folder_redux_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta Redux aberta",
+    "nome": "folder_redux_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1171
+  },
+  "folder_renovate.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta Renovate",
+    "nome": "folder_renovate",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1258
+  },
+  "folder_renovate_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta Renovate aberta",
+    "nome": "folder_renovate_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1326
+  },
+  "folder_roblox.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Roblox",
+    "nome": "folder_roblox",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 445
+  },
+  "folder_roblox_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Roblox aberta",
+    "nome": "folder_roblox_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 477
+  },
+  "folder_routes.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta rotas",
+    "nome": "folder_routes",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 563
+  },
+  "folder_routes_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta rotas aberta",
+    "nome": "folder_routes_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 718
+  },
+  "folder_sass.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "pasta Sass",
+    "nome": "folder_sass",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1128
+  },
+  "folder_sass_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "pasta Sass aberta",
+    "nome": "folder_sass_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1283
+  },
+  "folder_scripts.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta scripts",
+    "nome": "folder_scripts",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 942
+  },
+  "folder_scripts_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta scripts aberta",
+    "nome": "folder_scripts_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1097
+  },
+  "folder_security.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f2cdcd"
+    ],
+    "descricao": "pasta segurança",
+    "nome": "folder_security",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 859
+  },
+  "folder_security_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f2cdcd"
+    ],
+    "descricao": "pasta segurança aberta",
+    "nome": "folder_security_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 888
+  },
+  "folder_server.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta servidor",
+    "nome": "folder_server",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 590
+  },
+  "folder_server_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "pasta servidor aberta",
+    "nome": "folder_server_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 745
+  },
+  "folder_shared.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "pasta compartilhada",
+    "nome": "folder_shared",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 577
+  },
+  "folder_shared_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "pasta compartilhada aberta",
+    "nome": "folder_shared_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 605
+  },
+  "folder_src.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta código-fonte",
+    "nome": "folder_src",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 500
+  },
+  "folder_src_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta código-fonte aberta",
+    "nome": "folder_src_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 655
+  },
+  "folder_storybook.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "pasta Storybook",
+    "nome": "folder_storybook",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 612
+  },
+  "folder_storybook_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "pasta Storybook aberta",
+    "nome": "folder_storybook_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 757
+  },
+  "folder_styles.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta estilos",
+    "nome": "folder_styles",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 917
+  },
+  "folder_styles_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta estilos aberta",
+    "nome": "folder_styles_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1072
+  },
+  "folder_svg.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta SVG",
+    "nome": "folder_svg",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1948
+  },
+  "folder_svg_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta SVG aberta",
+    "nome": "folder_svg_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 2103
+  },
+  "folder_symlink.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta link simbólico",
+    "nome": "folder_symlink",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 667
+  },
+  "folder_symlink_open.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta link simbólico aberta",
+    "nome": "folder_symlink_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 698
+  },
+  "folder_tauri.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#89dceb",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Tauri",
+    "nome": "folder_tauri",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1217
+  },
+  "folder_tauri_open.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#89dceb",
+      "#cdd6f4"
+    ],
+    "descricao": "pasta Tauri aberta",
+    "nome": "folder_tauri_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1372
+  },
+  "folder_temp.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta temporária",
+    "nome": "folder_temp",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 608
+  },
+  "folder_temp_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta temporária aberta",
+    "nome": "folder_temp_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 763
+  },
+  "folder_templates_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#eba0ac"
+    ],
+    "descricao": "pasta modelos aberta",
+    "nome": "folder_templates_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1050
+  },
+  "folder_tests.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta testes",
+    "nome": "folder_tests",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 725
+  },
+  "folder_tests_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta testes aberta",
+    "nome": "folder_tests_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 839
+  },
+  "folder_themes.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5e0dc",
+      "#f38ba8",
+      "#a6e3a1",
+      "#89b4fa"
+    ],
+    "descricao": "pasta temas",
+    "nome": "folder_themes",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1086
+  },
+  "folder_themes_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5e0dc",
+      "#f38ba8",
+      "#a6e3a1",
+      "#89b4fa"
+    ],
+    "descricao": "pasta temas aberta",
+    "nome": "folder_themes_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1241
+  },
+  "folder_turbo.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa",
+      "#cba6f7",
+      "#eba0ac"
+    ],
+    "descricao": "pasta Turborepo",
+    "nome": "folder_turbo",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 797
+  },
+  "folder_turbo_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#eba0ac",
+      "#89b4fa",
+      "#cba6f7"
+    ],
+    "descricao": "pasta Turborepo aberta",
+    "nome": "folder_turbo_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 915
+  },
+  "folder_types.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta tipos",
+    "nome": "folder_types",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 499
+  },
+  "folder_types_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "pasta tipos aberta",
+    "nome": "folder_types_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 654
+  },
+  "folder_upload.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta uploads",
+    "nome": "folder_upload",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 576
+  },
+  "folder_upload_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "pasta uploads aberta",
+    "nome": "folder_upload_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 731
+  },
+  "folder_utils.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta utilitários",
+    "nome": "folder_utils",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 797
+  },
+  "folder_utils_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta utilitários aberta",
+    "nome": "folder_utils_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 927
+  },
+  "folder_vercel.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta Vercel",
+    "nome": "folder_vercel",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 470
+  },
+  "folder_vercel_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "pasta Vercel aberta",
+    "nome": "folder_vercel_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 625
+  },
+  "folder_video_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta vídeos aberta",
+    "nome": "folder_video_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 655
+  },
+  "folder_views.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta views",
+    "nome": "folder_views",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 967
+  },
+  "folder_views_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta views aberta",
+    "nome": "folder_views_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1122
+  },
+  "folder_vscode.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta VS Code",
+    "nome": "folder_vscode",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 833
+  },
+  "folder_vscode_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta VS Code aberta",
+    "nome": "folder_vscode_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 988
+  },
+  "folder_windows.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta Windows",
+    "nome": "folder_windows",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 731
+  },
+  "folder_windows_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "pasta Windows aberta",
+    "nome": "folder_windows_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 763
+  },
+  "folder_workflows.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta fluxos de trabalho",
+    "nome": "folder_workflows",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 916
+  },
+  "folder_workflows_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "pasta fluxos de trabalho aberta",
+    "nome": "folder_workflows_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1071
+  },
+  "folder_wxt.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta WXT",
+    "nome": "folder_wxt",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1163
+  },
+  "folder_wxt_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta WXT aberta",
+    "nome": "folder_wxt_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1189
+  },
+  "folder_xcode.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa",
+      "#7f849c"
+    ],
+    "descricao": "pasta Xcode",
+    "nome": "folder_xcode",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1250
+  },
+  "folder_xcode_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa",
+      "#7f849c"
+    ],
+    "descricao": "pasta Xcode aberta",
+    "nome": "folder_xcode_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1351
+  },
+  "folder_xmake.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#74c7ec",
+      "#94e2d5",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta xmake",
+    "nome": "folder_xmake",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 795
+  },
+  "folder_xmake_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#74c7ec",
+      "#94e2d5",
+      "#a6e3a1"
+    ],
+    "descricao": "pasta xmake aberta",
+    "nome": "folder_xmake_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 816
+  },
+  "folder_yarn.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta Yarn",
+    "nome": "folder_yarn",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1127
+  },
+  "folder_yarn_open.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "pasta Yarn aberta",
+    "nome": "folder_yarn_open",
+    "tags": [
+      "pastas"
+    ],
+    "tamanho_bytes": 1113
+  },
+  "foreman.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#cdd6f4",
+      "#f5e0dc",
+      "#fab387"
+    ],
+    "descricao": "Foreman",
+    "nome": "foreman",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1294
+  },
+  "forgejo.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#f38ba8"
+    ],
+    "descricao": "Forgejo",
+    "nome": "forgejo",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 772
+  },
+  "fsharp.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "F#",
+    "nome": "fsharp",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 274
+  },
+  "fvm.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "FVM",
+    "nome": "fvm",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 339
+  },
+  "gatsby.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Gatsby",
+    "nome": "gatsby",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 361
+  },
+  "gcp.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#89b4fa",
+      "#a6e3a1",
+      "#f9e2af"
+    ],
+    "descricao": "Google Cloud",
+    "nome": "gcp",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 1250
+  },
+  "git-cliff.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#7f849c"
+    ],
+    "descricao": "git-cliff",
+    "nome": "git-cliff",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 906
+  },
+  "github.svg": {
+    "descricao": "GitHub",
+    "nome": "github",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 695
+  },
+  "gitlab.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "GitLab",
+    "nome": "gitlab",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 243
+  },
+  "gitpod.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Gitpod",
+    "nome": "gitpod",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 629
+  },
+  "gleam-config.svg": {
+    "cores_dominantes": [
+      "#f5c2e7",
+      "#7f849c"
+    ],
+    "descricao": "configuração do Gleam",
+    "nome": "gleam-config",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1453
+  },
+  "gleam.svg": {
+    "cores_dominantes": [
+      "#f5c2e7"
+    ],
+    "descricao": "Gleam",
+    "nome": "gleam",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 1317
+  },
+  "go-mod.svg": {
+    "cores_dominantes": [
+      "#74c7ec"
+    ],
+    "descricao": "módulo do Go",
+    "nome": "go-mod",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 368
+  },
+  "go-template.svg": {
+    "cores_dominantes": [
+      "#74c7ec"
+    ],
+    "descricao": "modelo do Go",
+    "nome": "go-template",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 751
+  },
+  "godot-assets.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "recursos do Godot",
+    "nome": "godot-assets",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 478
+  },
+  "godot.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "Godot",
+    "nome": "godot",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 476
+  },
+  "google-chrome.svg": {
+    "descricao": "Google Chrome",
+    "nome": "google-chrome",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 458
+  },
+  "graphql.svg": {
+    "cores_dominantes": [
+      "#f5c2e7"
+    ],
+    "descricao": "GraphQL",
+    "nome": "graphql",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 619
+  },
+  "groovy.svg": {
+    "cores_dominantes": [
+      "#74c7ec"
+    ],
+    "descricao": "Groovy",
+    "nome": "groovy",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 490
+  },
+  "gulp.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "Gulp",
+    "nome": "gulp",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 361
+  },
+  "hacking.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "guia HACKING",
+    "nome": "hacking",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 715
+  },
+  "haml.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f9e2af"
+    ],
+    "descricao": "Haml",
+    "nome": "haml",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 588
+  },
+  "handlebars.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Handlebars",
+    "nome": "handlebars",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 523
+  },
+  "hardhat.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "Hardhat",
+    "nome": "hardhat",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 716
+  },
+  "hare.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Hare",
+    "nome": "hare",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 1405
+  },
+  "haxe.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Haxe",
+    "nome": "haxe",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 416
+  },
+  "helm.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Helm",
+    "nome": "helm",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 433
+  },
+  "heroku.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Heroku",
+    "nome": "heroku",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 350
+  },
+  "histoire.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Histoire",
+    "nome": "histoire",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 283
+  },
+  "http.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "requisição HTTP",
+    "nome": "http",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 419
+  },
+  "huff.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Huff",
+    "nome": "huff",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 3176
+  },
+  "hugo.svg": {
+    "cores_dominantes": [
+      "#f5c2e7",
+      "#cdd6f4"
+    ],
+    "descricao": "Hugo",
+    "nome": "hugo",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 410
+  },
+  "humans.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#ffffff"
+    ],
+    "descricao": "humans.txt",
+    "nome": "humans",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 727
+  },
+  "husky.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Husky",
+    "nome": "husky",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 709
+  },
+  "ionic.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Ionic",
+    "nome": "ionic",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 398
+  },
+  "java-annotation.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "anotação do Java",
+    "nome": "java-annotation",
+    "tags": [
+      "linguagens",
+      "java"
+    ],
+    "tamanho_bytes": 336
+  },
+  "java-class-abstract.svg": {
+    "cores_dominantes": [
+      "#94e2d5"
+    ],
+    "descricao": "classe abstrata do Java",
+    "nome": "java-class-abstract",
+    "tags": [
+      "linguagens",
+      "java"
+    ],
+    "tamanho_bytes": 708
+  },
+  "java-class-final.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "classe final do Java",
+    "nome": "java-class-final",
+    "tags": [
+      "linguagens",
+      "java"
+    ],
+    "tamanho_bytes": 707
+  },
+  "java-class-sealed.svg": {
+    "cores_dominantes": [
+      "#b4befe"
+    ],
+    "descricao": "classe selada do Java",
+    "nome": "java-class-sealed",
+    "tags": [
+      "linguagens",
+      "java"
+    ],
+    "tamanho_bytes": 712
+  },
+  "java-class.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "classe do Java",
+    "nome": "java-class",
+    "tags": [
+      "linguagens",
+      "java"
+    ],
+    "tamanho_bytes": 708
+  },
+  "java-enum.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "enumeração do Java",
+    "nome": "java-enum",
+    "tags": [
+      "linguagens",
+      "java"
+    ],
+    "tamanho_bytes": 499
+  },
+  "java-exception.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "exceção do Java",
+    "nome": "java-exception",
+    "tags": [
+      "linguagens",
+      "java"
+    ],
+    "tamanho_bytes": 241
+  },
+  "java-interface.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "interface do Java",
+    "nome": "java-interface",
+    "tags": [
+      "linguagens",
+      "java"
+    ],
+    "tamanho_bytes": 480
+  },
+  "java-jar.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#cdd6f4"
+    ],
+    "descricao": "arquivo JAR",
+    "nome": "java-jar",
+    "tags": [
+      "linguagens",
+      "java"
+    ],
+    "tamanho_bytes": 592
+  },
+  "java-record.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "record do Java",
+    "nome": "java-record",
+    "tags": [
+      "linguagens",
+      "java"
+    ],
+    "tamanho_bytes": 581
+  },
+  "javascript-config.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#7f849c"
+    ],
+    "descricao": "configuração do JavaScript",
+    "nome": "javascript-config",
+    "tags": [
+      "configuracao",
+      "javascript"
+    ],
+    "tamanho_bytes": 570
+  },
+  "javascript-map.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#f9e2af"
+    ],
+    "descricao": "mapa de JavaScript",
+    "nome": "javascript-map",
+    "tags": [
+      "linguagens",
+      "javascript"
+    ],
+    "tamanho_bytes": 787
+  },
+  "javascript-react.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "React com JavaScript",
+    "nome": "javascript-react",
+    "tags": [
+      "frameworks",
+      "javascript"
+    ],
+    "tamanho_bytes": 626
+  },
+  "javascript-test.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "teste de JavaScript",
+    "nome": "javascript-test",
+    "tags": [
+      "ferramentas",
+      "javascript"
+    ],
+    "tamanho_bytes": 400
+  },
+  "jest.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "Jest",
+    "nome": "jest",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 629
+  },
+  "jinja.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "Jinja",
+    "nome": "jinja",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 345
+  },
+  "json-schema.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "JSON Schema",
+    "nome": "json-schema",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 484
+  },
+  "juce.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#a6e3a1",
+      "#cba6f7",
+      "#f9e2af",
+      "#94e2d5"
+    ],
+    "descricao": "JUCE",
+    "nome": "juce",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 1493
+  },
+  "jule.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "Jule",
+    "nome": "jule",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 713
+  },
+  "jupyter.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#fab387"
+    ],
+    "descricao": "Jupyter",
+    "nome": "jupyter",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 531
+  },
+  "just.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Just",
+    "nome": "just",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 467
+  },
+  "kdl.svg": {
+    "cores_dominantes": [
+      "#89dceb",
+      "#f5e0dc",
+      "#cba6f7"
+    ],
+    "descricao": "KDL",
+    "nome": "kdl",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 724
+  },
+  "key.svg": {
+    "descricao": "chave",
+    "nome": "key",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 338
+  },
+  "knip.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Knip",
+    "nome": "knip",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 750
+  },
+  "laravel.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "Laravel",
+    "nome": "laravel",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 453
+  },
+  "latex.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "LaTeX",
+    "nome": "latex",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 425
+  },
+  "latte.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#fab387"
+    ],
+    "descricao": "Latte",
+    "nome": "latte",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 564
+  },
+  "launcher.svg": {
+    "descricao": "lançador",
+    "nome": "launcher",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 310
+  },
+  "lerna.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Lerna",
+    "nome": "lerna",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1145
+  },
+  "less.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Less",
+    "nome": "less",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 545
+  },
+  "lib.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "biblioteca",
+    "nome": "lib",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 440
+  },
+  "libretorrent.svg": {
+    "descricao": "LibreTorrent",
+    "nome": "libretorrent",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 974
+  },
+  "license.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "licença",
+    "nome": "license",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 322
+  },
+  "lint-staged.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#f38ba8"
+    ],
+    "descricao": "lint-staged",
+    "nome": "lint-staged",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 764
+  },
+  "liquid.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Liquid",
+    "nome": "liquid",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 1257
+  },
+  "lock.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "cadeado",
+    "nome": "lock",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 488
+  },
+  "lua-check.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "Luacheck",
+    "nome": "lua-check",
+    "tags": [
+      "ferramentas",
+      "lua"
+    ],
+    "tamanho_bytes": 875
+  },
+  "lua-client.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#cdd6f4"
+    ],
+    "descricao": "cliente do Lua",
+    "nome": "lua-client",
+    "tags": [
+      "ferramentas",
+      "lua"
+    ],
+    "tamanho_bytes": 1174
+  },
+  "lua-rocks.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "LuaRocks",
+    "nome": "lua-rocks",
+    "tags": [
+      "ferramentas",
+      "lua"
+    ],
+    "tamanho_bytes": 860
+  },
+  "lua-server.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#cdd6f4",
+      "#89b4fa"
+    ],
+    "descricao": "servidor do Lua",
+    "nome": "lua-server",
+    "tags": [
+      "ferramentas",
+      "lua"
+    ],
+    "tamanho_bytes": 1095
+  },
+  "lua-test.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#cdd6f4"
+    ],
+    "descricao": "teste de Lua",
+    "nome": "lua-test",
+    "tags": [
+      "ferramentas",
+      "lua"
+    ],
+    "tamanho_bytes": 749
+  },
+  "luau-check.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#89dceb",
+      "#cdd6f4"
+    ],
+    "descricao": "verificação do Luau",
+    "nome": "luau-check",
+    "tags": [
+      "ferramentas",
+      "luau"
+    ],
+    "tamanho_bytes": 641
+  },
+  "luau-client.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#89dceb",
+      "#cdd6f4"
+    ],
+    "descricao": "cliente do Luau",
+    "nome": "luau-client",
+    "tags": [
+      "ferramentas",
+      "luau"
+    ],
+    "tamanho_bytes": 718
+  },
+  "luau-config.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#89dceb",
+      "#cdd6f4"
+    ],
+    "descricao": "configuração do Luau",
+    "nome": "luau-config",
+    "tags": [
+      "configuracao",
+      "luau"
+    ],
+    "tamanho_bytes": 727
+  },
+  "luau-server.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#89dceb",
+      "#cdd6f4"
+    ],
+    "descricao": "servidor do Luau",
+    "nome": "luau-server",
+    "tags": [
+      "ferramentas",
+      "luau"
+    ],
+    "tamanho_bytes": 639
+  },
+  "luau-test.svg": {
+    "cores_dominantes": [
+      "#89dceb",
+      "#cdd6f4"
+    ],
+    "descricao": "teste de Luau",
+    "nome": "luau-test",
+    "tags": [
+      "ferramentas",
+      "luau"
+    ],
+    "tamanho_bytes": 698
+  },
+  "luau.svg": {
+    "cores_dominantes": [
+      "#89dceb",
+      "#cdd6f4"
+    ],
+    "descricao": "Luau",
+    "nome": "luau",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 411
+  },
+  "macos.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#cdd6f4",
+      "#89dceb"
+    ],
+    "descricao": "macOS",
+    "nome": "macos",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1305
+  },
+  "mantle.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Mantle",
+    "nome": "mantle",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 2285
+  },
+  "markdown-mdx.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "MDX",
+    "nome": "markdown-mdx",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 375
+  },
+  "marko.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#89b4fa",
+      "#94e2d5",
+      "#a6e3a1",
+      "#f9e2af"
+    ],
+    "descricao": "Marko",
+    "nome": "marko",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 491
+  },
+  "mdbook.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "mdBook",
+    "nome": "mdbook",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1031
+  },
+  "mermaid.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Mermaid",
+    "nome": "mermaid",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 316
+  },
+  "meson.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Meson",
+    "nome": "meson",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 500
+  },
+  "mjml.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "MJML",
+    "nome": "mjml",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 392
+  },
+  "modernizr.svg": {
+    "cores_dominantes": [
+      "#f5c2e7"
+    ],
+    "descricao": "Modernizr",
+    "nome": "modernizr",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 242
+  },
+  "moon.svg": {
+    "descricao": "lua crescente",
+    "nome": "moon",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 331
+  },
+  "moonrepo.svg": {
+    "cores_dominantes": [
+      "#cba6f7",
+      "#b4befe"
+    ],
+    "descricao": "moonrepo",
+    "nome": "moonrepo",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 659
+  },
+  "moonwave.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "Moonwave",
+    "nome": "moonwave",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 357
+  },
+  "ms-excel.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Microsoft Excel",
+    "nome": "ms-excel",
+    "tags": [
+      "aplicativos",
+      "microsoft"
+    ],
+    "tamanho_bytes": 397
+  },
+  "ms-powerpoint.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Microsoft PowerPoint",
+    "nome": "ms-powerpoint",
+    "tags": [
+      "aplicativos",
+      "microsoft"
+    ],
+    "tamanho_bytes": 408
+  },
+  "ms-word.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "Microsoft Word",
+    "nome": "ms-word",
+    "tags": [
+      "aplicativos",
+      "microsoft"
+    ],
+    "tamanho_bytes": 389
+  },
+  "msbuild.svg": {
+    "cores_dominantes": [
+      "#b4befe",
+      "#cba6f7"
+    ],
+    "descricao": "MSBuild",
+    "nome": "msbuild",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 2380
+  },
+  "music.svg": {
+    "descricao": "música",
+    "nome": "music",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 493
+  },
+  "nativescript.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "NativeScript",
+    "nome": "nativescript",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 496
+  },
+  "nest-controller.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "controlador do NestJS",
+    "nome": "nest-controller",
+    "tags": [
+      "frameworks",
+      "nest"
+    ],
+    "tamanho_bytes": 688
+  },
+  "nest-decorator.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "decorador do NestJS",
+    "nome": "nest-decorator",
+    "tags": [
+      "frameworks",
+      "nest"
+    ],
+    "tamanho_bytes": 689
+  },
+  "nest-filter.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "filtro do NestJS",
+    "nome": "nest-filter",
+    "tags": [
+      "frameworks",
+      "nest"
+    ],
+    "tamanho_bytes": 689
+  },
+  "nest-gateway.svg": {
+    "cores_dominantes": [
+      "#74c7ec"
+    ],
+    "descricao": "gateway do NestJS",
+    "nome": "nest-gateway",
+    "tags": [
+      "frameworks",
+      "nest"
+    ],
+    "tamanho_bytes": 692
+  },
+  "nest-guard.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "guarda do NestJS",
+    "nome": "nest-guard",
+    "tags": [
+      "frameworks",
+      "nest"
+    ],
+    "tamanho_bytes": 689
+  },
+  "nest-middleware.svg": {
+    "cores_dominantes": [
+      "#b4befe"
+    ],
+    "descricao": "middleware do NestJS",
+    "nome": "nest-middleware",
+    "tags": [
+      "frameworks",
+      "nest"
+    ],
+    "tamanho_bytes": 692
+  },
+  "nest-pipe.svg": {
+    "cores_dominantes": [
+      "#94e2d5"
+    ],
+    "descricao": "pipe do NestJS",
+    "nome": "nest-pipe",
+    "tags": [
+      "frameworks",
+      "nest"
+    ],
+    "tamanho_bytes": 688
+  },
+  "nest-service.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "serviço do NestJS",
+    "nome": "nest-service",
+    "tags": [
+      "frameworks",
+      "nest"
+    ],
+    "tamanho_bytes": 690
+  },
+  "nest.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "NestJS",
+    "nome": "nest",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 687
+  },
+  "netlify.svg": {
+    "cores_dominantes": [
+      "#94e2d5",
+      "#cdd6f4"
+    ],
+    "descricao": "Netlify",
+    "nome": "netlify",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 338
+  },
+  "network.svg": {
+    "descricao": "rede",
+    "nome": "network",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 830
+  },
+  "next.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Next.js",
+    "nome": "next",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 287
+  },
+  "nextflow.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Nextflow",
+    "nome": "nextflow",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 425
+  },
+  "nginx.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Nginx",
+    "nome": "nginx",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 278
+  },
+  "ninja.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Ninja",
+    "nome": "ninja",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 458
+  },
+  "nix-lock.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#89b4fa",
+      "#7f849c"
+    ],
+    "descricao": "trava do Nix",
+    "nome": "nix-lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 854
+  },
+  "nix.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#89b4fa"
+    ],
+    "descricao": "Nix",
+    "nome": "nix",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 631
+  },
+  "nodemon.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Nodemon",
+    "nome": "nodemon",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 630
+  },
+  "notifications.svg": {
+    "descricao": "notificações",
+    "nome": "notifications",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 546
+  },
+  "npm-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do npm",
+    "nome": "npm-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 357
+  },
+  "npm-lock.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#cdd6f4",
+      "#f38ba8"
+    ],
+    "descricao": "trava do npm",
+    "nome": "npm-lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 523
+  },
+  "npm.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#cdd6f4"
+    ],
+    "descricao": "npm",
+    "nome": "npm",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 384
+  },
+  "nuget.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "NuGet",
+    "nome": "nuget",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 357
+  },
+  "nunjucks.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Nunjucks",
+    "nome": "nunjucks",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 304
+  },
+  "nuxt-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do Nuxt",
+    "nome": "nuxt-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 263
+  },
+  "nuxt.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Nuxt",
+    "nome": "nuxt",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 260
+  },
+  "nx-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do Nx",
+    "nome": "nx-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1034
+  },
+  "nx.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "Nx",
+    "nome": "nx",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1024
+  },
+  "odin.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "Odin",
+    "nome": "odin",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 763
+  },
+  "onlyoffice-documents.svg": {
+    "descricao": "ONLYOFFICE Documentos",
+    "nome": "onlyoffice-documents",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 837
+  },
+  "opentofu.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "OpenTofu",
+    "nome": "opentofu",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 543
+  },
+  "org.gimp.GIMP-discreta.svg": {
+    "descricao": "GIMP discreto",
+    "nome": "org.gimp.GIMP-discreta",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1418
+  },
+  "package-json.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "package.json",
+    "nome": "package-json",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 400
+  },
+  "palette.svg": {
+    "descricao": "paleta de cores",
+    "nome": "palette",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 615
+  },
+  "panda-css.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "Panda CSS",
+    "nome": "panda-css",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 803
+  },
+  "pesde-lock.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#7f849c"
+    ],
+    "descricao": "trava do pesde",
+    "nome": "pesde-lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1509
+  },
+  "pesde.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "pesde",
+    "nome": "pesde",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1064
+  },
+  "phone.svg": {
+    "descricao": "telefone",
+    "nome": "phone",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 583
+  },
+  "photo-editor.svg": {
+    "descricao": "editor de fotos",
+    "nome": "photo-editor",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 693
+  },
+  "phrase.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "Phrase",
+    "nome": "phrase",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 371
+  },
+  "phtml.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "PHTML",
+    "nome": "phtml",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 525
+  },
+  "pixi-lock.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#7f849c",
+      "#cdd6f4"
+    ],
+    "descricao": "trava do Pixi",
+    "nome": "pixi-lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1366
+  },
+  "pixi.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#cdd6f4"
+    ],
+    "descricao": "Pixi",
+    "nome": "pixi",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1619
+  },
+  "plantuml.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "PlantUML",
+    "nome": "plantuml",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 660
+  },
+  "player.svg": {
+    "descricao": "reprodutor",
+    "nome": "player",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1153
+  },
+  "playwright.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#a6e3a1"
+    ],
+    "descricao": "Playwright",
+    "nome": "playwright",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 943
+  },
+  "plop.svg": {
+    "cores_dominantes": [
+      "#94e2d5"
+    ],
+    "descricao": "Plop",
+    "nome": "plop",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 409
+  },
+  "pnpm-lock.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "trava do pnpm",
+    "nome": "pnpm-lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 583
+  },
+  "pnpm.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#cdd6f4"
+    ],
+    "descricao": "pnpm",
+    "nome": "pnpm",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 414
+  },
+  "poetry-lock.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#89dceb",
+      "#cba6f7",
+      "#89b4fa"
+    ],
+    "descricao": "trava do Poetry",
+    "nome": "poetry-lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1247
+  },
+  "postcss.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "PostCSS",
+    "nome": "postcss",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 444
+  },
+  "power.svg": {
+    "descricao": "botão de energia",
+    "nome": "power",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 441
+  },
+  "powershell.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "PowerShell",
+    "nome": "powershell",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 430
+  },
+  "pre-commit.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "pre-commit",
+    "nome": "pre-commit",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 554
+  },
+  "premake.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#f9e2af",
+      "#89b4fa"
+    ],
+    "descricao": "Premake",
+    "nome": "premake",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 938
+  },
+  "prettier-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do Prettier",
+    "nome": "prettier-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 278
+  },
+  "prettier.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#f9e2af",
+      "#cba6f7",
+      "#f38ba8"
+    ],
+    "descricao": "Prettier",
+    "nome": "prettier",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 446
+  },
+  "prisma.svg": {
+    "cores_dominantes": [
+      "#94e2d5"
+    ],
+    "descricao": "Prisma",
+    "nome": "prisma",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 238
+  },
+  "prolog.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Prolog",
+    "nome": "prolog",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 667
+  },
+  "properties.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "arquivo de propriedades",
+    "nome": "properties",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 585
+  },
+  "proto.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#89b4fa",
+      "#f9e2af",
+      "#a6e3a1"
+    ],
+    "descricao": "Protobuf",
+    "nome": "proto",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 446
+  },
+  "proton.svg": {
+    "descricao": "Proton",
+    "nome": "proton",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 508
+  },
+  "prototools.svg": {
+    "cores_dominantes": [
+      "#f5c2e7"
+    ],
+    "descricao": "configuração do proto",
+    "nome": "prototools",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 814
+  },
+  "pug.svg": {
+    "cores_dominantes": [
+      "#f5e0dc"
+    ],
+    "descricao": "Pug",
+    "nome": "pug",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 784
+  },
+  "puppet.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "Puppet",
+    "nome": "puppet",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 375
+  },
+  "puppeteer.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "Puppeteer",
+    "nome": "puppeteer",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 678
+  },
+  "python-compiled.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "Python compilado",
+    "nome": "python-compiled",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 657
+  },
+  "python-config.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#f9e2af",
+      "#7f849c"
+    ],
+    "descricao": "configuração do Python",
+    "nome": "python-config",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 996
+  },
+  "qwik.svg": {
+    "cores_dominantes": [
+      "#cba6f7",
+      "#89dceb"
+    ],
+    "descricao": "Qwik",
+    "nome": "qwik",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 608
+  },
+  "racket.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#f38ba8"
+    ],
+    "descricao": "Racket",
+    "nome": "racket",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 492
+  },
+  "razor.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Razor",
+    "nome": "razor",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 336
+  },
+  "rdata.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#7f849c"
+    ],
+    "descricao": "dados do R",
+    "nome": "rdata",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 1194
+  },
+  "reason.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "ReasonML",
+    "nome": "reason",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 382
+  },
+  "redwood.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "RedwoodJS",
+    "nome": "redwood",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 592
+  },
+  "release.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#74c7ec",
+      "#f9e2af",
+      "#cdd6f4"
+    ],
+    "descricao": "lançamento de versão",
+    "nome": "release",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1268
+  },
+  "remix.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Remix",
+    "nome": "remix",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 345
+  },
+  "renovate.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#94e2d5"
+    ],
+    "descricao": "Renovate",
+    "nome": "renovate",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 726
+  },
+  "rescript.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "ReScript",
+    "nome": "rescript",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 446
+  },
+  "rmd.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "R Markdown",
+    "nome": "rmd",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 769
+  },
+  "roblox.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Roblox",
+    "nome": "roblox",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 360
+  },
+  "robots.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "robots.txt",
+    "nome": "robots",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 509
+  },
+  "rocket.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "foguete",
+    "nome": "rocket",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1989
+  },
+  "rojo.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "Rojo",
+    "nome": "rojo",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 398
+  },
+  "rokit.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "Rokit",
+    "nome": "rokit",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1086
+  },
+  "rollup.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#f9e2af"
+    ],
+    "descricao": "Rollup",
+    "nome": "rollup",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 528
+  },
+  "rproj.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "projeto do RStudio",
+    "nome": "rproj",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 824
+  },
+  "rsml.svg": {
+    "cores_dominantes": [
+      "#89dceb",
+      "#a6e3a1",
+      "#f9e2af",
+      "#f38ba8",
+      "#f5c2e7"
+    ],
+    "descricao": "RSML",
+    "nome": "rsml",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 1096
+  },
+  "ruby-gem-lock.svg": {
+    "cores_dominantes": [
+      "#f38ba8",
+      "#7f849c"
+    ],
+    "descricao": "trava de gems do Ruby",
+    "nome": "ruby-gem-lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 485
+  },
+  "ruby-gem.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "gem do Ruby",
+    "nome": "ruby-gem",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 287
+  },
+  "ruff.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Ruff",
+    "nome": "ruff",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 2439
+  },
+  "rust-alt-config.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#fab387"
+    ],
+    "descricao": "configuração do Rust",
+    "nome": "rust-alt-config",
+    "tags": [
+      "configuracao",
+      "rust"
+    ],
+    "tamanho_bytes": 1097
+  },
+  "rust-alt.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Rust",
+    "nome": "rust-alt",
+    "tags": [
+      "ferramentas",
+      "rust"
+    ],
+    "tamanho_bytes": 1064
+  },
+  "rust-config.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#fab387"
+    ],
+    "descricao": "configuração do Rust",
+    "nome": "rust-config",
+    "tags": [
+      "configuracao",
+      "rust"
+    ],
+    "tamanho_bytes": 990
+  },
+  "salesforce.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "Salesforce",
+    "nome": "salesforce",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 1073
+  },
+  "screen-recorder.svg": {
+    "descricao": "gravador de tela",
+    "nome": "screen-recorder",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 413
+  },
+  "search.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "busca",
+    "nome": "search",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 266
+  },
+  "security.svg": {
+    "cores_dominantes": [
+      "#f2cdcd"
+    ],
+    "descricao": "segurança",
+    "nome": "security",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 733
+  },
+  "semantic-release.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "semantic-release",
+    "nome": "semantic-release",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 447
+  },
+  "semgrep-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do Semgrep",
+    "nome": "semgrep-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 312
+  },
+  "semgrep.svg": {
+    "cores_dominantes": [
+      "#94e2d5"
+    ],
+    "descricao": "Semgrep",
+    "nome": "semgrep",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 308
+  },
+  "sentry.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Sentry",
+    "nome": "sentry",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 439
+  },
+  "serverless.svg": {
+    "cores_dominantes": [
+      "#f38ba8"
+    ],
+    "descricao": "Serverless",
+    "nome": "serverless",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 287
+  },
+  "shader.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "shader",
+    "nome": "shader",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 476
+  },
+  "signal.svg": {
+    "descricao": "Signal",
+    "nome": "signal",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1026
+  },
+  "sketch.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Sketch",
+    "nome": "sketch",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 416
+  },
+  "slidesk.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#cdd6f4"
+    ],
+    "descricao": "Slidesk",
+    "nome": "slidesk",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 1007
+  },
+  "snowpack.svg": {
+    "cores_dominantes": [
+      "#74c7ec"
+    ],
+    "descricao": "Snowpack",
+    "nome": "snowpack",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 266
+  },
+  "solid.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "SolidJS",
+    "nome": "solid",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 1001
+  },
+  "solidity.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Solidity",
+    "nome": "solidity",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 316
+  },
+  "sonar-cloud.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "SonarCloud",
+    "nome": "sonar-cloud",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 315
+  },
+  "spotify.svg": {
+    "descricao": "Spotify",
+    "nome": "spotify",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 448
+  },
+  "spwn.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#f5c2e7",
+      "#cdd6f4"
+    ],
+    "descricao": "SPWN",
+    "nome": "spwn",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 818
+  },
+  "squirrel.svg": {
+    "cores_dominantes": [
+      "#f5e0dc"
+    ],
+    "descricao": "Squirrel",
+    "nome": "squirrel",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 624
+  },
+  "stackblitz.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "StackBlitz",
+    "nome": "stackblitz",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 237
+  },
+  "star.svg": {
+    "descricao": "estrela",
+    "nome": "star",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 812
+  },
+  "stata.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#cdd6f4"
+    ],
+    "descricao": "Stata",
+    "nome": "stata",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 379
+  },
+  "steam.svg": {
+    "descricao": "Steam",
+    "nome": "steam",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 681
+  },
+  "stencil.svg": {
+    "cores_dominantes": [
+      "#b4befe"
+    ],
+    "descricao": "Stencil",
+    "nome": "stencil",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 259
+  },
+  "stitches.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Stitches",
+    "nome": "stitches",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 436
+  },
+  "storybook-svelte.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#fab387"
+    ],
+    "descricao": "Storybook com Svelte",
+    "nome": "storybook-svelte",
+    "tags": [
+      "ferramentas",
+      "storybook"
+    ],
+    "tamanho_bytes": 476
+  },
+  "storybook-vue.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#a6e3a1"
+    ],
+    "descricao": "Storybook com Vue",
+    "nome": "storybook-vue",
+    "tags": [
+      "ferramentas",
+      "storybook"
+    ],
+    "tamanho_bytes": 476
+  },
+  "storybook.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#f5c2e7"
+    ],
+    "descricao": "Storybook",
+    "nome": "storybook",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 475
+  },
+  "stylelint-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do Stylelint",
+    "nome": "stylelint-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 464
+  },
+  "stylelint.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Stylelint",
+    "nome": "stylelint",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 460
+  },
+  "stylua-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do StyLua",
+    "nome": "stylua-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 776
+  },
+  "stylua.svg": {
+    "cores_dominantes": [
+      "#f5c2e7",
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "StyLua",
+    "nome": "stylua",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 1532
+  },
+  "sublime.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Sublime Text",
+    "nome": "sublime",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 273
+  },
+  "super-collider.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "SuperCollider",
+    "nome": "super-collider",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 636
+  },
+  "svelte-config.svg": {
+    "cores_dominantes": [
+      "#fab387",
+      "#7f849c"
+    ],
+    "descricao": "configuração do Svelte",
+    "nome": "svelte-config",
+    "tags": [
+      "configuracao",
+      "svelte"
+    ],
+    "tamanho_bytes": 622
+  },
+  "svelte.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Svelte",
+    "nome": "svelte",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 559
+  },
+  "swift.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Swift",
+    "nome": "swift",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 582
+  },
+  "swiftformat.svg": {
+    "cores_dominantes": [
+      "#cba6f7",
+      "#cdd6f4"
+    ],
+    "descricao": "SwiftFormat",
+    "nome": "swiftformat",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 693
+  },
+  "tailwind.svg": {
+    "cores_dominantes": [
+      "#74c7ec"
+    ],
+    "descricao": "Tailwind CSS",
+    "nome": "tailwind",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 585
+  },
+  "taskfile.svg": {
+    "cores_dominantes": [
+      "#74c7ec"
+    ],
+    "descricao": "Taskfile",
+    "nome": "taskfile",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 377
+  },
+  "tauri-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do Tauri",
+    "nome": "tauri-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 424
+  },
+  "tauri.svg": {
+    "cores_dominantes": [
+      "#f9e2af",
+      "#89dceb"
+    ],
+    "descricao": "Tauri",
+    "nome": "tauri",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 550
+  },
+  "telegram.svg": {
+    "descricao": "Telegram",
+    "nome": "telegram",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 417
+  },
+  "terraform.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Terraform",
+    "nome": "terraform",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 280
+  },
+  "tile.svg": {
+    "descricao": "Tile",
+    "nome": "tile",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 510
+  },
+  "todo.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "lista de tarefas",
+    "nome": "todo",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 327
+  },
+  "turbo.svg": {
+    "cores_dominantes": [
+      "#eba0ac",
+      "#cdd6f4",
+      "#89b4fa",
+      "#cba6f7"
+    ],
+    "descricao": "Turborepo",
+    "nome": "turbo",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 829
+  },
+  "twine.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#a6e3a1"
+    ],
+    "descricao": "Twine",
+    "nome": "twine",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 340
+  },
+  "typescript-config.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#7f849c"
+    ],
+    "descricao": "configuração do TypeScript",
+    "nome": "typescript-config",
+    "tags": [
+      "configuracao",
+      "typescript"
+    ],
+    "tamanho_bytes": 563
+  },
+  "typescript-def.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#74c7ec"
+    ],
+    "descricao": "definições do TypeScript",
+    "nome": "typescript-def",
+    "tags": [
+      "linguagens",
+      "typescript"
+    ],
+    "tamanho_bytes": 694
+  },
+  "typescript-react.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "React com TypeScript",
+    "nome": "typescript-react",
+    "tags": [
+      "frameworks",
+      "typescript"
+    ],
+    "tamanho_bytes": 629
+  },
+  "typescript-test.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "teste de TypeScript",
+    "nome": "typescript-test",
+    "tags": [
+      "ferramentas",
+      "typescript"
+    ],
+    "tamanho_bytes": 428
+  },
+  "typescript.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "TypeScript",
+    "nome": "typescript",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 484
+  },
+  "typst.svg": {
+    "cores_dominantes": [
+      "#94e2d5"
+    ],
+    "descricao": "Typst",
+    "nome": "typst",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 618
+  },
+  "unity.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Unity",
+    "nome": "unity",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 268
+  },
+  "unocss.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#cdd6f4"
+    ],
+    "descricao": "UnoCSS",
+    "nome": "unocss",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 369
+  },
+  "url.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "endereço web",
+    "nome": "url",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 306
+  },
+  "uv.svg": {
+    "cores_dominantes": [
+      "#f5c2e7"
+    ],
+    "descricao": "uv",
+    "nome": "uv",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 258
+  },
+  "v.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "linguagem V",
+    "nome": "v",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 275
+  },
+  "vanilla-extract.svg": {
+    "cores_dominantes": [
+      "#f5c2e7",
+      "#89dceb"
+    ],
+    "descricao": "Vanilla Extract",
+    "nome": "vanilla-extract",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 1340
+  },
+  "vapi.svg": {
+    "cores_dominantes": [
+      "#74c7ec"
+    ],
+    "descricao": "VAPI do Vala",
+    "nome": "vapi",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 876
+  },
+  "vento.svg": {
+    "cores_dominantes": [
+      "#89dceb",
+      "#f5c2e7",
+      "#89b4fa"
+    ],
+    "descricao": "Vento",
+    "nome": "vento",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 555
+  },
+  "vercel-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados da Vercel",
+    "nome": "vercel-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 218
+  },
+  "vercel.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Vercel",
+    "nome": "vercel",
+    "tags": [
+      "servicos"
+    ],
+    "tamanho_bytes": 214
+  },
+  "verilog.svg": {
+    "cores_dominantes": [
+      "#cdd6f4"
+    ],
+    "descricao": "Verilog",
+    "nome": "verilog",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 484
+  },
+  "vhs.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "VHS",
+    "nome": "vhs",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 700
+  },
+  "vim.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "Vim",
+    "nome": "vim",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 243
+  },
+  "visual-studio.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Visual Studio",
+    "nome": "visual-studio",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 319
+  },
+  "vital.svg": {
+    "cores_dominantes": [
+      "#cdd6f4",
+      "#cba6f7"
+    ],
+    "descricao": "Vital",
+    "nome": "vital",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 474
+  },
+  "vite.svg": {
+    "cores_dominantes": [
+      "#cba6f7",
+      "#f9e2af"
+    ],
+    "descricao": "Vite",
+    "nome": "vite",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 337
+  },
+  "vitest.svg": {
+    "cores_dominantes": [
+      "#a6e3a1",
+      "#f9e2af"
+    ],
+    "descricao": "Vitest",
+    "nome": "vitest",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 315
+  },
+  "vlc.svg": {
+    "descricao": "VLC",
+    "nome": "vlc",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 753
+  },
+  "vs-codium.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "VSCodium",
+    "nome": "vs-codium",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 654
+  },
+  "vscode-ignore.svg": {
+    "cores_dominantes": [
+      "#7f849c"
+    ],
+    "descricao": "ignorados do VS Code",
+    "nome": "vscode-ignore",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 322
+  },
+  "vscode.svg": {
+    "cores_dominantes": [
+      "#89b4fa"
+    ],
+    "descricao": "VS Code",
+    "nome": "vscode",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 318
+  },
+  "vue-config.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#a6e3a1"
+    ],
+    "descricao": "configuração do Vue",
+    "nome": "vue-config",
+    "tags": [
+      "configuracao",
+      "vue"
+    ],
+    "tamanho_bytes": 398
+  },
+  "wally.svg": {
+    "cores_dominantes": [
+      "#eba0ac",
+      "#f9e2af",
+      "#cdd6f4",
+      "#3700ff",
+      "#df8e1d"
+    ],
+    "descricao": "Wally",
+    "nome": "wally",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 2266
+  },
+  "web-assembly.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "WebAssembly",
+    "nome": "web-assembly",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 414
+  },
+  "webpack.svg": {
+    "cores_dominantes": [
+      "#89dceb",
+      "#89b4fa"
+    ],
+    "descricao": "webpack",
+    "nome": "webpack",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 460
+  },
+  "whatsapp.svg": {
+    "descricao": "WhatsApp",
+    "nome": "whatsapp",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 681
+  },
+  "windi.svg": {
+    "cores_dominantes": [
+      "#89dceb"
+    ],
+    "descricao": "Windi CSS",
+    "nome": "windi",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 282
+  },
+  "workflow.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "fluxo de trabalho",
+    "nome": "workflow",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 360
+  },
+  "wrangler.svg": {
+    "cores_dominantes": [
+      "#fab387"
+    ],
+    "descricao": "Wrangler",
+    "nome": "wrangler",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 476
+  },
+  "writer.svg": {
+    "descricao": "Writer",
+    "nome": "writer",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 344
+  },
+  "wxt.svg": {
+    "cores_dominantes": [
+      "#a6e3a1"
+    ],
+    "descricao": "WXT",
+    "nome": "wxt",
+    "tags": [
+      "frameworks"
+    ],
+    "tamanho_bytes": 982
+  },
+  "xaml.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#cdd6f4"
+    ],
+    "descricao": "XAML",
+    "nome": "xaml",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 454
+  },
+  "xcode.svg": {
+    "cores_dominantes": [
+      "#89b4fa",
+      "#cdd6f4",
+      "#7f849c"
+    ],
+    "descricao": "Xcode",
+    "nome": "xcode",
+    "tags": [
+      "aplicativos"
+    ],
+    "tamanho_bytes": 1223
+  },
+  "xmake.svg": {
+    "cores_dominantes": [
+      "#74c7ec",
+      "#94e2d5",
+      "#a6e3a1"
+    ],
+    "descricao": "xmake",
+    "nome": "xmake",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 462
+  },
+  "yarn-lock.svg": {
+    "cores_dominantes": [
+      "#7f849c",
+      "#cba6f7"
+    ],
+    "descricao": "trava do Yarn",
+    "nome": "yarn-lock",
+    "tags": [
+      "configuracao"
+    ],
+    "tamanho_bytes": 1068
+  },
+  "yarn.svg": {
+    "cores_dominantes": [
+      "#cba6f7"
+    ],
+    "descricao": "Yarn",
+    "nome": "yarn",
+    "tags": [
+      "ferramentas"
+    ],
+    "tamanho_bytes": 968
+  },
+  "zap.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "Zap",
+    "nome": "zap",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 618
+  },
+  "zig.svg": {
+    "cores_dominantes": [
+      "#f9e2af"
+    ],
+    "descricao": "Zig",
+    "nome": "zig",
+    "tags": [
+      "linguagens"
+    ],
+    "tamanho_bytes": 244
+  },
+  "zip.svg": {
+    "descricao": "arquivo ZIP",
+    "nome": "zip",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 560
+  }
+}
