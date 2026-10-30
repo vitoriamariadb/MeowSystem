@@ -39,7 +39,7 @@ Três commits na `bloco/logo-p145`: `5d193470` (servidor), `69cf7740` (painel) e
 - `LOGO_PROGRAMA` já oferecia as logos como grade (`previa: "logo"`, P138) e lista todo pack do disco; o teste
   confere que o pack pessoal entra na oferta e é servido.
 
-Prova: `tests/logo-do-pack-pessoal.sh` (23 conferências) e `tests/logo-do-pack-pessoal-pagina.py` (20 conferências,
+Prova: `tests/logo-do-pack-pessoal.sh` (49 conferências) e `tests/logo-do-pack-pessoal-pagina.py` (27 conferências,
 sem erro de JavaScript e sem pedido à internet), os dois entrando em `tests/todos.sh`. `tests/todos.sh` inteiro:
 120 verdes e dois vermelhos, nenhum da P145.
 
@@ -63,5 +63,4 @@ vizinhas. Achados e correções:
   `vitrine.capa` depois da troca, o lançador seguindo a logo nova, 390 e 1280 px e a rota sem token, host ou origem.
   A busca do parcial que sobra agora usa `ls -A`.
 
-`tests/logo-do-pack-pessoal.sh` tem 49 conferências e `tests/logo-do-pack-pessoal-pagina.py` tem 27.
 `tests/todos.sh` inteiro deu 120 verdes, 0 pulados e 2 vermelhos, os dois aceitos: `readme.sh` e `restaurar.sh`.
