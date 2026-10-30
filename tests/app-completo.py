@@ -1453,7 +1453,10 @@ class Percurso:
                      : porta === 'modificacoes' ? (LUGAR_MODIFICACOES.detalhes.find((d) => d.id === sub) || { nome: '' }).nome : null;
           const semCartao = (l) => LUGAR_MODIFICACOES.chaves.some((x) => x.c === l.id
             && !document.querySelector(`[data-cartao="${x.cartao}"] details.menu-mod[open] [data-linha~="${x.c}"]`));
-          return inventarioDoPainel().filter((l) => l.porta === porta && (nome == null || l.pagina === nome) && !semCartao(l))
+          const soNoCartao = (l) => l.tipo === 'acao' && LUGAR_MODIFICACOES.cartao.some((x) => x.a === l.id)
+            && !document.querySelector(`[data-cartao] details.menu-mod[open] [data-controle^="acao:${l.id}"]`);
+          return inventarioDoPainel().filter((l) => l.porta === porta && (nome == null || l.pagina === nome)
+            && !semCartao(l) && !soNoCartao(l))
             .map((l) => ({ tipo: l.tipo, id: l.id,
               existe: l.tipo === 'chave' ? CHAVE.has(l.id) && !CHAVE.get(l.id).sem_programa
                     : l.tipo === 'acao' ? ACAO.has(l.id) : true }));
