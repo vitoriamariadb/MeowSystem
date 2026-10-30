@@ -18,6 +18,7 @@ meow_desinstalar() {
       meow-leitura.timer meow-leitura.service \
       meow-gato.timer meow-gato.service meow-ativos.path \
       meow-heroic.path meow-heroic.service \
+      meow-discord.path meow-discord.service \
       meow-pos-apt.path meow-pos-apt.service meow-builds-login.service \
       meow-sentinela.timer meow-sentinela.service meow-sentinela.path \
       meow-painel.service meow-painel-raio.path meow-painel-raio.service \

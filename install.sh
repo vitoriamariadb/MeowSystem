@@ -1620,6 +1620,12 @@ etapa_vigia_heroic() {
   return $?
 }
 
+etapa_vigia_discord() {
+  passo "Vigia do Discord (systemd --user)"
+  DISCORD_VENCORD="${DISCORD_VENCORD:-sim}" "$MEOW_RAIZ/scripts/vigia_discord.sh"
+  return $?
+}
+
 etapa_vigia_qt() {
   passo "Vigia do Qt (systemd --user)"
   local destino="$HOME/.config/systemd/user" u conteudo mudou=0 lista
@@ -2000,7 +2006,7 @@ main() {
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic
                 etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos etapa_ocultar_casa etapa_janela_dock
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_bloco_terminal etapa_files_menu etapa_cursor etapa_flatpak_tema etapa_escritorio etapa_apps
-                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
+                etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_discord etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
                 etapa_extensoes etapa_compositor etapa_gpu etapa_extensoes_tema etapa_midia etapa_lancador etapa_autostart etapa_autoreparo)
   if [ -n "$so_etapas" ]; then
     local pedida escolhida escolhidas=()

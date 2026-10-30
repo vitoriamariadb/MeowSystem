@@ -16,6 +16,7 @@ PORTATIL=(
   sem-receita-no-log.sh
   temas-de-apps.sh
   spotify-atualizado.sh
+  discord-vencord.sh
   apps-frases.sh
   temas-por-app.sh
   leitura-fonte-unica.sh
