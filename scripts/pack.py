@@ -3950,7 +3950,7 @@ def cmd_importar(caminho, opcoes):
     else:
         print(f"  ok   instalado em {destino}")
     print("  --   nada foi aplicado: importar é ganhar uma opção, não trocar de tema.")
-    print(f"       Para aplicar: PACK=\"{ident}\" e FLAVOR=\"{r['flavor_padrao']}\" no meow.conf.")
+    print("       O cartão dele já está em Tema, com o «Aplicar tema».")
     return OK
 
 
@@ -3998,8 +3998,8 @@ def remocao(ident, pack_conf="", flavor_conf=""):
                       f"importar grava — só de lá um pack sai")
     nome = campo(casa, "nome") or ident
     if ident in (pack_conf, adocao(pack_conf, flavor_conf)[0]):
-        return casa, (f"o {nome} está no ar — troque de pack antes, com o «Usar este» "
-                      f"de outro cartão ou o meow pack usar")
+        return casa, (f"o {nome} está no ar — troque de pack antes, com o «Aplicar tema» "
+                      f"de outro cartão")
     herdeiros = [campo(h, "nome") or h for h in _quem_herda_de(ident)]
     if herdeiros:
         return casa, (f"o {', '.join(herdeiros)} herda{'m' if len(herdeiros) > 1 else ''} "
@@ -4080,12 +4080,11 @@ def cmd_novo(ident, opcoes):
     if csv:
         print(f"       de {os.path.basename(csv)}: a paleta ({len(paleta['flavors'])} flavor(s), "
               f"padrão {flavor}), os ícones autorais nas cores dela, um logo gerado e os créditos")
-        print(f"  --   o resto vem do {de!r}, o pack padrão, pela herança — "
-              f"meow pack info {ident} diz o quê")
+        print(f"  --   o resto vem do {de!r}, o pack padrão, pela herança")
         return OK
     print(f"       a partir do {de!r}: a paleta ({len(paleta['flavors'])} flavor(s), "
           f"padrão {flavor}), " + ("o timbre, " if "som" in p else "") + "um logo gerado e os créditos")
-    print(f"  --   o resto vem do {de!r} pela herança — meow pack info {ident} diz o quê")
+    print(f"  --   o resto vem do {de!r} pela herança")
     print("  --   papel de parede e ponteiro não entram: o formato ainda não tem onde "
           "guardá-los dentro de um pack")
     return OK

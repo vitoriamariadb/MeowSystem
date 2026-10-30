@@ -195,6 +195,10 @@ achados="$(cd "$RAIZ" && grep -nE "(meow_info|meow_aviso|meow_erro|meow_ok|meow_
 [ -z "$achados" ] && ok "nenhuma saída de script, de bin/meow ou de lib manda digitar, rodar ou editar o meow.conf" \
   || falha "saídas que ainda mandam digitar ou editar o conf" "$achados"
 
+achados="$(cd "$RAIZ" && grep -nE '(print\(|Recusa\(|return [a-z]+, \(f).*(no meow\.conf\.|meow pack (info|usar))|ou o meow pack usar|«Usar este»' scripts/pack.py)"
+[ -z "$achados" ] && ok "o pack.py não manda editar o conf nem rodar outro meow pack, e cita o botão pelo nome da tela" \
+  || falha "saídas do pack.py que mandam digitar ou citam botão que não existe" "$achados"
+
 achados="$(cd "$RAIZ" && grep -nE 'Início' scripts/*.sh lib/*.sh bin/meow 2>/dev/null)"
 [ -z "$achados" ] && ok "nenhuma saída manda olhar a Início, que não mostra pendência" \
   || falha "saída que cita a Início" "$achados"
