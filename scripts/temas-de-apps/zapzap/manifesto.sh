@@ -326,8 +326,7 @@ meow_app_reverter() {
   case $? in 1) css_mudou=1 ;; 2) return "$MEOW_ERRO" ;; esac
 
   if [ ! -L "$_ZZ_ORIGEM" ] && [ ! -f "$_ZZ_GUARDADO" ]; then
-    meow_aviso "não achei o original em $(basename "$_ZZ_GUARDADO") — não invento um .desktop de flatpak"
-    meow_info "  o flatpak recria o dele: flatpak update com.rtosta.zapzap  (ou flatpak repair --user)"
+    meow_aviso "o .desktop original não está em $(basename "$_ZZ_GUARDADO"); o do flatpak volta na próxima atualização do ZapZap"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
@@ -368,8 +367,7 @@ meow_app_reverter() {
   meow_tem update-desktop-database && \
     update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 
-  meow_info "o ícone da bandeja segue aplicado na FONTE do app (tray_icon.py do flatpak)"
-  meow_info "  para devolver aquele: flatpak update com.rtosta.zapzap — ver packs/meowsystem/icones/bandeja.map"
+  meow_info "o ícone da bandeja segue no tray_icon.py do flatpak; o original volta na próxima atualização do ZapZap"
   meow_app_desligar zapzap
   return "$MEOW_DIVERGENTE"
 }
