@@ -66,10 +66,10 @@
     "tamanho_bytes": 791
   },
   "access.svg": {
-    "descricao": "Microsoft Access",
+    "descricao": "acesso",
     "nome": "access",
     "tags": [
-      "aplicativos"
+      "sistema"
     ],
     "tamanho_bytes": 618
   },
