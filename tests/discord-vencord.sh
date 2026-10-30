@@ -101,10 +101,30 @@ saida="$(mod aplicar)"; rc=$?
   || falha "4. o Discord aberto não segurou a injeção (rc=$rc)" "$saida"
 printf '#!/bin/sh\nexit 1\n' > "$BIN/pgrep"; chmod 755 "$BIN/pgrep"
 
-saida="$(mod aplicar DISCORD_VENCORD=nao)"
-! grep -qa Vencord "$CONF/app-1.0.3/resources/app.asar" && [ "$(chamadas instalador)" = "$n_antes" ] \
-  && ok "5. com DISCORD_VENCORD=nao o meow não injeta" \
-  || falha "5. DISCORD_VENCORD=nao injetou mesmo assim" "$saida"
+saida="$(mod conferir DISCORD_VENCORD=nao)"; rc=$?
+[ "$rc" = 1 ] && printf '%s\n' "$saida" | grep -q 'o Vencord está em' \
+  && ok "5. com DISCORD_VENCORD=nao, o Vencord que está no disco faz o conferir acusar" \
+  || falha "5. o conferir com DISCORD_VENCORD=nao não acusou o Vencord no disco (rc=$rc)" "$saida"
+printf '#!/bin/sh\n[ "$2" = Discord ] && exit 0\nexit 1\n' > "$BIN/pgrep"; chmod 755 "$BIN/pgrep"
+saida="$(mod aplicar DISCORD_VENCORD=nao)"; rc=$?
+[ "$rc" = 3 ] && tem_vencord 1.0.1 && tem_vencord 1.0.2 \
+  && ok "5. com o Discord aberto, DISCORD_VENCORD=nao não mexe no app.asar e a passada sai pendente" \
+  || falha "5. DISCORD_VENCORD=nao mexeu no Discord aberto (rc=$rc)" "$saida"
+printf '#!/bin/sh\nexit 1\n' > "$BIN/pgrep"; chmod 755 "$BIN/pgrep"
+saida="$(mod aplicar DISCORD_VENCORD=nao)"; rc=$?
+if [ "$rc" = 1 ] && ! grep -qa Vencord "$CONF/app-1.0.3/resources/app.asar" && [ "$(chamadas instalador)" = "$n_antes" ] \
+   && cmp -s "$T/original.asar" "$CONF/app-1.0.1/resources/app.asar" \
+   && cmp -s "$T/original.asar" "$CONF/app-1.0.2/resources/app.asar" \
+   && [ ! -e "$CONF/app-1.0.1/resources/_app.asar" ] && [ ! -e "$CONF/app-1.0.2/resources/_app.asar" ]; then
+  ok "5. com DISCORD_VENCORD=nao o meow não injeta e tira o Vencord de cada app-<versão>, com o app.asar original byte a byte"
+else
+  falha "5. DISCORD_VENCORD=nao não tirou o Vencord (rc=$rc)" "$saida"
+fi
+antes="$(retrato)"
+saida="$(mod aplicar DISCORD_VENCORD=nao)"; rc=$?
+[ "$rc" = 0 ] && [ "$antes" = "$(retrato)" ] && [ "$(mod conferir DISCORD_VENCORD=nao >/dev/null; echo $?)" = 0 ] \
+  && ok "5. a segunda passada com DISCORD_VENCORD=nao não escreve, e o conferir dá 0" \
+  || falha "5. a segunda passada com DISCORD_VENCORD=nao escreveu ou não fechou (rc=$rc)" "$saida"
 
 rm -rf "$CASA/.local/share/meowsystem/vencord"
 saida="$(mod aplicar MEOW_VENCORD_SHA256=0000000000000000000000000000000000000000000000000000000000000000)"; rc=$?
@@ -112,11 +132,16 @@ saida="$(mod aplicar MEOW_VENCORD_SHA256=000000000000000000000000000000000000000
   && ok "6. instalador com sha256 diferente do pinado: erro e nada injetado" \
   || falha "6. o sha256 errado não foi recusado (rc=$rc)" "$saida"
 
+saida="$(mod aplicar)"; rc=$?
+[ "$rc" = 1 ] && tem_vencord 1.0.3 \
+  && ok "6. de volta a sim, com o sha256 certo, o Vencord entra de novo no app mais novo" \
+  || falha "6. o Vencord não voltou com DISCORD_VENCORD=sim (rc=$rc)" "$saida"
+
 printf 'APPS_ATIVOS="kitty,discord"\n' > "$CASA/.config/meow/meow.conf"
 saida="$(mod reverter MEOW_CONF="$CASA/.config/meow/meow.conf")"; rc=$?
 if [ "$rc" = 1 ] && cmp -s "$T/original.asar" "$CONF/app-1.0.1/resources/app.asar" \
-   && cmp -s "$T/original.asar" "$CONF/app-1.0.2/resources/app.asar" \
-   && [ ! -e "$CONF/app-1.0.1/resources/_app.asar" ] && [ ! -e "$CASA/.config/Vencord/themes/MeowSystem.theme.css" ]; then
+   && cmp -s "$T/original.asar" "$CONF/app-1.0.3/resources/app.asar" \
+   && [ ! -e "$CONF/app-1.0.3/resources/_app.asar" ] && [ ! -e "$CASA/.config/Vencord/themes/MeowSystem.theme.css" ]; then
   ok "7. reverter devolve o app.asar original byte a byte e tira o tema"
 else
   falha "7. o reverter não devolveu o app.asar original (rc=$rc)" "$saida"

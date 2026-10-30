@@ -1826,8 +1826,7 @@ SPOTIFY_MARKETPLACE="sim"
 # dele não lê tema. Com "sim", o módulo `scripts/temas-de-apps/discord` injeta o Vencord (instalador
 # de versão fixada, com sha256, guardado em `~/.local/share/meowsystem/vencord/`) na versão mais nova,
 # com o Discord fechado, e o par `meow-discord.path`/`meow-discord.service` repõe o Vencord depois de
-# cada atualização. "nao" não injeta nada, e tira o vigia. O Vencord que já está lá só sai com
-# `meow apps reverter discord`.
+# cada atualização. "nao" tira o Vencord do Discord (com ele fechado) e o vigia.
 DISCORD_VENCORD="sim"
 
 # @ Correções do Flatpak
