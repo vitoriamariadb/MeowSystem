@@ -5910,7 +5910,7 @@ class Manipulador(BaseHTTPRequestHandler):
             "depois": "o vigia põe o mascote novo no acervo em segundos",
         },
         "parede": {
-            "pasta": ("packs", "meowsystem", "wallpapers", "ativos"),
+            "lugar": lambda: os.path.join(_wallpaper_base(), "ativos"),
             "extensoes": (".jpg", ".jpeg", ".png", ".webp"),
             "normaliza": False,
             "depois": "o carrossel passa a sortear a imagem nova",
@@ -6015,7 +6015,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": "não achei o scripts/pack.py"}, 500)
             destino_dir = getattr(mod, conf["casa"])()
         else:
-            destino_dir = os.path.join(RAIZ, *conf["pasta"])
+            destino_dir = conf["lugar"]()
         try:
             os.makedirs(destino_dir, exist_ok=True)
         except OSError as e:
