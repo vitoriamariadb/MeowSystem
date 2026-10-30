@@ -98,6 +98,22 @@ for familia in network-wireless-signal- audio-volume- microphone-sensitivity- co
 done
 [ "$falhas" = "$antes" ] && ok "cada família de estado está inteira no mapa dos dois packs"
 
+sem_nome="$(cd "$RAIZ/scripts" && python3 - <<'PY'
+import sys
+sys.argv = ["pack.py"]
+import pack
+rotulos = pack._rotulos_dos_tipos()
+for pid in ("meowsystem", "dracula"):
+    glifos = {g for _n, g, _c in pack._glifos_do_bloco(pack.achar(pid), "mimetypes")}
+    if len(glifos) < 60:
+        print(f"{pid}: só {len(glifos)} glifos de tipo de arquivo")
+    for g in sorted(glifos - set(rotulos)):
+        print(f"{pid}: {g}")
+PY
+)"
+[ -z "$sem_nome" ] && ok "todo tipo de arquivo que a aba Sistema mostra nos dois packs tem nome em português no contrato" \
+  || falha "glifo de tipo de arquivo sem nome em assets/contratos/tipos-de-arquivo.tsv" "$sem_nome"
+
 if [ "$falhas" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$falhas" >&2
   exit 1

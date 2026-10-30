@@ -101,8 +101,9 @@ cmd_conferir() {
   fi
   meow_muda "relógio divergente: disco='${atual:-<ausente>}', conf pede '$valor'"
   meow_aviso "o relógio tem controle na GUI (Ajustes → Data e hora)."
-  meow_aviso "se foi VOCÊ quem mudou, esvazie RELOGIO_SEGUNDOS no meow.conf —"
-  meow_aviso "senão o 'meow doctor --consertar' devolve o valor daqui todo dia."
+  meow_aviso "o valor do meow.conf manda: o doctor o devolve todo dia."
+  local onde; onde="$(meow_onde_no_painel RELOGIO_SEGUNDOS)"
+  [ -z "$onde" ] || meow_info "  o valor se escolhe em $onde"
   return "$MEOW_DIVERGENTE"
 }
 

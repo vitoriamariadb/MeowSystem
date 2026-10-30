@@ -178,8 +178,9 @@ cmd_conferir() {
     meow_aviso "essa é a que decide o LOGIN — as outras duas valem só na sessão de agora."
   fi
   meow_aviso "o lado a lado tem atalho (Super+Y) e pode ter sido você."
-  meow_aviso "se foi, esvazie JANELAS_TILING no meow.conf — senão o"
-  meow_aviso "'meow doctor --consertar' devolve o valor daqui todo dia às 5h."
+  meow_aviso "o valor do meow.conf manda: o doctor o devolve todo dia às 5h."
+  local onde; onde="$(meow_onde_no_painel JANELAS_TILING)"
+  [ -z "$onde" ] || meow_info "  o valor se escolhe em $onde"
   return "$MEOW_DIVERGENTE"
 }
 
