@@ -9,6 +9,7 @@ passou() { printf 'ok: %s\n' "$*"; }
 
 ISENTOS=(
   icones_orfaos.py
+  auditar_icones.sh
 )
 
 CONHECIDOS=(
