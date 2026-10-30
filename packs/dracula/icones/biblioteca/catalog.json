@@ -1877,7 +1877,8 @@
     "tags": [
       "aplicativos"
     ],
-    "tamanho_bytes": 4880
+    "tamanho_bytes": 4880,
+    "caixa_da_marca": true
   },
   "dead-tree.svg": {
     "cores_dominantes": [
@@ -3368,7 +3369,8 @@
     "tags": [
       "aplicativos"
     ],
-    "tamanho_bytes": 3841
+    "tamanho_bytes": 3841,
+    "caixa_da_marca": true
   },
   "iaito.svg": {
     "cores_dominantes": [

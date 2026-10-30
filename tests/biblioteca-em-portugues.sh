@@ -22,6 +22,11 @@ raiz = sys.argv[1]
 spec = importlib.util.spec_from_file_location("pack", os.path.join(raiz, "scripts", "pack.py"))
 pack = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pack)
+sys.path.insert(0, os.path.join(raiz, "app"))
+import servidor  # noqa: E402
+
+painel = servidor.Manipulador.__new__(servidor.Manipulador)
+painel._nomes_de_app = dict
 
 INGLES = {
     "file", "folder", "open", "root", "books", "calculator", "camera", "browser", "music", "phone", "player",
@@ -63,6 +68,29 @@ for ident in ("meowsystem", "dracula"):
                        if INGLES & set(re.findall(r"[a-z]+", i["rotulo"].lower()))})
     confere(not ingleses, f"{ident}: nenhum rótulo da Biblioteca é palavra comum em inglês",
             f"{len(ingleses)}: {ingleses[:8]}")
+
+GRAFIA = {
+    ("meowsystem", "npm"): "npm", ("meowsystem", "pnpm"): "pnpm", ("meowsystem", "esbuild"): "esbuild",
+    ("meowsystem", "macos"): "macOS", ("meowsystem", "webpack"): "webpack", ("meowsystem", "uv"): "uv",
+    ("meowsystem", "mdbook"): "mdBook", ("meowsystem", "_folder"): "Pasta",
+    ("dracula", "dbt"): "dbt, transformação de dados", ("dracula", "005-potion"): "Poção",
+}
+for ident in ("meowsystem", "dracula"):
+    servidos = {i["nome"]: i["rotulo"] for i in pack.acervo_para_levar(None, "biblioteca", ident) if i["de"] == ident}
+    erradas = [f"{nome}: {servidos.get(nome)!r} em vez de {certo!r}"
+               for (de, nome), certo in GRAFIA.items() if de == ident and servidos.get(nome) != certo]
+    confere(not erradas, f"{ident}: o rótulo da Biblioteca guarda a grafia da marca e sobe a letra da palavra comum",
+            "; ".join(erradas))
+    pasta = os.path.join(raiz, "packs", ident, "icones", "biblioteca")
+    with open(os.path.join(pasta, "catalog.json"), encoding="utf-8") as fh:
+        catalogo = json.load(fh)
+    rotulos_da_busca = {os.path.basename(c): r for c, r in painel._textos_da_busca(pack)[1].items()
+                        if os.path.dirname(c) == os.path.normpath(pasta)}
+    divergem = sorted(a for a in catalogo
+                      if a.endswith(".svg") and rotulos_da_busca.get(a) != servidos.get(a[:-4]))
+    confere(not divergem, f"{ident}: a busca do painel e a aba Biblioteca dão o mesmo rótulo",
+            f"{len(divergem)}: " + ", ".join(f"{a} {rotulos_da_busca.get(a)!r}/{servidos.get(a[:-4])!r}"
+                                            for a in divergem[:6]))
 
 if falhas:
     print("FALHOU: a Biblioteca não fala português", file=sys.stderr)
