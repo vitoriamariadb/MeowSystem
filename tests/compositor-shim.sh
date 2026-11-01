@@ -34,7 +34,7 @@ FIM
   printf 'versao=%s\nreq AURORA-COSMIC-WS-PATCH-3.67 cosmic-comp-sem-workspace-vazio.patch presente\n' "$1" > "$T/casa/$1/estado"
 }
 rodar() { PATH="$T/bin:$PATH" MEOW_SHIM_FABRICA="$T/fabrica" MEOW_SHIM_CASA="$T/casa" \
-          MEOW_SHIM_JANELA="${JANELA:-1}" HOME="$T/home" bash "$SHIM"; }
+          MEOW_SHIM_JANELA="${JANELA:-1}" HOME="$T/home" bash "$SHIM" "$@"; }
 
 echo "== o shim escolhe"
 igual "sem build: fábrica" "$(rodar)" fabrica
@@ -57,6 +57,12 @@ fazer_build "$VER_INST"
 
 igual "só dizer: o caminho do build" "$(MEOW_SHIM_SO_DIZER=1 rodar)" "$T/casa/$VER_INST/cosmic-comp"
 [ -e "$T/casa/$VER_INST/quedas" ] && falha "só dizer contou queda" || ok "só dizer não conta queda"
+
+for q in --version -V --help -h; do
+  igual "pergunta $q: o build responde" "$(rodar $q)" build
+done
+[ -e "$T/casa/$VER_INST/quedas" ] && falha "pergunta contou queda (o fastfetch marcava o build de ruim)" \
+  || ok "pergunta (--version, --help) não conta queda"
 
 echo "== a guarda de queda"
 igual "1º início: build" "$(rodar)" build; sleep 2

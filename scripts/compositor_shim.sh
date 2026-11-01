@@ -21,6 +21,12 @@ if [ "${MEOW_SHIM_SO_DIZER:-0}" = "1" ]; then
   exit 0
 fi
 
+case "${1:-}" in
+  -V|--version|-h|--help)
+    [ "$usar_build" = "1" ] && exec "$build" "$@"
+    exec "$fabrica" "$@" ;;
+esac
+
 if [ "$usar_build" = "1" ]; then
   n="$(cat "$dir/quedas" 2>/dev/null)"
   case "$n" in ''|*[!0-9]*) n=0 ;; esac
