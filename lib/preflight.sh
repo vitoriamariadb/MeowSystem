@@ -153,7 +153,7 @@ meow_preflight() {
     local _falta_aqui="$faltam_apt"
     [ -d /usr/share/icons/Papirus-Dark ] || _falta_aqui="${_falta_aqui}papirus-icon-theme "
     if [ -n "$_falta_aqui" ]; then
-      meow_info "  instale à mão, pelo gerenciador desta distribuição: ${_falta_aqui% }"
+      meow_info "  faltam, e esta distribuição não tem apt: ${_falta_aqui% }"
     else
       meow_info "  não falta nada do que este projeto usa — a etapa se pula sem custo"
     fi

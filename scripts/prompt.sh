@@ -64,7 +64,7 @@ _prompt_dizer_falta_starship() {
   meow_pula "o starship não está instalado — ele é opcional, e não vem no apt do Pop!_OS"
   MEOW_PENDENCIA_ROTINA=1 meow_pendencia_acionavel starship-ausente \
     "O prompt do terminal precisa do starship, e ele não vem no apt do Pop!_OS" \
-    "./scripts/prompt.sh instalar-starship"
+    "./install.sh"
 }
 
 _prompt_dizer_ligacao() {

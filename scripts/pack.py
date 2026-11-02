@@ -1831,9 +1831,8 @@ def _validar_logo(dir_pack, p):
     caminho = _dentro(dir_pack, arq, "logo")
     _exigir(os.path.isfile(caminho),
             f"{arq}: o pack não tem logo — e desde 23/09/2026 todo pack publicado tem cara.\n"
-            f"    Desenhe um SVG quadrado (viewBox 0 0 128 128), ou comece do gerado:\n"
-            f"      python3 scripts/pack.py logo-gerado <id> > <pack>/{LOGO}\n"
-            f"    Ver docs/PACKS.md, 'O logo do pack'.")
+            f"    Desenhe um SVG quadrado (viewBox 0 0 128 128); no pack pessoal, a gerada\n"
+            f"    se escolhe no painel, em Tema › Logo. Ver docs/PACKS.md, 'O logo do pack'.")
     texto, raiz, instrucoes = _ler_logo(caminho, arq)
     _exigir(raiz.tag == SVG_NS + "svg",
             f"{arq}: a raiz é <{raiz.tag}>, e não <svg> no namespace do SVG.\n"
