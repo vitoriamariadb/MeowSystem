@@ -428,6 +428,13 @@ pacotes)
   apt-get install -y --no-install-recommends "${pedidos[@]}" || exit 2
   ;;
 
+fastfetch)
+  export DEBIAN_FRONTEND=noninteractive
+  anotar "fastfetch"
+  add-apt-repository -y ppa:zhangsongcui3371/fastfetch >&2 || exit 2
+  apt-get install -y --no-install-recommends fastfetch >&2 || exit 2
+  ;;
+
 cosmic-comp-de-fabrica)
   [ "$(dpkg-query -W -f='${db:Status-Status}' cosmic-comp 2>/dev/null)" = installed ] || morrer "o cosmic-comp não está instalado" 3
   soma="$(awk '$2 == "usr/bin/cosmic-comp" { print $1 }' "$DPKG_INFO/cosmic-comp.md5sums" 2>/dev/null || true)"
@@ -533,6 +540,7 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE som-padrao, \\
     $PONTE atualizar, \\
     $PONTE pacotes, \\
+    $PONTE fastfetch, \\
     $PONTE limpar, \\
     $PONTE cosmic-comp-de-fabrica, \\
     $PONTE gpu-compositor, \\
@@ -549,6 +557,7 @@ REGRA_FIM
   printf '        apt-hook-instalar · apt-hook-remover · completion-instalar ·\n'
   printf '        completion-remover · flatpak-global-limpar · libreoffice-remover ·\n'
   printf '        libreoffice-devolver · som · som-padrao · atualizar · pacotes ·\n'
+  printf '        fastfetch ·\n'
   printf '        limpar · cosmic-comp-de-fabrica · gpu-compositor ·\n'
   printf '        gpu-compositor-tirar · estado ·\n'
   printf '        regra-sudo\n'

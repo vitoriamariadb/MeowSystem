@@ -5028,6 +5028,7 @@ ACAO_DA_PENDENCIA = {
     "flatpak-global-sistema": "instalar",
     "libreoffice-sistema": "instalar",
     "starship-ausente": "instalar",
+    "fastfetch-ausente": "instalar",
     "spicetify-tema-ausente": "apps_aplicar",
     "spicetify-ausente": "spicetify_instalar",
 }
@@ -5035,6 +5036,7 @@ ACAO_DA_PENDENCIA = {
 NOME_DA_PENDENCIA = {
     "areas-sem-alfinete": "Áreas de trabalho",
     "starship-ausente": "Linha colorida",
+    "fastfetch-ausente": "Fastfetch",
     "instalar-com-root": "Ponte de root",
     "flatpak-global-sistema": "Flatpaks do sistema",
     "libreoffice-sistema": "LibreOffice do sistema",

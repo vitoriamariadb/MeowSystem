@@ -448,17 +448,34 @@ _pacotes_instalar() {
 
 _pacotes_fastfetch() {
   if meow_seco; then
-    meow_muda "rodaria: sudo add-apt-repository -y ppa:zhangsongcui3371/fastfetch && sudo apt-get install -y fastfetch"
+    meow_muda "instalaria o fastfetch do PPA do autor, como root"
     return "$MEOW_DIVERGENTE"
   fi
-  meow_info "vou rodar como root, e só isto:"
-  printf '      sudo add-apt-repository -y ppa:zhangsongcui3371/fastfetch\n      sudo apt-get install -y fastfetch\n'
-  if sudo add-apt-repository -y ppa:zhangsongcui3371/fastfetch >/dev/null 2>&1 \
-     && sudo apt-get install -y --no-install-recommends fastfetch >/dev/null 2>&1; then
+  meow_info "BAIXA DA INTERNET: o fastfetch, do PPA do autor, como root"
+  if meow_ponte_viva && meow_ponte fastfetch </dev/null >/dev/null 2>&1; then
+    meow_pendencia_resolvida fastfetch-ausente
     meow_ok "fastfetch instalado do PPA do autor"
     return "$MEOW_DIVERGENTE"
   fi
-  meow_aviso "o fastfetch não desceu (sem rede?) — a próxima passada tenta de novo"
+  local pelo_sudo=""
+  if meow_tem sudo && sudo -n true 2>/dev/null; then
+    pelo_sudo="sudo -n"
+  elif meow_tem sudo && [ -t 0 ]; then
+    pelo_sudo="sudo"
+  fi
+  if [ -n "$pelo_sudo" ] \
+     && $pelo_sudo add-apt-repository -y ppa:zhangsongcui3371/fastfetch >/dev/null 2>&1 \
+     && $pelo_sudo apt-get install -y --no-install-recommends fastfetch >/dev/null 2>&1; then
+    meow_pendencia_resolvida fastfetch-ausente
+    meow_ok "fastfetch instalado do PPA do autor"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if [ -z "$pelo_sudo" ]; then
+    meow_pendencia_acionavel fastfetch-ausente \
+      "O fastfetch espera a ponte root para descer do PPA do autor" "./install.sh"
+  else
+    meow_aviso "o fastfetch não desceu (sem rede?) — a próxima passada tenta de novo"
+  fi
   return "$MEOW_SEM_DEPENDENCIA"
 }
 
@@ -2171,9 +2188,7 @@ main() {
     printf '\n  %s%d etapa(s) %s nesta passagem.%s\n' \
       "$C_AMARELO$C_FORTE" "$ainda" "$mudaram" "$C_ZERO"
     printf '  Esta execução teve uma passagem só. Algumas etapas dependem do\n'
-    printf '  resultado da anterior; sem --uma-passagem (e fora do ensaio) o\n'
-    printf '  instalador repete sozinho até ninguém mais escrever:\n\n'
-    printf '      ./install.sh\n\n'
+    printf '  resultado da anterior; o doctor termina o resto no próximo ciclo.\n\n'
     return 0
   fi
 
