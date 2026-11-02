@@ -1,6 +1,16 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- FECHO (02/11, 17h): v2.3.1. P153 (o fastfetch pela ponte root, verbo `fastfetch`; o rodapé de uma passagem, o
+  preflight sem apt, a pendência do starship e o logo do pack sem comando) e o fix do `--version` do compositor.
+  Suíte 131/132: o vermelho é o `decisoes.sh` 24 pela pasta local ignorada `docs/pesquisas/` (referências de
+  papel de parede de 25/08, recriada em 31/10); num checkout limpo da tag ele passa. O Chromium do Playwright
+  (`chromium_headless_shell-1234`) tinha sumido do cache e foi reposto. Install com o HOME real (askpass): `rc=0`,
+  2 passagens, 72 etapas; a ponte da máquina já tem o verbo. O Soneca entrou no fim da barra; a trava antiga
+  `meow-desperto-coordenador` já não existia. O sanitizer do Aurora trocava `vitoriamariadb` por `[REDACTED]`
+  no README (o `user.name` local é o usuário do GitHub): curado lá, o dono do `origin` deixa de ser redigido.
+  Publicado: `master`, tag v2.3.1 e release com o `.deb`.
+  PRÓXIMO: as capturas dos applets com ela (Desempenho, Conta-gotas, Bandeja, Soneca).
 - FECHO (30/10, 15h): v2.3.0. P150 (o `.deb`, a árvore só leitura; o upload de papel de parede vai para
   `~/.local/share/backgrounds/meowsystem/ativos`), P151 (as pontas soltas: `meow.conf.exemplo`, 14 saídas que mandavam
   rodar script, a ação «Baixar o spicetify», o `.obsolete` do VS Code, o autostart desmascara o que sai da lista, a
