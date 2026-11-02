@@ -256,6 +256,29 @@ achados="$(cd "$RAIZ" && grep -nP "$SCRIPT_A_RODAR_PY" scripts/*.py app/*.py 2>/
 [ -z "$achados" ] && ok "nenhum texto dos scripts e do painel em Python manda rodar ./scripts/" \
   || falha "textos em Python que mandam rodar um script" "$achados"
 
+printf '\n--- 11. as cinco pontas do fecho de 30/10 (P153) ---\n'
+achados="$(cd "$RAIZ" && grep -nE "^[^#]*printf '[^']*(sudo add-apt-repository|sudo apt-get|\./install\.sh\\\\n)" install.sh)"
+[ -z "$achados" ] && ok "o install não imprime comando de root nem manda rodar ./install.sh" \
+  || falha "o install ainda imprime comando" "$achados"
+grep -q 'instale à mão' "$RAIZ/lib/preflight.sh" \
+  && falha "o preflight ainda manda instalar à mão" "$(grep -n 'instale à mão' "$RAIZ/lib/preflight.sh")" \
+  || ok "o preflight diz o que falta, sem mandar instalar"
+grep -q 'scripts/prompt.sh instalar-starship' "$RAIZ/scripts/prompt.sh" \
+  && falha "a pendência do starship guarda um caminho que o .deb não tem" \
+  || ok "a pendência do starship não guarda ./scripts/prompt.sh"
+grep -q 'python3 scripts/pack.py logo-gerado' "$RAIZ/scripts/pack.py" \
+  && falha "o validador do logo manda rodar o pack.py" \
+  || ok "o validador do logo aponta o painel, sem comando"
+regra="$(SUDO_USER=gata bash "$RAIZ/scripts/ponte_root.sh" regra-sudo 2>/dev/null)"
+if grep -qE 'ponte_root\.sh fastfetch, \\$' <<< "$regra" \
+   && grep -qE '^fastfetch\)$' "$RAIZ/scripts/ponte_root.sh" \
+   && grep -q 'meow_ponte fastfetch' "$RAIZ/install.sh" \
+   && grep -q '"fastfetch-ausente": "instalar"' "$RAIZ/app/servidor.py"; then
+  ok "o fastfetch desce pela ponte, com o verbo na regra e a pendência com botão"
+else
+  falha "o fastfetch não tem o verbo na ponte, na regra, no install ou no painel"
+fi
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: nada manda digitar\n'
