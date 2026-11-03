@@ -2153,13 +2153,11 @@ main() {
     meow_erro "as mesmas etapas escreveram em duas passagens seguidas:  ${FEITOS[*]}"
     meow_aviso "isto não é a cadeia de dependências — é defeito de idempotência:"
     meow_aviso "alguma delas escreve toda vez, e passagem nenhuma vai calá-la."
-    meow_aviso "o que olhar primeiro:  meow doctor"
     printf '\n'
     laco_quebrado=1
   elif [ "$ainda" -gt 0 ] && [ "$teto" -gt 1 ] && [ "$parar_conf" != "1" ]; then
     meow_erro "$teto passagens, e estas etapas ainda escrevem:  ${FEITOS[*]}"
     meow_aviso "parei no teto de propósito: um laço sem fim esconderia o defeito."
-    meow_aviso "o que olhar primeiro:  meow doctor"
     printf '\n'
     laco_quebrado=1
   fi
