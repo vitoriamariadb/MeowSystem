@@ -60,7 +60,7 @@ for c in make just; do
   cat > "$T/bin/$c" <<FIM
 #!/bin/sh
 echo "$c \$*" >> "$T/build.log"
-mkdir -p target/release && cp src/main.rs target/release/cosmic-comp
+mkdir -p target/release && { printf '#!/bin/sh\nexit 0\n'; cat src/main.rs; } > target/release/cosmic-comp && chmod 755 target/release/cosmic-comp
 FIM
 done
 cat > "$T/bin/cargo" <<FIM
@@ -71,7 +71,7 @@ case "\$1" in
   build) mkdir -p target/release
          if [ -f src/app.rs ]; then
            cp src/app.rs target/release/cosmic-files; cp src/app.rs target/release/cosmic-files-applet
-         else cp src/main.rs target/release/cosmic-comp; fi ;;
+         else { printf '#!/bin/sh\nexit 0\n'; cat src/main.rs; } > target/release/cosmic-comp; chmod 755 target/release/cosmic-comp; fi ;;
 esac
 FIM
 chmod 755 "$T/bin"/*

@@ -115,6 +115,7 @@ function pilulaDoBuildDaCasa(e, ocupado, construindo) {
   if ((ocupado && ocupado.id === e.id) || (construindo && !e.instalada)) return ["correndo", "Compilando"];
   if (e.falhou) return ["erro", "Falhou"];
   if (e.situacao === "nao-encaixa") return ["erro", "Não encaixa"];
+  if (e.situacao === "retido") return ["ensaio", "Em observação"];
   if (e.atualizacao) return ["ensaio", "Atualização"];
   if (!e.instalada) return ["neutro", "Não instalada"];
   return e.ativa ? ["ok", "Em dia"] : ["neutro", "Pronto, desligado"];

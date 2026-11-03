@@ -21,6 +21,11 @@ CP_SHIM_MARCA="MEOW-COSMIC-COMP-SHIM"
 CP_MATRIZ="${CP_MATRIZ:-$MEOW_ESTADO/cosmic-comp/matriz.tsv}"
 CP_ALVOS="${CP_ALVOS:-$MEOW_ESTADO/cosmic-comp/alvos}"
 CP_TRAVA_BUILDS="${CP_TRAVA_BUILDS:-$MEOW_ESTADO/builds.lock}"
+CP_FABRICA="$CP_BIN"
+CP_FABRICA_SOMAS="${CP_FABRICA_SOMAS:-}"
+[ -n "$CP_FABRICA_SOMAS" ] || [ "$CP_BIN" != /usr/bin/cosmic-comp ] || CP_FABRICA_SOMAS=/var/lib/dpkg/info/cosmic-comp.md5sums
+CP_ESPACO_KB="${CP_ESPACO_KB:-3500000}"
+CP_PROC="${CP_PROC:-/proc}"
 
 declare -a _CP_TIPO=() _CP_TEXTO=()
 _cp_diz() { _CP_TIPO+=("$1"); shift; _CP_TEXTO+=("$*"); }
@@ -92,6 +97,140 @@ _cp_proximo_login() {
 
 _cp_plural() { [ "$1" = "1" ] && printf '%s %s' "$1" "$2" || printf '%s %s' "$1" "$3"; }
 
+_cp_fumaca() {
+  (cd / && exec timeout 10 "$1" --version </dev/null >/dev/null 2>&1) || return 1
+  ! ldd "$1" 2>/dev/null | grep -q 'not found'
+}
+
+_cp_digital() {
+  ldd "$1" 2>/dev/null | awk '$2 == "=>" && $3 ~ /^\// {print $3}' | xargs -r readlink -f -- | sort | md5sum | cut -c1-32
+}
+
+_cp_digital_mudou() {
+  local gravada
+  gravada="$(sed -n 's/^bibliotecas=//p' "$1/estado" 2>/dev/null | head -1)"
+  [ -n "$gravada" ] && [ "$gravada" != "$(_cp_digital "$1/cosmic-comp")" ]
+}
+
+_cp_espera_segundos() {
+  local n="$1" s
+  [ "$n" -gt 9 ] && n=9
+  s=$(( 3600 << (n - 1) )); [ "$s" -gt 604800 ] && s=604800
+  printf '%s' "$s"
+}
+
+_cp_serie_mudou() { [ -n "$(find "$CP_REPO" "$CP_SERIE" -newer "$CP_MATRIZ" -print -quit 2>/dev/null)" ]; }
+
+_cp_falhas() {
+  local f n
+  f="$(awk -F'\t' -v v="$1" '$1 == v {print $4}' "$CP_MATRIZ" 2>/dev/null | tail -1)"
+  case "$f" in falhou=*@*) ;; *) return 1 ;; esac
+  f="${f#falhou=}"; n="${f%%@*}"; f="${f#*@}"
+  case "$n$f" in ''|*[!0-9]*) return 1 ;; esac
+  _cp_serie_mudou && return 1
+  printf '%s %s' "$n" "$f"
+}
+
+_cp_espera() {
+  local f n quando
+  f="$(_cp_falhas "$1")" || return 1
+  n="${f%% *}"; quando=$(( ${f#* } + $(_cp_espera_segundos "$n") ))
+  [ "$(date +%s)" -lt "$quando" ] || return 1
+  printf '%s %s' "$quando" "$n"
+}
+
+_cp_dizer_espera() {
+  meow_aviso "a compilação do cosmic-comp $1 falhou $(_cp_plural "${2#* }" vez vezes) nesta versão e série — a sessão segue no de fábrica, e a próxima tentativa é a partir de $(date -d "@${2%% *}" '+%d/%m %H:%M')"
+}
+
+_cp_quedas_do_build() {
+  local alvo desde="$2" n=0 fonte=0 c
+  alvo="$(readlink -f -- "$1" 2>/dev/null)" || alvo="$1"
+  if meow_tem coredumpctl; then
+    c="$(coredumpctl --no-pager --no-legend -q list --since="@$desde" "$alvo" 2>/dev/null | grep -c .)"
+    fonte=1; n=$((n + ${c:-0}))
+  fi
+  if meow_tem journalctl && meow_tem python3; then
+    if c="$(journalctl --user -q --no-pager --since="@$desde" -o json \
+              SYSLOG_IDENTIFIER=cosmic-comp SYSLOG_IDENTIFIER=cosmic-session 2>/dev/null \
+            | python3 -c '
+import json, re, sys
+alvo, ultimo, boot, n = sys.argv[1], "", "", 0
+queda = re.compile(r"(^|[\s\x27/])cosmic-comp\s*\x27?\s*(terminated with signal (\d+)|exited with error)")
+partida = re.compile(r"starting process .*(^|[\s\x27/])cosmic-comp\s*\x27?\s*$")
+for linha in sys.stdin:
+    try:
+        e = json.loads(linha)
+    except ValueError:
+        continue
+    if e.get("_BOOT_ID", boot) != boot:
+        boot, ultimo = e.get("_BOOT_ID"), ""
+    m = e.get("MESSAGE") or ""
+    if isinstance(m, list):
+        m = bytes(m).decode("utf-8", "replace")
+    if e.get("SYSLOG_IDENTIFIER") == "cosmic-comp":
+        ultimo = e.get("_EXE") or ultimo
+        continue
+    if partida.search(m):
+        ultimo = ""
+        continue
+    r = queda.search(m)
+    if not r:
+        continue
+    if r.group(3) != "15" and ultimo in ("", alvo):
+        n += 1
+    ultimo = ""
+print(n)' "$alvo")"; then
+      fonte=1; n=$((n + c))
+    fi
+  fi
+  [ "$fonte" = 1 ] || return 1
+  printf '%s' "$n"
+}
+
+_cp_desde() { stat -c %Y "$1/estado" 2>/dev/null || echo 0; }
+
+_cp_caiu() { [ "$(head -c 4 "$1/ruim" 2>/dev/null)" = caiu ]; }
+
+_cp_perdoavel() {
+  local d="$1" q
+  _cp_caiu "$d" && return 1
+  [ -e "$d/perdoado" ] && return 1
+  [ -x "$d/cosmic-comp" ] && _cp_fumaca "$d/cosmic-comp" || return 1
+  q="$(_cp_quedas_do_build "$d/cosmic-comp" "$(_cp_desde "$d")")" || return 1
+  [ "$q" = 0 ]
+}
+
+_cp_fabrica_alterada() {
+  local soma
+  [ -n "$CP_FABRICA_SOMAS" ] && [ -r "$CP_FABRICA_SOMAS" ] && [ -f "$CP_FABRICA" ] || return 1
+  soma="$(awk '$2 == "usr/bin/cosmic-comp" {print $1}' "$CP_FABRICA_SOMAS" 2>/dev/null)"
+  [ "${#soma}" = 32 ] || return 1
+  [ "$(md5sum < "$CP_FABRICA" 2>/dev/null | cut -d' ' -f1)" != "$soma" ]
+}
+
+_cp_login_fora() {
+  local pid casa caminho d primeiro idade
+  local -a dirs=()
+  for pid in $(pgrep -u "$(id -u)" -x cosmic-session 2>/dev/null); do
+    [ -r "$CP_PROC/$pid/environ" ] || continue
+    casa="$(tr '\0' '\n' < "$CP_PROC/$pid/environ" | sed -n 's/^HOME=//p' | head -1)"
+    [ "$casa" = "$HOME" ] || continue
+    caminho="$(tr '\0' '\n' < "$CP_PROC/$pid/environ" | sed -n 's/^PATH=//p' | head -1)"
+    primeiro=""
+    IFS=: read -r -a dirs <<< "$caminho"
+    for d in ${dirs[@]+"${dirs[@]}"}; do
+      [ -n "$d" ] && [ -x "$d/cosmic-comp" ] && { primeiro="$d/cosmic-comp"; break; }
+    done
+    [ -n "$primeiro" ] && [ "$(readlink -f -- "$primeiro")" = "$(readlink -f -- "$CP_SHIM")" ] && return 1
+    idade="$(ps -o etimes= -p "$pid" 2>/dev/null | tr -d ' ')"
+    case "$idade" in ''|*[!0-9]*) return 1 ;; esac
+    [ "$(stat -c %Y "$CP_SHIM" 2>/dev/null || echo 0)" -lt "$(( $(date +%s) - idade ))" ]
+    return $?
+  done
+  return 1
+}
+
 cmd_conferir() {
   local -a problemas=()
   local rc=0
@@ -101,6 +240,10 @@ cmd_conferir() {
     meow_pula "cosmic-comp não está instalado — nada a conferir nos patches"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  if _cp_fabrica_alterada; then
+    meow_muda "o $CP_FABRICA não bate com o md5sums do pacote: a tela de login e a fábrica do shim rodam um binário trocado"
+    return "$MEOW_DIVERGENTE"
+  fi
 
   local com_shim=0
   if _cp_shim_ativo; then
@@ -109,7 +252,11 @@ cmd_conferir() {
     v_shim="$(_cp_versao_instalada 2>/dev/null)" || v_shim=""
     casa_v="$CP_CASA/$v_shim"
     if [ -e "$casa_v/ruim" ]; then
-      meow_muda "o build do cosmic-comp $v_shim caiu duas vezes seguidas e foi posto de lado — a sessão sobe de fábrica até a próxima versão"
+      if _cp_caiu "$casa_v"; then
+        meow_aviso "o build do cosmic-comp $v_shim caiu na sessão e foi posto de lado — a sessão sobe de fábrica até a próxima versão"
+        return "$MEOW_SEM_DEPENDENCIA"
+      fi
+      meow_muda "o build do cosmic-comp $v_shim foi posto de lado depois de duas partidas curtas — o conserto o devolve se o teste de fumaça passar e o registro não tiver queda dele"
       return "$MEOW_DIVERGENTE"
     fi
     if [ ! -x "$casa_v/cosmic-comp" ] || [ ! -r "$casa_v/estado" ]; then
@@ -121,8 +268,35 @@ cmd_conferir() {
         meow_aviso "construindo o build do cosmic-comp $v_shim — vale no próximo login"
         return "$MEOW_OK"
       fi
+      local espera
+      if espera="$(_cp_espera "$v_shim")"; then
+        _cp_dizer_espera "$v_shim" "$espera"
+        return "$MEOW_OK"
+      fi
       meow_muda "o cosmic-comp $v_shim ainda não tem build nosso — a sessão sobe de fábrica, sem os patches"
       return "$MEOW_DIVERGENTE"
+    fi
+    if [ -e "$casa_v/retido" ]; then
+      meow_pula "o build do cosmic-comp $v_shim entrou com o contexto mudado (degrau 2: $(tr '\n' ' ' < "$casa_v/retido" | sed 's/ *$//')) e fica guardado, fora da sessão, até o «Instalar» da página Extensões"
+      return 4
+    fi
+    local quedas
+    if quedas="$(_cp_quedas_do_build "$casa_v/cosmic-comp" "$(_cp_desde "$casa_v")")" && [ "$quedas" -gt 0 ]; then
+      meow_muda "o build do cosmic-comp $v_shim caiu $(_cp_plural "$quedas" vez vezes) na sessão — o conserto o põe de lado, e o próximo login sobe de fábrica"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if _cp_digital_mudou "$casa_v"; then
+      local espera_b
+      if espera_b="$(_cp_espera "$v_shim")"; then
+        _cp_dizer_espera "$v_shim" "$espera_b"
+        return "$MEOW_OK"
+      fi
+      meow_muda "as bibliotecas do sistema mudaram desde o build do cosmic-comp $v_shim — o conserto o recompila em segundo plano, e até lá ele segue valendo"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if _cp_login_fora; then
+      meow_aviso "o login desta sessão não passa por ${CP_SHIM%/*}: o PATH do cosmic-session acha outro cosmic-comp antes do shim, e a sessão sobe sem os patches"
+      return "$MEOW_SEM_DEPENDENCIA"
     fi
     CP_BIN="$casa_v/cosmic-comp"
     CP_ESTADO="$casa_v/estado"
@@ -157,6 +331,7 @@ cmd_conferir() {
         \#*|"") continue ;;
         versao=*)  versao_estado="${l#versao=}" ;;
         gravado=*) gravado="${l#gravado=}" ;;
+        bibliotecas=*) ;;
         *) linhas+=("$l") ;;
       esac
     done < "$CP_ESTADO"
@@ -327,7 +502,7 @@ cmd_conferir() {
 _CP_PATCH_OPCOES=(-p1 --forward -F0 --no-backup-if-mismatch --silent)
 _CP_PATCH_OPCOES_F1=(-p1 --forward -F1 --no-backup-if-mismatch --silent)
 
-declare -a _CP_DEGRAUS=()
+declare -a _CP_DEGRAUS=() _CP_RETER=()
 
 _cp_alvos_mudaram() {
   local fonte="$1" patch_arq="$2" alvo
@@ -336,6 +511,13 @@ _cp_alvos_mudaram() {
     [ -f "$CP_ALVOS/$alvo" ] || return 0
     cmp -s "$fonte/$alvo" "$CP_ALVOS/$alvo" || return 0
   done < <(_cp_alvos_do_patch "$patch_arq")
+  return 1
+}
+_cp_alvos_tem_base() {
+  local alvo
+  while IFS= read -r alvo; do
+    [ -n "$alvo" ] && [ -f "$CP_ALVOS/$alvo" ] && return 0
+  done < <(_cp_alvos_do_patch "$1")
   return 1
 }
 _cp_alvos_do_patch() {
@@ -428,7 +610,7 @@ cmd_aplicar() {
   [ "$n" -gt 0 ] || { meow_pula "a série não declara nenhum patch"; return "$MEOW_OK"; }
 
   local i abortar=0
-  _CP_DEGRAUS=()
+  _CP_DEGRAUS=(); _CP_RETER=()
   for i in "${!classe[@]}"; do
     case "${estado[$i]}" in
       ja)         meow_ok   "${arquivo[$i]} já está na árvore (${base[$i]})"
@@ -437,13 +619,14 @@ cmd_aplicar() {
         if _cp_alvos_mudaram "$fonte" "$CP_REPO/${arquivo[$i]}"; then
           meow_info "${arquivo[$i]} aplica limpo, mas o upstream mexeu no que ele toca: degrau 2, em observação (${classe[$i]})"
           _CP_DEGRAUS+=("${arquivo[$i]}:2")
+          _cp_alvos_tem_base "$CP_REPO/${arquivo[$i]}" && _CP_RETER+=("${arquivo[$i]}")
         else
           meow_info "${arquivo[$i]} aplica limpo: degrau 1 (${classe[$i]})"
           _CP_DEGRAUS+=("${arquivo[$i]}:1")
         fi ;;
       pode-f1)
         meow_info "${arquivo[$i]} só entra com -F1 — o contexto mudou: degrau 2, em observação (${classe[$i]})"
-        _CP_DEGRAUS+=("${arquivo[$i]}:2") ;;
+        _CP_DEGRAUS+=("${arquivo[$i]}:2"); _CP_RETER+=("${arquivo[$i]}") ;;
       velho)
         meow_muda "${arquivo[$i]} está na árvore em outra versão — só um fonte reextraído recebe a que o .patch declara"
         abortar=1 ;;
@@ -591,6 +774,7 @@ _cp_texto_estado() {
   printf '# gravado pelo meow compositor — NAO EDITAR A MAO\n'
   printf 'versao=%s\n' "$ver"
   printf 'gravado=%s\n' "$(date -Is)"
+  printf 'bibliotecas=%s\n' "$(_cp_digital "$bin")"
   while IFS=$'\t' read -r classe arquivo base; do
     achado="$(_cp_marcadores "$bin" "$base" | head -1)"
     if [ -n "$achado" ]; then
@@ -605,13 +789,26 @@ _cp_gravar_matriz() {
   local ver="$1" linha tmp
   [ "${#_CP_DEGRAUS[@]}" -gt 0 ] || return 0
   linha="$ver"$'\t'"$(date +%F)"$'\t'"${_CP_DEGRAUS[*]}"
-  if awk -F'\t' -v v="$ver" -v d="${_CP_DEGRAUS[*]}" '$1==v && $3==d {achou=1} END {exit !achou}' "$CP_MATRIZ" 2>/dev/null; then
+  if awk -F'\t' -v v="$ver" -v d="${_CP_DEGRAUS[*]}" '$1==v && $3==d && $4=="" {achou=1} END {exit !achou}' "$CP_MATRIZ" 2>/dev/null; then
     touch "$CP_MATRIZ"
     return 0
   fi
   mkdir -p "${CP_MATRIZ%/*}" || return 1
   tmp="$(mktemp -p "${CP_MATRIZ%/*}" .matriz.XXXXXX)" || return 1
   { awk -F'\t' -v v="$ver" '$1!=v' "$CP_MATRIZ" 2>/dev/null; printf '%s\n' "$linha"; } > "$tmp" && mv -f "$tmp" "$CP_MATRIZ"
+}
+
+_cp_gravar_falha() {
+  local ver="$1" ant n=0 tmp
+  ant="$(_cp_falhas "$ver")" && n="${ant%% *}"
+  n=$((n + 1))
+  mkdir -p "${CP_MATRIZ%/*}" || return 1
+  tmp="$(mktemp -p "${CP_MATRIZ%/*}" .matriz.XXXXXX)" || return 1
+  { awk -F'\t' -v v="$ver" '$1 != v' "$CP_MATRIZ" 2>/dev/null
+    printf '%s\t%s\t%s\t%s\n' "$ver" "$(date +%F)" "${_CP_DEGRAUS[*]:-}" "falhou=$n@$(date +%s)"; } > "$tmp" \
+    && mv -f "$tmp" "$CP_MATRIZ"
+  rm -f "$tmp" 2>/dev/null
+  meow_info "a falha entrou na matriz ($(_cp_plural "$n" vez vezes) nesta versão e série): a próxima tentativa sozinha espera $(( $(_cp_espera_segundos "$n") / 3600 )) h"
 }
 
 cmd_compilar() {
@@ -663,6 +860,15 @@ cmd_compilar() {
     return "$MEOW_DIVERGENTE"
   fi
 
+  mkdir -p "$CP_CACHE" || { meow_erro "não consegui criar $CP_CACHE"; return "$MEOW_ERRO"; }
+  local livre precisa="$CP_ESPACO_KB"
+  [ -d "$fonte/target" ] && precisa=$(( precisa - $(du -sk "$fonte/target" 2>/dev/null | cut -f1) ))
+  livre="$(df -Pk "$CP_CACHE" 2>/dev/null | awk 'NR == 2 {print $4}')"
+  if [ -n "$livre" ] && [ "$livre" -lt "$precisa" ]; then
+    meow_pula "sem espaço para compilar o cosmic-comp $ver: $((livre / 1024)) MB livres em $CP_CACHE, e o build pede ~$((precisa / 1024)) MB — a sessão segue no de fábrica"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
   _cp_baixar_fonte "$ver" || return $?
   if _cp_arvore_velha "$fonte" "$serie"; then
     meow_info "o fonte do cache tem a versão anterior de um patch da série: reextraindo"
@@ -696,9 +902,11 @@ cmd_compilar() {
   if ! ( cd "$fonte" && nice -n 19 "${_CP_RECEITA[@]}" ) >"$log" 2>&1; then
     meow_erro "a compilação falhou — nada foi instalado, o compositor de agora continua"
     tail -n 15 "$log" 2>/dev/null | sed 's/^/        /' >&2
+    rm -rf -- "$fonte/target"
+    _cp_gravar_falha "$ver"
     return "$MEOW_ERRO"
   fi
-  [ -f "$bin" ] || { meow_erro "o make terminou e o binário não apareceu em $bin"; return "$MEOW_ERRO"; }
+  [ -f "$bin" ] || { meow_erro "o make terminou e o binário não apareceu em $bin"; _cp_gravar_falha "$ver"; return "$MEOW_ERRO"; }
 
   local classe arquivo base falta_req=0
   while IFS=$'\t' read -r classe arquivo base; do
@@ -714,10 +922,17 @@ cmd_compilar() {
       meow_aviso "$base (opcional) não está no binário: o efeito pode estar lá, mas ninguém vai saber"
     fi
   done < <(_cp_serie_entradas "$serie")
-  [ "$falta_req" = "0" ] || { meow_erro "nada foi instalado: um obrigatório ficou fora do binário"; return "$MEOW_ERRO"; }
+  [ "$falta_req" = "0" ] || { meow_erro "nada foi instalado: um obrigatório ficou fora do binário"; _cp_gravar_falha "$ver"; return "$MEOW_ERRO"; }
+  if ! _cp_fumaca "$bin"; then
+    meow_erro "o binário compilado não passou no teste de fumaça (--version e as bibliotecas) — nada foi instalado"
+    _cp_gravar_falha "$ver"
+    return "$MEOW_ERRO"
+  fi
 
-  local destino="$CP_CASA/$ver" tmp_bin tmp_estado
-  if cmp -s "$bin" "$destino/cosmic-comp" && [ -f "$destino/estado" ] && [ ! -e "$destino/ruim" ]; then
+  local destino="$CP_CASA/$ver" tmp_bin tmp_estado degrau2
+  degrau2="$(printf '%s\n' ${_CP_RETER[@]+"${_CP_RETER[@]}"} | sort -u | tr '\n' ' ' | sed 's/^ *//; s/ *$//')"
+  if cmp -s "$bin" "$destino/cosmic-comp" && [ -f "$destino/estado" ] && [ ! -e "$destino/ruim" ] \
+     && ! _cp_digital_mudou "$destino" && grep -q '^bibliotecas=' "$destino/estado"; then
     meow_ok "o binário compilado é o que já está em $destino — nada a instalar"
     return "$MEOW_OK"
   fi
@@ -732,11 +947,19 @@ cmd_compilar() {
   _cp_texto_estado "$destino/cosmic-comp" "$ver" "$serie" > "$tmp_estado" \
     && mv -f "$tmp_estado" "$destino/estado" \
     || { rm -f "$tmp_estado"; meow_erro "não consegui gravar $destino/estado"; return "$MEOW_ERRO"; }
-  rm -f "$destino/ruim" "$destino/quedas"
+  rm -f "$destino/ruim" "$destino/quedas" "$destino/perdoado"
+  meow_precisa_de_gente_resolvida compositor-caiu
   meow_muda "cosmic-comp patchado guardado em $destino (versão $ver), estado medido no binário"
   _cp_gravar_matriz "$ver"
-  if [ -d "$novo_alvos" ]; then
-    rm -rf "$CP_ALVOS" && mv -f "$novo_alvos" "$CP_ALVOS" && printf '%s\n' "$ver" > "$CP_ALVOS/.versao"
+  if [ -n "$degrau2" ] && [ "$(cat "$destino/liberado" 2>/dev/null)" != "$degrau2" ]; then
+    printf '%s\n' "$degrau2" > "$destino/retido"
+    rm -rf "$novo_alvos"
+    meow_info "degrau 2 ($degrau2): o build fica guardado, fora da sessão, até o «Instalar» da página Extensões"
+  else
+    rm -f "$destino/retido"
+    if [ -d "$novo_alvos" ]; then
+      rm -rf "$CP_ALVOS" && mv -f "$novo_alvos" "$CP_ALVOS" && printf '%s\n' "$ver" > "$CP_ALVOS/.versao"
+    fi
   fi
   _cp_shim_ativo || meow_info "o shim está desligado: o build fica guardado, sem efeito na sessão"
 
@@ -783,6 +1006,81 @@ cmd_validar() {
   fi
   meow_info "o cosmic-comp $ver não tem build enquanto o obrigatório recusar: é o degrau 4, um rebase do patch"
   return "$MEOW_ERRO"
+}
+
+cmd_liberar() {
+  local ver d
+  ver="$(_cp_versao_instalada)" || { meow_pula "o cosmic-comp não está instalado"; return "$MEOW_SEM_DEPENDENCIA"; }
+  d="$CP_CASA/$ver"
+  if [ ! -e "$d/retido" ]; then
+    meow_ok "o build do cosmic-comp $ver não está retido"
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then
+    meow_muda "liberaria o build do cosmic-comp $ver (degrau 2) para a sessão"
+    return "$MEOW_DIVERGENTE"
+  fi
+  { cp -f "$d/retido" "$d/liberado" && rm -f "$d/retido"; } || { meow_erro "não consegui liberar $d"; return "$MEOW_ERRO"; }
+  meow_muda "o build do cosmic-comp $ver (degrau 2) entra na sessão — vale no próximo login"
+  return "$MEOW_DIVERGENTE"
+}
+
+_cp_marcar_caiu() {
+  local d="$1" ver="$2" porque="$3"
+  if meow_seco; then meow_muda "poria de lado o build do cosmic-comp $ver: $porque"; return "$MEOW_DIVERGENTE"; fi
+  printf 'caiu %s\n' "$(date -Is)" > "$d/ruim" || { meow_erro "não consegui marcar $d/ruim"; return "$MEOW_ERRO"; }
+  rm -f "$d/quedas"
+  meow_precisa_de_gente compositor-caiu "O compositor da casa caiu" \
+    "cosmic-comp $ver: $porque, e a sessão segue no de fábrica até a próxima versão"
+  meow_muda "o build do cosmic-comp $ver foi posto de lado ($porque) — o próximo login sobe de fábrica"
+  return "$MEOW_DIVERGENTE"
+}
+
+_cp_fabrica_cuidar() {
+  if ! _cp_fabrica_alterada; then
+    meow_pendencia_resolvida cosmic-comp-de-fabrica
+    return "$MEOW_OK"
+  fi
+  if meow_seco; then meow_muda "devolveria o $CP_FABRICA ao binário do pacote cosmic-comp, pela ponte"; return "$MEOW_DIVERGENTE"; fi
+  if meow_ponte_viva && meow_ponte cosmic-comp-de-fabrica </dev/null >/dev/null 2>&1 && ! _cp_fabrica_alterada; then
+    meow_pendencia_resolvida cosmic-comp-de-fabrica
+    meow_muda "$CP_FABRICA voltou ao binário do pacote cosmic-comp — vale no próximo login"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_pendencia_acionavel cosmic-comp-de-fabrica \
+    "O $CP_FABRICA não é o binário do pacote, e sem a ponte de root ele não volta daqui" "instalar"
+  return "$MEOW_SEM_DEPENDENCIA"
+}
+
+cmd_cuidar() {
+  local rc ver d q
+  _cp_fabrica_cuidar; rc=$?
+  ver="$(_cp_versao_instalada 2>/dev/null)" || return "$rc"
+  d="$CP_CASA/$ver"
+  [ -x "$d/cosmic-comp" ] && [ -f "$d/estado" ] || return "$rc"
+  _cp_caiu "$d" && return "$rc"
+  _cp_shim_ativo || return "$rc"
+  [ -e "$d/retido" ] && [ ! -e "$d/ruim" ] && return "$rc"
+  if q="$(_cp_quedas_do_build "$d/cosmic-comp" "$(_cp_desde "$d")")" && [ "$q" -gt 0 ]; then
+    _cp_marcar_caiu "$d" "$ver" "o build caiu $(_cp_plural "$q" vez vezes) na sessão"
+    return $?
+  fi
+  [ -e "$d/ruim" ] || return "$rc"
+  if ! _cp_perdoavel "$d"; then
+    if [ -e "$d/perdoado" ]; then
+      _cp_marcar_caiu "$d" "$ver" "o build voltou a ser posto de lado depois de devolvido uma vez"
+    elif ! _cp_fumaca "$d/cosmic-comp"; then
+      _cp_marcar_caiu "$d" "$ver" "o build não passa no teste de fumaça"
+    else
+      _cp_marcar_caiu "$d" "$ver" "o build foi posto de lado, e sem o registro do journal não há como separar sair de cair"
+    fi
+    return $?
+  fi
+  if meow_seco; then meow_muda "devolveria o build do cosmic-comp $ver à sessão"; return "$MEOW_DIVERGENTE"; fi
+  rm -f "$d/ruim" "$d/quedas"
+  date -Is > "$d/perdoado"
+  meow_muda "o build do cosmic-comp $ver volta à sessão no próximo login: passou no teste de fumaça, e o registro não tem queda dele"
+  return "$MEOW_DIVERGENTE"
 }
 
 cmd_ativar() {
@@ -858,8 +1156,10 @@ case "${1:-conferir}" in
   validar)  cmd_validar ;;
   reverter) cmd_reverter ;;
   ativar)    cmd_ativar ;;
+  liberar)   cmd_liberar ;;
+  cuidar)    cmd_cuidar ;;
   desativar) cmd_desativar ;;
   qual)      _cp_proximo_login ;;
   guardar)   _cp_guardar_do_cache ;;
-  *) meow_erro "uso: compositor_patches.sh {conferir|aplicar [dir-do-fonte]|compilar|validar|reverter|ativar|desativar|qual|guardar}"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: compositor_patches.sh {conferir|aplicar [dir-do-fonte]|compilar|validar|reverter|ativar|liberar|cuidar|desativar|qual|guardar}"; exit "$MEOW_ERRO" ;;
 esac

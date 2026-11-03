@@ -5031,6 +5031,7 @@ ACAO_DA_PENDENCIA = {
     "fastfetch-ausente": "instalar",
     "spicetify-tema-ausente": "apps_aplicar",
     "spicetify-ausente": "spicetify_instalar",
+    "cosmic-comp-de-fabrica": "instalar",
 }
 
 NOME_DA_PENDENCIA = {
@@ -5043,6 +5044,7 @@ NOME_DA_PENDENCIA = {
     "aplicar-ajuste": "Ajuste pendente",
     "spicetify-tema-ausente": "Tema do Spotify",
     "spicetify-ausente": "Pintor do Spotify",
+    "cosmic-comp-de-fabrica": "Compositor de fábrica",
 }
 
 BUILD_DA_PENDENCIA = {}

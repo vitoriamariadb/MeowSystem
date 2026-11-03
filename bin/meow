@@ -1281,7 +1281,7 @@ fix_extensoes()  { EXTENSOES_COMPILAR=1 EXTENSOES="${EXTENSOES:-}" MIDIA="${MIDI
                     LEITURA_APPLET="${LEITURA_APPLET:-}" \
                     "$RAIZ/scripts/extensoes_build.sh" --todas --aplicar 2>&1; }
 fix_extensoestema() { FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/extensoes_tema.sh" --aplicar 2>&1; }
-fix_patches()    { "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1; local rc=$?; _patches_shim_falta || return "$rc"; "$RAIZ/scripts/compositor_patches.sh" ativar 2>&1; }
+fix_patches()    { "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1; local rc=$? r; "$RAIZ/scripts/compositor_patches.sh" cuidar 2>&1; r=$?; case "$r" in 1) [ "$rc" = 0 ] && rc=1 ;; 2) rc=2 ;; esac; _patches_shim_falta || return "$rc"; "$RAIZ/scripts/compositor_patches.sh" ativar 2>&1; }
 
 fix_painel()    {
   rodar_painel "$RAIZ" conferir 2>&1

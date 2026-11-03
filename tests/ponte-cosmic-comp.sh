@@ -96,6 +96,33 @@ cp "$T/remendado" "$BIN"; : > "$T/apt.log"
 reverter /nao/existe; rc=$?
 confere "sem a ponte: não toca no binário e diz o caminho" '[ "$rc" = 0 ] && cmp -s "$BIN" "$T/remendado" && [ "$(apt_chamadas)" = 0 ]' "$(cat "$T/saida")"
 
+printf '\n6. o doctor confere a fábrica contra o md5sums e a devolve pela ponte\n'
+PEND="$T/casa/.local/state/meowsystem/pendencias.tsv"
+cp_verbo() {
+  local v="$1"; shift
+  env -i PATH="$FALSO:/usr/bin:/bin" HOME="$T/casa" NO_COLOR=1 MEOW_RAIZ="$RAIZ" MEOW_PONTE="${1:-$LIB/ponte_root.sh}" \
+    CP_BIN="$BIN" CP_FABRICA_SOMAS="$INFO/cosmic-comp.md5sums" CP_ESTADO="$T/sem-estado" \
+    CP_CASA="$T/casa/.local/libexec/meow/cosmic-comp" CP_SHIM="$T/casa/.local/bin/cosmic-comp" \
+    bash "$RAIZ/scripts/compositor_patches.sh" "$v" > "$T/saida" 2>&1
+}
+cp "$T/fabrica" "$BIN"
+cp_verbo conferir; rc=$?
+confere "a fábrica que bate com o pacote: o conferir não fala dela" '! grep -q "md5sums" "$T/saida"' "$(cat "$T/saida")"
+cp "$T/remendado" "$BIN"
+cp_verbo conferir; rc=$?
+confere "a fábrica trocada: o conferir diverge e diz" '[ "$rc" = 1 ] && grep -q "não bate com o md5sums do pacote" "$T/saida"' "$(cat "$T/saida")"
+cp_verbo cuidar /nao/existe; rc=$?
+confere "sem a ponte: não toca no binário, sai 3 e deixa a pendência" \
+  '[ "$rc" = 3 ] && cmp -s "$BIN" "$T/remendado" && grep -q "^cosmic-comp-de-fabrica	.*	instalar	" "$PEND"' "$(cat "$T/saida"; cat "$PEND" 2>/dev/null)"
+confere "e a frase não manda digitar" '! grep -qiE "rode|sudo |apt " "$T/saida"' "$(cat "$T/saida")"
+: > "$T/ponte.log"
+cp_verbo cuidar; rc=$?
+confere "com a ponte: devolve o do pacote, sai 1" '[ "$rc" = 1 ] && cmp -s "$BIN" "$T/fabrica" && grep -qx "ponte cosmic-comp-de-fabrica" "$T/ponte.log"' "$(cat "$T/saida")"
+confere "e a pendência sai" '! grep -q "^cosmic-comp-de-fabrica	" "$PEND" 2>/dev/null'
+: > "$T/ponte.log"
+cp_verbo cuidar; rc=$?
+confere "a segunda passada: 0, sem ponte" '[ "$rc" = 0 ] && [ ! -s "$T/ponte.log" ]' "$(cat "$T/saida")"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'ponte-cosmic-comp: tudo verde\n'; exit 0; fi
 printf 'ponte-cosmic-comp: %s falha(s)\n' "$falhas"; exit 1
