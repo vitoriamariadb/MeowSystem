@@ -31,7 +31,8 @@ printf 'fn um() {}\nfn dois() {}\nfn tres() {}\n' > "\$d/src/a.rs"
 FIM
 cat > "$T/bin/make" <<'FIM'
 #!/bin/sh
-mkdir -p target/release && grep -rho 'MEOW-T-[0-9]*' src > target/release/cosmic-comp
+mkdir -p target/release && { printf '#!/bin/sh\nexit 0\n'; grep -rho 'MEOW-T-[0-9]*' src; } > target/release/cosmic-comp
+chmod 755 target/release/cosmic-comp
 FIM
 chmod 755 "$T/bin/"*
 : > "$T/guarda/cosmic-comp_$VER.dsc"
@@ -113,7 +114,7 @@ comp() {
 igual "compilou e guardou: 0" "$rc" 0
 igual "o fonte foi reextraído do guardado" "$(grep -c '^dpkg-source -x' "$T/log")" 1
 igual "o estado grava a versão nova" "$(cat "$CASA/$VER/estado" 2>/dev/null | grep -c '^req MEOW-T-2 t.patch presente$')" 1
-igual "o binário só tem a versão nova" "$(sort -u "$CASA/$VER/cosmic-comp" 2>/dev/null | tr '\n' ' ')" "MEOW-T-2 "
+igual "o binário só tem a versão nova" "$(grep -ao 'MEOW-T-[0-9]*' "$CASA/$VER/cosmic-comp" 2>/dev/null | sort -u | tr '\n' ' ')" "MEOW-T-2 "
 [ "$rc" = 0 ] || sed 's/^/        /' "$T/saida"
 
 : > "$T/log"; comp; rc=$?

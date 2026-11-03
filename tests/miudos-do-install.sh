@@ -16,7 +16,7 @@ printf '#!/bin/sh\nexit 0\n' > "$TMP/falso/cargo"
 printf '#!/bin/sh\nexit 0\n' > "$TMP/falso/patch"
 cat > "$TMP/falso/make" <<'FIM'
 #!/bin/sh
-mkdir -p target/release && printf 'binario de brinquedo\n' > target/release/cosmic-comp
+mkdir -p target/release && printf '#!/bin/sh\nexit 0\n' > target/release/cosmic-comp && chmod 755 target/release/cosmic-comp
 FIM
 chmod 755 "$TMP/falso/"*
 fonte="$TMP/cache/cosmic-comp-1.0~teste"
