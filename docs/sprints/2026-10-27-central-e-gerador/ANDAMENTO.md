@@ -1,6 +1,15 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- FECHO (03/11, noite): P154 (o compositor em qualquer PC: teste de fumaça no shim, quedas que não gravam vão
+  para a fábrica, `req` ausente recusado, degrau 2 retido até o Instalar, espaço e espera na matriz, PATH do login,
+  fábrica conferida contra o dpkg). A fábrica desta máquina voltou ao pacote pela ponte (o night light da Aurora a
+  tinha mexido). Tocando agora 0.4.1 com ⏮⏯⏭ no acento do pack, ligado por padrão; ajustes rápidos espaçados pelo
+  respiro do painel; o doctor conserta os nomes de sistema pela ponte. Suíte 132/132. Install com o HOME real
+  (askpass): `rc=0`, 2 passagens, 72 etapas. Publicado: `master` em 551b1a7e.
+  ELA CONFERE COM A MÃO: no próximo login, a barra (⏮⏯⏭ na cor do pack, ajustes rápidos espaçados) e a sessão
+  entrando normal.
+  PRÓXIMO: nada em aberto. Sem detecção ainda: tela preta com o compositor vivo.
 - FECHO (02/11, 17h): v2.3.1. P153 (o fastfetch pela ponte root, verbo `fastfetch`; o rodapé de uma passagem, o
   preflight sem apt, a pendência do starship e o logo do pack sem comando) e o fix do `--version` do compositor.
   Suíte 131/132: o vermelho é o `decisoes.sh` 24 pela pasta local ignorada `docs/pesquisas/` (referências de
