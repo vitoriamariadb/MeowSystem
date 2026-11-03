@@ -10,7 +10,10 @@
   `meow-desperto-coordenador` já não existia. O sanitizer do Aurora trocava `vitoriamariadb` por `[REDACTED]`
   no README (o `user.name` local é o usuário do GitHub): curado lá, o dono do `origin` deixa de ser redigido.
   Publicado: `master`, tag v2.3.1 e release com o `.deb`.
-  PRÓXIMO: as capturas dos applets com ela (Desempenho, Conta-gotas, Bandeja, Soneca).
+  Depois (02/11, 23h): as capturas dela no README de cada applet (`docs/captura.png` em soneca, performance,
+  status-hub e eyedropper); Desempenho e Bandeja ficaram na barra; `docs/pesquisas/` apagada (suíte 132/132).
+  O portal de captura subira no login sem `XDG_CURRENT_DESKTOP` e não achava o backend do COSMIC: reiniciado.
+  PRÓXIMO: nada em aberto desta leva.
 - FECHO (30/10, 15h): v2.3.0. P150 (o `.deb`, a árvore só leitura; o upload de papel de parede vai para
   `~/.local/share/backgrounds/meowsystem/ativos`), P151 (as pontas soltas: `meow.conf.exemplo`, 14 saídas que mandavam
   rodar script, a ação «Baixar o spicetify», o `.obsolete` do VS Code, o autostart desmascara o que sai da lista, a
