@@ -302,6 +302,40 @@ cmp -s "$NA/apps/org.gimp.GIMP.desktop" "$NA/antes.desktop" \
   || falha "sem a ponte, o nomes_apps.sh mandou rodar sudo, escreveu ou deu por feito (rc=$rn)" \
        "$(cat "$SP/sudo.log" "$NA/saida.log")"
 
+printf '\n--- 14. com a ponte viva, o conserto do doctor renomeia o nome de sistema pela ponte ---\n'
+PV="$T/com-ponte"; mkdir -p "$PV/bin" "$PV/casa" "$PV/apps" "$PV/lib"
+cat > "$PV/bin/sudo" <<SUDO
+#!/bin/sh
+printf '%s\\n' "\$*" >> "$PV/sudo.log"
+[ "\$1" = -n ] && shift
+exec "\$@"
+SUDO
+cat > "$PV/lib/ponte_root.sh" <<PONTE
+#!/bin/sh
+case "\$1" in
+  estado) exit 0 ;;
+  desktop) IFS= read -r nome; rm -f "$PV/apps/\$nome"; cat > "$PV/apps/\$nome"; printf '%s\\n' "\$nome" >> "$PV/ponte.log" ;;
+  *) exit 2 ;;
+esac
+PONTE
+printf 'lar=%s\n' "$PV/casa" > "$PV/lib/perfil"
+printf '#!/bin/sh\nexit 0\n' > "$PV/bin/update-desktop-database"
+chmod 755 "$PV/bin/"* "$PV/lib/ponte_root.sh"
+printf '[Desktop Entry]\nName=GNU Image Manipulation Program\nExec=gimp\n' > "$PV/apps/org.gimp.GIMP.desktop"
+chmod 444 "$PV/apps/org.gimp.GIMP.desktop"; : > "$PV/sudo.log"; : > "$PV/ponte.log"
+conserto="$(sed -n 's/^fix_nomes() *{ *"\$RAIZ\/scripts\/nomes_apps.sh"\([^;]*\) 2>&1; }$/\1/p' "$RAIZ/bin/meow")"
+grep -q -- '--sem-sudo' <<< "$conserto" && falha "o fix_nomes do doctor ainda passa --sem-sudo" "$conserto"
+# shellcheck disable=SC2086
+env -i PATH="$PV/bin:$PATH" HOME="$PV/casa" MEOW_RAIZ="$RAIZ" MEOW_PONTE="$PV/lib/ponte_root.sh" NO_COLOR=1 \
+  MEOW_APLICATIVOS_SISTEMA="$PV/apps" \
+  bash "$RAIZ/scripts/nomes_apps.sh" $conserto > "$PV/saida.log" 2>&1; rn=$?
+grep -qx 'org.gimp.GIMP.desktop' "$PV/ponte.log" \
+  && ! grep -q '^Name=GNU Image Manipulation Program$' "$PV/apps/org.gimp.GIMP.desktop" \
+  && ! grep -q '«Instalar tudo»' "$PV/saida.log" \
+  && ok "com a ponte viva, o conserto do doctor renomeia o .desktop de sistema sem esperar o «Instalar tudo»" \
+  || falha "com a ponte viva, o conserto do doctor deixou o nome de sistema pendente (rc=$rn)" \
+       "$(cat "$PV/ponte.log" "$PV/saida.log")"
+
 printf '\n'
 [ "$ACHADOS" -eq 0 ] || { printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2; exit 1; }
 printf 'passou: os achados técnicos da P79 estão fechados\n'

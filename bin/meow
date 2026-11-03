@@ -1319,7 +1319,7 @@ fix_discordvigia(){ DISCORD_VENCORD="${DISCORD_VENCORD:-sim}" \
                     "$RAIZ/scripts/vigia_discord.sh" --aplicar 2>&1; }
 fix_jogos()     { "$RAIZ/scripts/jogos_steam.sh" 2>&1; }
 fix_jogosheroic(){ "$RAIZ/scripts/jogos_heroic.sh" --aplicar 2>&1; }
-fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" --sem-sudo 2>&1; }
+fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" 2>&1; }
 
 fix_ocultar()   { _lancador_do_sistema 2>&1 || return "$MEOW_SEM_DEPENDENCIA"
                   LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
