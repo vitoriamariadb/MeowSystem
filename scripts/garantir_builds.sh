@@ -32,6 +32,27 @@ _gb_comp_valido() {
   [ -x "$GB_CASA/$1/cosmic-comp" ] && grep -q '^req [^ ]* [^ ]* presente$' "$GB_CASA/$1/estado" 2>/dev/null \
     && ! _gb_comp_velho "$1"
 }
+_gb_comp_digital_mudou() {
+  local gravada atual
+  gravada="$(sed -n 's/^bibliotecas=//p' "$GB_CASA/$1/estado" 2>/dev/null | head -1)"
+  [ -n "$gravada" ] || return 1
+  atual="$(ldd "$GB_CASA/$1/cosmic-comp" 2>/dev/null | awk '$2 == "=>" && $3 ~ /^\// {print $3}' \
+    | xargs -r readlink -f -- | sort | md5sum | cut -c1-32)"
+  [ "$gravada" != "$atual" ]
+}
+_gb_comp_espera() {
+  local f n quando s
+  f="$(awk -F'\t' -v v="$1" '$1 == v {print $4}' "$GB_MATRIZ" 2>/dev/null | tail -1)"
+  case "$f" in falhou=*@*) ;; *) return 1 ;; esac
+  f="${f#falhou=}"; n="${f%%@*}"; quando="${f#*@}"
+  case "$n$quando" in ''|*[!0-9]*) return 1 ;; esac
+  [ -z "$(find "$GB_REPO" "$GB_SERIE" -newer "$GB_MATRIZ" -print -quit 2>/dev/null)" ] || return 1
+  [ "$n" -gt 9 ] && n=9
+  s=$(( 3600 << (n - 1) )); [ "$s" -gt 604800 ] && s=604800
+  quando=$((quando + s))
+  [ "$(date +%s)" -lt "$quando" ] || return 1
+  printf '%s %s' "$quando" "$n"
+}
 _gb_comp_velho() {
   local c a b m
   while read -r c a b _; do
@@ -82,7 +103,9 @@ _gb_pendentes() {
   while IFS=$'\t' read -r p v; do
     case "$p" in
       cosmic-files) _gb_files_quer && ! _gb_files_valido "$v" && printf '%s\t%s\n' "$p" "$v" ;;
-      cosmic-comp)  _gb_comp_quer && [ ! -e "$GB_CASA/$v/ruim" ] && ! _gb_comp_valido "$v" && ! _gb_comp_degrau4 "$v" \
+      cosmic-comp)  _gb_comp_quer && [ ! -e "$GB_CASA/$v/ruim" ] \
+                      && { ! _gb_comp_valido "$v" || _gb_comp_digital_mudou "$v"; } \
+                      && ! _gb_comp_degrau4 "$v" && ! _gb_comp_espera "$v" >/dev/null \
                       && printf '%s\t%s\n' "$p" "$v" ;;
     esac
   done < <(_gb_instalados)
@@ -105,7 +128,7 @@ _gb_compilar_comp() {
   local t0; t0="$(date +%s)"
   "$GB_COMPOSITOR" compilar; local rc=$?
   _gb_comp_valido "$1" && return 0
-  [ "$rc" = "3" ] && { meow_pula "cosmic-comp $1: falta ferramenta de compilação nesta máquina — a sessão segue no de fábrica"; return 0; }
+  [ "$rc" = "3" ] && { meow_pula "cosmic-comp $1: sem build nesta passagem (o motivo está acima) — a sessão segue no de fábrica"; return 0; }
   if [ "$(stat -c %Y "$GB_MATRIZ" 2>/dev/null || echo 0)" -ge "$t0" ] && _gb_comp_degrau4 "$1"; then
     meow_pula "cosmic-comp $1: o patch obrigatório não entra nesta versão (degrau 4) — a sessão segue no de fábrica"
     return 0
@@ -124,6 +147,11 @@ cmd_rodar() {
     local vc; vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
     if [ -n "$vc" ] && _gb_comp_degrau4 "$vc" && ! _gb_comp_valido "$vc"; then
       meow_pula "cosmic-comp $vc: o patch obrigatório não entra nesta versão (degrau 4) — a sessão segue no de fábrica até a série mudar"
+      return "$MEOW_OK"
+    fi
+    local espera
+    if [ -n "$vc" ] && _gb_comp_quer && [ ! -e "$GB_CASA/$vc/ruim" ] && espera="$(_gb_comp_espera "$vc")"; then
+      meow_pula "cosmic-comp $vc: a compilação falhou $( [ "${espera#* }" = 1 ] && echo "1 vez" || echo "${espera#* } vezes") nesta versão e série — a próxima tentativa é a partir de $(date -d "@${espera%% *}" '+%d/%m %H:%M')"
       return "$MEOW_OK"
     fi
     meow_ok "o compositor e o menu do cosmic-files têm build para a versão instalada"
@@ -228,6 +256,7 @@ cmd_estado() {
   vf="$(_gb_instalados | awk -F'\t' '$1=="cosmic-files" {print $2}')"
   if [ -z "$vc" ]; then e_comp=ausente
   elif [ -e "$GB_CASA/$vc/ruim" ]; then e_comp=falhou
+  elif [ -e "$GB_CASA/$vc/retido" ] && _gb_comp_valido "$vc"; then e_comp=retido
   elif _gb_comp_valido "$vc"; then
     e_comp=ok
     [ "$("$GB_EXTENSOES" compositor --ativa 2>/dev/null)" = nao ] && e_comp=desligado
