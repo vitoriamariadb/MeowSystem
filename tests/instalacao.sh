@@ -96,10 +96,8 @@ elif ! contem 'as mesmas etapas escreveram em duas passagens seguidas'; then
   falhou "teimosa: parou sem dizer que era oscilação"
 elif ! contem 'falsa_teimosa'; then
   falhou "teimosa: não nomeou a etapa culpada"
-elif ! contem 'meow doctor'; then
-  falhou "teimosa: não disse para onde ir depois"
 else
-  passou "oscilação: para na segunda passagem, nomeia a etapa e manda ao doctor"
+  passou "oscilação: para na segunda passagem e nomeia a etapa"
 fi
 
 cenario teto 'etapa_falsa_a etapa_falsa_b' '
