@@ -11,8 +11,10 @@ dir="$casa/$ver"
 build="$dir/cosmic-comp"
 
 usar_build=0
-if [ -n "$ver" ] && [ -x "$build" ] && [ ! -e "$dir/ruim" ] \
-   && grep -q '^req [^ ]* [^ ]* presente$' "$dir/estado" 2>/dev/null; then
+if [ -n "$ver" ] && [ -x "$build" ] && [ ! -e "$dir/ruim" ] && [ ! -e "$dir/retido" ] \
+   && grep -q '^req [^ ]* [^ ]* presente$' "$dir/estado" 2>/dev/null \
+   && ! grep -q '^req [^ ]* [^ ]* ausente$' "$dir/estado" 2>/dev/null \
+   && (cd / && exec timeout 5 "$build" --version </dev/null >/dev/null 2>&1) 2>/dev/null; then
   usar_build=1
 fi
 
@@ -34,7 +36,8 @@ if [ "$usar_build" = "1" ]; then
     date -Is > "$dir/ruim" 2>/dev/null
     exec "$fabrica" "$@"
   fi
-  printf '%s\n' "$((n + 1))" > "$dir/quedas" 2>/dev/null
+  { printf '%s\n' "$((n + 1))" > "$dir/quedas"; } 2>/dev/null || exec "$fabrica" "$@"
+  [ "$(cat "$dir/quedas" 2>/dev/null)" = "$((n + 1))" ] || exec "$fabrica" "$@"
   (
     for fd in /proc/"$BASHPID"/fd/*; do
       fd="${fd##*/}"
