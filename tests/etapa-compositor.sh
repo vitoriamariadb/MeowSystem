@@ -85,6 +85,118 @@ confere "o compositor não compila no primeiro plano do install" '! grep -q "^co
 confere "e diz o que acontece com o build" 'grep -qE "cosmic-comp 0.1~r (fica|—)" "$T/saida"'
 confere "o shim nasce mesmo assim" 'grep -q MEOW-COSMIC-COMP-SHIM-1 "$SHIM"'
 
+printf '\n6. o compilar: degrau 2 retido, falha na matriz, espera, espaço e fumaça\n'
+C6="$T/c6"; VER6="2.0~t"; FONTE6="$C6/cache/cosmic-comp-$VER6"
+CASA6="$C6/casa/.local/libexec/meow/cosmic-comp"; ESTADO6="$C6/estado"; MATRIZ6="$ESTADO6/cosmic-comp/matriz.tsv"
+mkdir -p "$C6/bin" "$C6/patches" "$C6/guarda" "$C6/casa/.local/bin"
+cat > "$C6/bin/dpkg-query" <<FIM
+#!/bin/sh
+case "\$*" in
+  *Package*) printf 'cosmic-comp\t$VER6\tinstalled\n' ;;
+  *) printf '%s' "$VER6" ;;
+esac
+FIM
+printf '#!/bin/sh\nexit 0\n' > "$C6/bin/cargo"
+cat > "$C6/bin/dpkg-source" <<FIM
+#!/bin/sh
+d="\$3"; mkdir -p "\$d/src"
+printf '[package]\nname = "cosmic-comp"\n' > "\$d/Cargo.toml"
+printf 'all:\n\ttrue\n' > "\$d/Makefile"
+cp "$C6/a.rs" "\$d/src/a.rs"
+FIM
+cat > "$C6/bin/make" <<FIM
+#!/bin/sh
+[ -f "$C6/make-falha" ] && { mkdir -p target/lixo; echo "error: falhou" >&2; exit 2; }
+mkdir -p target/release
+r=0; [ -f "$C6/make-quebrado" ] && r=139
+{ printf '#!/bin/sh\nexit %s\n' "\$r"; grep -rho 'MEOW-T6-[0-9]*' src; } > target/release/cosmic-comp
+chmod 755 target/release/cosmic-comp
+FIM
+chmod 755 "$C6/bin/"*
+: > "$C6/guarda/cosmic-comp_$VER6.dsc"
+echo 'req t6.patch MEOW-T6' > "$C6/patches/series"
+printf 'fn um() {}\nfn dois() {}\nfn tres() {}\nfn quatro() {}\n' > "$C6/a.rs"
+cat > "$C6/patches/t6.patch" <<'FIM'
+--- a/src/a.rs
++++ b/src/a.rs
+@@ -1,4 +1,5 @@
+ fn um() {}
++static M: &str = "MEOW-T6-1";
+ fn dois() {}
+ fn tres() {}
+ fn quatro() {}
+FIM
+comp6() {
+  env -i PATH="$C6/bin:$T/falso:$PATH" HOME="$C6/casa" NO_COLOR=1 MEOW_ESTADO="$ESTADO6" \
+    CP_REPO="$C6/patches" CP_SERIE="$C6/patches/series" CP_CACHE="$C6/cache" CP_GUARDA="$C6/guarda" \
+    CP_CASA="$CASA6" CP_SHIM="$C6/casa/.local/bin/cosmic-comp" CP_BIN="$C6/nao-existe" "$@" > "$T/saida" 2>&1
+}
+gb6() {
+  env -i PATH="$C6/bin:$T/falso:$PATH" HOME="$C6/casa" NO_COLOR=1 MEOW_ESTADO="$ESTADO6" COMPOSITOR=sim FILES_MENU=nao \
+    MEOW_CONF="$C6/casa/.config/meow/meow.conf" CP_REPO="$C6/patches" CP_SERIE="$C6/patches/series" \
+    CP_CASA="$CASA6" GB_COMPOSITOR="$C6/gb-comp" bash "$RAIZ/scripts/garantir_builds.sh" "$@" > "$T/saida" 2>&1
+}
+printf '#!/bin/sh\necho "compilar" >> "%s/gb6.log"\nexit 2\n' "$C6" > "$C6/gb-comp"; chmod 755 "$C6/gb-comp"
+
+: > "$C6/make-falha"
+comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar; rc=$?
+confere "a compilação que falha sai 2" '[ "$rc" = 2 ]'
+confere "a falha entra na matriz, com a versão" 'grep -q "^$VER6	.*	falhou=1@[0-9]*$" "$MATRIZ6"'
+confere "e o target/ da falha sai do disco" '[ ! -e "$FONTE6/target" ]'
+comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar
+confere "a segunda falha conta 2" 'grep -q "	falhou=2@" "$MATRIZ6"'
+: > "$C6/gb6.log"; gb6 rodar; rc=$?
+confere "o garantir espera: não compila de novo dentro da espera" '[ "$rc" = 0 ] && [ ! -s "$C6/gb6.log" ]'
+confere "e diz quando tenta de novo" 'grep -q "próxima tentativa é a partir de" "$T/saida"'
+gb6 estado
+confere "o estado segue pendente (o cartão mostra «Não instalada»)" 'grep -qx "compositor_estado=pendente" "$T/saida"'
+sed -i "s/@[0-9]*$/@$(( $(date +%s) - 8000 ))/" "$MATRIZ6"
+: > "$C6/gb6.log"; gb6 rodar
+confere "passada a espera de 2 h, compila de novo" '[ "$(grep -c compilar "$C6/gb6.log")" = 1 ]'
+sed -i "s/@[0-9]*$/@$(date +%s)/" "$MATRIZ6"
+sleep 1; touch "$C6/patches/t6.patch"
+: > "$C6/gb6.log"; gb6 rodar
+confere "a série mudou: a espera cai e compila" '[ "$(grep -c compilar "$C6/gb6.log")" = 1 ]'
+comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar
+confere "e a contagem recomeça na série nova" 'grep -q "	falhou=1@" "$MATRIZ6"'
+rm -f "$C6/make-falha"
+
+: > "$C6/make-quebrado"
+comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar; rc=$?
+confere "o binário que não passa no teste de fumaça não é instalado" '[ "$rc" = 2 ] && [ ! -e "$CASA6/$VER6/cosmic-comp" ]'
+confere "e diz o teste de fumaça" 'grep -q "teste de fumaça" "$T/saida"'
+confere "e entra na matriz como falha" 'grep -q "	falhou=2@" "$MATRIZ6"'
+rm -f "$C6/make-quebrado"
+
+comp6 env CP_ESPACO_KB=999999999999 bash "$RAIZ/scripts/compositor_patches.sh" compilar; rc=$?
+confere "sem espaço: sai 3, sem compilar" '[ "$rc" = 3 ] && grep -q "sem espaço para compilar" "$T/saida" && [ ! -e "$CASA6/$VER6/cosmic-comp" ]'
+
+comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar; rc=$?
+confere "o build bom: sai 0 e é instalado, com a impressão digital das bibliotecas" \
+  '[ "$rc" = 0 ] && [ -x "$CASA6/$VER6/cosmic-comp" ] && grep -q "^bibliotecas=[0-9a-f]\{32\}$" "$CASA6/$VER6/estado"'
+confere "a matriz perde a falha" '! grep -q falhou "$MATRIZ6" && grep -q "^$VER6	" "$MATRIZ6"'
+confere "o primeiro build, sem base de contexto, não fica retido" '[ ! -e "$CASA6/$VER6/retido" ]'
+
+rm -rf "${CASA6:?}/$VER6" "$FONTE6"
+printf 'fn um() {}\nfn dois() {}\nfn tres() {}\nfn quatro(x: u8) {}\n' > "$C6/a.rs"
+comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar; rc=$?
+confere "o patch que só entra com -F1: degrau 2 na matriz" 'grep -q "t6.patch:2" "$MATRIZ6"'
+confere "o build é guardado, e fica retido" '[ "$rc" = 0 ] && [ -x "$CASA6/$VER6/cosmic-comp" ] && grep -qx t6.patch "$CASA6/$VER6/retido"'
+mkdir -p "$C6/casa/.local/bin"; cp "$RAIZ/scripts/compositor_shim.sh" "$C6/casa/.local/bin/cosmic-comp"
+confere "o shim não usa o retido" \
+  '[ "$(env PATH="$C6/bin:$PATH" HOME="$C6/casa" MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_FABRICA=/fabrica MEOW_SHIM_CASA="$CASA6" bash "$C6/casa/.local/bin/cosmic-comp")" = /fabrica ]'
+gb6 estado
+confere "o estado diz retido" 'grep -qx "compositor_estado=retido" "$T/saida"'
+: > "$C6/gb6.log"; gb6 rodar
+confere "e o garantir não o refaz" '[ ! -s "$C6/gb6.log" ]'
+comp6 bash "$RAIZ/scripts/compositor_patches.sh" liberar
+confere "o sim libera: o shim passa a usar o build" \
+  '[ "$(env PATH="$C6/bin:$PATH" HOME="$C6/casa" MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_FABRICA=/fabrica MEOW_SHIM_CASA="$CASA6" bash "$C6/casa/.local/bin/cosmic-comp")" = "$CASA6/$VER6/cosmic-comp" ]'
+rm -rf "$CASA6/$VER6/estado" "$FONTE6"
+comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar
+confere "o rebuild do mesmo degrau 2 já liberado não retém de novo" '[ ! -e "$CASA6/$VER6/retido" ]'
+confere "nenhum sudo no compilar" '! grep -qv "^sudo -n true$" "$T/recusados" 2>/dev/null'
+
 printf '\n'
 [ "$falhas" = 0 ] && { printf 'etapa-compositor: tudo verde\n'; exit 0; }
 printf 'etapa-compositor: %s falha(s)\n' "$falhas"; exit 1
