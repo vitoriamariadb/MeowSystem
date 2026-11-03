@@ -18,7 +18,7 @@ CAPA="${MIDIA_CAPA:-sim}"
 FONTE="${MIDIA_FONTE:-auto}"
 COR_TITULO="${MIDIA_COR_TITULO:-mauve}"
 COR_ARTISTA="${MIDIA_COR_ARTISTA:-green}"
-CONTROLES="${MIDIA_CONTROLES:-nao}"
+CONTROLES="${MIDIA_CONTROLES:-sim}"
 _FLAVOR="$(meow_flavor)"
 PALETA="$(meow_paleta)"
 

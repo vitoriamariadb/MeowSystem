@@ -69,7 +69,7 @@ window.MESA = (function () {
     ["FORMA_PAINEL_SOLTO", "soltoPainel", "sim"], ["FORMA_DOCK_SOLTO", "soltoDock", "sim"],
     ["FORMA_PAINEL_ILHA", "ilhaPainel", "nao"], ["FORMA_DOCK_ILHA", "ilhaDock", "nao"],
     ["RELOGIO_SEGUNDOS", "segundos", "nao"], ["MIDIA", "musica", "sim"], ["MIDIA_CAPA", "capa", "sim"],
-    ["MIDIA_CONTROLES", "tocar", "nao"], ["JANELAS_TILING", "tiling", "nao"],
+    ["MIDIA_CONTROLES", "tocar", "sim"], ["JANELAS_TILING", "tiling", "nao"],
     ["TERMINAL_ESQUEMA", "esquema", "sim"], ["PROMPT_STARSHIP", "prompt", "sim"],
   ];
   const PX_VAR = [

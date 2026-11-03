@@ -70,7 +70,7 @@ chave_vale panel_text_width  440
 chave_vale panel_color_style '"traco"'
 chave_vale album_art_remote  true
 chave_vale panel_font_size   0
-chave_vale panel_controls    false
+chave_vale panel_controls    true
 grep -q '^"#[0-9a-f]\{6\}"$' "$CONFIG/title_color" 2>/dev/null \
   || reclamar "title_color não é um \"#rrggbb\" entre aspas: $(cat "$CONFIG/title_color" 2>/dev/null)"
 grep -q '^"#[0-9a-f]\{6\}"$' "$CONFIG/artist_color" 2>/dev/null \

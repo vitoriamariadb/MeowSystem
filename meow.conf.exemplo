@@ -1071,17 +1071,13 @@ MIDIA_COR_ARTISTA="green"
 # @ Botões de anterior, pausa e próxima
 # > Desenhados no painel, ao lado do nome.
 #
-# Desenhar ⏮⏸⏭ NA BARRA, ao lado do nome.
+# Desenhar ⏮⏸⏭ NA BARRA, ao lado do nome, com o acento do pack.
 #
-# Nasce DESLIGADO, e é medição: o applet de Som do COSMIC já desenha os dele no
-# painel sempre que há um player tocando. Com o Now Playing colado nele — que é
-# onde ele foi posto em 24/08/2026 — os dois pares ficam lado a lado e leem como
-# defeito, não como recurso. Desligado, sobra `[capa] música · banda`, que
-# encosta nos controles do vizinho e forma um bloco só.
-#
-# Ligue se um dia o applet ficar sozinho (na dock, longe do Som): aí ele precisa
-# dos próprios botões. O popup dele tem os três de qualquer jeito, sempre.
-MIDIA_CONTROLES="nao"
+# Nasce LIGADO: os três da barra levam a cor de acento, como o botão de tocar
+# do popup. Desligado, sobra `[capa] música · banda`, que é o que serve quando
+# o applet fica colado no de Som do COSMIC, que já desenha os dele. O popup tem
+# os três de qualquer jeito, sempre.
+MIDIA_CONTROLES="sim"
 
 # --- Papel de parede --------------------------------------------------------
 
