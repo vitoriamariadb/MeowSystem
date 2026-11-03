@@ -584,7 +584,7 @@ _estado_sai() {
 
 _ativa() {
   case "$(_tipo)" in
-    compositor) grep -qs -- "$SHIM_MARCA" "$SHIM" ;;
+    compositor) grep -qs -- "$SHIM_MARCA" "$SHIM" && [ "${B_SITUACAO:-}" != retido ] ;;
     menu) grep -a -qs -- "$MENU_MARCA" "$BINDIR/$P_BIN" && grep -a -qs -- "$MENU_MARCA" "$BINDIR/$P_BIN-applet" ;;
     *) _painel_cita "$P_APP_ID" ;;
   esac
@@ -618,7 +618,7 @@ _b_conf_quer() {
   [ "$valor" != nao ]
 }
 
-_b_pronto() { case "$B_SITUACAO" in ok|desligado) return 0 ;; esac; return 1; }
+_b_pronto() { case "$B_SITUACAO" in ok|desligado|retido) return 0 ;; esac; return 1; }
 
 _b_estado() {
   local instalada=nao atualizacao=nao falhou=nao ativa=nao
@@ -636,6 +636,10 @@ _b_conferir() {
   if ! _b_pronto; then
     meow_muda "$(_nome) sem build para a versão instalada (${B_VERSAO:-sem pacote})"
     return "$MEOW_DIVERGENTE"
+  fi
+  if [ "$B_SITUACAO" = retido ]; then
+    meow_pula "$(_nome) ${B_VERSAO}: o build entrou com o contexto mudado (degrau 2) e fica guardado até o «Instalar»"
+    return 4
   fi
   if ! _ativa; then
     meow_muda "$(_nome) tem build pronto e está desligado"
@@ -660,11 +664,16 @@ _b_compilar() {
 }
 
 _b_ligar() {
-  local rc
+  local rc liberou=0
   if [ "$(_tipo)" = menu ]; then
     FILES_MENU=sim "$FILES_MENU_SH" aplicar; rc=$?
   else
+    if [ "${EXTENSOES_FUNDO:-0}" != 1 ] && [ "${EXTENSOES_REFAZER:-0}" != 1 ]; then
+      "$COMPOSITOR_PATCHES" liberar; liberou=$?
+      [ "$liberou" = "$MEOW_ERRO" ] && return "$liberou"
+    fi
     "$COMPOSITOR_PATCHES" ativar; rc=$?
+    [ "$rc" = 0 ] && [ "$liberou" = "$MEOW_DIVERGENTE" ] && rc="$MEOW_DIVERGENTE"
   fi
   [ "$rc" = 4 ] && rc="$MEOW_SEM_DEPENDENCIA"
   return "$rc"
