@@ -122,6 +122,7 @@ MAQUINA=(
   grava-ao-soltar.py
   app-acessibilidade.py
   app-layout.py
+  rodape-do-tema.py
   oficina.sh
   icones-por-pack.py
   sistema-latte-e-rotulos.py

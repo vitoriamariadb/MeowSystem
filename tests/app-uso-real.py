@@ -87,7 +87,7 @@ OLHAR_JS = r"""
     for (const c of cols) { const ult = xs[xs.length - 1]; xs.push(ult + c, ult + c + gap); }
     return xs;
   };
-  for (const g of document.querySelectorAll('#conteudo .grade-tema, #conteudo .grade-cuidar, #conteudo .oficina')) {
+  for (const g of document.querySelectorAll('#conteudo .grade-tema, #conteudo .rodape-tema, #conteudo .grade-cuidar, #conteudo .oficina')) {
     if (!visivel(g)) continue;
     const xs = linhasDaGrade(g);
     for (const f of g.children) {
