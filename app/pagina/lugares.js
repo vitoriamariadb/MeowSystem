@@ -178,7 +178,7 @@ const AJUSTES = [
         { c: "FASTFETCH_LOGO_LINHAS", r: "Altura do desenho", sub: true },
         { c: "FASTFETCH_LOGO_QUEBRAS", r: "Linhas antes", sub: true },
         { c: "FASTFETCH_LOGO_ALINHAR", r: "Texto ao lado", sub: true },
-        { c: "FASTFETCH_TITULO", r: "Linha de cima", sub: true },
+        { c: "FASTFETCH_TITULO", r: "Título", sub: true },
         { c: "FASTFETCH_LOGO_RECUO", r: "Espaço ao lado", sub: true },
         { c: "FASTFETCH_LOGO_CELULA", r: "Proporção da letra", sub: true },
         { c: "FASTFETCH_LOGO_BLOCOS", r: "Detalhe", sub: true },

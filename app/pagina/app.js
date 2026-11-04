@@ -822,7 +822,17 @@ function controlePorArea(item, aplica) {
 
 const SOLTO_DE = { FORMA_MARGEM_PAINEL: ["FORMA_PAINEL_SOLTO", "o painel"], FORMA_MARGEM_DOCK: ["FORMA_DOCK_SOLTO", "a dock"] };
 
+function alturaForaDaProporcao(item) {
+  if (item.chave !== "FASTFETCH_LOGO_LINHAS") return null;
+  const pedida = Number(valorEmVigor(item));
+  const ideal = Number(vale("FASTFETCH_LOGO_COLUNAS")) / (Number(vale("FASTFETCH_LOGO_CELULA")) || 2.556);
+  if (!(pedida >= 1) || !(ideal > 0) || Math.round(Math.abs(pedida - ideal) / ideal * 100) <= 12) return null;
+  return `Longe da proporção do Tamanho: o desenho sai com ${Math.max(1, Math.round(ideal))} linhas.`;
+}
+
 function dominada(item) {
+  const fora = alturaForaDaProporcao(item);
+  if (fora) return fora;
   const solto = SOLTO_DE[item.chave];
   if (solto && CHAVE.get(solto[0]) && String(vale(solto[0])) === "nao") {
     return `A distância só vale com ${solto[1]} solto da borda.`;
