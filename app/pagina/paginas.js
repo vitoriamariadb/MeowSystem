@@ -278,7 +278,7 @@ async function gravarCoresNoTema(silencioso = false) {
   const resp = await api("/api/pack-cores", { method: "POST", body: JSON.stringify({ id: p.id, flavor: r.base.flavor, cores }) });
   if (b) delete b.dataset.estado;
   if (resp.erro) { torrada(maiuscula(primeiraFrase(resp.erro)), "erro"); return false; }
-  r.cores = {};
+  for (const [papel, hexa] of Object.entries(cores)) if (r.cores[papel] === hexa) delete r.cores[papel];
   guardarRascunho();
   await recarregarPacks();
   if (!silencioso) torrada(`${p.nome}: guardado`, "ok");
