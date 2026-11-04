@@ -180,14 +180,14 @@ function paginaTema() {
   }
   const ACCENT = CHAVE.get("ACCENT");
   const MODO = CHAVE.get("MODO");
+  const rodape = elemento("div", { class: "rodape-tema" });
   const imediato = (chave) => (v) => {
     escolher(chave, v);
   };
   if (ACCENT) {
     const b = bloco("Cor de destaque", [elemento("div", { class: "corpo" }, [controleCor(ACCENT, imediato("ACCENT"), true)])]);
     b.dataset.linha = "ACCENT";
-    b.style.gridColumn = "span 2";
-    grade.append(b);
+    rodape.append(b);
   }
   if (MODO) {
     const seg = elemento("div", { class: "seg", role: "group", "aria-label": "Claro ou escuro" });
@@ -198,11 +198,11 @@ function paginaTema() {
     }
     const b = bloco("Claro ou escuro", [elemento("div", { class: "corpo" }, [seg])]);
     b.dataset.linha = "MODO";
-    grade.append(b);
+    rodape.append(b);
   }
-  grade.append(elemento("a", { class: "criar-meu", href: "#criar/cores", controle: "tema:criar" },
+  rodape.append(elemento("a", { class: "criar-meu", href: "#criar/cores", controle: "tema:criar" },
     [icone("mais"), elemento("span", { texto: "Criar o meu tema" })]));
-  return [cabeca("Tema", [pilulaDeSaude(), botaoAbrirTema()]), grade];
+  return [cabeca("Tema", [pilulaDeSaude(), botaoAbrirTema()]), grade, rodape];
 }
 
 const SEIS = [
