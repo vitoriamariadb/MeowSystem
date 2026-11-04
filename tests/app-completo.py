@@ -516,8 +516,8 @@ def molde(nome):
 CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "FLATPAK_CORRECOES": "modificacao:ligar:"}
 CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
 ACAO_COM_DADO = {
-    "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
-    "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
+    "vscode_instalar_extensao", "wallpaper_usar",
+    "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir",
     "extensao_refazer", "modificacao_aplicar", "modificacao_reverter", "modificacao_corrigir",
 }
 EXTRAS = {
@@ -526,7 +526,7 @@ EXTRAS = {
     "criar/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
     "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "desenho:*", "autoral:*", "acervo:icone",
                      "acervo:filtro", "icones:aba=*"],
-    "criar/papel": ["galeria:*", "papel:*", "acervo:parede", "levar:foto"],
+    "criar/papel": ["galeria:*", "papel:*", "acervo:parede"],
     "criar/sons": ["criar:sino", "som:ouvir", "som:trocar", "som:ponte"],
     "criar/mandar": ["criar:baixar", "criar:vestir"],
     "ajustes/*": ["ajuste:*"],

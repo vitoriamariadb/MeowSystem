@@ -535,12 +535,7 @@ async function levarParaOTema(tipo, nome, levar, extra = {}) {
   await carregarLeva(id);
 }
 function passoPapel() {
-  const pack = packDoRascunho();
-  const pronto = pack && LEVA && !LEVA.carregando;
-  const leva = { sem: pack ? (pronto ? "" : "Carregando") : "Guarde o tema em Cores",
-    no: (nome) => !!pronto && (LEVA.fotos || []).includes(nome),
-    levar: (nome, sim) => levarParaOTema("foto", nome, sim) };
-  return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria(leva)])],
+  return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria()])],
     { direita: [botaoAcervo("parede", "Trazer imagens")] })];
 }
 let SONS = null;

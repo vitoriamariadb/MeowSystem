@@ -627,7 +627,6 @@ function oficinaAutoral() {
 
 const GRUPOS_PAREDE = [
   { id: "ativos", rotulo: "No carrossel" }, { id: "noite", rotulo: "Noite" }, { id: "dia", rotulo: "Dia" },
-  { id: "favoritos", rotulo: "Favoritas" }, { id: "banidos", rotulo: "Fora" },
 ];
 let ABA_GALERIA = "ativos";
 let LIMITE_GALERIA = 24;
@@ -638,7 +637,7 @@ async function rodarNaGaleria(id, argumento) {
   if (r.erro) { torrada(r.erro, "erro"); return; }
   abrirResultado(r);
 }
-function montarGaleria(leva = null) {
+function montarGaleria() {
   const abas = elemento("div", { class: "seg", role: "group", "aria-label": "Grupo" });
   for (const g of GRUPOS_PAREDE) {
     abas.append(elemento("button", { type: "button", "aria-pressed": String(g.id === ABA_GALERIA), controle: "galeria:" + g.id,
@@ -651,25 +650,15 @@ function montarGaleria(leva = null) {
       const botoes = [];
       const mini = (icn, rot, id, arg, extra = {}) => botao("", { class: "bt pequeno so-icone", icone: icn, "aria-label": rot,
         dica: rot, controle: "papel:" + id, onclick: () => rodarNaGaleria(id, arg), ...extra });
-      if (ABA_GALERIA === "banidos") {
-        botoes.push(mini("desfazer", "Devolver", "wallpaper_desbanir", i.rotulo));
-      } else if (i.banir) {
+      if (i.banir) {
         const alvo = i.banir || i.origem;
         botoes.push(mini("certo", "Usar agora", "wallpaper_usar", alvo));
-        botoes.push(i.favorito ? mini("estrela", "Tirar das favoritas", "wallpaper_desfavoritar", i.rotulo, { class: "bt pequeno so-icone estrela", "aria-pressed": "true" })
-          : mini("estrela", "Favorita", "wallpaper_favoritar", alvo, { class: "bt pequeno so-icone estrela", "aria-pressed": "false" }));
         botoes.push(mini("sol", "De dia", "wallpaper_dia", alvo));
         botoes.push(mini("lua", "De noite", "wallpaper_noite", alvo));
         if (i.lado) botoes.push(mini("girar", "Medir a luz", "wallpaper_lado_auto", alvo));
-        botoes.push(mini("lixo", "Tirar do carrossel", "wallpaper_banir", alvo));
-        if (leva) {
-          const no = !leva.sem && leva.no(i.rotulo);
-          botoes.push(botao("", { class: "bt pequeno so-icone levar", icone: "criar", controle: "levar:foto",
-            "aria-label": "Levar para o tema", "aria-pressed": String(no), disabled: !!leva.sem,
-            "aria-disabled": leva.sem ? "true" : null,
-            dica: leva.sem || (no ? "Tirar do tema" : "Levar para o tema"),
-            onclick: () => leva.levar(i.rotulo, !no) }));
-        }
+        botoes.push(mini("lixo", "Apagar", "wallpaper_banir", alvo, { onclick: async () => {
+          if (await perguntar({ titulo: `Apagar ${i.rotulo}?`, ok: "Apagar", perigo: true })) rodarNaGaleria("wallpaper_banir", alvo);
+        } }));
       }
       grade.append(elemento("figure", { "data-papel": i.rotulo }, [
         i.pronta ? elemento("img", { src: i.url, alt: maiuscula(i.rotulo), loading: "lazy" }) : elemento("div", { class: "lugar" }),

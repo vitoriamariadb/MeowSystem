@@ -1641,27 +1641,6 @@ def _paredes_ativas():
             and os.path.isfile(os.path.join(base, n))]
 
 
-def _paredes_favoritas():
-    base = os.path.join(_wallpaper_base(), "favoritos")
-    try:
-        nomes = sorted(os.listdir(base))
-    except OSError:
-        return []
-    return [n for n in nomes if os.path.splitext(n)[1].lower() in EXT_RASTER
-            and os.path.isfile(os.path.join(base, n))]
-
-
-def _paredes_banidas():
-    base = os.path.join(_wallpaper_base(), "banidos")
-    try:
-        nomes = sorted(os.listdir(base))
-    except OSError:
-        return []
-    return [n for n in nomes
-            if os.path.splitext(n)[1].lower() in EXT_RASTER
-            and os.path.isfile(os.path.join(base, n))]
-
-
 _MIGRAR_MOD = None
 
 
@@ -3349,8 +3328,6 @@ PROVEDORES = {
     "cursores": _temas_de_cursor,
     "areas": _areas_alfinetadas,
     "paredes_ativas": _paredes_ativas,
-    "paredes_banidas": _paredes_banidas,
-    "paredes_favoritas": lambda: _paredes_favoritas(),
     "packs": lambda: sorted(_packs_no_disco()),
     "packs_removiveis": _packs_removiveis,
     "extensoes_de_terceiro": lambda: _extensoes_de_terceiro(),
@@ -3839,14 +3816,14 @@ ACOES = {
                  "ajustes.",
     },
     "wallpaper_banir": {
-        "rotulo": "Tirar do carrossel",
+        "rotulo": "Apagar",
         "grupo": "Papel de parede",
         "natureza": "tirar",
         "argv": _meow("wallpaper", "banir", "@ARG@"), "arg": "paredes_ativas",
         "escreve": True, "sudo": False, "confirma": False,
         "destrutivo": True, "oculta": True,
-        "ajuda": "Ela sai da pasta que gira e vai para a de banidas. Nada é "
-                 "apagado. O “Devolver” da lista de recusadas desfaz.",
+        "ajuda": "Apaga a imagem do disco e anota o nome entre as recusadas, para "
+                 "nenhuma semeadura a trazer de volta.",
     },
     "wallpaper_usar": {
         "rotulo": "Usar agora",
@@ -3857,22 +3834,6 @@ ACOES = {
         "ajuda": "Fixa esta imagem como o papel de parede de agora. Quanto tempo "
                  "dura é «Quanto tempo dura a imagem escolhida» — com 0, até "
                  "«Voltar a girar».",
-    },
-    "wallpaper_favoritar": {
-        "rotulo": "Guardar nas favoritas",
-        "grupo": "Papel de parede",
-        "natureza": "gravar",
-        "argv": _meow("wallpaper", "favoritar", "@ARG@"), "arg": "paredes_ativas",
-        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Guarda uma cópia nas favoritas; a imagem segue girando.",
-    },
-    "wallpaper_desfavoritar": {
-        "rotulo": "Tirar das favoritas",
-        "grupo": "Papel de parede",
-        "natureza": "tirar",
-        "argv": _meow("wallpaper", "desfavoritar", "@ARG@"), "arg": "paredes_favoritas",
-        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Tira a cópia das favoritas; a imagem do carrossel fica.",
     },
     "wallpaper_dia": {
         "rotulo": "Imagem de dia",
@@ -3944,15 +3905,6 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
         "ajuda": "Apaga a área: o nome some e o COSMIC a destrói quando ela esvaziar.",
         "ambiente": {"MEOW_SIM": "1"},
-    },
-    "wallpaper_desbanir": {
-        "rotulo": "Devolver ao carrossel",
-        "grupo": "Papel de parede",
-        "natureza": "devolver",
-        "argv": _meow("wallpaper", "desbanir", "@ARG@"), "arg": "paredes_banidas",
-        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Volta para a pasta que gira e sai da lista de banidas — as "
-                 "duas metades.",
     },
     "painel_estado": {
         "rotulo": "Painel agora",
@@ -4297,8 +4249,7 @@ def _wallpaper_base():
 
 
 GRUPOS_PAREDE = (("ativos", "ativos"), ("noite", "ativos-noite"),
-                 ("dia", "ativos-dia"), ("favoritos", "favoritos"),
-                 ("banidos", "banidos"))
+                 ("dia", "ativos-dia"))
 
 
 _LADO_CACHE = {"mapa": {}, "marca": None}
@@ -4362,7 +4313,6 @@ def _prev_paredes():
             fora.append({"id": grupo + "/" + nome, "rotulo": nome,
                          "origem": arq, "grupo": grupo,
                          "lado": escolhas.get(nome, ""),
-                         "favorito": os.path.isfile(os.path.join(base, "favoritos", nome)),
                          "banir": canonico if os.path.isfile(canonico) else ""})
     return fora
 
@@ -4542,8 +4492,6 @@ def previas(tipo, grupo=None):
     if fonte is None:
         return None
     itens = fonte()
-    if tipo == "parede":
-        itens = [i for i in itens if not (i["grupo"] == "banidos" and i["banir"])]
     contagens = {g: 0 for g in PREVIA_GRUPOS.get(tipo, ())}
     for i in itens:
         contagens[i["grupo"]] = contagens.get(i["grupo"], 0) + 1
