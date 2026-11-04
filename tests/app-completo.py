@@ -947,12 +947,12 @@ class Percurso:
         self.checa(valor_de("RELOGIO_SEGUNDOS") == ("sim" if atual != "sim" else "nao"), "e o meow.conf muda sem Aplicar")
 
     def h_guardar(self, nome):
-        if self.rota.startswith("criar/") and self.achar(nome) \
-                and self.achar(nome).get_attribute("aria-disabled") == "true":
-            self.checa(self.achar(nome).get_attribute("data-dica"), "«Guardar» apagado diz o porquê")
-            self.clicar(self.js("() => document.querySelector('[data-controle^=\"criar:comeca=\"]').dataset.controle"))
-            self.assentar()
         if self.rota.startswith("criar/"):
+            if self.achar(nome) and self.achar(nome).get_attribute("aria-disabled") == "true":
+                self.checa(self.achar(nome).get_attribute("data-dica"), "«Guardar» apagado diz o porquê")
+            self.clicar(self.js("() => (document.querySelector('[data-controle$=\":mocha\"][data-controle^=\"criar:comeca=\"]')"
+                                " || document.querySelector('[data-controle^=\"criar:comeca=\"]')).dataset.controle"))
+            self.assentar()
             packs = sorted(os.listdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs"))) \
                 if os.path.isdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs")) else []
             self.clicar(nome)
