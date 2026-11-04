@@ -442,6 +442,10 @@ registro 51 'BANIDOS.txt.padrao' && grep -q 'BANIDOS.txt.padrao' "$RAIZ/scripts/
   && grep -q '^limpar_banidos()' "$RAIZ/scripts/wallpaper.sh" && ! grep -qE 'favoritar|desbanir' "$RAIZ/scripts/wallpaper.sh" \
   && ok "51: o lixo apaga de vez, o checkout perde a receita, e as banidas saem pela etapa" \
   || falha "51: o lixo voltou a mover para banidos/, ou a decisão saiu do registro"
+registro 52 'packs/<id>/' && grep -q '^def motivo_para_nao_aprimorar' "$RAIZ/scripts/pack.py" \
+  && grep -q 'href: "#novo/cores"' "$RAIZ/app/pagina/paginas.js" && grep -q '"/api/pack-cores"' "$RAIZ/app/servidor.py" \
+  && ok "52: Criar o meu tema gera um tema novo; o Personalizar aprimora o tema no ar" \
+  || falha "52: o Criar e o Personalizar voltaram a ser o mesmo fluxo, ou a decisão saiu do registro"
 registro 37 'sons/' && grep -q 'som-padrao' "$RAIZ/scripts/ponte_root.sh" && grep -q 'passo_sons' "$RAIZ/scripts/cosmic_pos_apt.sh" \
   && [ -f "$RAIZ/assets/sons/eventos.json" ] \
   && ok "37: os sons do pack vão ao sistema pela ponte, o pós-apt os repõe e a página lista cada evento" \
