@@ -154,8 +154,8 @@ def main():
             checa(pag.evaluate("() => location.hash") == "#ajustes/janelas", "e leva a Janelas e tela")
             checa(pag.locator('#conteudo .chegou[data-linha~="CURSOR"]').count() == 1, "acendendo a linha do ponteiro")
 
-            print("6. Personalizar")
-            ir(pag, "criar/cores")
+            print("6. Tema novo")
+            ir(pag, "novo/cores")
             antes = pag.locator("#conteudo .poco code").first.inner_text()
             alvo = pag.locator('[data-controle^="criar:comeca="][aria-pressed="false"]').first
             alvo.click()
@@ -170,7 +170,7 @@ def main():
             pasta = os.path.join(casa.CASA, ".local", "share", "meowsystem", "packs", "navegador-de-brinquedo")
             dirs = sorted(os.listdir(os.path.join(pasta, "icones"))) if os.path.isdir(os.path.join(pasta, "icones")) else []
             checa(dirs == ["apps", "biblioteca", "sistema"], f"«Guardar» grava o pack de três pastas ({dirs})")
-            ir(pag, "criar/mandar")
+            ir(pag, "novo/mandar")
             foto(pag, "6-mandar")
             with pag.expect_download(timeout=60000) as baixa:
                 pag.locator('[data-controle="criar:baixar"]').click()

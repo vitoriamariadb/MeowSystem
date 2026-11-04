@@ -123,6 +123,7 @@ MAQUINA=(
   app-acessibilidade.py
   app-layout.py
   galeria-do-papel.py
+  criar-e-aprimorar.py
   oficina.sh
   icones-por-pack.py
   sistema-latte-e-rotulos.py

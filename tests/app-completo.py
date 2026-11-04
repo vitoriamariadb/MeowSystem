@@ -528,7 +528,11 @@ EXTRAS = {
                      "acervo:filtro", "icones:aba=*"],
     "criar/papel": ["galeria:*", "papel:*", "acervo:parede"],
     "criar/sons": ["criar:sino", "som:ouvir", "som:trocar", "som:ponte"],
-    "criar/mandar": ["criar:baixar", "criar:vestir"],
+    "criar/mandar": ["criar:aprimorar"],
+    "novo/*": ["criar:nome", "passo:*", "criar:voltar", "criar:proximo"],
+    "novo/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
+    "novo/papel": ["papel:*", "acervo:parede"],
+    "novo/mandar": ["criar:baixar", "criar:vestir"],
     "ajustes/*": ["ajuste:*"],
     "ajustes/dia-e-noite": ["noite:mesmo-horario"],
     "ajustes/programas": ["jogo:*", "icone:*", "oficina:*", "desenho:*"],
@@ -550,6 +554,7 @@ OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cu
                 "pergunta:ensaio", "criar:voltar", "criar:proximo"]
 
 ROTAS = ["tema", "criar/cores", "criar/icones", "criar/papel", "criar/sons", "criar/mandar",
+         "novo/cores", "novo/papel", "novo/mandar",
          "ajustes/painel", "ajustes/janelas", "ajustes/papel", "ajustes/mascote", "ajustes/dia-e-noite",
          "ajustes/programas", "modificacoes", "modificacoes/terminal", "cuidar"]
 ACERVO = {"gato": "Adicionar logo", "icone": "Adicionar ícone", "parede": "Adicionar imagem",
@@ -937,6 +942,15 @@ class Percurso:
         self.checa(valor_de("RELOGIO_SEGUNDOS") == ("sim" if atual != "sim" else "nao"), "e o meow.conf muda sem Aplicar")
 
     def h_guardar(self, nome):
+        if self.rota.startswith("criar/"):
+            packs = sorted(os.listdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs"))) \
+                if os.path.isdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs")) else []
+            self.clicar(nome)
+            self.assentar(quieto=400, teto=60000)
+            depois = sorted(os.listdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs"))) \
+                if os.path.isdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs")) else []
+            self.checa(packs == depois, f"o «Guardar» do Personalizar não cria tema novo ({packs} -> {depois})")
+            return
         if self.achar(nome) and self.achar(nome).get_attribute("aria-disabled") == "true":
             self.checa(self.achar(nome).get_attribute("data-dica"), "«Guardar» apagado diz o porquê")
             primeiro = self.js("() => document.querySelector('[data-controle^=\"criar:comeca=\"]').dataset.controle")
@@ -1376,9 +1390,9 @@ class Percurso:
                        f"o botão do cartão do Tema diz «Aplicar tema» ({rotulos})")
         else:
             aba = self.js("() => (document.querySelector('[data-controle=\"passo:mandar\"]') || {}).textContent")
-            self.checa((aba or "").endswith("Disponibilizar"), f"a última aba do Personalizar diz «Disponibilizar» ({aba!r})")
+            self.checa((aba or "").endswith("Disponibilizar"), f"a última aba do Tema novo diz «Disponibilizar» ({aba!r})")
             botao = self.js("() => (document.querySelector('[data-controle=\"criar:vestir\"]') || {}).textContent")
-            self.checa((botao or "").strip() == "Aplicar tema", f"o botão do Personalizar diz «Aplicar tema» ({botao!r})")
+            self.checa((botao or "").strip() == "Aplicar tema", f"o botão do Tema novo diz «Aplicar tema» ({botao!r})")
 
     def h_pendencia_do_spotify(self):
         self.ir("cuidar")
@@ -1472,7 +1486,7 @@ class Percurso:
             elif l["tipo"] == "gesto" and l["id"].startswith("acervo:"):
                 saida.append((l["id"], "gesto " + l["id"]))
         if rota == "criar/mandar":
-            saida = [(p if p != "pack:" else "criar:vestir", o) for p, o in saida]
+            saida = [(p if p != "pack:" else "criar:aprimorar", o) for p, o in saida]
         return saida
 
     def permitido(self, rota, nome, esperado):
@@ -1543,7 +1557,7 @@ class Percurso:
                 print(f"   · {nome}: {round(time.time() - t0)}s", flush=True)
         self.limpar()
         self.assentar()
-        if rota in ("tema", "criar/mandar"):
+        if rota in ("tema", "novo/mandar"):
             try:
                 self.h_rotulos_de_aplicar(rota)
             except Exception as e:  # noqa: BLE001

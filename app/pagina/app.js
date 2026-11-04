@@ -1312,6 +1312,7 @@ function irPara(l) {
 
 function rotaDoHash() {
   const [porta, sub] = decodeURIComponent(location.hash.replace(/^#/, "")).split("/");
+  if (porta === "novo") return { porta, sub: PASSOS.some((p) => p.id === sub) ? sub : PASSOS[0].id };
   if (!PORTAS.some((p) => p.id === porta)) return { porta: "tema", sub: "" };
   if (porta === "ajustes") return { porta, sub: AJUSTES.some((p) => p.id === sub) ? sub : AJUSTES[0].id };
   if (porta === "criar") return { porta, sub: PASSOS.some((p) => p.id === sub) ? sub : PASSOS[0].id };
@@ -1341,7 +1342,7 @@ function render() {
   desenharPortas();
   marcaDoPrograma();
   $("#abas").hidden = ROTA.porta !== "ajustes" && ROTA.porta !== "extensoes";
-  const pagina = ROTA.porta === "criar" ? paginaCriar(ROTA.sub)
+  const pagina = emCriacao() ? paginaCriar(ROTA.sub)
     : ROTA.porta === "ajustes" ? paginaAjustes(ROTA.sub)
     : ROTA.porta === "cuidar" ? paginaCuidar()
     : ROTA.porta === "extensoes" ? paginaExtensoes(ROTA.sub)
@@ -1349,7 +1350,7 @@ function render() {
   $("#conteudo").replaceChildren(...[].concat(pagina).filter(Boolean));
   $("#conteudo").removeAttribute("aria-busy");
   reacenderChegada();
-  document.title = "MeowSystem · " + (PORTAS.find((p) => p.id === ROTA.porta) || PORTAS[0]).nome;
+  document.title = "MeowSystem · " + (emNovo() ? "Tema novo" : (PORTAS.find((p) => p.id === ROTA.porta) || PORTAS[0]).nome);
   if (foco) {
     const alvo = [...document.querySelectorAll("#conteudo [data-controle]")].find((el) => el.dataset.controle === foco);
     if (alvo) alvo.focus({ preventScroll: true });

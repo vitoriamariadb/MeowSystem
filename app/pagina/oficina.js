@@ -151,7 +151,7 @@ function escolhaDeIcone(app, recarregar) {
       botoes.push(botao("Levar para o tema", { class: "bt pequeno", controle: "icone:levar",
         disabled: !!GLIFOS.aviso, dica: GLIFOS.aviso ? maiuscula(GLIFOS.aviso) : "Vale em toda máquina com este tema",
         onclick: async () => {
-          const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify({ app: app.id, pack: minha.pack, desenho: minha.desenho }) });
+          const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify({ app: app.id, pack: minha.pack, desenho: minha.desenho, aprimorar: ROTA.porta === "criar" }) });
           if (r.erro) { torrada(r.erro, "erro"); return; }
           await depoisDoIcone(app, "icones_pack", recarregar);
         } }));
@@ -161,7 +161,7 @@ function escolhaDeIcone(app, recarregar) {
   if (noPack) {
     botoes.push(botao("Tirar do tema", { class: "bt pequeno", controle: "icone:tirar-do-pack",
       onclick: async () => {
-        const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify({ app: app.id, pack: noPack.pack, remover: true }) });
+        const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify({ app: app.id, pack: noPack.pack, remover: true, aprimorar: ROTA.porta === "criar" }) });
         if (r.erro) { torrada(r.erro, "erro"); return; }
         await depoisDoIcone(app, "icones_pack", recarregar);
       } }));
@@ -266,7 +266,7 @@ async function espiarEditor(pedido) {
 }
 
 function oficinaDeDesenho(app, relerLista) {
-  const packBase = ROTA.porta === "criar" ? (rascunho().base || {}).pack || "" : "";
+  const packBase = emCriacao() ? (rascunho().base || {}).pack || "" : "";
   if (OFICINA.app !== app.id || OFICINA.pack_base !== packBase) {
     pararVigiaEditor();
     OFICINA = oficinaZerada(app.id, packBase);
@@ -521,7 +521,7 @@ function oficinaDeDesenho(app, relerLista) {
     if (!destino) { OFICINA.erroPe = "Não guardou o tema"; pintarPe(); return; }
     const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({
       app: OFICINA.app, acao: "salvar", svg: OFICINA.svg, cor: OFICINA.cor, fonte: OFICINA.fonte,
-      parametros: OFICINA.parametros, pack: destino, rotulo: app.nome }) });
+      parametros: OFICINA.parametros, pack: destino, rotulo: app.nome, aprimorar: ROTA.porta === "criar" }) });
     if (r.erro) { OFICINA.erro = ""; OFICINA.erroPe = "Não gravou no pack"; torrada(r.erro, "erro"); pintarPe(); return; }
     OFICINA.noPack = { tem: true, svg: OFICINA.svg, pack: destino };
     OFICINA.escolhida = "guardado";
@@ -532,7 +532,7 @@ function oficinaDeDesenho(app, relerLista) {
   });
   desfazerPack.addEventListener("click", async () => {
     const destino = rascunho().pack;
-    const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({ app: OFICINA.app, acao: "desfazer-no-pack", pack: destino }) });
+    const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({ app: OFICINA.app, acao: "desfazer-no-pack", pack: destino, aprimorar: ROTA.porta === "criar" }) });
     if (r.erro) { torrada(r.erro, "erro"); return; }
     OFICINA.noPack = { tem: false, svg: "", pack: destino };
     OFICINA.escolhida = null;

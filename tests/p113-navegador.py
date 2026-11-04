@@ -113,12 +113,12 @@ def lancador(pag):
 
 
 def mandar_e_rascunho(pag, nav, url):
-    ir(pag, "criar/cores")
-    pag.fill("input.nome-tema", "Meu Gato")
-    pag.press("input.nome-tema", "Enter")
+    ir(pag, "novo/cores")
+    pag.fill("[data-controle='criar:nome']", "Meu Gato")
+    pag.press("[data-controle='criar:nome']", "Enter")
     pag.wait_for_timeout(600)
     pag.evaluate("() => { rascunho().cores = { base: '#101820' }; guardarRascunho(); }")
-    ir(pag, "criar/mandar")
+    ir(pag, "novo/mandar")
     foto(pag, "mandar.png")
     linhas = pag.eval_on_selector_all("[data-resumo]", "(xs) => xs.map((x) => x.dataset.resumo)")
     prova(linhas[:3] == ["Cores", "Ícones", "Pastas"] and len(linhas) == 7, "Disponibilizar mostra o resumo do tema sem ele ter sido guardado: %s" % linhas)
@@ -138,7 +138,7 @@ def mandar_e_rascunho(pag, nav, url):
     ctx = nav.new_context(viewport={"width": 1829, "height": 1029})
     outra = ctx.new_page()
     outra.goto(url)
-    ir(outra, "criar/cores")
+    ir(outra, "novo/cores")
     nome = outra.evaluate("() => rascunho().nome")
     cores = outra.evaluate("() => rascunho().cores")
     prova(nome == "Meu Gato" and cores.get("base") == "#101820",

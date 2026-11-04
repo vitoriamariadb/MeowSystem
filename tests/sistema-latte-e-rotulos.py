@@ -88,7 +88,7 @@ def main():
             pag.on("pageerror", lambda e: erros.append(str(e)))
             pag.goto(url, wait_until="commit")
             vizinho.esperar(pag, 800)
-            vizinho.ir(pag, "criar/icones")
+            vizinho.ir(pag, "novo/icones")
 
             confere(partir_do_flavor(pag, "meowsystem", "latte"), "o rascunho parte do Latte, o flavor claro")
             for aba in ("sistema", "biblioteca"):
