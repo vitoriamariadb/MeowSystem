@@ -440,8 +440,6 @@ select.campo { padding-right: var(--e-8); }
 .galeria figure img, .galeria figure .lugar { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: var(--raio-sm); background: var(--cartao-2); }
 .galeria figure .fila { gap: 4px; flex-wrap: wrap; }
 .galeria .bt.so-icone.pequeno { flex: none; }
-.galeria .estrela[aria-pressed="true"] { color: var(--yellow); }
-.galeria .levar[aria-pressed="true"] { background: var(--accent-suave); border-color: var(--accent); color: var(--accent); }
 
 .grade-jogos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--e-3); padding: var(--e-5) var(--e-6); }
 .jogo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-2); padding: 6px; border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); min-width: 0; }

@@ -185,11 +185,13 @@ O CONTRATO ESTÁ EM docs/PACKS.md, e ele manda. Se este arquivo e aquele
 documento discordarem, o documento está certo e este arquivo tem um defeito.
 """
 
+import contextlib
 import hashlib
 import json
 import os
 import re
 import sys
+import threading
 import xml.etree.ElementTree as ET
 
 FORMATO_MIN = 1
@@ -4261,14 +4263,85 @@ TETO_FOTO = 64 << 20
 RE_NOME_LEVADO = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,119}$")
 
 
+_APRIMORANDO = threading.local()
+
+
+@contextlib.contextmanager
+def aprimorando(no_ar):
+    _APRIMORANDO.sim = True
+    _APRIMORANDO.no_ar = no_ar
+    try:
+        yield
+    finally:
+        _APRIMORANDO.sim = False
+
+
+def em_checkout():
+    return os.path.exists(os.path.join(RAIZ, ".git"))
+
+
+def motivo_para_nao_aprimorar(ident):
+    d = os.path.join(raiz_da_pessoa(), ident)
+    if os.path.isfile(os.path.join(d, "pack.json")) and not os.path.islink(d):
+        return ""
+    if os.path.isfile(os.path.join(RAIZ, "packs", ident, "pack.json")):
+        return "" if em_checkout() else "Tema de fábrica: só se aprimora num checkout git do MeowSystem"
+    return "Tema de fora da sua casa de temas"
+
+
 def pack_da_pessoa(ident):
     _exigir(isinstance(ident, str) and RE_ID.match(ident),
             f"id {ident!r} — só minúsculas, dígitos e hífen")
     d = os.path.join(raiz_da_pessoa(), ident)
+    if getattr(_APRIMORANDO, "sim", False):
+        _exigir(ident == getattr(_APRIMORANDO, "no_ar", ""),
+                f"{ident!r} não é o tema no ar: o Personalizar só aprimora o tema em uso")
+    if getattr(_APRIMORANDO, "sim", False) and not os.path.isfile(os.path.join(d, "pack.json")):
+        motivo = motivo_para_nao_aprimorar(ident)
+        _exigir(not motivo, motivo)
+        return os.path.join(RAIZ, "packs", ident)
     _exigir(os.path.isfile(os.path.join(d, "pack.json")) and not os.path.islink(d),
             f"{ident!r} não é um pack seu: só os de {raiz_da_pessoa()} recebem o que o "
             f"Personalizar leva")
     return d
+
+
+def pack_para_ler(ident):
+    if getattr(_APRIMORANDO, "sim", False) and isinstance(ident, str) and RE_ID.match(ident) \
+            and not os.path.isfile(os.path.join(raiz_da_pessoa(), ident, "pack.json")) \
+            and os.path.isfile(os.path.join(RAIZ, "packs", ident, "pack.json")):
+        return os.path.join(RAIZ, "packs", ident)
+    return pack_da_pessoa(ident)
+
+
+def gravar_cores(ident, flavor, cores):
+    dir_pack = pack_da_pessoa(ident)
+    arq = _dentro(dir_pack, campo(dir_pack, "paleta.arquivo", "paleta.json"), "paleta.arquivo")
+    _exigir(os.path.isfile(arq) and not os.path.islink(arq), f"{ident}: o tema não tem paleta própria")
+    with open(arq, "rb") as fh:
+        antes = fh.read()
+    paleta = json.loads(antes)
+    tons = (paleta.get("flavors") or {}).get(flavor)
+    _exigir(isinstance(tons, dict), f"{flavor!r}: o tema não tem essa variante")
+    _exigir(isinstance(cores, dict) and cores, "nenhuma cor para gravar")
+    mudadas = 0
+    for papel, hexa in cores.items():
+        _exigir(papel in tons, f"{papel!r}: papel que a paleta não tem")
+        _exigir(isinstance(hexa, str) and RE_HEX.match(hexa), f"{hexa!r}: cor que não serve")
+        if str(tons[papel]).upper() != hexa.upper():
+            tons[papel] = hexa.upper()
+            mudadas += 1
+    if not mudadas:
+        return 0
+    _gravar_no_pack(dir_pack, os.path.relpath(arq, dir_pack),
+                    (json.dumps(paleta, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+    try:
+        validar(dir_pack, silencioso=True)
+    except Recusa:
+        with open(arq, "wb") as fh:
+            fh.write(antes)
+        raise
+    return mudadas
 
 
 def _e_foto(dados):
@@ -4671,7 +4744,7 @@ def _previa_da_biblioteca(texto, cores, tinta):
 
 def acervo_para_levar(ident, pasta, base="", cores=None):
     _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")
-    meus = set(icones_do_pack(pack_da_pessoa(ident), pasta)) if ident else set()
+    meus = set(icones_do_pack(pack_para_ler(ident), pasta)) if ident else set()
     saida = []
     for pid in cadeia_de_acervo(ident or base or PACK_BASE):
         dir_pack = achar(pid)

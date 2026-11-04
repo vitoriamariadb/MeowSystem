@@ -148,7 +148,7 @@ forcar_releitura() {
 
 criar_pastas() {
   local p
-  for p in ativos favoritos banidos originais; do
+  for p in ativos originais; do
     [ -d "$BASE/$p" ] && continue
     meow_seco && { meow_muda "criaria $BASE/$p"; continue; }
     mkdir -p "$BASE/$p" || return "$MEOW_ERRO"
@@ -740,7 +740,7 @@ reconciliar_sumicos() {
 
   if [ "$n_antes" -gt 4 ] && [ "${#sumidas[@]}" -gt $(( n_antes / 2 )) ]; then
     meow_aviso "${#sumidas[@]} de $n_antes imagens sumiram de ativos/ de uma vez — não vou banir nada"
-    meow_info  "  se foi você, tire uma a uma pelo «Tirar do carrossel», em Personalizar › Papel de parede"
+    meow_info  "  se foi você, apague uma a uma pelo «Apagar», em Personalizar › Papel de parede"
     return 0
   fi
 
@@ -806,10 +806,36 @@ reconciliar_banidos_pasta() {
   return 1
 }
 
+limpar_banidos() {
+  local -a apagar=() sair=()
+  local nome p
+  if [ -d "$BASE/banidos" ] && [ -f "$BANIDOS_TXT" ]; then
+    while IFS= read -r nome; do
+      [ -n "$nome" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && apagar+=("$nome")
+    done < <(find "$BASE/banidos" -maxdepth 1 \( -type f -o -type l \) -printf '%f\n' 2>/dev/null | LC_ALL=C sort)
+  fi
+  [ -d "$BASE/favoritos" ] && [ -z "$(ls -A "$BASE/favoritos" 2>/dev/null)" ] && sair+=("$BASE/favoritos")
+  [ -d "$BASE/banidos" ] && [ "$(find "$BASE/banidos" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)" = "${#apagar[@]}" ] \
+    && sair+=("$BASE/banidos")
+  [ "${#apagar[@]}" = "0" ] && [ "${#sair[@]}" = "0" ] && return 0
+  if meow_seco; then
+    [ "${#apagar[@]}" -gt 0 ] && meow_muda "apagaria ${#apagar[@]} imagem(ns) recusada(s) de banidos/"
+    for p in "${sair[@]}"; do meow_muda "tiraria a pasta vazia ${p##*/}/"; done
+    return 1
+  fi
+  for nome in "${apagar[@]}"; do rm -f -- "$BASE/banidos/$nome"; done
+  for p in "${sair[@]}"; do rmdir -- "$p" 2>/dev/null; done
+  [ "${#apagar[@]}" -gt 0 ] && meow_ok "${#apagar[@]} imagem(ns) recusada(s) apagada(s) de banidos/"
+  meow_registrar "wallpaper.sh limpar-banidos: ${#apagar[@]}"
+  return 1
+}
+
 cmd_aplicar() {
   criar_pastas || { meow_erro "não consegui criar as pastas"; return "$MEOW_ERRO"; }
   reconciliar_sumicos
   reconciliar_banidos_pasta
+  local limpou=0
+  limpar_banidos || limpou=1
   semear_das_dela
 
   local n; n="$(quantas)"
@@ -818,7 +844,7 @@ cmd_aplicar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
 
-  local mudou=0
+  local mudou="$limpou"
 
   podar_lado || mudou=1
 
@@ -1023,17 +1049,32 @@ cmd_banir() {
   local img="$1"
   [ -f "$img" ] || { meow_erro "não achei $img"; return "$MEOW_ERRO"; }
   local nome; nome="$(basename "$img")"
+  local acervo; acervo="$(readlink -m -- "$BASE")"
+  case "$(readlink -m -- "$(dirname -- "$img")")/" in
+    "$acervo"/*) ;;
+    *) meow_erro "$img não mora no acervo do papel de parede ($BASE)"; return "$MEOW_ERRO" ;;
+  esac
+  local -a onde=()
+  local d alvo ja
+  for alvo in "$img" "$ATIVOS/$nome" "$NOITE_DIR/$nome" "$DIA_DIR/$nome" "$PACK_ATIVOS/$nome" \
+              "$BASE/originais/$nome" "$BASE/favoritos/$nome" "$BASE/banidos/$nome"; do
+    [ -e "$alvo" ] || [ -L "$alvo" ] || continue
+    alvo="$(readlink -m -- "$(dirname -- "$alvo")")/$nome"
+    case "$alvo" in "$acervo"/*) ;; *) continue ;; esac
+    ja=0
+    for d in ${onde[@]+"${onde[@]}"}; do [ "$d" = "$alvo" ] && ja=1; done
+    [ "$ja" = 0 ] && onde+=("$alvo")
+  done
+  local fontes="$RAIZ/packs/meowsystem/wallpapers/FONTES.tsv"
+  local padrao="$RAIZ/packs/meowsystem/wallpapers/BANIDOS.txt.padrao"
+  local checkout=0
+  [ -e "$RAIZ/.git" ] && checkout=1
   if meow_seco; then
-    meow_muda "baniria $nome (iria para banidos/ e entraria em $(basename "$BANIDOS_TXT"))"
+    meow_muda "apagaria $nome (${#onde[@]} arquivo(s)) e o poria em $(basename "$BANIDOS_TXT")"
+    [ "$checkout" = 1 ] && meow_muda "tiraria $nome do FONTES.tsv e o poria no BANIDOS.txt.padrao do repositório"
     return "$MEOW_DIVERGENTE"
   fi
-  criar_pastas
-  meow_guardar_antes "$img"; meow_guardar_antes "$BASE/banidos/$nome"
-  if [ -e "$BASE/banidos/$nome" ] && cmp -s "$img" "$BASE/banidos/$nome"; then
-    rm -f "$img"
-  else
-    mv -f "$img" "$BASE/banidos/" || return "$MEOW_ERRO"
-  fi
+  for alvo in "${onde[@]}"; do rm -f -- "$alvo" || return "$MEOW_ERRO"; done
   local pasta_lista; pasta_lista="$(dirname "$BANIDOS_TXT")"
   if [ -d "$pasta_lista" ]; then
     [ -f "$BANIDOS_TXT" ] || printf '%s\n' \
@@ -1042,9 +1083,21 @@ cmd_banir() {
       > "$BANIDOS_TXT"
     grep -qxF -- "$nome" "$BANIDOS_TXT" || printf '%s\n' "$nome" >> "$BANIDOS_TXT"
   else
-    meow_aviso "não achei $pasta_lista — o banimento de $nome vale só nesta máquina"
+    meow_aviso "não achei $pasta_lista — a recusa de $nome vale só nesta máquina"
   fi
-  meow_ok "banida: $nome — está em banidos/, não foi apagada"
+  if [ "$checkout" = 1 ]; then
+    if [ -f "$fontes" ] && N="$nome" awk -F'\t' '$1 == ENVIRON["N"] {a = 1} END {exit !a}' "$fontes"; then
+      local tmp; tmp="$(mktemp -p "$(dirname "$fontes")" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
+      N="$nome" awk -F'\t' '$1 != ENVIRON["N"]' "$fontes" > "$tmp" && mv -f "$tmp" "$fontes" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
+    fi
+    if [ -f "$padrao" ] && ! grep -qxF -- "$nome" "$padrao" && ! LC_ALL=C grep -q '[^ -~]' <<< "$nome"; then
+      [ -n "$(tail -c1 "$padrao")" ] && printf '\n' >> "$padrao"
+      printf '%s\n' "$nome" >> "$padrao"
+    fi
+    meow_info "  no repositório: fora do FONTES.tsv e no BANIDOS.txt.padrao, sem commit"
+  fi
+  meow_ok "apagada: $nome"
+  meow_registrar "wallpaper.sh banir: $nome"
   cmd_aplicar >/dev/null
   forcar_releitura
   return "$MEOW_DIVERGENTE"
@@ -1061,50 +1114,6 @@ _adicionar_uma() {
   meow_guardar_antes "$ATIVOS/$(basename "$img")"
   cp -n "$img" "$ATIVOS/" 2>/dev/null || return 1
   return 0
-}
-
-cmd_desbanir() {
-  local nome; nome="$(basename "${1:-}")"
-  [ -n "$nome" ] || { meow_erro "uso: wallpaper.sh desbanir <nome-do-arquivo>"; return "$MEOW_ERRO"; }
-  local origem="$BASE/banidos/$nome"
-  if [ ! -f "$origem" ] && [ ! -e "$ATIVOS/$nome" ]; then
-    meow_erro "não achei $nome em banidos/"
-    meow_info "  o nome é o do ARQUIVO, sem caminho — veja: ls \"$BASE/banidos\""
-    return "$MEOW_ERRO"
-  fi
-
-  local na_lista=0
-  [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && na_lista=1
-  local em_ativos=0
-  [ -e "$ATIVOS/$nome" ] && em_ativos=1
-
-  if [ "$em_ativos" = "1" ] && [ "$na_lista" = "0" ]; then
-    meow_ok "$nome já está em ativos/ e fora da lista — nada a fazer"
-    return "$MEOW_OK"
-  fi
-
-  if meow_seco; then
-    [ "$em_ativos" = "0" ] && meow_muda "devolveria $nome para ativos/"
-    [ "$na_lista" = "1" ]  && meow_muda "tiraria $nome de $(basename "$BANIDOS_TXT")"
-    return "$MEOW_DIVERGENTE"
-  fi
-
-  criar_pastas
-  if [ "$em_ativos" = "0" ]; then
-    cp -n "$origem" "$ATIVOS/" 2>/dev/null || { meow_erro "não consegui copiar $nome"; return "$MEOW_ERRO"; }
-  fi
-
-  if [ "$na_lista" = "1" ]; then
-    local tmp; tmp="$(mktemp -p "$(dirname "$BANIDOS_TXT")" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
-    grep -vxF -- "$nome" "$BANIDOS_TXT" > "$tmp" 2>/dev/null
-    meow_guardar_antes "$BANIDOS_TXT"
-    mv -f "$tmp" "$BANIDOS_TXT" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
-  fi
-
-  meow_ok "devolvida: $nome — está em ativos/ e saiu da lista de recusadas"
-  cmd_aplicar >/dev/null
-  forcar_releitura
-  return "$MEOW_DIVERGENTE"
 }
 
 cmd_lado() {
@@ -1612,44 +1621,6 @@ cmd_carrossel() {
   return "$MEOW_DIVERGENTE"
 }
 
-cmd_favoritar() {
-  local img="${1:-}" nome
-  [ -f "$img" ] || { meow_erro "não achei ${img:-a imagem}"; return "$MEOW_ERRO"; }
-  nome="$(basename "$img")"
-  if [ -f "$BASE/favoritos/$nome" ] && cmp -s "$img" "$BASE/favoritos/$nome"; then
-    meow_ok "$nome já está nas favoritas"
-    return "$MEOW_OK"
-  fi
-  if meow_seco; then
-    meow_muda "guardaria uma cópia de $nome nas favoritas"
-    return "$MEOW_DIVERGENTE"
-  fi
-  criar_pastas || return "$MEOW_ERRO"
-  meow_guardar_antes "$BASE/favoritos/$nome"
-  cp -f -- "$img" "$BASE/favoritos/$nome" || return "$MEOW_ERRO"
-  meow_ok "favorita: $nome — a cópia está em favoritos/, e ela segue girando"
-  return "$MEOW_DIVERGENTE"
-}
-
-cmd_desfavoritar() {
-  local nome="${1:-}"
-  case "$nome" in
-    ''|*/*|.|..) meow_erro "o nome é o do arquivo, sem caminho"; return "$MEOW_ERRO" ;;
-  esac
-  if [ ! -f "$BASE/favoritos/$nome" ]; then
-    meow_ok "$nome não está nas favoritas — nada a fazer"
-    return "$MEOW_OK"
-  fi
-  if meow_seco; then
-    meow_muda "tiraria $nome das favoritas (a imagem de ativos/ fica)"
-    return "$MEOW_DIVERGENTE"
-  fi
-  meow_guardar_antes "$BASE/favoritos/$nome"
-  rm -f -- "$BASE/favoritos/$nome" || return "$MEOW_ERRO"
-  meow_ok "$nome saiu das favoritas; a imagem de ativos/ fica"
-  return "$MEOW_DIVERGENTE"
-}
-
 BASE_FORA_DO_REPO="$HOME/.local/share/backgrounds/meowsystem"
 
 dentro_de() {
@@ -1759,13 +1730,10 @@ case "${1:-aplicar}" in
   semear-se-faltar) cmd_semear_se_faltar ;;
   base)      [ "${2:-}" = "--conferir" ] && MEOW_SECO=1; cmd_base ;;
   banir)     shift; cmd_banir "${1:-}" ;;
-  desbanir)  shift; cmd_desbanir "${1:-}" ;;
   adicionar) shift; cmd_adicionar "${1:-}" ;;
   permitir)  shift; cmd_permitir "${1:-}" ;;
   dispensar) cmd_dispensar ;;
   lado)      shift; cmd_lado "${1:-}" "${2:-}" ;;
   usar)      shift; cmd_usar "${1:-}" ;;
-  favoritar)    shift; cmd_favoritar "${1:-}" ;;
-  desfavoritar) shift; cmd_desfavoritar "${1:-}" ;;
-  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|usar <img>|carrossel|--conferir|estado|semear|base [--conferir]|adicionar <alvo>|banir <img>|desbanir <nome>|favoritar <img>|desfavoritar <nome>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
+  *) echo "uso: wallpaper.sh [aplicar|proximo|anterior|usar <img>|carrossel|--conferir|estado|semear|base [--conferir]|adicionar <alvo>|banir <img>|permitir <caminho>|lado <img> dia|noite|auto]" >&2; exit 2 ;;
 esac

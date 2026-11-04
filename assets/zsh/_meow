@@ -119,7 +119,7 @@ _meow() {
               'anterior:volta para a imagem anterior do grupo'
               'carrossel:solta a fixação e devolve a rotação agora'
               'adicionar:copia imagem ou pasta para ativos/'
-              'banir:move para banidos/ (nunca apaga)'
+              'banir:apaga a imagem e a põe no BANIDOS.txt'
               'semear:baixa a coleção Catppuccin do commit pinado (usa rede)'
               'permitir:marca um caminho como escolha sua — o carrossel para de devolvê-lo'
             )

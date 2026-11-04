@@ -107,7 +107,7 @@ PORTATIL=(
   painel-fantasma.sh
   criar-tema-leva.sh
   mesmo-horario.sh
-  desbanir.sh
+  apagar-papel.sh
   mapas-fim-de-linha.sh
   wallpaper-base.sh
   gpu-do-compositor.sh
@@ -123,6 +123,8 @@ MAQUINA=(
   app-acessibilidade.py
   app-layout.py
   rodape-do-tema.py
+  galeria-do-papel.py
+  criar-e-aprimorar.py
   oficina.sh
   icones-por-pack.py
   sistema-latte-e-rotulos.py

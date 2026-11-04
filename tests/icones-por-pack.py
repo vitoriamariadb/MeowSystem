@@ -122,7 +122,7 @@ def main():
             pag.on("pageerror", lambda e: erros.append(str(e)))
             pag.goto(url, wait_until="commit")
             esperar(pag, 800)
-            ir(pag, "criar/icones")
+            ir(pag, "novo/icones")
 
             partir_de(pag, "meowsystem")
             aba(pag, "sistema")
