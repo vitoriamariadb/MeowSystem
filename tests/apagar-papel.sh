@@ -95,6 +95,22 @@ else
   falha "sem checkout, o lixo mexeu no repositório ou não apagou (rc=$rc2)" "$s2"
 fi
 
+printf -- '--- 2b. o lixo nunca apaga fora do acervo ---\n'
+C2B="$T/casa2b"; B2B="$C2B/.local/share/backgrounds/meowsystem"; FORA="$T/fotos-dela"
+mkdir -p "$B2B/ativos" "$FORA" "$C2B/cosmic"
+png "$B2B/ativos/um.png" um; png "$B2B/ativos/dois.png" dois; png "$B2B/ativos/tres.png" tres
+png "$FORA/minha.png" minha; png "$FORA/ligada.png" ligada
+ln -s "$FORA/ligada.png" "$B2B/ativos/ligada.png"
+s2b="$(papel "$C2B" "$R2/scripts/wallpaper.sh" banir "$FORA/minha.png" 2>&1)"; rc2b=$?
+[ "$rc2b" = 2 ] && [ -f "$FORA/minha.png" ] && ! grep -qxF minha.png "$C2B/estado/papeis-de-parede/BANIDOS.txt" 2>/dev/null \
+  && ok "uma imagem fora do acervo é recusada e fica no disco" \
+  || falha "o lixo apagou ou anotou uma imagem de fora do acervo (rc=$rc2b)" "$s2b"
+s2c="$(papel "$C2B" "$R2/scripts/wallpaper.sh" banir "$B2B/ativos/ligada.png" 2>&1)"; rc2c=$?
+[ "$rc2c" = 1 ] && [ ! -e "$B2B/ativos/ligada.png" ] && [ ! -L "$B2B/ativos/ligada.png" ] && [ -f "$FORA/ligada.png" ] \
+  && ok "um link em ativos/ para fora do acervo sai, e a foto de origem fica" \
+  || falha "o lixo seguiu o link para fora do acervo (rc=$rc2c)" "$s2c
+$(ls -la "$B2B/ativos" "$FORA")"
+
 printf -- '--- 3. a etapa das banidas: apaga o que está na lista, e a segunda passada fica seca ---\n'
 C3="$T/casa3"; B3="$C3/.local/share/backgrounds/meowsystem"
 mkdir -p "$B3/ativos" "$B3/banidos" "$B3/favoritos" "$C3/cosmic"

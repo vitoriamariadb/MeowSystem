@@ -1049,12 +1049,18 @@ cmd_banir() {
   local img="$1"
   [ -f "$img" ] || { meow_erro "não achei $img"; return "$MEOW_ERRO"; }
   local nome; nome="$(basename "$img")"
+  local acervo; acervo="$(readlink -m -- "$BASE")"
+  case "$(readlink -m -- "$(dirname -- "$img")")/" in
+    "$acervo"/*) ;;
+    *) meow_erro "$img não mora no acervo do papel de parede ($BASE)"; return "$MEOW_ERRO" ;;
+  esac
   local -a onde=()
   local d alvo ja
   for alvo in "$img" "$ATIVOS/$nome" "$NOITE_DIR/$nome" "$DIA_DIR/$nome" "$PACK_ATIVOS/$nome" \
               "$BASE/originais/$nome" "$BASE/favoritos/$nome" "$BASE/banidos/$nome"; do
     [ -e "$alvo" ] || [ -L "$alvo" ] || continue
-    alvo="$(readlink -m -- "$alvo")"
+    alvo="$(readlink -m -- "$(dirname -- "$alvo")")/$nome"
+    case "$alvo" in "$acervo"/*) ;; *) continue ;; esac
     ja=0
     for d in ${onde[@]+"${onde[@]}"}; do [ "$d" = "$alvo" ] && ja=1; done
     [ "$ja" = 0 ] && onde+=("$alvo")
