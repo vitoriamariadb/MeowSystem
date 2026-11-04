@@ -1,6 +1,33 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- FECHO (04/11, noite): P155 (dica curta no botão da barra: Bateria «NN%», Copiados, Discos, Conta-gotas,
+  Leitura ligada/desligada, Tocando «Título · Artista», Bandeja; sete applets com versão nova, no GitHub, pinos
+  em dia), P156 (Cor de destaque, Claro ou escuro e Criar o meu tema numa fileira no rodapé do Tema), P157 (sem
+  Favoritas, sem Fora, sem «Levar para o tema»; o lixo pergunta e apaga de vez, e num checkout tira do
+  FONTES.tsv e põe no BANIDOS.txt.padrao; decisão 51), P158 (Criar o meu tema em `#novo`, termina em
+  Disponibilizar; Personalizar aprimora o tema no ar, termina em Aprimorar; decisão 52) e o mascote no terminal
+  (a Altura fora da proporção aparece apagada e diz quantas linhas valem; «Linha de cima» vira «Título»).
+  Workflow `wf_0d3840aa-83b`, 5 agentes. Suíte inteira na integração 135/135; portátil 108/108 (o
+  `extensoes-install.sh` só fica verde depois do install, que busca os commits novos dos pinos). Install com o
+  HOME real (askpass): `rc=0`, 3 passagens, 72 etapas; sete applets recompilados; das 258 banidas sobrou 1.
+  O apt «quebrado» de 04/11 era a trava: o gancho da Aurora roda `find` no HOME e o `meow doctor` a cada
+  operação do apt; `apt-get check` rc=0.
+  ELA CONFERE COM A MÃO: clicar em «Instalar» na página Extensões (o compositor do cosmic-comp novo entrou no
+  degrau 2 e espera por ela) e entrar de novo na sessão; passar o mouse nos applets da barra; Tema, galeria do
+  papel de parede, Criar o meu tema e Personalizar no painel; no Mascote, Tamanho 57, Altura no ↶ e Linhas
+  antes 0 deixam o gato do tamanho do texto, com a paleta logo abaixo.
+  PRÓXIMO (achados, nenhum em voo):
+  - a banida com emoji no nome (`Cyberpunk Neon Cat Wallpaper …`, com dois emojis): o `limpar_banidos` e o `banir` pulam nomes
+    fora do ASCII;
+  - num checkout o lixo põe no BANIDOS.txt.padrao até foto dela que o `semear` nunca baixa; cópias em
+    `banidos/` fora do BANIDOS.txt nunca saem; o BANIDOS.txt.padrao tem lixo (`.meow.XXXXXX`, linha vazia) e o
+    FONTES.tsv lista nomes já banidos;
+  - quick-settings: a medição da P155 errou, ele já dá dica a cada ícone; algumas não são curtas («· 2 h até
+    carregar»). A Bateria em ASCII mostra «NN%» mesmo com a barra só em brilho. Tocando não corta música longa;
+  - `chaveDoAcervo`/`chaveDaPrevia` sem o modo na chave; `/api/autorais` não passa por `pack_da_pessoa`;
+    Biblioteca no latte com contraste 2,3–2,8; o nome das variantes do tema novo sai como slug («Gatofinal»);
+  - o gancho `99-ritual-aurora-self-heal` deixa cada apt lento (é da Aurora: anotar lá).
 - FECHO (03/11, 23h): menu da área de trabalho com «Voltar papel de parede» e «Próximo papel de parede» abrindo a
   seção, com os glifos de mídia (marcador `MEOW-FILES-WALLPAPER-PATCH-2`; o build do patch anterior se refaz);
   now-playing 0.4.2, os controles da barra espaçados como dois applets. Suíte: 131/132, o vermelho era o pino sem
