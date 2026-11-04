@@ -188,6 +188,17 @@ def com_checkout(nav, url):
     checa(esperar_que(pag, lambda: tom(os.path.join(novo, "paleta.json"), meu["flavor"], "mauve") == "#654321"),
           "«Guardar» grava a cor no próprio tema dela")
     checa(packs_dela() == antes, f"nenhum tema novo aparece ({packs_dela()})")
+    fabrica = os.path.join(casa.RAIZ_B, "packs", no_ar["id"], "paleta.json")
+    tom_fabrica = tom(fabrica, no_ar["flavor"], "mauve")
+    papeis_fabrica = os.path.join(casa.RAIZ_B, "packs", no_ar["id"], "wallpapers")
+    papeis_antes = sorted(os.listdir(papeis_fabrica)) if os.path.isdir(papeis_fabrica) else []
+    resp = pag.evaluate("([id, f]) => api('/api/pack-cores', { method: 'POST', body: JSON.stringify({ id, flavor: f, cores: { mauve: '#0D0E0F' } }) })",
+                        [no_ar["id"], no_ar["flavor"]])
+    foto_fora = pag.evaluate("(id) => api('/api/criar', { method: 'POST', body: JSON.stringify({ id, tipo: 'foto', nome: 'x.png', levar: true,"
+                             " aprimorar: true, arquivo: 'x.png', conteudo: 'iVBORw0KGgo=' }) })", no_ar["id"])
+    checa(resp.get("erro") and foto_fora.get("erro") and tom(fabrica, no_ar["flavor"], "mauve") == tom_fabrica
+          and (sorted(os.listdir(papeis_fabrica)) if os.path.isdir(papeis_fabrica) else []) == papeis_antes,
+          f"com outro tema no ar, o servidor não grava em {no_ar['id']} ({resp}, {foto_fora})")
     definir_pack("")
     checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
 

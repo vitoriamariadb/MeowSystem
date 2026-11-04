@@ -4267,8 +4267,9 @@ _APRIMORANDO = threading.local()
 
 
 @contextlib.contextmanager
-def aprimorando():
+def aprimorando(no_ar):
     _APRIMORANDO.sim = True
+    _APRIMORANDO.no_ar = no_ar
     try:
         yield
     finally:
@@ -4292,6 +4293,9 @@ def pack_da_pessoa(ident):
     _exigir(isinstance(ident, str) and RE_ID.match(ident),
             f"id {ident!r} — só minúsculas, dígitos e hífen")
     d = os.path.join(raiz_da_pessoa(), ident)
+    if getattr(_APRIMORANDO, "sim", False):
+        _exigir(ident == getattr(_APRIMORANDO, "no_ar", ""),
+                f"{ident!r} não é o tema no ar: o Personalizar só aprimora o tema em uso")
     if getattr(_APRIMORANDO, "sim", False) and not os.path.isfile(os.path.join(d, "pack.json")):
         motivo = motivo_para_nao_aprimorar(ident)
         _exigir(not motivo, motivo)

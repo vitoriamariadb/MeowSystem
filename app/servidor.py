@@ -8167,7 +8167,7 @@ class Manipulador(BaseHTTPRequestHandler):
         mod = modulo_pack()
         if not (aprimorar and mod):
             return fazer(dados)
-        with mod.aprimorando():
+        with mod.aprimorando(_pack_no_ar()):
             return fazer(dados)
 
     def _api_pack_cores(self, corpo):
