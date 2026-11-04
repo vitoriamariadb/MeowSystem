@@ -719,7 +719,12 @@ class Percurso:
 
     def ir(self, rota):
         porta, _, sub = rota.partition("/")
-        self.clicar("porta:" + porta)
+        if porta == "novo":
+            self.clicar("porta:tema")
+            self.assentar()
+            self.clicar("tema:criar")
+        else:
+            self.clicar("porta:" + porta)
         self.assentar()
         if porta == "modificacoes":
             self.pag.wait_for_function("() => MOD.dados && !MOD.pedindo", timeout=300000)
@@ -942,6 +947,11 @@ class Percurso:
         self.checa(valor_de("RELOGIO_SEGUNDOS") == ("sim" if atual != "sim" else "nao"), "e o meow.conf muda sem Aplicar")
 
     def h_guardar(self, nome):
+        if self.rota.startswith("criar/") and self.achar(nome) \
+                and self.achar(nome).get_attribute("aria-disabled") == "true":
+            self.checa(self.achar(nome).get_attribute("data-dica"), "«Guardar» apagado diz o porquê")
+            self.clicar(self.js("() => document.querySelector('[data-controle^=\"criar:comeca=\"]').dataset.controle"))
+            self.assentar()
         if self.rota.startswith("criar/"):
             packs = sorted(os.listdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs"))) \
                 if os.path.isdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs")) else []
@@ -1085,6 +1095,8 @@ class Percurso:
         self.escolher_arquivo(nome, caminho)
         self.assentar(quieto=400, teto=30000)
         alvo = os.path.join(CASA, ".local", "share", "meowsystem", "packs", "tema-de-brinquedo", "sons", "stereo")
+        if self.rota.startswith("criar/"):
+            alvo = os.path.join(RAIZ_B, "packs", self.js("() => rascunho().pack"), "sons", "stereo")
         trocado = any(os.path.isfile(os.path.join(alvo, c, evento + ".oga"))
                       and open(os.path.join(alvo, c, evento + ".oga"), "rb").read() == open(caminho, "rb").read()
                       for c in ("action", "alert", "notification"))

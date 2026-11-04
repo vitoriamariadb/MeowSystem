@@ -454,8 +454,8 @@ async function carregarAcervo() {
   const chave = chaveDoAcervo();
   const r0 = rascunho();
   ACERVO = { chave, carregando: true, sistema: [], biblioteca: [] };
-  const consulta = `id=${encodeURIComponent(r0.pack || "")}&base=${encodeURIComponent(r0.base.pack)}`
-    + `&cores=${encodeURIComponent(JSON.stringify(vinteSeis()))}${emNovo() ? "" : "&aprimorar=1"}`;
+  const consulta = `id=${encodeURIComponent(emNovo() ? r0.pack || "" : "")}&base=${encodeURIComponent(r0.base.pack)}`
+    + `&cores=${encodeURIComponent(JSON.stringify(vinteSeis()))}`;
   const r = await api(`/api/criar?${consulta}`);
   if (!ACERVO || ACERVO.chave !== chave) return;
   ACERVO = r.erro ? { chave, sistema: [], biblioteca: [] } : { chave, sistema: r.sistema || [], biblioteca: r.biblioteca || [] };
