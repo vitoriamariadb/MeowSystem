@@ -60,7 +60,7 @@ echo "files \$*" >> "$T/log"
 v=\$(awk -F'\t' '\$1=="cosmic-files"{print \$2}' "$T/dpkg.tsv")
 mkdir -p "$ESTADO/cosmic-files/\$v"
 for b in cosmic-files cosmic-files-applet; do
-  echo MEOW-FILES-WALLPAPER-PATCH-1 > "$ESTADO/cosmic-files/\$v/\$b"
+  echo MEOW-FILES-WALLPAPER-PATCH-2 > "$ESTADO/cosmic-files/\$v/\$b"
 done
 exit 1
 FIM
@@ -98,6 +98,11 @@ versoes cosmic-comp=0.1~b cosmic-files=1.10~a
 : > "$T/log"; rodar
 igual "um build do compositor" "$(linhas '^compositor compilar')" 1
 igual "nenhum build do menu" "$(linhas '^files build')" 0
+
+echo "-- o menu guardado com o marcador do patch anterior: refaz"
+for b in cosmic-files cosmic-files-applet; do echo MEOW-FILES-WALLPAPER-PATCH-1 > "$ESTADO/cosmic-files/1.10~a/$b"; done
+: > "$T/log"; rodar
+igual "um build do menu" "$(linhas '^files build')" 1
 
 echo "-- o build posto de lado (ruim) não se refaz"
 versoes cosmic-comp=0.1~c cosmic-files=1.10~a

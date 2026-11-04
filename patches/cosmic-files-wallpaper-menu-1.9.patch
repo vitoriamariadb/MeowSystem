@@ -4,7 +4,7 @@
      CosmicSettingsDesktop,
      CosmicSettingsDisplays,
      CosmicSettingsWallpaper,
-+    // MEOW-FILES-WALLPAPER-PATCH-1 — avançar e voltar o papel de parede pelo
++    // MEOW-FILES-WALLPAPER-PATCH-2 — avançar e voltar o papel de parede pelo
 +    // menu de contexto da área de trabalho. Ver o comentário do handler de
 +    // `Message::MeowWallpaper`, mais abaixo.
 +    MeowWallpaperNext,
@@ -16,7 +16,7 @@
              Self::CosmicSettingsDesktop => Message::CosmicSettings("desktop"),
              Self::CosmicSettingsDisplays => Message::CosmicSettings("displays"),
              Self::CosmicSettingsWallpaper => Message::CosmicSettings("wallpaper"),
-+            // MEOW-FILES-WALLPAPER-PATCH-1
++            // MEOW-FILES-WALLPAPER-PATCH-2
 +            Self::MeowWallpaperNext => Message::MeowWallpaper("proximo"),
 +            Self::MeowWallpaperPrev => Message::MeowWallpaper("anterior"),
              Self::Delete => Message::Delete(entity_opt),
@@ -26,7 +26,7 @@
      CopyTo(Option<Entity>),
      CopyToResult(DialogResult),
      CosmicSettings(&'static str),
-+    // MEOW-FILES-WALLPAPER-PATCH-1
++    // MEOW-FILES-WALLPAPER-PATCH-2
 +    MeowWallpaper(&'static str),
      Cut(Option<Entity>),
      Delete(Option<Entity>),
@@ -35,7 +35,7 @@
                      }
                  }
              }
-+            // ---- MEOW-FILES-WALLPAPER-PATCH-1 -------------------------------
++            // ---- MEOW-FILES-WALLPAPER-PATCH-2 -------------------------------
 +            // Avançar e voltar o papel de parede a partir do menu de contexto
 +            // da área de trabalho.
 +            //
@@ -60,13 +60,13 @@
 +            Message::MeowWallpaper(arg) => {
 +                // O MARCADOR TEM DE ESTAR NUMA STRING DE CÓDIGO VIVO, NÃO NUM
 +                // COMENTÁRIO — medido em 01/09/2026: o primeiro build deste
-+                // patch trazia `MEOW-FILES-WALLPAPER-PATCH-1` só em comentários,
++                // patch trazia `MEOW-FILES-WALLPAPER-PATCH-2` só em comentários,
 +                // e `grep -a` no binário devolvia ZERO. Um marcador que não
 +                // sobrevive ao compilador não serve para o que ele existe:
 +                // responder "este binário é o patchado?" depois de um
 +                // `apt upgrade`. É a mesma disciplina dos marcadores
 +                // `AURORA-*-PATCH-*` do cosmic-comp.
-+                const MARCA: &str = "MEOW-FILES-WALLPAPER-PATCH-1";
++                const MARCA: &str = "MEOW-FILES-WALLPAPER-PATCH-2";
 +                let mut command = process::Command::new("meow");
 +                command.arg("wallpaper").arg(arg);
 +                match spawn_detached(&mut command) {
@@ -85,7 +85,7 @@
                      children.push(
                          menu_item(fl!("change-wallpaper"), Action::CosmicSettingsWallpaper).into(),
                      );
-+                    // MEOW-FILES-WALLPAPER-PATCH-1 — os dois itens vêm LOGO
++                    // MEOW-FILES-WALLPAPER-PATCH-2 — os dois itens vêm LOGO
 +                    // DEPOIS de "Alterar o plano de fundo", porque é o vizinho
 +                    // temático: quem procura papel de parede olha ali primeiro.
 +                    children.push(
@@ -115,7 +115,7 @@
  
  change-wallpaper = Alterar o plano de fundo...
 +meow-wallpaper-next = Próximo papel de parede
-+meow-wallpaper-prev = Papel de parede anterior
++meow-wallpaper-prev = Voltar papel de parede
  desktop-appearance = Aparência da área de trabalho...
  display-settings = Configurações da tela...
  
@@ -126,7 +126,7 @@
  remove-from-recents = Remover dos itens recentes
  change-wallpaper = Alterar papel de parede...
 +meow-wallpaper-next = Próximo papel de parede
-+meow-wallpaper-prev = Papel de parede anterior
++meow-wallpaper-prev = Voltar papel de parede
  desktop-appearance = Aparência da área de trabalho...
  display-settings = Definições do ecrã...
  reload-folder = Recarregar pasta

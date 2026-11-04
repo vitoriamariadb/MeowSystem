@@ -78,7 +78,7 @@ cat > "$T/files" <<FIM
 [ "\$1" = build ] || exit 0
 v=\$(awk -F'\t' '\$1=="cosmic-files"{print \$2}' "$T/dpkg.tsv")
 mkdir -p "$E/cosmic-files/\$v"
-for b in cosmic-files cosmic-files-applet; do echo MEOW-FILES-WALLPAPER-PATCH-1 > "$E/cosmic-files/\$v/\$b"; done
+for b in cosmic-files cosmic-files-applet; do echo MEOW-FILES-WALLPAPER-PATCH-2 > "$E/cosmic-files/\$v/\$b"; done
 exit 1
 FIM
 chmod 755 "$T/compositor" "$T/files"

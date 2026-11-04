@@ -34,7 +34,7 @@ echo "files \$*" >> "$T/log"
 [ -f "$T/files-falha" ] && exit 2
 v=\$(awk -F'\t' '\$1=="cosmic-files"{print \$2}' "$T/dpkg.tsv")
 mkdir -p "$T/estado/cosmic-files/\$v"
-for b in cosmic-files cosmic-files-applet; do echo MEOW-FILES-WALLPAPER-PATCH-1 > "$T/estado/cosmic-files/\$v/\$b"; done
+for b in cosmic-files cosmic-files-applet; do echo MEOW-FILES-WALLPAPER-PATCH-2 > "$T/estado/cosmic-files/\$v/\$b"; done
 exit 1
 FIM
 cat > "$T/rustup" <<FIM

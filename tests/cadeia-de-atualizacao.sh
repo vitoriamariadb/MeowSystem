@@ -39,7 +39,7 @@ echo "rede \$p \$v" >> "$T/rede.log"
 case "\$p" in
   cosmic-comp)  : > "cosmic-comp_\${v#*:}.dsc"; echo "\$v" > "cosmic-comp_\${v#*:}.tar.xz" ;;
   cosmic-files) mkdir -p cosmic-files-1.10/src
-                echo "// MEOW-FILES-WALLPAPER-PATCH-1 \$v" > cosmic-files-1.10/src/app.rs ;;
+                echo "// MEOW-FILES-WALLPAPER-PATCH-2 \$v" > cosmic-files-1.10/src/app.rs ;;
   *) exit 1 ;;
 esac
 FIM
@@ -126,7 +126,7 @@ versoes cosmic-comp=0.1~b cosmic-files=1.10~b cosmic-panel=1.10~b
 pos_apt
 igual "o shim escolhe o build da B" "$(qual)" "$CASA/0.1~b/cosmic-comp"
 grep -q '^just build-vendored' "$T/build.log" && ok "o fonte com justfile compilou com just build-vendored" || falha "o justfile não foi usado: $(tr '\n' ';' < "$T/build.log")"
-grep -q 'MEOW-FILES-WALLPAPER-PATCH-1 1.10~b' "$H/.local/bin/cosmic-files-applet" 2>/dev/null \
+grep -q 'MEOW-FILES-WALLPAPER-PATCH-2 1.10~b' "$H/.local/bin/cosmic-files-applet" 2>/dev/null \
   && ok "o menu da B está vestido em ~/.local/bin" || falha "o menu da B não foi vestido"
 grep -q 'apt-get source sem versão' "$T/recusados" 2>/dev/null \
   && falha "um apt-get source baixou sem a versão (o candidato, e não o instalado)" \

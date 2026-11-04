@@ -160,7 +160,7 @@ patches/ — o que este diretório é, e as CINCO armadilhas que custam caro.
 
         cosmic-files-wallpaper-menu.patch
 
-    Ele põe "Próximo papel de parede" e "Papel de parede anterior" no menu de
+    Ele põe "Voltar papel de parede" e "Próximo papel de parede" no menu de
     contexto da área de trabalho. Quatro coisas o separam dos outros três:
 
       * O ALVO É OUTRO BINÁRIO — e não é o que o nome sugere. Quem desenha a
@@ -171,7 +171,7 @@ patches/ — o que este diretório é, e as CINCO armadilhas que custam caro.
         compila, instala, não dá erro nenhum e não muda um item no menu dela.
 
       * QUEM O APLICA É NOSSO: `scripts/files_menu.sh`, não a série da Aurora.
-        Ele tem marcador (`MEOW-FILES-WALLPAPER-PATCH-1`), artefato por versão
+        Ele tem marcador (`MEOW-FILES-WALLPAPER-PATCH-2`), artefato por versão
         de pacote e auto-build próprios.
 
       * ELE NÃO VAI PARA `/usr/bin`. O binário patchado mora em `~/.local/bin`,

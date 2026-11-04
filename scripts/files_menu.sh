@@ -12,7 +12,7 @@ PATCHES=(
   "$MEOW_RAIZ/patches/cosmic-files-wallpaper-menu.patch"
   "$MEOW_RAIZ/patches/cosmic-files-wallpaper-menu-1.9.patch"
 )
-MARCA="MEOW-FILES-WALLPAPER-PATCH-1"
+MARCA="MEOW-FILES-WALLPAPER-PATCH-2"
 BINS=(cosmic-files cosmic-files-applet)
 DESTINO="$HOME/.local/bin"
 GUARDA="$MEOW_ESTADO/cosmic-files"
@@ -59,7 +59,7 @@ cmd_aplicar() {
   [ -n "$ver" ] || { meow_pula "o cosmic-files não está instalado por pacote — nada a aplicar"; return "$MEOW_SEM_DEPENDENCIA"; }
   dir="$(artefato_de "$ver")"
 
-  if [ ! -d "$dir" ]; then
+  if [ ! -d "$dir" ] || ! patchado "$dir/cosmic-files-applet"; then
     remover_nossos; [ "$?" = "1" ] && mudou=1
     meow_aviso "não há build patchado para o cosmic-files $ver — o do pacote está valendo"
     if [ "$mudou" = "1" ]; then
@@ -112,7 +112,7 @@ cmd_build() {
   meow_tem cargo   || { meow_erro "falta o cargo: o rust vem pelo rustup que a etapa rust do install e o doctor baixam"; return "$MEOW_SEM_DEPENDENCIA"; }
   meow_tem apt-get || { meow_erro "falta apt-get";                            return "$MEOW_SEM_DEPENDENCIA"; }
 
-  if [ -d "$dir" ] && [ -f "$dir/cosmic-files-applet" ]; then
+  if [ -d "$dir" ] && patchado "$dir/cosmic-files-applet"; then
     meow_ok "já existe build patchado para $ver — nada a compilar"
     return "$MEOW_OK"
   fi

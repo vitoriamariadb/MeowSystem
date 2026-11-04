@@ -1167,7 +1167,7 @@ WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
 
 # @ Avançar e voltar no botão direito
 # > Dois itens de papel de parede no menu da área de trabalho.
-# "Próximo papel de parede" e "Papel de parede anterior" no botão direito da
+# "Voltar papel de parede" e "Próximo papel de parede", com os glifos ⏮ ⏭, no botão direito da
 # área de trabalho. Não há sistema de plugin no COSMIC: os itens só existem
 # patchando o `cosmic-files` e recompilando. O binário patchado mora em
 # ~/.local/bin (que vem antes de /usr/bin no PATH), então um `apt upgrade` não o
