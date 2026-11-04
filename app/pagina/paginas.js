@@ -180,14 +180,14 @@ function paginaTema() {
   }
   const ACCENT = CHAVE.get("ACCENT");
   const MODO = CHAVE.get("MODO");
+  const rodape = elemento("div", { class: "rodape-tema" });
   const imediato = (chave) => (v) => {
     escolher(chave, v);
   };
   if (ACCENT) {
     const b = bloco("Cor de destaque", [elemento("div", { class: "corpo" }, [controleCor(ACCENT, imediato("ACCENT"), true)])]);
     b.dataset.linha = "ACCENT";
-    b.style.gridColumn = "span 2";
-    grade.append(b);
+    rodape.append(b);
   }
   if (MODO) {
     const seg = elemento("div", { class: "seg", role: "group", "aria-label": "Claro ou escuro" });
@@ -198,44 +198,92 @@ function paginaTema() {
     }
     const b = bloco("Claro ou escuro", [elemento("div", { class: "corpo" }, [seg])]);
     b.dataset.linha = "MODO";
-    grade.append(b);
+    rodape.append(b);
   }
-  grade.append(elemento("a", { class: "criar-meu", href: "#criar/cores", controle: "tema:criar" },
+  rodape.append(elemento("a", { class: "criar-meu", href: "#novo/cores", controle: "tema:criar" },
     [icone("mais"), elemento("span", { texto: "Criar o meu tema" })]));
-  return [cabeca("Tema", [pilulaDeSaude(), botaoAbrirTema()]), grade];
+  return [cabeca("Tema", [pilulaDeSaude(), botaoAbrirTema()]), grade, rodape];
 }
 
 const SEIS = [
   ["base", "Fundo"], ["mantle", "Barras"], ["text", "Texto"],
   ["mauve", "Destaque"], ["green", "Deu certo"], ["red", "Deu errado"],
 ];
-let RASCUNHO = null;
-function rascunho() {
-  if (RASCUNHO) return RASCUNHO;
-  try { RASCUNHO = JSON.parse(localStorage.getItem("meow-criar") || "null"); } catch (e) { RASCUNHO = null; }
-  if (!RASCUNHO || !RASCUNHO.base) {
-    const p = packNoAr() || PACKS[0] || { id: "", flavors: [] };
-    RASCUNHO = { nome: "Meu tema", base: { pack: p.id, flavor: flavorEmVigor() }, cores: {}, pack: "" };
+const RASCUNHOS = { novo: null, aprimorar: null };
+const GUARDA_DO_RASCUNHO = { novo: "meow-criar", aprimorar: "meow-aprimorar" };
+function emNovo() { return ROTA.porta === "novo"; }
+function emCriacao() { return ROTA.porta === "criar" || ROTA.porta === "novo"; }
+function modoDoRascunho() { return emNovo() ? "novo" : "aprimorar"; }
+function rotaDoModo() { return emNovo() ? "novo" : "criar"; }
+function lerGuardado(modo) {
+  try { return JSON.parse(localStorage.getItem(GUARDA_DO_RASCUNHO[modo]) || "null"); } catch (e) { return null; }
+}
+function rascunhoDoAprimorar() {
+  const p = packNoAr();
+  for (const r of [RASCUNHOS.aprimorar, lerGuardado("aprimorar")]) {
+    if (r && r.base && p && r.pack === p.id) return (RASCUNHOS.aprimorar = r);
   }
-  return RASCUNHO;
+  const fl = flavorEmVigor();
+  const flavor = p && !(p.flavors || []).some((f) => f.id === fl) && (p.flavors || [])[0] ? p.flavors[0].id : fl;
+  RASCUNHOS.aprimorar = { nome: p ? p.nome : "", base: { pack: p ? p.id : "", flavor }, cores: {}, pack: p ? p.id : "" };
+  return RASCUNHOS.aprimorar;
+}
+function rascunho() {
+  if (modoDoRascunho() === "aprimorar") return rascunhoDoAprimorar();
+  if (RASCUNHOS.novo) return RASCUNHOS.novo;
+  RASCUNHOS.novo = lerGuardado("novo");
+  if (!RASCUNHOS.novo || !RASCUNHOS.novo.base) {
+    const p = packNoAr() || PACKS[0] || { id: "", flavors: [] };
+    RASCUNHOS.novo = { nome: "Meu tema", base: { pack: p.id, flavor: flavorEmVigor() }, cores: {}, pack: "" };
+  }
+  return RASCUNHOS.novo;
 }
 let RASCUNHO_RELOGIO = null;
 function guardarRascunho() {
-  try { localStorage.setItem("meow-criar", JSON.stringify(RASCUNHO)); } catch (e) { }
+  const modo = modoDoRascunho();
+  try { localStorage.setItem(GUARDA_DO_RASCUNHO[modo], JSON.stringify(rascunho())); } catch (e) { }
   clearTimeout(RASCUNHO_RELOGIO);
-  RASCUNHO_RELOGIO = setTimeout(enviarRascunho, 400);
+  RASCUNHO_RELOGIO = setTimeout(() => enviarRascunho(modo), 400);
 }
-function enviarRascunho() {
+function enviarRascunho(modo = modoDoRascunho()) {
   clearTimeout(RASCUNHO_RELOGIO);
-  if (!RASCUNHO) return Promise.resolve();
-  return api("/api/rascunho", { method: "POST", body: JSON.stringify({ rascunho: RASCUNHO }) });
+  if (!RASCUNHOS[modo]) return Promise.resolve();
+  return api("/api/rascunho", { method: "POST", body: JSON.stringify({ rascunho: RASCUNHOS[modo], modo }) });
 }
 async function lerRascunhoDoServidor() {
-  const r = await api("/api/rascunho");
-  if (r && r.rascunho && r.rascunho.base) {
-    RASCUNHO = r.rascunho;
-    try { localStorage.setItem("meow-criar", JSON.stringify(RASCUNHO)); } catch (e) { }
+  for (const modo of ["novo", "aprimorar"]) {
+    const r = await api("/api/rascunho?modo=" + modo);
+    if (r && r.rascunho && r.rascunho.base) {
+      RASCUNHOS[modo] = r.rascunho;
+      try { localStorage.setItem(GUARDA_DO_RASCUNHO[modo], JSON.stringify(r.rascunho)); } catch (e) { }
+    }
   }
+}
+function packDoAprimorar() {
+  return emNovo() ? null : PACKS.find((x) => x.id === rascunho().pack) || null;
+}
+function motivoDoAprimorar() {
+  const p = packDoAprimorar();
+  return p ? p.aprimorar || "" : "Nenhum tema no ar";
+}
+async function gravarCoresNoTema(silencioso = false) {
+  const r = rascunho();
+  const p = packDoAprimorar();
+  if (!p || motivoDoAprimorar()) return false;
+  const cores = { ...(r.cores || {}) };
+  if (cores.mantle && !cores.crust) cores.crust = cores.mantle;
+  if (!Object.keys(cores).length) return true;
+  const b = document.querySelector('[data-controle="criar:guardar"], [data-controle="criar:aprimorar"]');
+  if (b) b.dataset.estado = "carregando";
+  const resp = await api("/api/pack-cores", { method: "POST", body: JSON.stringify({ id: p.id, flavor: r.base.flavor, cores }) });
+  if (b) delete b.dataset.estado;
+  if (resp.erro) { torrada(maiuscula(primeiraFrase(resp.erro)), "erro"); return false; }
+  for (const [papel, hexa] of Object.entries(cores)) if (r.cores[papel] === hexa) delete r.cores[papel];
+  guardarRascunho();
+  await recarregarPacks();
+  if (!silencioso) torrada(`${p.nome}: guardado`, "ok");
+  render();
+  return true;
 }
 function vinteSeis() {
   const r = rascunho();
@@ -355,7 +403,7 @@ function passoCores() {
   const r = rascunho();
   const mapa = vinteSeis();
   const comeca = elemento("div", { class: "comeca", role: "group", "aria-label": "Começar de" });
-  for (const p of PACKS) {
+  for (const p of emNovo() ? PACKS : PACKS.filter((x) => x.id === r.pack)) {
     for (const f of p.flavors || []) {
       comeca.append(elemento("button", {
         type: "button", controle: "criar:comeca=" + p.id + ":" + f.id,
@@ -394,7 +442,7 @@ let ABA_ICONES = "apps";
 let ACERVO = null;
 let BUSCA_ACERVO = "";
 function packEmEdicao() {
-  if (ROTA.porta !== "criar") return "";
+  if (!emCriacao()) return "";
   const r = rascunho();
   return r.pack || (r.base && r.base.pack) || "";
 }
@@ -406,7 +454,7 @@ async function carregarAcervo() {
   const chave = chaveDoAcervo();
   const r0 = rascunho();
   ACERVO = { chave, carregando: true, sistema: [], biblioteca: [] };
-  const consulta = `id=${encodeURIComponent(r0.pack || "")}&base=${encodeURIComponent(r0.base.pack)}`
+  const consulta = `id=${encodeURIComponent(emNovo() ? r0.pack || "" : "")}&base=${encodeURIComponent(r0.base.pack)}`
     + `&cores=${encodeURIComponent(JSON.stringify(vinteSeis()))}`;
   const r = await api(`/api/criar?${consulta}`);
   if (!ACERVO || ACERVO.chave !== chave) return;
@@ -426,7 +474,7 @@ async function carregarPreviaDoRascunho(chave) {
   const r = await api(`/api/criar?${consulta}`);
   if (!PREVIA_DO_RASCUNHO || PREVIA_DO_RASCUNHO.chave !== chave) return;
   PREVIA_DO_RASCUNHO = { chave, previa: r.erro ? null : r.previa || null };
-  if (ROTA.porta === "criar") render();
+  if (emCriacao()) render();
 }
 function previaDoRascunho() {
   const chave = chaveDaPrevia();
@@ -517,7 +565,7 @@ function passoIcones() {
 let LEVA = null;
 async function carregarLeva(id) {
   LEVA = { id, carregando: true, fotos: [] };
-  const r = await api(`/api/criar?id=${encodeURIComponent(id)}`);
+  const r = await api(`/api/criar?id=${encodeURIComponent(id)}${emNovo() ? "" : "&aprimorar=1"}`);
   LEVA = r.erro ? { id, fotos: [] } : { ...r, id };
   render();
 }
@@ -530,17 +578,50 @@ function packDoRascunho() {
 }
 async function levarParaOTema(tipo, nome, levar, extra = {}) {
   const id = rascunho().pack;
-  const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo, nome, levar, ...extra }) });
+  const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo, nome, levar, aprimorar: !emNovo(), ...extra }) });
   if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
   await carregarLeva(id);
 }
+function botaoFotoDoTema(pack) {
+  const campo = elemento("input", { type: "file", accept: ACERVO_ACEITA.parede, hidden: true, multiple: true });
+  const sem = pack ? "" : "Guarde o tema em Cores";
+  const b = botao("Trazer imagens", { class: "bt pequeno", icone: "subir", controle: "acervo:parede",
+    disabled: !!sem, "aria-disabled": sem ? "true" : null, dica: sem || null, onclick: () => campo.click() });
+  campo.addEventListener("change", async () => {
+    const arquivos = [...(campo.files || [])];
+    campo.value = "";
+    b.dataset.estado = "carregando";
+    try {
+      for (const arq of arquivos) {
+        await levarParaOTema("foto", arq.name, true, { arquivo: arq.name, conteudo: await lerComoBase64(arq) });
+      }
+    } finally {
+      delete b.dataset.estado;
+    }
+  });
+  return elemento("span", { style: "display:contents" }, [b, campo]);
+}
+function galeriaDoTemaNovo(pack) {
+  const pronto = pack && LEVA && LEVA.id === pack.id && !LEVA.carregando;
+  const grade = elemento("div", { class: "galeria", "aria-busy": !pack || pronto ? null : "true" });
+  for (const f of (pronto && LEVA.fotos) || []) {
+    grade.append(elemento("figure", { "data-papel": f.nome }, [
+      elemento("img", { src: f.url, alt: maiuscula(f.nome), loading: "lazy" }),
+      elemento("div", { class: "fila" }, [botao("", { class: "bt pequeno so-icone", icone: "lixo", "aria-label": "Apagar",
+        dica: "Apagar", controle: "papel:tema-apagar", onclick: async () => {
+          if (await perguntar({ titulo: `Apagar ${f.nome}?`, ok: "Apagar", perigo: true })) levarParaOTema("foto", f.nome, false);
+        } })]),
+    ]));
+  }
+  return grade;
+}
 function passoPapel() {
-  const pack = packDoRascunho();
-  const pronto = pack && LEVA && !LEVA.carregando;
-  const leva = { sem: pack ? (pronto ? "" : "Carregando") : "Guarde o tema em Cores",
-    no: (nome) => !!pronto && (LEVA.fotos || []).includes(nome),
-    levar: (nome, sim) => levarParaOTema("foto", nome, sim) };
-  return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria(leva)])],
+  if (emNovo()) {
+    const pack = packDoRascunho();
+    return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [galeriaDoTemaNovo(pack)])],
+      { direita: [botaoFotoDoTema(pack)] })];
+  }
+  return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria()])],
     { direita: [botaoAcervo("parede", "Trazer imagens")] })];
 }
 let SONS = null;
@@ -589,7 +670,7 @@ function envelopeDoSino() {
   svg.innerHTML = `<path class="eixo" d="M4 60H296"/><path data-envelope d="${pts.join(" ")}"/>`;
   return svg;
 }
-function linhaDeSom(s, pack, podeTrocar) {
+function linhaDeSom(s, pack, semTrocar) {
   const semPonte = s.ponte && !ESQUEMA.ponte;
   const tocar = elemento("button", { type: "button", class: "p", "aria-label": "Ouvir " + s.nome.toLowerCase(),
     dica: s.origem === "pack" ? "Ouvir" : "O pack não traz este som", controle: "som:ouvir",
@@ -603,8 +684,8 @@ function linhaDeSom(s, pack, podeTrocar) {
     elemento("span", { class: "som-nome" }, [elemento("b", { texto: s.nome }), elemento("small", { texto: s.quando })]),
     elemento("span", {}, [origem, semPonte ? elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem ponte" }) : null]),
     botao("Trocar", { class: "bt leve pequeno", controle: "som:trocar", icone: "trocar",
-      dica: podeTrocar ? "Um .oga no lugar deste" : "Guarde o tema em Cores",
-      disabled: !podeTrocar, "aria-disabled": podeTrocar ? null : "true", onclick: () => campo.click() }), campo,
+      dica: semTrocar || "Um .oga no lugar deste",
+      disabled: !!semTrocar, "aria-disabled": semTrocar ? "true" : null, onclick: () => campo.click() }), campo,
   ]);
 }
 function sonsDoSistema() {
@@ -613,7 +694,7 @@ function sonsDoSistema() {
   if (!SONS || SONS.id !== id) carregarSons(id);
   const pronto = SONS && SONS.id === id && !SONS.carregando;
   const leitura = packNoAr() && !pack ? packNoAr() : pack;
-  const podeTrocar = !!pack && !!LEVA && !LEVA.carregando;
+  const semTrocar = !pack || !LEVA || LEVA.carregando ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
   if (!pronto) return [bloco("Toca no COSMIC", [elemento("div", { class: "esqueleto fio" })], { class: "fora-erro" })];
   if (SONS.erro) return [bloco("Toca no COSMIC", [elemento("div", { class: "corpo", texto: "Os sons não abriram" })])];
   const grupos = [["cosmic", "Toca no COSMIC"], ["apps", "Toca nos apps"]];
@@ -629,7 +710,7 @@ function sonsDoSistema() {
   }
   for (const [g, titulo] of grupos) {
     const ul = elemento("ul", { class: "sons com-origem" });
-    for (const s of SONS.eventos.filter((x) => x.grupo === g)) ul.append(linhaDeSom(s, leitura, podeTrocar));
+    for (const s of SONS.eventos.filter((x) => x.grupo === g)) ul.append(linhaDeSom(s, leitura, semTrocar));
     saida.push(bloco(titulo, [ul]));
   }
   return saida;
@@ -678,6 +759,16 @@ function passoMandar() {
   const m = vinteSeis();
   const pouco = contraste(m.text, m.base) < 4.5;
   const dica = pouco ? "Pouco contraste entre texto e fundo" : null;
+  if (!emNovo()) {
+    const motivo = pouco ? dica : motivoDoAprimorar();
+    const aprimorar = botao("Aprimorar", { class: "bt principal", icone: "tema", controle: "criar:aprimorar",
+      disabled: !!motivo, "aria-disabled": motivo ? "true" : null, dica: motivo || null,
+      onclick: async () => {
+        const p = packDoAprimorar();
+        if (p && await gravarCoresNoTema(true)) rodar(ACAO.get("pack_usar"), p.id, { semPerguntar: true });
+      } });
+    return [bloco(r.nome, [resumo, elemento("div", { class: "corpo fila" }, [aprimorar])])];
+  }
   const saidas = elemento("div", { class: "corpo fila" }, [
     botao("Baixar o tema", { class: "bt principal", icone: "baixar", controle: "criar:baixar",
       disabled: pouco, "aria-disabled": pouco ? "true" : null, dica: dica || "Um .meowpack para outra máquina",
@@ -689,31 +780,43 @@ function passoMandar() {
   return [bloco(r.nome, [resumo, saidas])];
 }
 
+function nomeDoPasso(p) {
+  return p.id === "mandar" && !emNovo() ? "Aprimorar" : p.nome;
+}
 function paginaCriar(sub) {
   const r = rascunho();
   const i = PASSOS.findIndex((p) => p.id === sub);
-  const nome = elemento("input", { class: "nome-tema", value: r.nome, "aria-label": "Nome do tema",
-    controle: "criar:nome", maxlength: "48" });
-  nome.addEventListener("change", () => { r.nome = maiuscula(nome.value.trim()) || "Meu tema"; guardarRascunho(); render(); });
+  const rota = "#" + rotaDoModo() + "/";
+  let titulo;
+  if (emNovo()) {
+    const nome = elemento("input", { class: "campo", value: r.nome, "aria-label": "Nome do tema",
+      controle: "criar:nome", maxlength: "48" });
+    nome.addEventListener("change", () => { r.nome = maiuscula(nome.value.trim()) || "Meu tema"; guardarRascunho(); render(); });
+    titulo = cabeca("Tema novo", [nome]);
+  } else {
+    titulo = cabeca("Aprimorar " + (r.nome || ""));
+  }
   const passos = elemento("ol", { class: "passos" }, PASSOS.map((p, j) => elemento("li", {}, [
-    elemento("a", { href: "#criar/" + p.id, controle: "passo:" + p.id, "aria-current": j === i ? "step" : null },
-      [elemento("b", {}, [j < i ? icone("certo") : String(j + 1)]), p.nome]),
+    elemento("a", { href: rota + p.id, controle: "passo:" + p.id, "aria-current": j === i ? "step" : null },
+      [elemento("b", {}, [j < i ? icone("certo") : String(j + 1)]), nomeDoPasso(p)]),
   ])));
   const corpo = sub === "icones" ? passoIcones() : sub === "papel" ? passoPapel()
     : sub === "sons" ? passoSons() : sub === "mandar" ? passoMandar() : passoCores();
   const seguir = elemento("div", { class: "seguir" }, [
-    i > 0 ? elemento("a", { class: "bt", href: "#criar/" + PASSOS[i - 1].id, controle: "criar:voltar" },
+    i > 0 ? elemento("a", { class: "bt", href: rota + PASSOS[i - 1].id, controle: "criar:voltar" },
       [icone("voltar"), elemento("span", { texto: "Voltar" })]) : elemento("span"),
     elemento("div", { class: "fila" }, [
       sub === "cores" ? (() => {
         const m = vinteSeis();
         const pouco = contraste(m.text, m.base) < 4.5;
-        return botao("Guardar", { class: "bt principal", controle: "criar:guardar", disabled: pouco,
-          "aria-disabled": pouco ? "true" : null,
-          dica: pouco ? "Pouco contraste entre texto e fundo" : "Grava o tema entre os seus", onclick: guardarTema });
+        const motivo = pouco ? "Pouco contraste entre texto e fundo" : emNovo() ? "" : motivoDoAprimorar();
+        return botao("Guardar", { class: "bt principal", controle: "criar:guardar", disabled: !!motivo,
+          "aria-disabled": motivo ? "true" : null,
+          dica: motivo || (emNovo() ? "Grava o tema entre os seus" : "Grava no " + r.nome),
+          onclick: () => (emNovo() ? guardarTema() : gravarCoresNoTema()) });
       })() : null,
-      i < PASSOS.length - 1 ? elemento("a", { class: "bt", href: "#criar/" + PASSOS[i + 1].id, controle: "criar:proximo" },
-        [elemento("span", { texto: PASSOS[i + 1].nome }), icone("seta")]) : null,
+      i < PASSOS.length - 1 ? elemento("a", { class: "bt", href: rota + PASSOS[i + 1].id, controle: "criar:proximo" },
+        [elemento("span", { texto: nomeDoPasso(PASSOS[i + 1]) }), icone("seta")]) : null,
     ]),
   ]);
   const ordem = ESQUEMA.paleta.ordem || [];
@@ -725,7 +828,7 @@ function paginaCriar(sub) {
     rotulo: "Prévia do tema",
   });
   return [
-    elemento("div", { class: "cabeca" }, [nome]),
+    titulo,
     passos,
     elemento("div", { class: "oficina sem-trilho" }, [
       elemento("div", { class: "palco" }, [previa]),

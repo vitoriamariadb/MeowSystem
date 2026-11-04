@@ -33,7 +33,6 @@ const IC = {
   computador: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
   girar: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
   lixo: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
-  estrela: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/>',
   ponte: '<path d="M2 18h20M4 18V9M20 18V9M4 9c4 4 12 4 16 0M9 13v5M15 13v5"/>',
   seta: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   voltar: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
@@ -823,7 +822,17 @@ function controlePorArea(item, aplica) {
 
 const SOLTO_DE = { FORMA_MARGEM_PAINEL: ["FORMA_PAINEL_SOLTO", "o painel"], FORMA_MARGEM_DOCK: ["FORMA_DOCK_SOLTO", "a dock"] };
 
+function alturaForaDaProporcao(item) {
+  if (item.chave !== "FASTFETCH_LOGO_LINHAS") return null;
+  const pedida = Number(valorEmVigor(item));
+  const ideal = Number(vale("FASTFETCH_LOGO_COLUNAS")) / (Number(vale("FASTFETCH_LOGO_CELULA")) || 2.556);
+  if (!(pedida >= 1) || !(ideal > 0) || Math.round(Math.abs(pedida - ideal) / ideal * 100) <= 12) return null;
+  return `Longe da proporção do Tamanho: o desenho sai com ${Math.max(1, Math.round(ideal))} linhas.`;
+}
+
 function dominada(item) {
+  const fora = alturaForaDaProporcao(item);
+  if (fora) return fora;
   const solto = SOLTO_DE[item.chave];
   if (solto && CHAVE.get(solto[0]) && String(vale(solto[0])) === "nao") {
     return `A distância só vale com ${solto[1]} solto da borda.`;
@@ -1313,6 +1322,7 @@ function irPara(l) {
 
 function rotaDoHash() {
   const [porta, sub] = decodeURIComponent(location.hash.replace(/^#/, "")).split("/");
+  if (porta === "novo") return { porta, sub: PASSOS.some((p) => p.id === sub) ? sub : PASSOS[0].id };
   if (!PORTAS.some((p) => p.id === porta)) return { porta: "tema", sub: "" };
   if (porta === "ajustes") return { porta, sub: AJUSTES.some((p) => p.id === sub) ? sub : AJUSTES[0].id };
   if (porta === "criar") return { porta, sub: PASSOS.some((p) => p.id === sub) ? sub : PASSOS[0].id };
@@ -1342,7 +1352,7 @@ function render() {
   desenharPortas();
   marcaDoPrograma();
   $("#abas").hidden = ROTA.porta !== "ajustes" && ROTA.porta !== "extensoes";
-  const pagina = ROTA.porta === "criar" ? paginaCriar(ROTA.sub)
+  const pagina = emCriacao() ? paginaCriar(ROTA.sub)
     : ROTA.porta === "ajustes" ? paginaAjustes(ROTA.sub)
     : ROTA.porta === "cuidar" ? paginaCuidar()
     : ROTA.porta === "extensoes" ? paginaExtensoes(ROTA.sub)
@@ -1350,7 +1360,7 @@ function render() {
   $("#conteudo").replaceChildren(...[].concat(pagina).filter(Boolean));
   $("#conteudo").removeAttribute("aria-busy");
   reacenderChegada();
-  document.title = "MeowSystem · " + (PORTAS.find((p) => p.id === ROTA.porta) || PORTAS[0]).nome;
+  document.title = "MeowSystem · " + (emNovo() ? "Tema novo" : (PORTAS.find((p) => p.id === ROTA.porta) || PORTAS[0]).nome);
   if (foco) {
     const alvo = [...document.querySelectorAll("#conteudo [data-controle]")].find((el) => el.dataset.controle === foco);
     if (alvo) alvo.focus({ preventScroll: true });

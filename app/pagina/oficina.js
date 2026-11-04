@@ -151,7 +151,7 @@ function escolhaDeIcone(app, recarregar) {
       botoes.push(botao("Levar para o tema", { class: "bt pequeno", controle: "icone:levar",
         disabled: !!GLIFOS.aviso, dica: GLIFOS.aviso ? maiuscula(GLIFOS.aviso) : "Vale em toda máquina com este tema",
         onclick: async () => {
-          const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify({ app: app.id, pack: minha.pack, desenho: minha.desenho }) });
+          const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify({ app: app.id, pack: minha.pack, desenho: minha.desenho, aprimorar: ROTA.porta === "criar" }) });
           if (r.erro) { torrada(r.erro, "erro"); return; }
           await depoisDoIcone(app, "icones_pack", recarregar);
         } }));
@@ -161,7 +161,7 @@ function escolhaDeIcone(app, recarregar) {
   if (noPack) {
     botoes.push(botao("Tirar do tema", { class: "bt pequeno", controle: "icone:tirar-do-pack",
       onclick: async () => {
-        const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify({ app: app.id, pack: noPack.pack, remover: true }) });
+        const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify({ app: app.id, pack: noPack.pack, remover: true, aprimorar: ROTA.porta === "criar" }) });
         if (r.erro) { torrada(r.erro, "erro"); return; }
         await depoisDoIcone(app, "icones_pack", recarregar);
       } }));
@@ -266,7 +266,7 @@ async function espiarEditor(pedido) {
 }
 
 function oficinaDeDesenho(app, relerLista) {
-  const packBase = ROTA.porta === "criar" ? (rascunho().base || {}).pack || "" : "";
+  const packBase = emCriacao() ? (rascunho().base || {}).pack || "" : "";
   if (OFICINA.app !== app.id || OFICINA.pack_base !== packBase) {
     pararVigiaEditor();
     OFICINA = oficinaZerada(app.id, packBase);
@@ -521,7 +521,7 @@ function oficinaDeDesenho(app, relerLista) {
     if (!destino) { OFICINA.erroPe = "Não guardou o tema"; pintarPe(); return; }
     const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({
       app: OFICINA.app, acao: "salvar", svg: OFICINA.svg, cor: OFICINA.cor, fonte: OFICINA.fonte,
-      parametros: OFICINA.parametros, pack: destino, rotulo: app.nome }) });
+      parametros: OFICINA.parametros, pack: destino, rotulo: app.nome, aprimorar: ROTA.porta === "criar" }) });
     if (r.erro) { OFICINA.erro = ""; OFICINA.erroPe = "Não gravou no pack"; torrada(r.erro, "erro"); pintarPe(); return; }
     OFICINA.noPack = { tem: true, svg: OFICINA.svg, pack: destino };
     OFICINA.escolhida = "guardado";
@@ -532,7 +532,7 @@ function oficinaDeDesenho(app, relerLista) {
   });
   desfazerPack.addEventListener("click", async () => {
     const destino = rascunho().pack;
-    const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({ app: OFICINA.app, acao: "desfazer-no-pack", pack: destino }) });
+    const r = await api("/api/app-desenho", { method: "POST", body: JSON.stringify({ app: OFICINA.app, acao: "desfazer-no-pack", pack: destino, aprimorar: ROTA.porta === "criar" }) });
     if (r.erro) { torrada(r.erro, "erro"); return; }
     OFICINA.noPack = { tem: false, svg: "", pack: destino };
     OFICINA.escolhida = null;
@@ -627,7 +627,6 @@ function oficinaAutoral() {
 
 const GRUPOS_PAREDE = [
   { id: "ativos", rotulo: "No carrossel" }, { id: "noite", rotulo: "Noite" }, { id: "dia", rotulo: "Dia" },
-  { id: "favoritos", rotulo: "Favoritas" }, { id: "banidos", rotulo: "Fora" },
 ];
 let ABA_GALERIA = "ativos";
 let LIMITE_GALERIA = 24;
@@ -638,7 +637,7 @@ async function rodarNaGaleria(id, argumento) {
   if (r.erro) { torrada(r.erro, "erro"); return; }
   abrirResultado(r);
 }
-function montarGaleria(leva = null) {
+function montarGaleria() {
   const abas = elemento("div", { class: "seg", role: "group", "aria-label": "Grupo" });
   for (const g of GRUPOS_PAREDE) {
     abas.append(elemento("button", { type: "button", "aria-pressed": String(g.id === ABA_GALERIA), controle: "galeria:" + g.id,
@@ -651,25 +650,15 @@ function montarGaleria(leva = null) {
       const botoes = [];
       const mini = (icn, rot, id, arg, extra = {}) => botao("", { class: "bt pequeno so-icone", icone: icn, "aria-label": rot,
         dica: rot, controle: "papel:" + id, onclick: () => rodarNaGaleria(id, arg), ...extra });
-      if (ABA_GALERIA === "banidos") {
-        botoes.push(mini("desfazer", "Devolver", "wallpaper_desbanir", i.rotulo));
-      } else if (i.banir) {
+      if (i.banir) {
         const alvo = i.banir || i.origem;
         botoes.push(mini("certo", "Usar agora", "wallpaper_usar", alvo));
-        botoes.push(i.favorito ? mini("estrela", "Tirar das favoritas", "wallpaper_desfavoritar", i.rotulo, { class: "bt pequeno so-icone estrela", "aria-pressed": "true" })
-          : mini("estrela", "Favorita", "wallpaper_favoritar", alvo, { class: "bt pequeno so-icone estrela", "aria-pressed": "false" }));
         botoes.push(mini("sol", "De dia", "wallpaper_dia", alvo));
         botoes.push(mini("lua", "De noite", "wallpaper_noite", alvo));
         if (i.lado) botoes.push(mini("girar", "Medir a luz", "wallpaper_lado_auto", alvo));
-        botoes.push(mini("lixo", "Tirar do carrossel", "wallpaper_banir", alvo));
-        if (leva) {
-          const no = !leva.sem && leva.no(i.rotulo);
-          botoes.push(botao("", { class: "bt pequeno so-icone levar", icone: "criar", controle: "levar:foto",
-            "aria-label": "Levar para o tema", "aria-pressed": String(no), disabled: !!leva.sem,
-            "aria-disabled": leva.sem ? "true" : null,
-            dica: leva.sem || (no ? "Tirar do tema" : "Levar para o tema"),
-            onclick: () => leva.levar(i.rotulo, !no) }));
-        }
+        botoes.push(mini("lixo", "Apagar", "wallpaper_banir", alvo, { onclick: async () => {
+          if (await perguntar({ titulo: `Apagar ${i.rotulo}?`, ok: "Apagar", perigo: true })) rodarNaGaleria("wallpaper_banir", alvo);
+        } }));
       }
       grade.append(elemento("figure", { "data-papel": i.rotulo }, [
         i.pronta ? elemento("img", { src: i.url, alt: maiuscula(i.rotulo), loading: "lazy" }) : elemento("div", { class: "lugar" }),

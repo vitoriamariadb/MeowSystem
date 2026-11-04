@@ -646,6 +646,7 @@ def packs_com_vitrine():
             "autor": p.get("autor") or "",
             "capa": (base_url + "&arte=capa&v=" + _versao_da_logo(vit["capa"])) if vit["capa"] else "",
             "pessoal": bool(_dir_do_pack_pessoal(ident)),
+            "aprimorar": mod.motivo_para_nao_aprimorar(ident),
             "mascote": (base_url + "&arte=mascote") if _mascote_do_pack(mod, ident) else "",
             "descricao_curta": vit["descricao_curta"],
             "descricao": texto,
@@ -1566,21 +1567,27 @@ def _som_carimbo_gravar(pares, pasta=None):
 
 
 _RASCUNHO_ARQUIVO = os.path.join(ESTADO, "rascunho-do-tema.json")
+_RASCUNHO_DO_APRIMORAR = os.path.join(ESTADO, "rascunho-do-aprimorar.json")
 
 
-def _rascunho_ler():
+def _arquivo_do_rascunho(modo):
+    return _RASCUNHO_DO_APRIMORAR if modo == "aprimorar" else _RASCUNHO_ARQUIVO
+
+
+def _rascunho_ler(modo=""):
     try:
-        with open(_RASCUNHO_ARQUIVO, encoding="utf-8") as fh:
+        with open(_arquivo_do_rascunho(modo), encoding="utf-8") as fh:
             dados = json.load(fh)
     except (OSError, ValueError):
         return None
     return dados if isinstance(dados, dict) and isinstance(dados.get("base"), dict) else None
 
 
-def _rascunho_gravar(dados):
+def _rascunho_gravar(dados, modo=""):
+    arquivo = _arquivo_do_rascunho(modo)
     if dados is None:
         try:
-            os.remove(_RASCUNHO_ARQUIVO)
+            os.remove(arquivo)
         except FileNotFoundError:
             pass
         except OSError:
@@ -1593,10 +1600,10 @@ def _rascunho_gravar(dados):
         return False
     try:
         os.makedirs(ESTADO, exist_ok=True)
-        tmp = _RASCUNHO_ARQUIVO + ".parcial"
+        tmp = arquivo + ".parcial"
         with open(tmp, "w", encoding="utf-8") as fh:
             fh.write(texto)
-        os.replace(tmp, _RASCUNHO_ARQUIVO)
+        os.replace(tmp, arquivo)
     except OSError:
         return False
     return True
@@ -1637,27 +1644,6 @@ def _paredes_ativas():
     except OSError:
         return []
     return [os.path.join(base, n) for n in nomes
-            if os.path.splitext(n)[1].lower() in EXT_RASTER
-            and os.path.isfile(os.path.join(base, n))]
-
-
-def _paredes_favoritas():
-    base = os.path.join(_wallpaper_base(), "favoritos")
-    try:
-        nomes = sorted(os.listdir(base))
-    except OSError:
-        return []
-    return [n for n in nomes if os.path.splitext(n)[1].lower() in EXT_RASTER
-            and os.path.isfile(os.path.join(base, n))]
-
-
-def _paredes_banidas():
-    base = os.path.join(_wallpaper_base(), "banidos")
-    try:
-        nomes = sorted(os.listdir(base))
-    except OSError:
-        return []
-    return [n for n in nomes
             if os.path.splitext(n)[1].lower() in EXT_RASTER
             and os.path.isfile(os.path.join(base, n))]
 
@@ -3349,8 +3335,6 @@ PROVEDORES = {
     "cursores": _temas_de_cursor,
     "areas": _areas_alfinetadas,
     "paredes_ativas": _paredes_ativas,
-    "paredes_banidas": _paredes_banidas,
-    "paredes_favoritas": lambda: _paredes_favoritas(),
     "packs": lambda: sorted(_packs_no_disco()),
     "packs_removiveis": _packs_removiveis,
     "extensoes_de_terceiro": lambda: _extensoes_de_terceiro(),
@@ -3839,14 +3823,14 @@ ACOES = {
                  "ajustes.",
     },
     "wallpaper_banir": {
-        "rotulo": "Tirar do carrossel",
+        "rotulo": "Apagar",
         "grupo": "Papel de parede",
         "natureza": "tirar",
         "argv": _meow("wallpaper", "banir", "@ARG@"), "arg": "paredes_ativas",
         "escreve": True, "sudo": False, "confirma": False,
         "destrutivo": True, "oculta": True,
-        "ajuda": "Ela sai da pasta que gira e vai para a de banidas. Nada é "
-                 "apagado. O “Devolver” da lista de recusadas desfaz.",
+        "ajuda": "Apaga a imagem do disco e anota o nome entre as recusadas, para "
+                 "nenhuma semeadura a trazer de volta.",
     },
     "wallpaper_usar": {
         "rotulo": "Usar agora",
@@ -3857,22 +3841,6 @@ ACOES = {
         "ajuda": "Fixa esta imagem como o papel de parede de agora. Quanto tempo "
                  "dura é «Quanto tempo dura a imagem escolhida» — com 0, até "
                  "«Voltar a girar».",
-    },
-    "wallpaper_favoritar": {
-        "rotulo": "Guardar nas favoritas",
-        "grupo": "Papel de parede",
-        "natureza": "gravar",
-        "argv": _meow("wallpaper", "favoritar", "@ARG@"), "arg": "paredes_ativas",
-        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Guarda uma cópia nas favoritas; a imagem segue girando.",
-    },
-    "wallpaper_desfavoritar": {
-        "rotulo": "Tirar das favoritas",
-        "grupo": "Papel de parede",
-        "natureza": "tirar",
-        "argv": _meow("wallpaper", "desfavoritar", "@ARG@"), "arg": "paredes_favoritas",
-        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Tira a cópia das favoritas; a imagem do carrossel fica.",
     },
     "wallpaper_dia": {
         "rotulo": "Imagem de dia",
@@ -3944,15 +3912,6 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": True, "destrutivo": True,
         "ajuda": "Apaga a área: o nome some e o COSMIC a destrói quando ela esvaziar.",
         "ambiente": {"MEOW_SIM": "1"},
-    },
-    "wallpaper_desbanir": {
-        "rotulo": "Devolver ao carrossel",
-        "grupo": "Papel de parede",
-        "natureza": "devolver",
-        "argv": _meow("wallpaper", "desbanir", "@ARG@"), "arg": "paredes_banidas",
-        "escreve": True, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "Volta para a pasta que gira e sai da lista de banidas — as "
-                 "duas metades.",
     },
     "painel_estado": {
         "rotulo": "Painel agora",
@@ -4297,8 +4256,7 @@ def _wallpaper_base():
 
 
 GRUPOS_PAREDE = (("ativos", "ativos"), ("noite", "ativos-noite"),
-                 ("dia", "ativos-dia"), ("favoritos", "favoritos"),
-                 ("banidos", "banidos"))
+                 ("dia", "ativos-dia"))
 
 
 _LADO_CACHE = {"mapa": {}, "marca": None}
@@ -4362,7 +4320,6 @@ def _prev_paredes():
             fora.append({"id": grupo + "/" + nome, "rotulo": nome,
                          "origem": arq, "grupo": grupo,
                          "lado": escolhas.get(nome, ""),
-                         "favorito": os.path.isfile(os.path.join(base, "favoritos", nome)),
                          "banir": canonico if os.path.isfile(canonico) else ""})
     return fora
 
@@ -4542,8 +4499,6 @@ def previas(tipo, grupo=None):
     if fonte is None:
         return None
     itens = fonte()
-    if tipo == "parede":
-        itens = [i for i in itens if not (i["grupo"] == "banidos" and i["banir"])]
     contagens = {g: 0 for g in PREVIA_GRUPOS.get(tipo, ())}
     for i in itens:
         contagens[i["grupo"]] = contagens.get(i["grupo"], 0) + 1
@@ -8109,13 +8064,14 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._api_jogos(consulta)
 
         if caminho == "/api/criar":
-            return self._api_criar_ler(consulta)
+            return self._no_pack_aprimorado(consulta.get("aprimorar", [""])[0] == "1",
+                                            self._api_criar_ler, consulta)
 
         if caminho == "/api/sons":
             return self._api_sons(consulta)
 
         if caminho == "/api/rascunho":
-            return self._json({"rascunho": _rascunho_ler()})
+            return self._json({"rascunho": _rascunho_ler(consulta.get("modo", [""])[0])})
 
         if caminho == "/api/previas":
             dados = previas(consulta.get("tipo", [""])[0],
@@ -8207,6 +8163,26 @@ class Manipulador(BaseHTTPRequestHandler):
                    for s in catalogo]
         return self._json({"pack": ident, "eventos": eventos})
 
+    def _no_pack_aprimorado(self, aprimorar, fazer, dados):
+        mod = modulo_pack()
+        if not (aprimorar and mod):
+            return fazer(dados)
+        with mod.aprimorando(_pack_no_ar()):
+            return fazer(dados)
+
+    def _api_pack_cores(self, corpo):
+        mod = modulo_pack()
+        if not mod:
+            return self._json({"erro": "scripts/pack.py não carregou"}, 500)
+        ident = str(corpo.get("id", ""))
+        try:
+            mudadas = mod.gravar_cores(ident, str(corpo.get("flavor", "")), corpo.get("cores"))
+        except mod.Recusa as e:
+            return self._json({"erro": texto_na_tela(str(e))}, 400)
+        except (OSError, ValueError) as e:
+            return self._json({"erro": "não consegui gravar a paleta: %s" % e}, 500)
+        return self._json({"ok": True, "id": ident, "mudadas": mudadas})
+
     def _api_criar_ler(self, consulta):
         mod = modulo_pack()
         if not mod:
@@ -8240,18 +8216,17 @@ class Manipulador(BaseHTTPRequestHandler):
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:
-            dir_pack = mod.pack_da_pessoa(ident)
+            dir_pack = mod.pack_para_ler(ident)
         except mod.Recusa as e:
             return self._json({"erro": texto_na_tela(str(e))}, 404)
-        no_pack = set(mod.fotos_do_pack(dir_pack))
-        try:
-            nomes = sorted(os.listdir(os.path.join(_wallpaper_base(), "ativos")))
-        except OSError:
-            nomes = []
+        fotos = []
+        for nome in mod.fotos_do_pack(dir_pack):
+            arq = os.path.normpath(os.path.join(dir_pack, "wallpapers", nome))
+            _ICONES_DECLARADOS.add(arq)
+            fotos.append({"nome": nome, "url": "/previa?tipo=arquivo&id=" + quote(arq, safe="")})
         sons = [{"evento": e, "contexto": c} for c, e, _a in mod.sons_do_pack(dir_pack)
                 if e != "audio-volume-change"]
-        return self._json(dict(icones, id=ident, sons=sons,
-                               fotos=[n for n in nomes if mod.nome_da_foto(ident, n) in no_pack]))
+        return self._json(dict(icones, id=ident, sons=sons, fotos=fotos))
 
     def _api_criar(self, corpo):
         mod = modulo_pack()
@@ -8262,7 +8237,18 @@ class Manipulador(BaseHTTPRequestHandler):
         nome = os.path.basename(str(corpo.get("nome", "")))
         levar = corpo.get("levar") is True
         try:
-            if tipo == "foto":
+            if tipo == "foto" and levar and corpo.get("conteudo"):
+                try:
+                    dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+                except Exception:
+                    return self._json({"erro": "conteúdo não é base64"}, 400)
+                limpo = re.sub(r"[^A-Za-z0-9._+-]", "-", os.path.basename(str(corpo.get("arquivo", "")))).lstrip(".-")[:100]
+                with tempfile.TemporaryDirectory(prefix="meow-foto-") as pasta:
+                    caminho = os.path.join(pasta, limpo or "foto.png")
+                    with open(caminho, "wb") as fh:
+                        fh.write(dados)
+                    feito = mod.levar_foto(ident, caminho)
+            elif tipo == "foto":
                 if levar:
                     pasta = os.path.realpath(os.path.join(_wallpaper_base(), "ativos"))
                     origem = os.path.join(pasta, nome)
@@ -8792,13 +8778,13 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._api_acervo(corpo)
 
         if caminho == "/api/app-icone":
-            return self._api_app_icone(corpo)
+            return self._no_pack_aprimorado(corpo.get("aprimorar") is True, self._api_app_icone, corpo)
 
         if caminho == "/api/app-desenho":
-            return self._api_app_desenho(corpo)
+            return self._no_pack_aprimorado(corpo.get("aprimorar") is True, self._api_app_desenho, corpo)
 
         if caminho == "/api/autorais":
-            return self._api_autorais(corpo)
+            return self._no_pack_aprimorado(corpo.get("aprimorar") is True, self._api_autorais, corpo)
 
         if caminho == "/api/jogo-fora":
             return self._api_jogo_fora(corpo)
@@ -8815,7 +8801,9 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json(_trabalho_json(trabalho, acao, seco=seco))
 
         if caminho == "/api/criar":
-            return self._api_criar(corpo)
+            return self._no_pack_aprimorado(corpo.get("aprimorar") is True, self._api_criar, corpo)
+        if caminho == "/api/pack-cores":
+            return self._no_pack_aprimorado(True, self._api_pack_cores, corpo)
         if caminho == "/api/mesmo-horario":
             try:
                 gravadas, erro = ligar_mesmo_horario(corpo.get("ligar") is True)
@@ -8825,7 +8813,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": erro}, 500)
             return self._json({"ok": True, "ligado": mesmo_horario_ligado(), "gravadas": gravadas})
         if caminho == "/api/rascunho":
-            if not _rascunho_gravar(corpo.get("rascunho")):
+            if not _rascunho_gravar(corpo.get("rascunho"), str(corpo.get("modo", ""))):
                 return self._json({"erro": "rascunho que não serve"}, 400)
             return self._json({"ok": True})
         if caminho == "/api/pack-importar":

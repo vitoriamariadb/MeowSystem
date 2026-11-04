@@ -516,8 +516,8 @@ def molde(nome):
 CONTROLE_DA_CHAVE = {"PACK": "pack:", "FLAVOR": "pack:", "FLATPAK_CORRECOES": "modificacao:ligar:"}
 CONTROLE_DA_ACAO = {"pack_usar": "pack:", "pack_remover": "pack:"}
 ACAO_COM_DADO = {
-    "vscode_instalar_extensao", "wallpaper_usar", "wallpaper_favoritar", "wallpaper_desfavoritar",
-    "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir", "wallpaper_desbanir",
+    "vscode_instalar_extensao", "wallpaper_usar",
+    "wallpaper_dia", "wallpaper_noite", "wallpaper_lado_auto", "wallpaper_banir",
     "extensao_refazer", "modificacao_aplicar", "modificacao_reverter", "modificacao_corrigir",
 }
 EXTRAS = {
@@ -526,9 +526,13 @@ EXTRAS = {
     "criar/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
     "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "desenho:*", "autoral:*", "acervo:icone",
                      "acervo:filtro", "icones:aba=*"],
-    "criar/papel": ["galeria:*", "papel:*", "acervo:parede", "levar:foto"],
+    "criar/papel": ["galeria:*", "papel:*", "acervo:parede"],
     "criar/sons": ["criar:sino", "som:ouvir", "som:trocar", "som:ponte"],
-    "criar/mandar": ["criar:baixar", "criar:vestir"],
+    "criar/mandar": ["criar:aprimorar"],
+    "novo/*": ["criar:nome", "passo:*", "criar:voltar", "criar:proximo"],
+    "novo/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
+    "novo/papel": ["papel:*", "acervo:parede"],
+    "novo/mandar": ["criar:baixar", "criar:vestir"],
     "ajustes/*": ["ajuste:*"],
     "ajustes/dia-e-noite": ["noite:mesmo-horario"],
     "ajustes/programas": ["jogo:*", "icone:*", "oficina:*", "desenho:*"],
@@ -550,6 +554,7 @@ OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cu
                 "pergunta:ensaio", "criar:voltar", "criar:proximo"]
 
 ROTAS = ["tema", "criar/cores", "criar/icones", "criar/papel", "criar/sons", "criar/mandar",
+         "novo/cores", "novo/papel", "novo/mandar",
          "ajustes/painel", "ajustes/janelas", "ajustes/papel", "ajustes/mascote", "ajustes/dia-e-noite",
          "ajustes/programas", "modificacoes", "modificacoes/terminal", "cuidar"]
 ACERVO = {"gato": "Adicionar logo", "icone": "Adicionar ícone", "parede": "Adicionar imagem",
@@ -714,7 +719,12 @@ class Percurso:
 
     def ir(self, rota):
         porta, _, sub = rota.partition("/")
-        self.clicar("porta:" + porta)
+        if porta == "novo":
+            self.clicar("porta:tema")
+            self.assentar()
+            self.clicar("tema:criar")
+        else:
+            self.clicar("porta:" + porta)
         self.assentar()
         if porta == "modificacoes":
             self.pag.wait_for_function("() => MOD.dados && !MOD.pedindo", timeout=300000)
@@ -937,6 +947,20 @@ class Percurso:
         self.checa(valor_de("RELOGIO_SEGUNDOS") == ("sim" if atual != "sim" else "nao"), "e o meow.conf muda sem Aplicar")
 
     def h_guardar(self, nome):
+        if self.rota.startswith("criar/"):
+            if self.achar(nome) and self.achar(nome).get_attribute("aria-disabled") == "true":
+                self.checa(self.achar(nome).get_attribute("data-dica"), "«Guardar» apagado diz o porquê")
+            self.clicar(self.js("() => (document.querySelector('[data-controle$=\":mocha\"][data-controle^=\"criar:comeca=\"]')"
+                                " || document.querySelector('[data-controle^=\"criar:comeca=\"]')).dataset.controle"))
+            self.assentar()
+            packs = sorted(os.listdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs"))) \
+                if os.path.isdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs")) else []
+            self.clicar(nome)
+            self.assentar(quieto=400, teto=60000)
+            depois = sorted(os.listdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs"))) \
+                if os.path.isdir(os.path.join(CASA, ".local", "share", "meowsystem", "packs")) else []
+            self.checa(packs == depois, f"o «Guardar» do Personalizar não cria tema novo ({packs} -> {depois})")
+            return
         if self.achar(nome) and self.achar(nome).get_attribute("aria-disabled") == "true":
             self.checa(self.achar(nome).get_attribute("data-dica"), "«Guardar» apagado diz o porquê")
             primeiro = self.js("() => document.querySelector('[data-controle^=\"criar:comeca=\"]').dataset.controle")
@@ -1071,6 +1095,8 @@ class Percurso:
         self.escolher_arquivo(nome, caminho)
         self.assentar(quieto=400, teto=30000)
         alvo = os.path.join(CASA, ".local", "share", "meowsystem", "packs", "tema-de-brinquedo", "sons", "stereo")
+        if self.rota.startswith("criar/"):
+            alvo = os.path.join(RAIZ_B, "packs", self.js("() => rascunho().pack"), "sons", "stereo")
         trocado = any(os.path.isfile(os.path.join(alvo, c, evento + ".oga"))
                       and open(os.path.join(alvo, c, evento + ".oga"), "rb").read() == open(caminho, "rb").read()
                       for c in ("action", "alert", "notification"))
@@ -1376,9 +1402,9 @@ class Percurso:
                        f"o botão do cartão do Tema diz «Aplicar tema» ({rotulos})")
         else:
             aba = self.js("() => (document.querySelector('[data-controle=\"passo:mandar\"]') || {}).textContent")
-            self.checa((aba or "").endswith("Disponibilizar"), f"a última aba do Personalizar diz «Disponibilizar» ({aba!r})")
+            self.checa((aba or "").endswith("Disponibilizar"), f"a última aba do Tema novo diz «Disponibilizar» ({aba!r})")
             botao = self.js("() => (document.querySelector('[data-controle=\"criar:vestir\"]') || {}).textContent")
-            self.checa((botao or "").strip() == "Aplicar tema", f"o botão do Personalizar diz «Aplicar tema» ({botao!r})")
+            self.checa((botao or "").strip() == "Aplicar tema", f"o botão do Tema novo diz «Aplicar tema» ({botao!r})")
 
     def h_pendencia_do_spotify(self):
         self.ir("cuidar")
@@ -1472,7 +1498,7 @@ class Percurso:
             elif l["tipo"] == "gesto" and l["id"].startswith("acervo:"):
                 saida.append((l["id"], "gesto " + l["id"]))
         if rota == "criar/mandar":
-            saida = [(p if p != "pack:" else "criar:vestir", o) for p, o in saida]
+            saida = [(p if p != "pack:" else "criar:aprimorar", o) for p, o in saida]
         return saida
 
     def permitido(self, rota, nome, esperado):
@@ -1543,7 +1569,7 @@ class Percurso:
                 print(f"   · {nome}: {round(time.time() - t0)}s", flush=True)
         self.limpar()
         self.assentar()
-        if rota in ("tema", "criar/mandar"):
+        if rota in ("tema", "novo/mandar"):
             try:
                 self.h_rotulos_de_aplicar(rota)
             except Exception as e:  # noqa: BLE001

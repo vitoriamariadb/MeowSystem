@@ -337,6 +337,8 @@ select.campo { padding-right: var(--e-8); }
 .escolha svg.ponteiro { width: 48px; height: 48px; margin: 12px; }
 
 .grade-tema { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e-6); }
+.rodape-tema { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--e-6); margin-top: var(--e-6); }
+.rodape-tema > [data-linha="ACCENT"] { grid-column: span 2; }
 .pack { display: grid; grid-template-rows: auto 1fr; border-radius: var(--raio-xl); background: var(--cartao); border: 1px solid var(--linha); overflow: hidden; min-width: 0; }
 .pack:hover { border-color: var(--accent-linha); }
 .pack.no-ar { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
@@ -438,8 +440,6 @@ select.campo { padding-right: var(--e-8); }
 .galeria figure img, .galeria figure .lugar { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: var(--raio-sm); background: var(--cartao-2); }
 .galeria figure .fila { gap: 4px; flex-wrap: wrap; }
 .galeria .bt.so-icone.pequeno { flex: none; }
-.galeria .estrela[aria-pressed="true"] { color: var(--yellow); }
-.galeria .levar[aria-pressed="true"] { background: var(--accent-suave); border-color: var(--accent); color: var(--accent); }
 
 .grade-jogos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--e-3); padding: var(--e-5) var(--e-6); }
 .jogo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-2); padding: 6px; border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); min-width: 0; }
@@ -526,8 +526,8 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
   .portas a { padding: 0 var(--e-3); font-size: var(--t-sm); }
   .aplicar .conta { display: none; }
   .pagina { padding: var(--e-6) var(--e-4) var(--e-10); }
-  .oficina, .grade-tema { grid-template-columns: minmax(0, 1fr); }
-  .grade-tema > * { grid-column: auto !important; }
+  .oficina, .grade-tema, .rodape-tema { grid-template-columns: minmax(0, 1fr); }
+  .grade-tema > *, .rodape-tema > * { grid-column: auto !important; }
   .linha, .linha.dupla { grid-template-columns: minmax(0, 1fr); gap: var(--e-2); padding: var(--e-3) var(--e-4); }
   .linha .ctl, .linha.dupla .ctl { justify-content: flex-start; flex-wrap: wrap; }
   .bloco > header.dupla { grid-template-columns: minmax(0, 1fr); }

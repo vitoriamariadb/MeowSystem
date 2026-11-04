@@ -1082,10 +1082,10 @@ MIDIA_CONTROLES="sim"
 # --- Papel de parede --------------------------------------------------------
 
 # @ Pasta do carrossel
-# > Dentro dela nascem as quatro que importam: ativos, favoritos, banidos e recusadas.
-# [avancado] A pasta-mãe do carrossel. As quatro que importam nascem dentro dela:
-#   ativos/ (é a que gira) · favoritos/ · banidos/ (movidos, nunca apagados) ·
-#   originais/ (a foto antes de qualquer recolorização)
+# > Dentro dela nascem as duas que importam: ativos e originais.
+# [avancado] A pasta-mãe do carrossel. As duas que importam nascem dentro dela:
+#   ativos/ (é a que gira) · originais/ (a foto antes de qualquer recolorização).
+#   A recusada é apagada e fica só o nome dela no BANIDOS.txt.
 # O nome era WALLPAPER_DIR e apontava para `ativos/`, mas quem lia era
 # WALLPAPER_BASE — chave que não existia neste arquivo. Ou seja: mudar o valor
 # não movia nada. Corrigido em 08/08/2026; agora o nome daqui é o nome lido.
@@ -1704,8 +1704,8 @@ FASTFETCH_LOGO_QUEBRAS="auto"
 # `scripts/fastfetch_alinhar.py`, que conta a medição inteira.
 FASTFETCH_LOGO_ALINHAR="tabular"   # tabular | contorno | degraus | crescente | reto
 
-# @ A linha de cima do bloco
-# > O nome que aparece acima da régua. Vazio devolve o título de fábrica do fastfetch.
+# @ Título do bloco
+# > A primeira linha do texto, acima do traço. Vazio devolve o título de fábrica do fastfetch.
 # O TÍTULO DO BLOCO — a primeira linha, que o fastfetch monta de `usuário@host`.
 #
 # Vazio = não toca, e o fastfetch decide. Com texto, o valor é passado ao
