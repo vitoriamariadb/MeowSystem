@@ -1,6 +1,12 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- FECHO (03/11, 23h): menu da área de trabalho com «Voltar papel de parede» e «Próximo papel de parede» abrindo a
+  seção, com os glifos de mídia (marcador `MEOW-FILES-WALLPAPER-PATCH-2`; o build do patch anterior se refaz);
+  now-playing 0.4.2, os controles da barra espaçados como dois applets. Suíte: 131/132, o vermelho era o pino sem
+  aspas (corrigido, teste verde à parte). Install `rc=0`; build do cosmic-files com o marcador novo instalado.
+  Publicado: `master` em f97098e8. Worktrees antigas e o `cosmic-comp-patch` da Aurora apagados.
+  ELA CONFERE COM A MÃO: no próximo login, o botão direito da área de trabalho e a barra.
 - FECHO (03/11, noite): P154 (o compositor em qualquer PC: teste de fumaça no shim, quedas que não gravam vão
   para a fábrica, `req` ausente recusado, degrau 2 retido até o Instalar, espaço e espera na matriz, PATH do login,
   fábrica conferida contra o dpkg). A fábrica desta máquina voltou ao pacote pela ponte (o night light da Aurora a
