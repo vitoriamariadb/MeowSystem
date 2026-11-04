@@ -1704,8 +1704,8 @@ FASTFETCH_LOGO_QUEBRAS="auto"
 # `scripts/fastfetch_alinhar.py`, que conta a medição inteira.
 FASTFETCH_LOGO_ALINHAR="tabular"   # tabular | contorno | degraus | crescente | reto
 
-# @ A linha de cima do bloco
-# > O nome que aparece acima da régua. Vazio devolve o título de fábrica do fastfetch.
+# @ Título do bloco
+# > A primeira linha do texto, acima do traço. Vazio devolve o título de fábrica do fastfetch.
 # O TÍTULO DO BLOCO — a primeira linha, que o fastfetch monta de `usuário@host`.
 #
 # Vazio = não toca, e o fastfetch decide. Com texto, o valor é passado ao
