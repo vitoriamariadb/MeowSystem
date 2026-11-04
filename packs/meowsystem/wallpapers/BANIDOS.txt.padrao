@@ -21,7 +21,8 @@
 #
 #     packs/meowsystem/wallpapers/BANIDOS.txt.padrao  -- no clone, VERSIONADO
 #         A lista de FABRICA: o que nenhuma maquina nova deve baixar de volta.
-#         Ninguem escreve nela em tempo de execucao. Uma linha acrescentada
+#         So o lixo do painel escreve nela, e so quando o painel roda de um
+#         checkout git (desde 04/11/2026), sem commit. Uma linha acrescentada
 #         aqui so alcanca quem AINDA NAO tem o estado semeado.
 #
 #     ~/.local/state/meowsystem/papeis-de-parede/BANIDOS.txt  -- fora do clone

@@ -88,55 +88,6 @@ else
   falha "o servidor não mandou o modo efetivo do gato" "$s1 / $s2"
 fi
 
-printf '\n--- 5. favoritar papel de parede ---\n'
-CW="$T/casa-wp"; B="$CW/.local/share/backgrounds/meowsystem"
-mkdir -p "$B/ativos" "$CW/.config/meow"
-printf 'P3\n1 1\n255\n10 20 30\n' > "$B/ativos/foto.png"; cp "$B/ativos/foto.png" "$B/ativos/outra.jpg"
-wpv() { local v="$1"; shift; env -i PATH="$T/falso:$PATH" HOME="$CW" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
-         MEOW_COSMIC_DIR="$CW/cosmic" "$RAIZ/scripts/wallpaper.sh" "$v" "$@" 2>&1; }
-env -i PATH="$T/falso:$PATH" HOME="$CW" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
-  "$RAIZ/scripts/wallpaper.sh" favoritar "$B/ativos/foto.png" >/dev/null 2>&1; rc_s=$?
-[ "$rc_s" = 1 ] && [ ! -e "$B/favoritos/foto.png" ] || falha "o ensaio do favoritar escreveu, ou não disse que mudaria (rc=$rc_s)"
-s1="$(wpv favoritar "$B/ativos/foto.png")"; rc1=$?
-s2="$(wpv favoritar "$B/ativos/foto.png")"; rc2=$?
-if [ "$rc1" = 1 ] && [ "$rc2" = 0 ] && cmp -s "$B/ativos/foto.png" "$B/favoritos/foto.png" \
-   && [ -f "$B/ativos/foto.png" ]; then
-  ok "favoritar guarda uma cópia em favoritos/, a imagem segue girando, e a segunda vez não muda nada"
-else
-  falha "o favoritar não guardou a imagem (rc=$rc1 $rc2)" "$s1
-$s2"
-fi
-estado="$(env -i PATH="$T/falso:$PATH" HOME="$CW" MEOW_RAIZ="$RAIZ" MEOW_CONF="$CW/.config/meow/meow.conf" \
-  python3 - "$RAIZ/app" <<'PY' 2>&1
-import sys
-sys.path.insert(0, sys.argv[1])
-import servidor
-fav = {i["rotulo"]: i.get("favorito") for i in servidor._prev_paredes() if i["grupo"] == "ativos"}
-print("favorito=%s" % fav.get("foto.png"))
-print("outro=%s" % fav.get("outra.jpg"))
-print("prov=%s" % ",".join(servidor.PROVEDORES["paredes_favoritas"]()))
-for a in ("wallpaper_favoritar", "wallpaper_desfavoritar"):
-    print("%s=%s" % (a, servidor.ACOES.get(a, {}).get("arg", "")))
-PY
-)"
-if grep -qx 'favorito=True' <<< "$estado" && grep -qx 'outro=False' <<< "$estado" \
-   && grep -qx 'prov=foto.png' <<< "$estado" \
-   && grep -qx 'wallpaper_favoritar=paredes_ativas' <<< "$estado" \
-   && grep -qx 'wallpaper_desfavoritar=paredes_favoritas' <<< "$estado"; then
-  ok "o painel marca a favorita, e as duas ações aceitam só o que existe no disco"
-else
-  falha "o painel não sabe das favoritas" "$estado"
-fi
-s3="$(wpv desfavoritar foto.png)"; rc3=$?
-s4="$(wpv desfavoritar ../ativos/foto.png)"; rc4=$?
-if [ "$rc3" = 1 ] && [ ! -e "$B/favoritos/foto.png" ] && [ -f "$B/ativos/foto.png" ] && [ "$rc4" = 2 ]; then
-  ok "desfavoritar tira só a cópia de favoritos/, e um nome com caminho é recusado"
-else
-  falha "o desfavoritar não fez o que devia (rc=$rc3 $rc4)" "$s3
-$s4"
-fi
-
-
 printf '\n--- 6. papéis de parede separados por pack (decisão de 23/10) ---\n'
 CP="$T/casa-pack"; BP="$CP/.local/share/backgrounds/meowsystem"
 mkdir -p "$BP/ativos" "$CP/.config/meow" "$CP/cosmic"
@@ -178,7 +129,7 @@ print(all(i["banir"].endswith("/ativos/" + i["rotulo"]) for i in itens))
 PY
 )"
 [ "$painel" = "$(printf 'cat-a.png cat-b.png %s minha.png\nTrue' "$cura")" ] \
-  && ok "o «No carrossel» do painel mostra a coleção do pack no ar, e o Tirar age em ativos/" \
+  && ok "o «No carrossel» do painel mostra a coleção do pack no ar, e o Apagar age em ativos/" \
   || falha "o painel mostra outra coleção no «No carrossel»" "$painel"
 rm -f "$BP/ativos"/tulip-*
 s5="$(wpp PACK=meowsystem)"; r5=$?

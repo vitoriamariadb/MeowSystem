@@ -23,7 +23,6 @@ estado_git > "$ANTES"
 
 ACERVO="$TMP/acervo"
 mkdir -p "$ACERVO/ativos" || exit 2
-printf 'não e uma imagem de verdade, e não precisa ser\n' > "$ACERVO/ativos/teste-banir.jpg"
 printf 'não e uma imagem de verdade, e não precisa ser\n' > "$ACERVO/ativos/teste-lado.jpg"
 
 rodar_curadoria() {
@@ -50,18 +49,10 @@ else
   falha "sem estado, a leitura devolveu «$le»"
 fi
 
-rodar_curadoria banir "$ACERVO/ativos/teste-banir.jpg" >"$TMP/log-banir" 2>&1
 rodar_curadoria lado  "teste-lado.jpg" noite           >"$TMP/log-lado"  2>&1
 
 BANIDOS_ESTADO="$TMP/estado/papeis-de-parede/BANIDOS.txt"
 LADO_ESTADO="$TMP/estado/papeis-de-parede/lado.tsv"
-
-if [ -f "$BANIDOS_ESTADO" ] && grep -qxF 'teste-banir.jpg' "$BANIDOS_ESTADO"; then
-  ok "o banimento foi registrado em \$MEOW_ESTADO/papeis-de-parede/BANIDOS.txt"
-else
-  falha "o banimento NÃO chegou em $BANIDOS_ESTADO"
-  printf '       log: %s\n' "$(tail -3 "$TMP/log-banir" 2>/dev/null | tr '\n' ' ')" >&2
-fi
 
 if [ -f "$LADO_ESTADO" ] && grep -q 'teste-lado.jpg' "$LADO_ESTADO"; then
   ok "o lado escolhido foi registrado em \$MEOW_ESTADO/papeis-de-parede/lado.tsv"

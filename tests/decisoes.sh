@@ -438,6 +438,10 @@ registro 48 'ICONES_BASE:-Papirus-Dark' && grep -rqF 'ICONES_BASE:-Papirus-Dark'
   && ok "48: os leitores do ICONES_BASE ficam com o mesmo padrão" || falha "48: a decisão saiu do registro"
 registro 49 'cosmic_prever.sh' && grep -q 'SUMIU do' "$RAIZ/scripts/cosmic_prever.sh" \
   && ok "49: o pré-voo acusa a chave que some do binário" || falha "49: o pré-voo não acusa mais a chave que some"
+registro 51 'BANIDOS.txt.padrao' && grep -q 'BANIDOS.txt.padrao' "$RAIZ/scripts/wallpaper.sh" \
+  && grep -q '^limpar_banidos()' "$RAIZ/scripts/wallpaper.sh" && ! grep -qE 'favoritar|desbanir' "$RAIZ/scripts/wallpaper.sh" \
+  && ok "51: o lixo apaga de vez, o checkout perde a receita, e as banidas saem pela etapa" \
+  || falha "51: o lixo voltou a mover para banidos/, ou a decisão saiu do registro"
 registro 37 'sons/' && grep -q 'som-padrao' "$RAIZ/scripts/ponte_root.sh" && grep -q 'passo_sons' "$RAIZ/scripts/cosmic_pos_apt.sh" \
   && [ -f "$RAIZ/assets/sons/eventos.json" ] \
   && ok "37: os sons do pack vão ao sistema pela ponte, o pós-apt os repõe e a página lista cada evento" \

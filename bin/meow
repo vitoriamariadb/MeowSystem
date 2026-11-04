@@ -2177,8 +2177,8 @@ cmd_wallpaper() {
   carregar_conf || return "$MEOW_ERRO"
   local acao="${1:-estado}"
   case "$acao" in
-    estado|aplicar|usar|adicionar|banir|desbanir|favoritar|desfavoritar|semear|permitir|dispensar|proximo|anterior|carrossel|lado)
-      case "$acao" in aplicar|adicionar|banir|desbanir|semear|permitir|proximo|anterior|carrossel|lado) meow_travar || return "$MEOW_ERRO" ;; esac
+    estado|aplicar|usar|adicionar|banir|semear|permitir|dispensar|proximo|anterior|carrossel|lado)
+      case "$acao" in aplicar|adicionar|banir|semear|permitir|proximo|anterior|carrossel|lado) meow_travar || return "$MEOW_ERRO" ;; esac
       shift || true
       WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
         WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
@@ -2190,7 +2190,7 @@ cmd_wallpaper() {
       return $? ;;
     fixar|recolorir|intervalo|ordem)
       meow_erro "'$acao' ainda não existe"
-      meow_info "o que existe hoje: estado, aplicar, proximo, anterior, carrossel, adicionar <img|pasta>, banir <img>, favoritar <img>, semear, permitir <caminho>"
+      meow_info "o que existe hoje: estado, aplicar, proximo, anterior, carrossel, adicionar <img|pasta>, banir <img>, semear, permitir <caminho>"
       meow_info "intervalo e ordem se mudam no $CONF (WALLPAPER_INTERVALO / WALLPAPER_ORDEM)"
       return "$MEOW_SEM_DEPENDENCIA" ;;
     *) meow_erro "uso: meow wallpaper [estado|aplicar|proximo|anterior|carrossel|adicionar <alvo>|banir <img>|semear|permitir <caminho>]"
@@ -2943,8 +2943,7 @@ cmd_ajuda() {
   meow files-menu              estado dos 2 itens de papel de parede no menu da área de trabalho
   meow files-menu build        compila o cosmic-files patchado da versão instalada
   meow wallpaper adicionar <alvo>   copia imagem ou pasta para ativos/
-  meow wallpaper banir <img>   move para banidos/ (nunca apaga)
-  meow wallpaper desbanir <nome>  devolve de banidos/ para ativos/ E tira do BANIDOS.txt
+  meow wallpaper banir <img>   apaga a imagem e a põe no BANIDOS.txt
   meow wallpaper semear        baixa a coleção do pack no ar (commit pinado; usa rede)
 
   meow apps                    tabela: módulo, instalado, tema
