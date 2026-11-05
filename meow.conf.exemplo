@@ -786,10 +786,10 @@ FORMA_DOCK_ILHA="nao"             # sim | nao  <- ver o aviso acima
 #   arrastar até o fim não pode ser um gesto que apaga a sua barra. Escrever um
 #   número maior à mão continua possível, e o `forma.sh` avisa e CORTA (ou
 #   segue, se o compositor estiver clampado).
-FORMA_MARGEM_PAINEL=""            # 0 a 24 px  (o quanto o painel descola da borda)
+FORMA_MARGEM_PAINEL=""            # 0 a 8 px   (o quanto o painel descola da borda; acima de 8 a barra cai)
 # @ Distância da borda — dock
 # > Em pixels.
-FORMA_MARGEM_DOCK=""              # 0 a 24 px  (o quanto a dock descola da borda)
+FORMA_MARGEM_DOCK=""              # 0 a 8 px   (o quanto a dock descola da borda; acima de 8 a barra cai)
 # @ Canto arredondado — painel
 # > Em pixels.
 FORMA_RAIO_PAINEL=""              # 0 a 22 px  (o teto desta máquina; acima disso a barra some)

@@ -65,6 +65,7 @@ FORMA_DOCK_ILHA="${FORMA_DOCK_ILHA:-nao}"
 
 FORMA_MARGEM_PAINEL="${FORMA_MARGEM_PAINEL:-}"
 FORMA_MARGEM_DOCK="${FORMA_MARGEM_DOCK:-}"
+FORMA_TETO_MARGEM=8
 FORMA_RAIO_PAINEL="${FORMA_RAIO_PAINEL:-}"
 FORMA_RAIO_DOCK="${FORMA_RAIO_DOCK:-}"
 
@@ -110,6 +111,14 @@ aplicar_barra() {
   ilha="$(_bool "$3")"    || { meow_erro "$barra: 'ilha' esperava sim|nao, veio '$3'"; return 2; }
   margem="$4"; raio="$5"; espaco="$6"; recheio="$7"
   [ -z "$margem" ]  || { margem="$(_int  "margem do $barra"  "$margem")"  || return 2; }
+  if [ -z "$margem" ]; then
+    margem="$(cat "$dir/margin" 2>/dev/null || true)"
+    [[ "$margem" =~ ^[0-9]+$ ]] && [ "$margem" -gt "$FORMA_TETO_MARGEM" ] || margem=""
+  fi
+  if [ -n "$margem" ] && [ "$margem" -gt "$FORMA_TETO_MARGEM" ]; then
+    meow_aviso "$barra: margem $margem acima de $FORMA_TETO_MARGEM derruba o cosmic-panel — fica em $FORMA_TETO_MARGEM"
+    margem="$FORMA_TETO_MARGEM"
+  fi
   [ -z "$espaco" ]  || { espaco="$(_int  "espaço do $barra"  "$espaco")"  || return 2; }
   [ -z "$recheio" ] || { recheio="$(_int "recheio do $barra" "$recheio")" || return 2; }
 

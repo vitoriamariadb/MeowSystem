@@ -105,6 +105,7 @@ PORTATIL=(
   ponte-so-reserva.sh
   painel-janela-propria.sh
   areas-em-cada-tela.sh
+  margem-no-teto.sh
   ponte-cosmic-comp.sh
   painel-fantasma.sh
   criar-tema-leva.sh
