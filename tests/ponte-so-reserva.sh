@@ -291,6 +291,33 @@ saida="$(wrapper_como_root)"; rc=$?
 confere "preenchido com root, o wrapper não roda nada do clone" \
   '[ "$rc" = 0 ] && [ ! -s "$UIDS" ] && [ ! -s "$RUNUSER_LOG" ]' "$saida"
 
+printf '\nponte velha: a completion nova espera a reserva, sem alarme\n'
+SIS_Z="$T/site-functions"; mkdir -p "$SIS_Z"; PONTE_V="$T/ponte-velha/ponte_root.sh"; mkdir -p "${PONTE_V%/*}"
+printf 'completion-instalar)\n' > "$PONTE_V"
+completion_com_ponte() (
+  MEOW_RAIZ="$RAIZ"; MEOW_PONTE="$PONTE_V"; COMPLETIONS_SISTEMA="$SIS_Z"; COMPLETIONS_DIR="$T/casa-z"
+  MEOW_SEM_DEPENDENCIA=3; MEOW_DIVERGENTE=1; MEOW_OK=0
+  meow_tem() { return 0; }; meow_seco() { return 1; }; meow_ponte_viva() { return 0; }
+  meow_ok() { :; }; meow_muda() { :; }
+  meow_aviso() { printf 'aviso: %s\n' "$*" >> "$T/alarme.log"; }
+  meow_ponte() { printf '%s\n' "$*" >> "$T/chamadas.log"; [ "$PONTE_RESPONDE" = 1 ] && cp "$RAIZ/assets/zsh/_meow" "$SIS_Z/_meow"; return 0; }
+  zsh() { printf '%s\n' "$SIS_Z"; }
+  eval "$(sed -n '/^completion_no_sistema() {/,/^}/p' "$RAIZ/install.sh")"
+  completion_no_sistema
+)
+printf '%s  _meow\n' "$(printf 'antiga\n' | sha256sum | cut -d' ' -f1)" > "${PONTE_V%/*}/reserva-pecas.sha256"
+: > "$T/alarme.log"; : > "$T/chamadas.log"
+PONTE_RESPONDE=0 completion_com_ponte; rc=$?
+confere "com a reserva velha, a etapa cede à casa do usuário sem chamar a ponte" \
+  '[ "$rc" = 3 ] && [ ! -s "$T/chamadas.log" ]' "rc=$rc"
+confere "e sem alarme" '[ ! -s "$T/alarme.log" ]' "$(cat "$T/alarme.log")"
+printf '%s  _meow\n' "$(sha256sum < "$RAIZ/assets/zsh/_meow" | cut -d' ' -f1)" > "${PONTE_V%/*}/reserva-pecas.sha256"
+PONTE_RESPONDE=1 completion_com_ponte; rc=$?
+confere "com a reserva em dia, a ponte instala" '[ "$rc" = 1 ] && cmp -s "$RAIZ/assets/zsh/_meow" "$SIS_Z/_meow"' "rc=$rc"
+rm -f "$SIS_Z/_meow"; : > "$T/alarme.log"
+PONTE_RESPONDE=0 completion_com_ponte; rc=$?
+confere "com a reserva em dia e a ponte falhando, o alarme continua" '[ "$rc" = 3 ] && [ -s "$T/alarme.log" ]' "rc=$rc"
+
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi
 printf 'tudo ok\n'

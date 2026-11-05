@@ -516,10 +516,19 @@ _desativado() {
   esac
 }
 
+_ja_sai_no_topo() {
+  awk '/^[[:space:]]*(#|$)/ { next }
+       /^(echo|printf)[[:space:]]/ { next }
+       /^exit([[:space:]]+0)?[[:space:]]*$/ { saiu = 1 }
+       { exit }
+       END { exit !saiu }' "$1" 2>/dev/null
+}
+
 _estado() {
   local item="$1" tipo="$2" arq="$3" ini="$4" fim="$5" req="$6" n u
   if _desativado "$tipo" "$arq" "$item"; then echo desativado; return 0; fi
   [ -f "$arq" ] || { echo ausente; return 0; }
+  if [ "$tipo" = saida ] && _ja_sai_no_topo "$arq"; then echo sai_sozinho; return 0; fi
   if [ -n "$req" ] && ! _requer_ok "$req"; then echo espera; return 0; fi
   u="$(_ultimo "$item")"
   [ "${u%%$'\t'*}" = "restaurado" ] && { echo restaurado; return 0; }
@@ -538,6 +547,7 @@ _estado_dito() {
   case "$1" in
     desativado) echo "desativado" ;;
     ausente)    echo "não existe nesta casa" ;;
+    sai_sozinho) echo "já sai sozinho no topo" ;;
     espera)     echo "espera o MeowSystem instalado cuidar disto" ;;
     restaurado) echo "ativo, devolvido por você" ;;
     mudou)      echo "o trecho não está mais lá" ;;
@@ -556,20 +566,22 @@ cmd_listar() {
 }
 
 cmd_prontos() {
-  local item tipo arq ini fim req motivo est prontos=()
+  local item tipo arq ini fim req motivo est aviso rc="$MEOW_OK" prontos=() avisos=()
   while IFS='|' read -r item tipo arq ini fim req motivo; do
     est="$(_estado "$item" "$tipo" "$arq" "$ini" "$fim" "$req")"
     case "$est" in
       pronto) prontos+=("$item") ;;
-      esperando|mudou|repetido) meow_info "  $item: $(_estado_dito "$est")" ;;
+      esperando|mudou|repetido) avisos+=("  $item: $(_estado_dito "$est")") ;;
     esac
   done < <(_catalogo)
   if [ "${#prontos[@]}" -eq 0 ]; then
     meow_ok "nenhum vizinho repete o que o MeowSystem instalado já faz"
-    return "$MEOW_OK"
+  else
+    meow_muda "${#prontos[@]} trecho(s) de vizinho repetem o que o MeowSystem instalado já faz: $(printf '%s\n' "${prontos[@]}" | paste -sd, - | sed 's/,/, /g')"
+    rc="$MEOW_DIVERGENTE"
   fi
-  meow_muda "${#prontos[@]} trecho(s) de vizinho repetem o que o MeowSystem instalado já faz: $(printf '%s\n' "${prontos[@]}" | paste -sd, - | sed 's/,/, /g')"
-  return "$MEOW_DIVERGENTE"
+  for aviso in "${avisos[@]}"; do meow_info "$aviso"; done
+  return "$rc"
 }
 
 cmd_desativar_prontos() {

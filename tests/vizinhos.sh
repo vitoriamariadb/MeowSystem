@@ -573,6 +573,25 @@ printf 'export ZDOTDIR="$HOME/zsh"\n' > "$CASA/.zshenv"; mkdir -p "$CASA/zsh"; c
 rodar --desativar toy-passo >/dev/null 2>&1
 confere "e o ZDOTDIR do .zshenv da casa segue sendo o alvo" 'grep -qxF "#vizinhos:toy-passo#         _step_vidro_fosco" "$CASA/zsh/install.sh"'
 
+printf '\n16. saída feita à mão: o script que já sai no topo não é pronto, e o corte não o toca\n'
+CASA="$T/c16"; ZD="$CASA/.config/zsh"; ESTADO="$CASA/.local/state/meowsystem"
+mkdir -p "$ZD/scripts" "$ESTADO"
+printf 'item\ttoy-saida-mao\tsaida\t$ZD/scripts/saida-mao.sh\t-\t-\t-\tmotivo de brinquedo\n' >> "$CT"
+printf 'item\ttoy-saida-viva\tsaida\t$ZD/scripts/saida-viva.sh\t-\t-\t-\tmotivo de brinquedo\n' >> "$CT"
+printf 'item\ttoy-sumiu\tbloco\t$ZD/scripts/saida-mao.sh\tnunca_existiu\t-\t-\tmotivo de brinquedo\n' >> "$CT"
+printf '#!/bin/bash\n# desligado à mão\n\necho "saiu daqui"\nexit 0\nrm -rf /nada\n' > "$ZD/scripts/saida-mao.sh"
+printf '#!/bin/bash\necho "ainda trabalha"\nfaz_algo\nexit 0\n' > "$ZD/scripts/saida-viva.sh"
+md5a="$(md5sum < "$ZD/scripts/saida-mao.sh")"
+saida="$(rodar --listar)"
+confere "o desligado à mão aparece como já saindo sozinho" 'printf "%s\n" "$saida" | grep -qP "^toy-saida-mao\tjá sai sozinho no topo\t"'
+confere "o que trabalha antes do exit segue ativo" 'printf "%s\n" "$saida" | grep -qP "^toy-saida-viva\tativo\t"'
+saida="$(rodar --prontos 2>&1)"; rc=$?
+confere "o motivo da divergência vem na primeira linha, antes dos avisos" \
+  '[ "$rc" = 1 ] && printf "%s\n" "$saida" | head -1 | grep -q "toy-saida-viva" && printf "%s\n" "$saida" | grep -q "toy-sumiu"'
+rodar --desativar-prontos >/dev/null 2>&1
+confere "o --desativar-prontos corta o vivo" 'grep -qF "#vizinhos+:toy-saida-viva#" "$ZD/scripts/saida-viva.sh"'
+confere "e deixa o desligado à mão como estava" '[ "$md5a" = "$(md5sum < "$ZD/scripts/saida-mao.sh")" ]'
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'vizinhos: tudo verde\n'; exit 0; fi
 printf 'vizinhos: %s falha(s)\n' "$falhas"; exit 1
