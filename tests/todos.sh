@@ -103,6 +103,7 @@ PORTATIL=(
   sons-do-pack.sh
   ponte-reparo.sh
   ponte-so-reserva.sh
+  painel-janela-propria.sh
   ponte-cosmic-comp.sh
   painel-fantasma.sh
   criar-tema-leva.sh

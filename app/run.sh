@@ -204,10 +204,15 @@ _exec_padrao() {
 }
 
 _binario_da_linha() {
-  local p
+  local p dentro_do_systemd_run=0
   for p in $1; do
+    if [ "$dentro_do_systemd_run" = 1 ]; then
+      [ "$p" = "--" ] && dentro_do_systemd_run=0
+      continue
+    fi
     case "$p" in
       env|/usr/bin/env|/bin/env) continue ;;
+      systemd-run|*/systemd-run) dentro_do_systemd_run=1; continue ;;
       *=*) continue ;;
       -*) break ;;
       *) printf '%s\n' "$p"; return 0 ;;
