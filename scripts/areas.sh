@@ -36,6 +36,7 @@ _areas_dependencia() {
 _areas_motor() {
   python3 -I - "$@" <<'PY'
 import glob
+import os
 import random
 import re
 import sys
@@ -198,9 +199,22 @@ def campos(texto, m, ini, fim):
     return saida
 
 
+def saida_de(entrada):
+    achado = re.search(r'name\s*:\s*"([^"]*)"', entrada[2]["output"] or "")
+    return achado.group(1) if achado else ""
+
+
+def da_primeira_tela(achadas):
+    return [e for e in achadas if saida_de(e) == saida_de(achadas[0])] if achadas else []
+
+
+def sem_folga(nome):
+    return (nome or "").strip("\u2007")
+
+
 def ler(caminho):
     texto = open(caminho, encoding="utf-8").read()
-    _, _, achadas = entradas(texto)
+    achadas = da_primeira_tela(entradas(texto)[2])
     for i, (_, _, c) in enumerate(achadas):
         nome = c["nome"] if c["nome"] is not None else ""
         if "\t" in nome or "\n" in nome:
@@ -233,10 +247,65 @@ NOVA = (
 )
 
 
+def bloco_da_saida(saida):
+    return (
+        "(\n"
+        '            name: "%s",\n'
+        "            edid: %s,\n"
+        "        )" % (escapa(saida), edid_do_conector(saida) or "None")
+    )
+
+
+def igual_ao_modelo(texto, entrada, modelo):
+    ini, fim, c = entrada
+    bruto = texto[ini : fim + 1]
+    trocas = []
+    if modelo["nome"] != c["nome"]:
+        trocas.append((c["nome_span"], 'Some("%s")' % escapa(modelo["nome"] or "")))
+    if modelo["tiling"] != c["tiling"]:
+        trocas.append((c["tiling_span"], modelo["tiling"]))
+    for (a, b), novo in sorted(trocas, key=lambda t: -t[0][0]):
+        bruto = bruto[: a - ini] + novo + bruto[b - ini :]
+    return bruto
+
+
+def em_cada_tela(texto):
+    """As áreas da primeira tela repetidas nas outras telas e nas ligadas sem área."""
+    _, _, todas = entradas(texto)
+    if not todas:
+        return texto
+    base = da_primeira_tela(todas)
+    telas = []
+    for entrada in todas:
+        if saida_de(entrada) not in telas:
+            telas.append(saida_de(entrada))
+    ligadas = os.environ.get("AREAS_SAIDAS", "").split(",")
+    telas += [s for s in ligadas if s and s not in telas]
+
+    usados = {c["id"] for _, _, c in todas if c["id"]}
+    crus = [texto[a : b + 1] for a, b, _ in base]
+    for tela in telas[1:]:
+        dela = [e for e in todas if saida_de(e) == tela]
+        output = dela[0][2]["output"] if dela else bloco_da_saida(tela)
+        for i, (_, _, modelo) in enumerate(base):
+            if i < len(dela):
+                crus.append(igual_ao_modelo(texto, dela[i], modelo))
+                continue
+            novo_id = id_novo(usados)
+            usados.add(novo_id)
+            crus.append(NOVA % (output, modelo["tiling"], novo_id, escapa(modelo["nome"] or "")))
+        crus += [texto[a : b + 1] for a, b, _ in dela[len(base) :]]
+
+    emenda = ",\n    "
+    if len(todas) > 1:
+        emenda = texto[todas[0][1] + 1 : todas[1][0]]
+    return texto[: todas[0][0]] + emenda.join(crus) + texto[todas[-1][1] + 1 :]
+
+
 def montar(caminho, encaixes, nomes):
     """O texto NOVO do arquivo, no stdout. Nada é escrito aqui."""
     texto = open(caminho, encoding="utf-8").read()
-    _, _, achadas = entradas(texto)
+    achadas = da_primeira_tela(entradas(texto)[2])
 
     if len(nomes) < len(achadas):
         raise ValueError(
@@ -256,7 +325,7 @@ def montar(caminho, encaixes, nomes):
                 trocas.append((c["tiling_span"], encaixes[i]))
         for (ini, fim), novo in sorted(trocas, key=lambda t: -t[0][0]):
             texto = texto[:ini] + novo + texto[fim:]
-        sys.stdout.write(texto)
+        sys.stdout.write(em_cada_tela(texto))
         return
 
     herdado = next((c["output"] for _, _, c in achadas if c["output"]), None)
@@ -293,13 +362,13 @@ def montar(caminho, encaixes, nomes):
     emenda = ",\n    "
     if len(achadas) > 1:
         emenda = texto[achadas[0][1] + 1 : achadas[1][0]]
-    sys.stdout.write(cabeca + emenda.join(crus) + rabo)
+    sys.stdout.write(em_cada_tela(cabeca + emenda.join(crus) + rabo))
 
 
 def refazer(caminho, encaixes, nomes):
     """O texto com os alfinetes que caíram de volta; os de pé ficam como estão."""
     texto = open(caminho, encoding="utf-8").read()
-    _, _, achadas = entradas(texto)
+    achadas = da_primeira_tela(entradas(texto)[2])
     if not achadas:
         raise ValueError("nenhuma área alfinetada de onde herdar o monitor")
     herdado = next((c["output"] for _, _, c in achadas if c["output"]), None)
@@ -309,20 +378,17 @@ def refazer(caminho, encaixes, nomes):
             "não vou inventar um EDID"
         )
 
-    def chave(nome):
-        return (nome or "").strip("\u2007")
-
     de_pe = {}
     for entrada in achadas:
-        de_pe.setdefault(chave(entrada[2]["nome"]), entrada)
-    if all(chave(n) in de_pe for n in nomes):
-        sys.stdout.write(texto)
+        de_pe.setdefault(sem_folga(entrada[2]["nome"]), entrada)
+    if all(sem_folga(n) in de_pe for n in nomes):
+        sys.stdout.write(em_cada_tela(texto))
         return
 
     usados = {c["id"] for _, _, c in achadas if c["id"]}
     crus, ficaram = [], set()
     for i, nome in enumerate(nomes):
-        entrada = de_pe.get(chave(nome))
+        entrada = de_pe.get(sem_folga(nome))
         if entrada is not None:
             ini, fim, _ = entrada
             crus.append(texto[ini : fim + 1])
@@ -341,12 +407,13 @@ def refazer(caminho, encaixes, nomes):
     emenda = ",\n    "
     if len(achadas) > 1:
         emenda = texto[achadas[0][1] + 1 : achadas[1][0]]
-    sys.stdout.write(cabeca + emenda.join(crus) + rabo)
+    sys.stdout.write(em_cada_tela(cabeca + emenda.join(crus) + rabo))
 
 
 def tirar(caminho, indice):
     texto = open(caminho, encoding="utf-8").read()
-    _, _, achadas = entradas(texto)
+    _, _, todas = entradas(texto)
+    achadas = da_primeira_tela(todas)
     if indice < 0 or indice >= len(achadas):
         raise ValueError("não existe área na posição %d" % indice)
     if len(achadas) <= 1:
@@ -354,10 +421,11 @@ def tirar(caminho, indice):
             "esta é a última área alfinetada; sem alfinete nenhum o cosmic-comp "
             "destrói o workspace assim que ele esvazia"
         )
-    crus = [texto[a : b + 1] for j, (a, b, _) in enumerate(achadas) if j != indice]
-    cabeca = texto[: achadas[0][0]]
-    rabo = texto[achadas[-1][1] + 1 :]
-    emenda = texto[achadas[0][1] + 1 : achadas[1][0]]
+    alvo = sem_folga(achadas[indice][2]["nome"])
+    crus = [texto[a : b + 1] for a, b, c in todas if sem_folga(c["nome"]) != alvo]
+    cabeca = texto[: todas[0][0]]
+    rabo = texto[todas[-1][1] + 1 :]
+    emenda = texto[todas[0][1] + 1 : todas[1][0]]
     sys.stdout.write(cabeca + emenda.join(crus) + rabo)
 
 
@@ -447,6 +515,12 @@ try:
         refazer(sys.argv[2], lista, alvos)
     elif verbo == "primeira":
         primeira(sys.argv[2], sys.argv[3], sys.argv[4])
+    elif verbo == "telas-sem-area":
+        texto = open(sys.argv[2], encoding="utf-8").read()
+        if em_cada_tela(texto) != texto:
+            telas = {saida_de(e) for e in da_primeira_tela(entradas(texto)[2])}
+            ligadas = [s for s in os.environ.get("AREAS_SAIDAS", "").split(",") if s]
+            print(", ".join(s for s in ligadas if s not in telas))
     elif verbo == "tirar":
         tirar(sys.argv[2], int(sys.argv[3]))
     else:
@@ -508,8 +582,15 @@ _areas_bool() {
 
 AREAS_ID=(); AREAS_TILING=(); AREAS_NOME=()
 
+_areas_saidas_ligadas() {
+  meow_tem cosmic-randr || return 0
+  cosmic-randr list 2>/dev/null | sed -E 's/\x1b\[[0-9;]*m//g' \
+    | LC_ALL=C awk '/^[^ ]/ && index($0, "(enabled)") > 0 { print $1 }' | paste -sd, -
+}
+
 _areas_ler() {
   AREAS_ID=(); AREAS_TILING=(); AREAS_NOME=()
+  [ -n "${AREAS_SAIDAS+x}" ] || { AREAS_SAIDAS="$(_areas_saidas_ligadas)"; export AREAS_SAIDAS; }
   [ -f "$AREAS_ALVO" ] || return "$MEOW_OK"
   local erro
   erro="$(_areas_motor ler "$AREAS_ALVO" 2>&1 >/dev/null)"
@@ -863,6 +944,9 @@ cmd_conferir() {
         divergente=1; }
   done
 
+  local telas; telas="$(_areas_telas_sem_area)"
+  [ -n "$telas" ] && { meow_muda "tela sem as áreas: $telas"; divergente=1; }
+
   if [ "$divergente" = "0" ]; then
     [ "$rc_plano" = "$MEOW_OK" ] && meow_ok "as áreas de trabalho estão conformes"
     return "$rc_plano"
@@ -884,15 +968,21 @@ _areas_caidos() {
   done < <(_areas_partir "$AREAS_NOMES")
 }
 
+_areas_telas_sem_area() {
+  [ -f "$AREAS_ALVO" ] && _areas_motor telas-sem-area "$AREAS_ALVO" 2>/dev/null
+}
+
 cmd_alfinetes() {
   [ -n "$AREAS_NOMES" ] || { meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"; return "$MEOW_OK"; }
   _areas_dependencia || return $?
   _areas_ler || return $?
   _areas_caidos
-  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ]; then
+  local telas; telas="$(_areas_telas_sem_area)"
+  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && [ -z "$telas" ]; then
     meow_ok "os alfinetes das áreas estão de pé ($(_areas_juntar "${AREAS_NOME[@]}"))"
     return "$MEOW_OK"
   fi
+  [ -n "$telas" ] && meow_muda "tela sem as áreas: $telas"
   local n
   for n in "${AREAS_CAIDOS[@]}"; do meow_muda "o alfinete da área «$n» caiu"; done
   return "$MEOW_DIVERGENTE"
@@ -908,7 +998,11 @@ cmd_refazer_alfinetes() {
     _areas_ler || return $?
   fi
   _areas_caidos
-  [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && { meow_ok "os alfinetes das áreas estão de pé"; return "$MEOW_OK"; }
+  local telas; telas="$(_areas_telas_sem_area)"
+  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && [ -z "$telas" ]; then
+    meow_ok "os alfinetes das áreas estão de pé"
+    return "$MEOW_OK"
+  fi
 
   local -a nomes=() folgas=() encaixes=()
   local n b e csv="" sep=""
@@ -935,13 +1029,13 @@ cmd_refazer_alfinetes() {
   _areas_recusar_vazio "$novo" || return "$MEOW_ERRO"
 
   if meow_seco; then
-    meow_muda "refaria o alfinete de: $(printf '%s, ' "${AREAS_CAIDOS[@]}" | sed 's/, $//')"
+    meow_muda "refaria os alfinetes${telas:+ da tela $telas}"
     return "$MEOW_DIVERGENTE"
   fi
   _areas_guardar || return "$MEOW_ERRO"
   meow_escrever "$AREAS_ALVO" "$novo" 644
   case $? in "$MEOW_ERRO") meow_erro "não consegui gravar $AREAS_ALVO"; return "$MEOW_ERRO" ;; esac
-  meow_muda "alfinete refeito: $(printf '%s, ' "${AREAS_CAIDOS[@]}" | sed 's/, $//')"
+  meow_muda "alfinetes refeitos${telas:+ na tela $telas}: $(_areas_juntar "${nomes[@]}")"
   _areas_so_no_login
   meow_registrar "areas.sh refazer-alfinetes caidos=${#AREAS_CAIDOS[@]}"
   return "$MEOW_DIVERGENTE"

@@ -325,8 +325,8 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 # na tela só os dois basicamente". O `.bak-pre-iii-fora` que existe no disco ao
 # lado do arquivo é HISTÓRIA e não modelo.
 #
-# Um nome a mais nesta lista CRIA uma área nova, herdando o monitor de uma que
-# já existe. Um nome a MENOS é recusado: faltar um nome aqui apagaria uma área.
+# As áreas valem em cada tela ligada. Um nome a mais nesta lista CRIA uma área
+# nova em todas elas. Um nome a MENOS é recusado: faltar um nome aqui apagaria uma área.
 # Não cabem aspas, contrabarra, parênteses nem `#` — os três primeiros quebram o
 # formato do arquivo do COSMIC e o `#` corta a linha deste arquivo aqui.
 #

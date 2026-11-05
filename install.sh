@@ -1148,9 +1148,13 @@ etapa_forma() {
 }
 
 etapa_janelas() {
-  passo "Janelas lado a lado (o layout dwindle)"
-  "$MEOW_RAIZ/scripts/janelas.sh" aplicar
-  return $?
+  passo "Janelas lado a lado (o layout dwindle) e as áreas em cada tela"
+  local rc rc_areas
+  "$MEOW_RAIZ/scripts/janelas.sh" aplicar; rc=$?
+  AREAS_NOMES="${AREAS_NOMES:-}" AREAS_FOLGA="${AREAS_FOLGA:-}" AREAS_ENCAIXE="${AREAS_ENCAIXE:-}" \
+    "$MEOW_RAIZ/scripts/areas.sh" aplicar; rc_areas=$?
+  [ "$rc_areas" -gt "$rc" ] && rc="$rc_areas"
+  return "$rc"
 }
 
 etapa_relogio() {
