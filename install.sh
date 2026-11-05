@@ -258,6 +258,7 @@ completion_no_sistema() {
     meow_ok "completion do zsh já instalada em $sistema, onde o zsh procura"
   else
     meow_ponte_viva && grep -qxF 'completion-instalar)' "$MEOW_PONTE" 2>/dev/null \
+      && grep -qF "$(sha256sum < "$origem" | cut -d' ' -f1)" "${MEOW_PONTE%/*}/reserva-pecas.sha256" 2>/dev/null \
       || return "$MEOW_SEM_DEPENDENCIA"
     if meow_seco; then
       meow_muda "instalaria a completion em $sistema, pela ponte root"
