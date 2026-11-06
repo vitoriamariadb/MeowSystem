@@ -3,6 +3,11 @@
 Relato de 06/11/2026: a barra «O teams.cloud.microsoft está compartilhando sua tela.» aparece na dock sem ícone e
 fica bugada. «Ela deveria ser do Chrome.» Sem relação com o tema do MeowSystem: a barra é uma janela do Chrome.
 
+## Alcance
+
+Produto, não máquina: o patch vale para qualquer janela sem `app_id`, sem lista de nomes e sem citar o Chrome. A dock é
+aparência, então está dentro da fronteira do MeowSystem. A sonda e o doctor ganham em todo PC.
+
 ## O que se mediu
 
 Com a barra no ar, às 11:56, lendo `ext_foreign_toplevel_list_v1` sem filtro:

@@ -18,13 +18,15 @@
   papel de parede, Criar o meu tema e Personalizar no painel; no Mascote, Tamanho 57, Altura no ↶ e Linhas
   antes 0 deixam o gato do tamanho do texto, com a paleta logo abaixo.
   PRÓXIMO (achados, nenhum em voo):
-  - P159 (06/11): compartilhar tela e janela no COSMIC vira build idempotente nos três PCs (portal e policy do Chrome),
-    no molde do `files_menu`/`garantir_builds`; o portal aborta
+  - P159 (06/11): compartilhar tela e janela no COSMIC vira a build idempotente Aprimoramentos gráficos (portal, toolkit e
+    policy do Chrome), no molde do `files_menu`/`garantir_builds`; o portal aborta
     (pop-os/xdg-desktop-portal-cosmic#286). Curado à mão só no nitro-5;
   - P160 (06/11): o compartilhamento congela e a própria tela não aparece no Teams; corrida no toolkit (`create_frame`);
-  - P161 (06/11): as áreas do HDMI duplicam no note e o «5» aparece; vira correção e chave de feature, com dois caminhos
-    aceitos na nota. Falta medir janelas abertas;
+  - P161 (06/11): as áreas do HDMI duplicam no note e o «5» aparece; vira chave de feature, juntas por padrão (Global nativo),
+    com decisão 53 a reescrever. Falta medir `pinned_workspaces` em Global e janelas abertas;
   - P162 (06/11): a barra de compartilhar do Chrome tem `app_id` vazio, vira engrenagem na dock e a sonda não a vê;
+  - P163 (06/11): captura na placa que renderiza, para o híbrido usar a GPU em vez de SHM; depois da P159;
+  - P164 (06/11): build do compositor liberado sozinho, sem esperar o «Instalar», e sem a sessão cair calada na fábrica;
   - a banida com emoji no nome (`Cyberpunk Neon Cat Wallpaper …`, com dois emojis): o `limpar_banidos` e o `banir` pulam nomes
     fora do ASCII;
   - num checkout o lixo põe no BANIDOS.txt.padrao até foto dela que o `semear` nunca baixa; cópias em

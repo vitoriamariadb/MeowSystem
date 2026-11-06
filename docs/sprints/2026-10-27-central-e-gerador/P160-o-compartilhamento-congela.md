@@ -3,6 +3,11 @@
 Relato de 06/11/2026, com a P159 no ar: a tela apareceu e congelou depois de um tempo, ao tentar mostrar a janela.
 Segundo defeito, independente do da P159.
 
+## Alcance
+
+Produto, não máquina: as issues trazem Intel, AMD e híbridas, com Chrome, Firefox, Zoom e OBS. O Teams é só onde se mediu.
+A build é a Aprimoramentos gráficos, da P159. A falta da própria tela na call ainda não tem causa conhecida nem alcance medido.
+
 ## O que se mediu
 
 Na sessão de 06/11, com o portal da P159 instalado às 11:01 e o `cosmic-comp` 8cb1802 em execução:
@@ -57,7 +62,7 @@ Essa causa vem do PR, não foi medida aqui.
 Instalada em 06/11/2026, 11:57. Parcial: o relato de 12:15 é de 12 min transmitindo certo no celular, e nesse
 horário o portal tinha 18 min 40 s de pé, com stream ativo, sem queda e sem os dois erros. Falta passar de 30 min,
 repetir depois do reboot e ver a própria tela no Teams. É o diff do [cosmic-protocols#95](https://github.com/pop-os/cosmic-protocols/pull/95),
-fechado por ser duplicado do #92, ainda sem merge: destruir o frame antes de notificar
+fechado por ser duplicado do [#92](https://github.com/pop-os/cosmic-protocols/pull/92), que segue aberto: destruir o frame antes de notificar
 (`client-toolkit/src/screencopy/dispatch.rs`, +8 −2). O PR registra de 10 quedas em 15 min para 0, em outro hardware.
 
 - Toolkit: `~/.local/src/cosmic-protocols`, branch `aurora-frame-destroy`, commit `aa98ca1f86`.
