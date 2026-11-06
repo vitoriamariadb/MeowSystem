@@ -583,7 +583,7 @@ def cmd_conferir():
         bonito(d["total"]), bonito(d["categorias"][0]["bytes"]), bonito(d["categorias"][1]["bytes"]))
     plano = executar("tetos", seco=True)
     if plano["itens"]:
-        print("%s; passou do teto em %s" % (base, bonito(plano["liberou"])))
+        print("%s; tem %s para cortar" % (base, bonito(plano["liberou"])))
         return 1
     if plano["esperou"]:
         print("%s; há build em curso, a limpeza espera" % base)

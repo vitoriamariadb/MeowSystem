@@ -188,7 +188,7 @@ touch -d '1 hour ago'  "$alvo/release/deps/libx-0000000000000004.rlib"
 printf '#!/bin/sh\n' > "$CASA/binario-instalado"
 saida="$(esp conferir)"; rc=$?
 igual "acima do teto, o doctor acusa (divergente)" "$rc" 1
-case "$saida" in *"passou do teto"*) ok "e diz quanto passou" ;; *) falha "sem o aviso: $saida" ;; esac
+case "$saida" in *"para cortar"*) ok "e diz quanto há para cortar" ;; *) falha "sem o aviso: $saida" ;; esac
 exec 8>>"$alvo/release/.cargo-lock"; flock -n 8
 saida="$(esp aparar)"; rc=$?
 igual "com um build em curso nada é cortado" "$rc" 0
