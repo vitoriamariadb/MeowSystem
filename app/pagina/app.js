@@ -33,6 +33,7 @@ const IC = {
   computador: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
   girar: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
   lixo: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
+  disco: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
   ponte: '<path d="M2 18h20M4 18V9M20 18V9M4 9c4 4 12 4 16 0M9 13v5M15 13v5"/>',
   seta: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   voltar: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
@@ -1326,7 +1327,7 @@ function rotaDoHash() {
   if (!PORTAS.some((p) => p.id === porta)) return { porta: "tema", sub: "" };
   if (porta === "ajustes") return { porta, sub: AJUSTES.some((p) => p.id === sub) ? sub : AJUSTES[0].id };
   if (porta === "criar") return { porta, sub: PASSOS.some((p) => p.id === sub) ? sub : PASSOS[0].id };
-  if (porta === "extensoes") return { porta, sub: sub === "builds" ? "builds" : "applets" };
+  if (porta === "extensoes") return { porta, sub: sub === "builds" || sub === "espaco" ? sub : "applets" };
   if (porta === "modificacoes") return { porta, sub: LUGAR_MODIFICACOES.detalhes.some((d) => d.id === sub) ? sub : "" };
   return { porta, sub: "" };
 }

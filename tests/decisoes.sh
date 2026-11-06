@@ -446,6 +446,11 @@ registro 52 'packs/<id>/' && grep -q '^def motivo_para_nao_aprimorar' "$RAIZ/scr
   && grep -q 'href: "#novo/cores"' "$RAIZ/app/pagina/paginas.js" && grep -q '"/api/pack-cores"' "$RAIZ/app/servidor.py" \
   && ok "52: Criar o meu tema gera um tema novo; o Personalizar aprimora o tema no ar" \
   || falha "52: o Criar e o Personalizar voltaram a ser o mesmo fluxo, ou a decisão saiu do registro"
+registro 56 'espaco.tsv' && [ -f "$RAIZ/assets/contratos/espaco.tsv" ] && [ -f "$RAIZ/scripts/espaco.py" ] \
+  && grep -q 'espaco.py" continua' "$RAIZ/scripts/extensoes_build.sh" && grep -q '^chk_disco' "$RAIZ/bin/meow" \
+  && grep -q 'meow_desinstalar_espaco$' "$RAIZ/lib/desinstalar.sh" && grep -q '"espaco_liberar"' "$RAIZ/app/servidor.py" \
+  && ok "56: o MeowSystem tem inventário do que escreve, limpa no fim do build e no doctor, mostra o Espaço e desinstala limpo" \
+  || falha "56: o inventário, a limpeza do build, o doctor, a página ou o desinstalador saiu, ou a decisão saiu do registro"
 registro 37 'sons/' && grep -q 'som-padrao' "$RAIZ/scripts/ponte_root.sh" && grep -q 'passo_sons' "$RAIZ/scripts/cosmic_pos_apt.sh" \
   && [ -f "$RAIZ/assets/sons/eventos.json" ] \
   && ok "37: os sons do pack vão ao sistema pela ponte, o pós-apt os repõe e a página lista cada evento" \

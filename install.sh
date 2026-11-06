@@ -1912,7 +1912,9 @@ install.sh — instala o MeowSystem inteiro.
                             uma chave que acabou de gravar
   ./install.sh --wizard     roda `meow configurar` antes (pergunta as chaves do
                             meow.conf, grava lá) e então instala como sempre
-  ./install.sh --uninstall  tira o MeowSystem desta máquina
+  ./install.sh --uninstall  tira o MeowSystem desta máquina, com o estado, o cache e os backups
+  ./install.sh --uninstall --guardar-backups
+                            o mesmo, mas os backups ficam em ~/.local/state/meowsystem/backups
   ./install.sh --perfil <nome>
                             copia perfis/<nome>/ (meow.conf e o mapa dos ícones
                             escolhidos) para ~/.config/meow/, guardando o de
@@ -1990,12 +1992,13 @@ main() {
       --etapa=*)   so_etapas="${1#--etapa=}" ;;
       --dry-run|--seco|-n)       MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
       --uninstall|--desinstalar) desinstalar=1 ;;
+      --guardar-backups) MEOW_GUARDAR_BACKUPS=1; export MEOW_GUARDAR_BACKUPS ;;
       --perfil)    com_perfil=1; perfil="${2:-}"; [ $# -gt 0 ] && shift ;;
       --perfil=*)  com_perfil=1; perfil="${1#--perfil=}" ;;
       -h|--help)   uso; return 0 ;;
       "")          ;;
       *) meow_erro "opção desconhecida: $1"
-         meow_info "o que existe: --dry-run, --uma-passagem, --etapa <nome>, --wizard, --perfil <nome>, --uninstall, --help."
+         meow_info "o que existe: --dry-run, --uma-passagem, --etapa <nome>, --wizard, --perfil <nome>, --uninstall, --guardar-backups, --help."
          return 2 ;;
     esac
     shift

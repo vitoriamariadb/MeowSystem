@@ -293,6 +293,7 @@ const LUGAR_CUIDAR = {
     { a: "restaurar", r: "Restaurar", b: "Restaurar" },
     { a: "desfazer", r: "Tema de antes", b: "Voltar" },
     { a: "desinstalar", r: "Desinstalar", b: "Desinstalar" },
+    { a: "desinstalar_guardando", r: "Desinstalar e guardar", b: "Desinstalar" },
   ],
 };
 

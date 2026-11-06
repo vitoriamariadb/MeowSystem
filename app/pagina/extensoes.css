@@ -83,3 +83,20 @@ dialog .pilha-campo { display: grid; gap: var(--e-2); }
   .oficina.extensoes .palco .previa { max-height: calc(38vh - var(--e-3)); width: auto; margin-inline: auto; }
 }
 @media (max-width: 560px) { #abas-fila .adicionar-repo span { display: none; } }
+
+.espaco { display: grid; gap: var(--e-4); max-width: 880px; margin: 0 auto; }
+.espaco-cabeca { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--e-6); padding: var(--e-5) var(--e-6); }
+.espaco-total { display: grid; gap: var(--e-3); min-width: 0; }
+.espaco-total b { font-size: var(--t-2xl); font-weight: 700; line-height: 1; }
+.espaco-acao { display: inline-flex; }
+.espaco-acao .bt .preco { margin-left: var(--e-2); padding-left: var(--e-2); border-left: 1px solid color-mix(in oklab, var(--sobre-accent) 35%, transparent); font: var(--t-xs) var(--f-mono); white-space: nowrap; }
+.barra-do-espaco { display: flex; gap: 2px; height: 10px; border-radius: var(--raio-pilula); overflow: hidden; background: var(--cartao-2); }
+.barra-do-espaco .fatia { display: block; flex-basis: 0; min-width: 4px; }
+.fatia.accent, .barrinha.accent i { background: var(--accent); }
+.fatia.alerta, .barrinha.alerta i { background: var(--alerta); }
+.fatia.mudo, .barrinha.mudo i { background: var(--linha-forte); }
+.bloco > header .numero, .linha .numero { color: var(--tinta-2); font: 600 var(--t-sm) var(--f-mono); white-space: nowrap; }
+.barrinha { display: block; width: 120px; height: 6px; border-radius: var(--raio-pilula); background: var(--cartao-2); overflow: hidden; }
+.barrinha i { display: block; height: 100%; border-radius: inherit; }
+.linha[data-espaco]:focus-visible { outline: 2px solid var(--foco); outline-offset: -2px; }
+@media (max-width: 640px) { .espaco-cabeca { grid-template-columns: minmax(0, 1fr); } .barrinha { width: 72px; } }

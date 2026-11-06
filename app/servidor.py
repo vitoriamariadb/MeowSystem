@@ -3039,6 +3039,18 @@ def _ext_dados():
     return {"extensoes": _ext_cartoes(), "builds": _ext_builds(), "ocupado": _ext_ocupado()}
 
 
+ESPACO_PY = os.path.join(RAIZ, "scripts", "espaco.py")
+
+
+def _espaco_dados():
+    try:
+        proc = subprocess.run([sys.executable or "python3", ESPACO_PY, "json"], capture_output=True,
+                              timeout=90, env=_ambiente_do_painel(seco=False), cwd=RAIZ)
+        return json.loads(proc.stdout.decode("utf-8"))
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return {"erro": "não consegui medir o disco"}
+
+
 def _ext_gesto(*args, prazo=240):
     try:
         proc = subprocess.run([EXT_GESTO, *args], capture_output=True, timeout=prazo,
@@ -3666,8 +3678,27 @@ ACOES = {
         "natureza": "tirar",
         "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall"],
         "escreve": True, "sudo": True, "confirma": True, "destrutivo": True,
-        "ajuda": "Tira o tema, os ícones e os agendamentos. Não apaga "
-                 "backups nem a coleção de imagens.",
+        "ajuda": "Tira o tema, os ícones, os agendamentos, o cache, os builds e "
+                 "os backups, e diz quanto liberou. Não apaga a coleção de imagens.",
+    },
+    "desinstalar_guardando": {
+        "rotulo": "Desinstalar e guardar",
+        "grupo": "Instalação",
+        "natureza": "tirar",
+        "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall", "--guardar-backups"],
+        "escreve": True, "sudo": True, "confirma": True, "destrutivo": True,
+        "ajuda": "O mesmo que desinstalar, mas os backups ficam em "
+                 "~/.local/state/meowsystem/backups.",
+    },
+    "espaco_liberar": {
+        "rotulo": "Liberar espaço",
+        "grupo": "Extensões",
+        "natureza": "tirar",
+        "argv": _meow("espaco", "liberar"),
+        "escreve": True, "sudo": False, "confirma": False,
+        "oculta": True,
+        "ajuda": "Tira o que o MeowSystem reconstrói sozinho: compilação dos "
+                 "applets, cache do compositor e resíduos. Nada que seja seu.",
     },
     "log": {
         "rotulo": "Ver o registro",
@@ -8052,6 +8083,9 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/modificacoes":
             return self._json(_mod_dados())
+
+        if caminho == "/api/espaco":
+            return self._json(_espaco_dados())
 
         if caminho == "/api/pendencias":
             return self._json({"pendencias": pendencias()})

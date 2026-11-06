@@ -402,6 +402,22 @@ _alvo_velho_sair() {
   return 0
 }
 
+_limpar_fim_de_build() {
+  local modo_lock="$1" travado=--locked linha
+  meow_seco && return 0
+  meow_tem python3 || return 0
+  [ "$modo_lock" = 1 ] && travado=""
+  rm -f "$ESTADO/uso.lista"
+  CARGO_TARGET_DIR="$ALVO" cargo build --release $travado --offline --message-format=json \
+      --manifest-path "$ARVORE/Cargo.toml" 2>/dev/null \
+    | python3 "$RAIZ/scripts/espaco.py" uso "$ESTADO/uso.lista" >/dev/null 2>&1
+  while IFS= read -r linha; do
+    [ -n "$linha" ] && meow_info "$linha"
+  done < <(MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$RAIZ" \
+             python3 "$RAIZ/scripts/espaco.py" continua 2>&1)
+  return 0
+}
+
 _instalar_binario() {
   local recem="$1" tmp
   mkdir -p "$BINDIR" || return 1
@@ -513,6 +529,7 @@ _aplicar() {
     if [ "$compilou" = 1 ]; then ap_compilou "$ID" "$alvo_rev"; else ap_compilou "$ID" "$P_LIBCOSMIC"; fi
   fi
   _carimbo_vivo > "$CARIMBO" || { meow_erro "não consegui gravar o carimbo"; return "$MEOW_ERRO"; }
+  _limpar_fim_de_build "$compilou"
   git -C "$ARVORE" checkout -q -- . 2>/dev/null
 
   meow_ok "$(_nome) compilado e instalado ($(_sha "$BINARIO" | cut -c1-8))"

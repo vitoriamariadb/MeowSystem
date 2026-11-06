@@ -58,6 +58,26 @@ patches e o esquema de chaves vão entrar na versão nova. O build pergunta ao f
 - **Build que cai duas vezes seguidas ao subir a sessão.** A guarda do shim o põe de lado, e a
   sessão volta ao compositor de fábrica até a próxima versão.
 
+## O espaço em disco
+
+`assets/contratos/espaco.tsv` é o inventário: uma linha por caminho que o MeowSystem escreve, com nove
+campos separados por tabulação: id, categoria, caminho (com `$MEOW_ESTADO`, `$MEOW_CACHE`, `$HOME` e
+`$MEOW_RAIZ`, alternativas separadas por `|`), nome curto, minutos para refazer, teto em MB, corte,
+o que o desinstalar faz (`sim`, `nao`, `passo` ou `backups`) e a dica da tela. A categoria é
+`reconstruível`, `backup` ou `de quem usa`. O corte é `unidades` (artefatos do cargo por idade e por
+teto), `versoes:N` (o cache do build em uso e dos mais novos), `guardados:N` (o que já está pronto ou baixado, por versão do pacote), `ocioso`, `orfao`, `rotacao:dias:quantas` ou `nunca`.
+`tests/espaco.sh` cobra que todo caminho que o código escreve tenha dono nesse arquivo.
+
+- **No fim de cada build** de applet, o que não serve ao build atual sai do `.target`.
+- **No doctor**, a linha `disco` mede o Meow; acima do teto o conserto corta, e com o disco em 85% ou mais os
+  tetos caem pela metade.
+- **Nunca** se corta o que é de quem usa, o build em uso, nem durante um build (a `builds.lock` e a trava
+  `.cargo-lock` do cargo).
+- **`meow espaco`** mostra o peso por categoria; **`meow espaco liberar`** (o botão Liberar da aba Espaço,
+  em Extensões) tira tudo o que se reconstrói, e o próximo build compila de novo.
+- **Desinstalar** apaga o estado, o cache, os builds e os backups e diz quanto liberou. Os temas, as
+  imagens e as listas que você montou ficam; `./install.sh --uninstall --guardar-backups` guarda os backups.
+
 ## Como voltar
 
 Na página Extensões, aba Builds, **Remover** no cartão do Compositor tira o shim e grava
