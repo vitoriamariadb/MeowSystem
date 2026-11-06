@@ -122,8 +122,15 @@ restos-do-painel.sh, apagar-papel.sh, arvore.sh, pack.sh  -> rc=0
 tests/grava-ao-soltar.py, tests/app-texto-visivel.py        -> rc=0
 ```
 
-Vermelhos que já eram da árvore antes do bloco (conferidos com `git stash`): `decisoes.sh` (askpass 600 e um comentário no
-`.gitignore`) e `ganchos.sh` («o pre-push não encadeou»: o teste espera a branch `dev`, e o tronco é o `master`).
+Com a cópia do arquivo real de 06/11 (`~/.local/state/aurora/pinned_workspaces.2026-11-06`, 4 entradas) num HOME temporário,
+`cosmic-randr` falso só com o eDP-1: `alfinetes` rc=1 («workspace_mode está OutputBound e o conf pede Global», «áreas repetidas
+na tela: eDP-1»); `refazer-alfinetes` deixa 2 entradas (« Pop », « OS ») e a chave `workspaces` com `workspace_mode: Global`;
+a segunda `alfinetes` rc=0.
+
+Vermelhos que já eram da árvore antes do bloco: `decisoes.sh` (askpass 600 e um comentário no `.gitignore`; igual com o bloco
+guardado por `git stash`) e `ganchos.sh` («o pre-push não encadeou»: o teste procura a branch `dev`, e o tronco é o `master`;
+lido no teste, não medido sem o bloco). O `app-completo.py` marca `XX [tema] a gravação passou do teto de 240s` com a
+máquina a carga 10 (outros blocos rodando), um teto de tempo que não é desta sprint.
 
 ### O que falta, e por quê
 
