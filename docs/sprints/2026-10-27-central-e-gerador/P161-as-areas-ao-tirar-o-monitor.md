@@ -119,8 +119,9 @@ tests/chave-etapa.sh          -> ok: toda chave do exemplo tem etapa na tabela, 
 tests/numeros.sh              -> FALHOU: README.md diz 130 ajustes; são 131 / FALHOU: README.en.md diz 130 settings; são 131
                                  (rc=1: só esses dois, até o readme.sh regerar no merge; com os dois ajustados à mão deu
                                  «todos os números escritos batem com os contados.»)
+tests/readme.sh               -> FALHOU: o README está velho (rc=1: a mesma contagem, até o readme.sh regerar)
 tests/app.sh, restaurar.sh (50 ações), vizinhos.sh, doctor-so-le.sh, doctor-veredito.sh, seco.sh, convergencia.sh,
-reversao.sh, chaves-aposentadas.sh, nada-manda-digitar.sh, estilo.sh, higiene.sh, orfaos.sh, readme.sh, modificacoes.sh,
+reversao.sh, chaves-aposentadas.sh, nada-manda-digitar.sh, estilo.sh, higiene.sh, orfaos.sh, modificacoes.sh,
 restos-do-painel.sh, apagar-papel.sh, arvore.sh, pack.sh  -> rc=0
 tests/grava-ao-soltar.py, tests/app-texto-visivel.py        -> rc=0
 ```
