@@ -9,6 +9,7 @@ const AUTORES = [
 const ABAS_EXT = [
   { id: "applets", nome: "Applets", icone: "grade" },
   { id: "builds", nome: "Builds", icone: "terminal" },
+  { id: "espaco", nome: "Espaço", icone: "disco" },
 ];
 
 async function carregarExtensoes() {
@@ -320,6 +321,7 @@ function corpoDeApplets(dados) {
 }
 
 function paginaExtensoes(sub) {
+  if (sub === "espaco") return paginaEspaco();
   if (!EXT.pedindo && Date.now() - EXT.quando > 1500) carregarExtensoes();
   const dados = EXT.dados;
   const aba = sub === "builds" ? "builds" : "applets";
