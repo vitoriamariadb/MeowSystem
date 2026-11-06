@@ -7877,6 +7877,10 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "ação desconhecida: %s" % acao}, 400)
 
         try:
+            dir_pack = mod.pack_da_pessoa(id_pack)
+        except mod.Recusa as e:
+            return self._json({"erro": texto_na_tela(str(e))}, 403)
+        try:
             pasta = mod.dir_acervo("icones.autorais.desenhos", ref=dir_pack,
                                    padrao=mod.PASTA_AUTORAIS)
         except mod.Recusa as e:

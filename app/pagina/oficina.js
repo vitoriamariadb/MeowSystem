@@ -615,7 +615,7 @@ function oficinaAutoral() {
   caixa.append(elemento("div", { class: "fila" }, [botao("Salvar no tema", { class: "bt pequeno principal", controle: "autoral:salvar",
     disabled: !AUTORAL.nome || AUTORAL.ocupada, onclick: async () => {
       AUTORAL.ocupada = true;
-      const r = await api("/api/autorais", { method: "POST", body: JSON.stringify({ acao: "salvar", nome: AUTORAL.nome, papeis: AUTORAL.papeis }) });
+      const r = await api("/api/autorais", { method: "POST", body: JSON.stringify({ acao: "salvar", nome: AUTORAL.nome, papeis: AUTORAL.papeis, aprimorar: ROTA.porta === "criar" }) });
       AUTORAL.ocupada = false;
       if (r.erro) { AUTORAL.erro = r.erro; torrada(r.erro, "erro"); render(); return; }
       torrada(`${maiuscula(AUTORAL.nome)}: salvo no ${r.nome_pack}`, "ok");
