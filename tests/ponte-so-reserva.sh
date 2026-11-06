@@ -228,6 +228,7 @@ declare -A ORIGEM=(
   [som-padrao]="o de fábrica que o verbo som guardou, devolvido ao lugar"
   [gpu-compositor]="a placa dedicada achada em /sys, gravada como a única linha COSMIC_RENDER_DEVICE do /etc/environment, com o de antes guardado em /var/lib/meowsystem"
   [gpu-compositor-tirar]="o /etc/environment de antes, devolvido do que o verbo gpu-compositor guardou"
+  [chrome-policy]="o texto de dentro da ponte (os três valores de captura), num arquivo cravado em /etc/opt/chrome/policies/managed, só com o google-chrome-stable instalado"
 )
 escrevem="$(por_verbo | awk -F'\t' '$2 ~ /(^|[ \t])(install -m|cp -a|mv -f|tee|dd) / { print $1 }' | sort -u | tr '\n' ' ')"
 esperados="$(printf '%s\n' "${!ORIGEM[@]}" | sort | tr '\n' ' ')"
