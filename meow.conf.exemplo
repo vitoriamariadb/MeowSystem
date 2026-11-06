@@ -310,6 +310,28 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 #   alfinetes de hora em hora, e recusava gravar onde o nome era dele. O
 #   vizinho saiu do Spellbook, e a guarda saiu daqui (sprint P39).
 
+# @ Áreas em várias telas
+# > Juntas: trocar de área troca todas as telas. Independentes: cada tela tem as suas.
+# AS ÁREAS COM MAIS DE UM MONITOR — 06/11/2026
+#   juntas         `workspace_mode: Global` na chave `workspaces` do cosmic-comp,
+#                  nativo, sem patch. Uma lista de áreas só, e trocar de área
+#                  troca as duas telas. Tirar o monitor não duplica nada. Sem
+#                  patch o Global mantém UMA área vazia, com número, depois da
+#                  lista; na outra tela as áreas têm o número, não o nome.
+#   independentes  cada tela tem a sua lista, repetida pelo doctor com os mesmos
+#                  nomes. Ao tirar o monitor as áreas dele vêm para a tela que
+#                  ficou, e a barra mostra as duplicadas mais a vazia do fim.
+#
+# Pedido de quem usa em 06/11: «ou a solução é mesmas duas áreas pros dois
+# monitores ou manter agora mas impedir o 5 e que as duplicatas apareçam. isso
+# vira correção e chave de feature». Vale a primeira, o padrão é juntas.
+#
+# O MODO VALE NA HORA, E A LISTA SÓ NO PRÓXIMO INÍCIO DE SESSÃO. O cosmic-comp
+# relê `workspaces` ao vivo (`Workspaces::update_config`) e lê o
+# `pinned_workspaces` uma vez, ao iniciar. Só é tocado com `AREAS_NOMES`
+# preenchido: sem nomes, as áreas e o modo são do COSMIC.
+AREAS_MODO="juntas"               # juntas | independentes
+
 # @ Nomes das áreas de trabalho
 # > A primeira da lista é a primeira do painel. Trocar a ordem aqui troca a sua tela.
 # A ORDEM É O ASSUNTO INTEIRO, e não um detalhe de apresentação.
@@ -325,8 +347,9 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 # na tela só os dois basicamente". O `.bak-pre-iii-fora` que existe no disco ao
 # lado do arquivo é HISTÓRIA e não modelo.
 #
-# As áreas valem em cada tela ligada. Um nome a mais nesta lista CRIA uma área
-# nova em todas elas. Um nome a MENOS é recusado: faltar um nome aqui apagaria uma área.
+# Em `AREAS_MODO="independentes"` as áreas valem em cada tela ligada; em `juntas`
+# a lista é uma só. Um nome a mais nesta lista CRIA uma área nova. Um nome a
+# MENOS é recusado: faltar um nome aqui apagaria uma área.
 # Não cabem aspas, contrabarra, parênteses nem `#` — os três primeiros quebram o
 # formato do arquivo do COSMIC e o `#` corta a linha deste arquivo aqui.
 #

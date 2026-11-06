@@ -336,6 +336,12 @@ DOMINIOS = {
                   "dele: esta versão só vale para o ponteiro que o MeowSystem "
                   "baixa pelo nome.",
     },
+    "AREAS_MODO": {
+        "chave": "AREAS_NOMES",
+        "quando": lambda v: not v,
+        "porque": "Só vale com os nomes das áreas preenchidos: sem eles, as "
+                  "áreas e o jeito delas nas telas são os do sistema.",
+    },
 }
 
 
@@ -383,11 +389,19 @@ def _ala(qual):
     return ler
 
 
+def _modo_das_areas(bruto):
+    achado = re.search(r"workspace_mode:\s*(Global|OutputBound)", bruto)
+    if not achado:
+        return None
+    return {"Global": "juntas", "OutputBound": "independentes"}[achado.group(1)]
+
+
 NA_MAQUINA = {
     "RELOGIO_SEGUNDOS": ("com.system76.CosmicAppletTime/v1/show_seconds", _sim_nao),
     "JANELAS_TILING": ("com.system76.CosmicComp/v1/autotile", _sim_nao),
     "JANELAS_TILING_ESCOPO": ("com.system76.CosmicComp/v1/autotile_behavior",
                               {"Global": "global", "PerWorkspace": "workspace"}.get),
+    "AREAS_MODO": ("com.system76.CosmicComp/v1/workspaces", _modo_das_areas),
 }
 for _suf, _pasta in _BARRAS:
     NA_MAQUINA.update({

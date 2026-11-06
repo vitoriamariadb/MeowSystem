@@ -52,6 +52,7 @@ a máquina gerou.
 | `CosmicComp/v1/leitura_{temperatura,textura}` | **Meow** escreve o degrau da hora; **quem usa** escreve à mão pelo applet |
 | `CosmicComp/v1/leitura_{agenda,hora_inicio,hora_fim}` | **quem usa**; o Meow lê e obedece |
 | `pinned_workspaces` | **Meow** (`scripts/areas.sh`) |
+| `CosmicComp/v1/workspaces` (só o `workspace_mode`; layout, digitação e volta ficam como estão) | **Meow** (`scripts/areas.sh`), com `AREAS_NOMES` preenchido |
 | `~/.config/cosmic/com.system76.CosmicBackground` | **Meow** |
 | `/var/lib/cosmic-greeter/.config/cosmic` | **Meow**, pela ponte root |
 | `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts`, `~/.config/autostart/`, `org.gnome.desktop.wm.preferences` | **Aurora** |

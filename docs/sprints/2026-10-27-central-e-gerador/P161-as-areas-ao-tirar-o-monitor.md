@@ -58,3 +58,113 @@ sentido no modo independente. Medir também as janelas abertas no HDMI ao descon
 2. Com janelas nas duas telas, desconectar e reconectar: nenhuma janela some, e cada uma volta ao seu monitor.
 3. Em Independentes, `pinned_workspaces` continua com as 4 entradas; em Juntas, com a quantidade medida para o Global, sem duplicata.
 4. O commit do código reescreve a decisão 53 e registra a chave, citando o sim de 06/11.
+
+## Execução
+
+### O que foi feito
+
+- `AREAS_MODO` (`juntas` | `independentes`, padrão `juntas`) em `meow.conf.exemplo`, `assets/contratos/chave-etapa.tsv`
+  (etapa `janelas`) e `assets/contratos/cosmic.tsv` (a chave `workspaces` do `CosmicComp`).
+- `scripts/areas.sh`: o modo grava só o token `workspace_mode` da chave `workspaces` (layout, digitação e volta ficam; sem
+  arquivo, nasce com os padrões do COSMIC; `OutputBound` sem arquivo não cria arquivo). Em `juntas` o motor tira das
+  outras telas o que repete nome da primeira, e a área que só existe na outra tela fica (`aplicar` nunca tira alfinete); em
+  `independentes` repõe a lista em cada tela ligada, como na decisão 53 de
+  antes. `aplicar` (install), `alfinetes` (a conferência do doctor) e `refazer-alfinetes` (o conserto do doctor) tratam o modo
+  e a lista; `conferir` e `estado` também. O doctor corrige, nenhuma saída manda digitar.
+- Só se toca no modo com `AREAS_NOMES` preenchido (`AREAS_ENCAIXE` sozinho não toca): sem nomes, as áreas são do COSMIC, e o
+  modo também. Escolha minha, pela razão de 21/09 (a primeira passada do instalador não pode mexer em área de quem não pediu).
+  O controle fica apagado nesse caso, com o porquê na dica (`DOMINIOS` do `servidor.py`).
+- Painel: o controle «Nas telas» no bloco «Áreas de trabalho» da página «Janelas e tela» (`lugares.js`); duas palavras, o valor
+  em vigor lido do disco (`servidor.py`, `_modo_das_areas`), a frase vem do `# >` do exemplo.
+- Decisão 53 reescrita no mesmo commit do código, citando o sim de 06/11. `docs/FRONTEIRA.md` ganhou a linha da chave
+  `workspaces`. A contagem de chaves (130 para 131) entrou no `app/LEIA-ME.md`; o `README.md` e o `README.en.md` ficam para o
+  `readme.sh`, que regera o que vem do código no merge (decisão 45): o gancho de commit redige o nome de quem criou o README
+  quando esses dois entram num commit, então não os toquei.
+- `tests/areas-em-cada-tela.sh` é a prova da decisão e acompanha: independentes como antes, e juntas (padrão, ensaio sem escrita,
+  segunda passada sem escrever, renomear, acrescentar e tirar na lista única, modo que preserva o resto da chave, ida e volta,
+  `AREAS_NOMES` vazio quieto, modo inválido recusado, o painel lendo o disco, o instalador saindo direto das quatro entradas,
+  a área só da outra tela preservada, renomear na mesma virada, o estado dizendo o modo do disco).
+
+### O que se mediu no fonte (`~/.cache/meowsystem/cosmic-comp/cosmic-comp-0.1~1793802426~24.04~ec674cd`, só leitura)
+
+- `Workspaces::add_output` (`src/shell/mod.rs:906`): a PRIMEIRA saída adicionada recebe TODAS as entradas de
+  `pinned_workspaces`, qualquer que seja o `output` de cada uma (`mem::take` de `persisted_workspaces`); as outras saídas só
+  recebem as que `prefers_output` as nomeia.
+- `remove_output` (`:976`): as áreas que não são `can_auto_remove` (fixadas ou com janela) vão TODAS para a tela que ficou, nos
+  dois modos; as vazias e sem alfinete são destruídas. Por isso o «Pop OS Pop OS 5»: quatro entradas viram quatro áreas numa tela
+  só. O modo Global não muda isso. O que evita a duplicata é a lista ter UMA entrada por área, e é isso que `juntas` grava.
+- `to_pinned` (`workspace.rs:455`): grava `explicit_output` (a frente do `output_stack`), então a área que veio do HDMI continua
+  escrita como do HDMI; `prefers_output` a devolve quando ele volta. Com janela dentro, ela é a mesma área e a janela vai junto.
+  `persist` só roda quando alguém fixa ou desafixa uma área (`handlers/workspace.rs:70,73`).
+- `workspace_mode` (`cosmic-comp-config/src/workspace.rs`): `workspace_mode` é o único campo da chave `workspaces` sem
+  `serde(default)`, por isso o escritor nunca grava a chave sem ele. `Workspaces::update_config` (`:1211`) relê a chave ao vivo e
+  junta os conjuntos (preenche o que falta com área vazia); o modo, ao contrário da lista, não espera o próximo login.
+- Em Global, `Workspaces::refresh` (`:1297`, ramo `Global`, `// add empty at the end, if necessary`, `:1318`) acrescenta uma área
+  vazia no fim sempre que a última de qualquer tela é fixada ou tem janela. O `cosmic-comp-sem-workspace-vazio.patch` só mexe no
+  `ensure_last_empty`, que é o ramo `OutputBound`. Sem patch (a decisão de 06/11), `juntas` mostra as áreas de `AREAS_NOMES`
+  mais UMA vazia, com o número dela. É o achado abaixo.
+- Em Global, as áreas que a segunda tela completa para igualar a primeira nascem sem nome (`workspace_set_idx` usa o número);
+  o nome só existe na tela que tem a entrada fixada. Os nomes vão para a tela da primeira entrada do arquivo.
+
+### Provas
+
+Rodadas com o molde da suíte (HOME temporário, falsos recusando `sudo`, `pkexec`, `su`, `apt`, `pkill`, `systemctl`; sem
+barramento da sessão), cada teste sozinho:
+
+```
+tests/areas-em-cada-tela.sh   -> areas-em-cada-tela: tudo verde  (rc=0)
+tests/contrato-cosmic.sh      -> contrato-cosmic: tudo certo  (rc=0)
+tests/cosmic-prever.sh        -> cosmic-prever: tudo certo  (rc=0)
+tests/chave-etapa.sh          -> ok: toda chave do exemplo tem etapa na tabela, as etapas existem, --etapa roda só o pedido
+tests/numeros.sh              -> FALHOU: README.md diz 130 ajustes; são 131 / FALHOU: README.en.md diz 130 settings; são 131
+                                 (rc=1: só esses dois, até o readme.sh regerar no merge; com os dois ajustados à mão deu
+                                 «todos os números escritos batem com os contados.»)
+tests/readme.sh               -> FALHOU: o README está velho (rc=1: a mesma contagem, até o readme.sh regerar)
+tests/app.sh, restaurar.sh (50 ações), vizinhos.sh, doctor-so-le.sh, doctor-veredito.sh, seco.sh, convergencia.sh,
+reversao.sh, chaves-aposentadas.sh, nada-manda-digitar.sh, estilo.sh, higiene.sh, orfaos.sh, modificacoes.sh,
+restos-do-painel.sh, apagar-papel.sh, arvore.sh, pack.sh  -> rc=0
+tests/grava-ao-soltar.py, tests/app-texto-visivel.py        -> rc=0
+```
+
+Com a cópia do arquivo real de 06/11 (`~/.local/state/aurora/pinned_workspaces.2026-11-06`, 4 entradas) num HOME temporário,
+`cosmic-randr` falso só com o eDP-1: `alfinetes` rc=1 («workspace_mode está OutputBound e o conf pede Global», «áreas repetidas
+na tela: eDP-1»); `refazer-alfinetes` e, pelo caminho do instalador, `aplicar` deixam 2 entradas (« Pop », « OS ») e a chave
+`workspaces` com `workspace_mode: Global`; a segunda passada dá rc=0 em `aplicar`, `alfinetes` e `conferir`, com o md5 igual.
+
+Vermelhos que já eram da árvore antes do bloco: `decisoes.sh` (askpass 600 e um comentário no `.gitignore`; igual com o bloco
+guardado por `git stash`) e `ganchos.sh` («o pre-push não encadeou»: o teste procura a branch `dev`, e o tronco é o `master`).
+A árvore de integração já mexeu no `tests/ganchos.sh` e no `.gitignore`; o bloco não rodou os dois sobre ela. O `app-completo.py`, com a
+máquina a carga 10 (outros blocos rodando), marcou só `XX [tema] a gravação passou do teto de 240s`, um teto de tempo que não é
+desta sprint; a seção `ajustes/janelas` (a do controle novo) correu sem `XX`, mas o teste foi cortado pelo `timeout` de 1700 s
+na seção `cuidar`, sem chegar ao veredito: não é verde, é parcial.
+
+### Conferência
+
+O conferente releu o diff e o fonte do compositor, e os trechos citados acima batem. Achou e corrigiu (`b2ed7f79`), com o teste
+vermelho antes e verde depois:
+
+- `juntas` apagava toda entrada das outras telas, inclusive área que só existia lá. Agora sai só o que repete nome.
+- `AREAS_ENCAIXE` sem `AREAS_NOMES` gravava o Global no install, contra a decisão 53.
+- `estado` dizia o modo do conf, não o do disco.
+- Sem nomes, «Nas telas» mostrava Juntas e não fazia nada. Fica apagado, medido no navegador sem cabeça: `linha dominada`, com a
+  dica. Sobra um caso: conf vazio com alfinetes no disco, em que o `vale()` da página devolve os alfinetes e o controle não apaga.
+
+### O que falta, e por quê
+
+- A prova 2 (janelas nas duas telas, desconectar e reconectar) e a leitura de «a barra mostra só as áreas» só existem com dois
+  monitores e o compositor vivo: está em «da mão de quem usa».
+- A área vazia do fim em `juntas` (medida acima) contradiz a prova 1 se for lida ao pé da letra. Não corrigi: a decisão de
+  06/11 diz «sem patch» para as duas pontas, e a decisão só se desfaz com sim. Um hunk de uma linha no ramo Global do
+  `refresh` resolveria, mas é patch novo no compositor, que está `retido` à espera do «Instalar». Vale com um monitor e com dois:
+  é o «5» do relato virando «3», e pede o sim de quem usa.
+- Em `juntas`, os nomes aparecem numa tela só (a da primeira entrada do arquivo); na outra, as áreas têm o número. Sem patch não
+  há como dar o nome nas duas sem voltar à duplicata.
+
+### Da mão de quem usa (depois do install e do reboot)
+
+1. Com os dois monitores: a barra de cada tela mostra as áreas de `AREAS_NOMES`; trocar de área numa tela troca a outra.
+2. Anotar se aparece UMA área vazia com número depois de «Pop OS» (a previsão do fonte, acima).
+3. Abrir uma janela em cada tela, desconectar o HDMI e reconectar: nenhuma janela some e cada uma volta ao seu monitor. A ordem
+   das áreas por índice pode embaralhar (o Global liga por posição, e as áreas movidas voltam para o HDMI).
+4. Tirar o HDMI no boot: a barra do note mostra «Pop OS» e a vazia do fim (a previsão do fonte), sem repetida.
+5. Painel, «Janelas e tela», «Áreas de trabalho», «Nas telas»: trocar para Independentes e olhar a barra no login seguinte.
