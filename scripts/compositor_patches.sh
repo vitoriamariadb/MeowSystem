@@ -522,6 +522,12 @@ _CP_PATCH_OPCOES_F1=(-p1 --forward -F1 --no-backup-if-mismatch --silent)
 
 declare -a _CP_DEGRAUS=() _CP_CONTEXTO=()
 
+_cp_contexto_guardado() {
+  local ver
+  ver="$(_cp_versao_instalada 2>/dev/null)" || return 1
+  sed -n 's/^contexto=//p' "$CP_CASA/$ver/estado" 2>/dev/null | tr ' ' '\n' | grep -qxF -- "$1"
+}
+
 _cp_alvos_mudaram() {
   local fonte="$1" patch_arq="$2" alvo
   while IFS= read -r alvo; do
@@ -632,7 +638,8 @@ cmd_aplicar() {
   for i in "${!classe[@]}"; do
     case "${estado[$i]}" in
       ja)         meow_ok   "${arquivo[$i]} já está na árvore (${base[$i]})"
-                  _CP_DEGRAUS+=("${arquivo[$i]}:ja") ;;
+                  _CP_DEGRAUS+=("${arquivo[$i]}:ja")
+                  _cp_contexto_guardado "${arquivo[$i]}" && _CP_CONTEXTO+=("${arquivo[$i]}") ;;
       pode)
         if _cp_alvos_mudaram "$fonte" "$CP_REPO/${arquivo[$i]}"; then
           meow_info "${arquivo[$i]} aplica limpo, mas o upstream mexeu no que ele toca: degrau 2, entra sob a guarda de queda (${classe[$i]})"

@@ -453,6 +453,7 @@ registro 37 'sons/' && grep -q 'som-padrao' "$RAIZ/scripts/ponte_root.sh" && gre
 registro 55 'entra sem clique' && ! grep -q 'retido\|liberar' "$RAIZ/scripts/compositor_shim.sh" \
   && ! grep -q 'cmd_liberar\|compositor-caiu' "$RAIZ/scripts/compositor_patches.sh" \
   && ! grep -q 'patch-obrigatorio' "$RAIZ/scripts/garantir_builds.sh" \
+  && ! grep -q 'Não encaixa\|Em observação' "$RAIZ/app/pagina/extensoes.js" \
   && ok "55: o build bom entra sem clique, e a queda não vai para a tela" \
   || falha "55: o compositor voltou a esperar o clique, ou a queda voltou à tela"
 ! grep -qE '^opt[[:space:]]' "$RAIZ/patches/series" \

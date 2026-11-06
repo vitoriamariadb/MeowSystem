@@ -65,8 +65,8 @@ fábrica foi devolvida pela ponte em 03/11.
   with error` do cosmic-comp, atribuído ao último `_EXE` da mesma rodada; sem `_EXE` conhecido conta contra o
   build. Tela preta com o processo vivo não tem como ser vista daqui.
 - Item 3, o `ruim`: o `cuidar` do doctor perdoa uma vez por build (`perdoado`), só com o teste de fumaça bom e
-  um journal legível sem queda. Fora isso o build fica de lado como `caiu`, com o «precisa de gente»
-  `compositor-caiu`, e o `conferir` sai 3 com aviso.
+  um journal legível sem queda. Fora isso o build fica de lado como `caiu`, com a linha no `meow.log`,
+  e o `conferir` sai 3 com aviso.
 - Item 7, a espera: a falha grava `falhou=N@epoch` na linha da versão na matriz; a série mais nova que a
   matriz zera a contagem (a mesma regra do degrau 4). Espera de 1 h, dobrando, até 7 dias.
 - Item 4: o shim exige nenhum `req` ausente; o `garantir_builds.sh` não refaz o build com `req` ausente,
