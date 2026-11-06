@@ -57,7 +57,7 @@ MEDIR = """async () => {
   const tinta = vinteSeis().text.toLowerCase();
   const ruins = [], perdidos = []; let total = 0, coloridos = 0;
   const pal = vinteSeis();
-  const candidatos = ['base', 'mantle', 'crust', 'text'].map((n) => pal[n]).filter(Boolean).concat('#181825');
+  const candidatos = ['base', 'mantle', 'crust', 'text'].map((n) => pal[n]).filter(Boolean).concat('#000000');
   for (const card of document.querySelectorAll('.grade-apps.pastas .app')) {
     const fundo = hex(getComputedStyle(card).backgroundColor);
     const texto = await (await fetch(card.querySelector('img').src)).text();
@@ -104,7 +104,7 @@ def main():
                 r = pag.evaluate(MEDIR)
                 confere(r["total"] > 20 and not r["ruins"],
                         f"Latte, {aba}: nenhum desenho no traço do texto abaixo de 3:1 no cartão ({r['total']} medidos, ruins: {len(r['ruins'])}: {r['ruins'][:6]}; {r['coloridos']} de cor própria fora da conta)")
-                confere(not r["perdidos"],
+                confere(not r["perdidos"] and not r["coloridos"],
                         f"Latte, {aba}: todo desenho de cor própria fica no melhor fundo que o painel tem ({r['coloridos']} seguem abaixo de 3:1 em todo fundo; perdidos: {r['perdidos'][:4]})")
 
             for pack, flavor, nome in (("meowsystem", "mocha", "Mocha"), ("dracula", "dracula", "Dracula")):
@@ -115,7 +115,7 @@ def main():
                     r = pag.evaluate(MEDIR)
                     confere(r["total"] > 20 and not r["ruins"],
                             f"{nome}, {aba}: nenhum desenho no traço do texto abaixo de 3:1 no cartão ({r['total']} medidos, ruins: {len(r['ruins'])}: {r['ruins'][:6]}; {r['coloridos']} de cor própria fora da conta)")
-                    confere(not r["perdidos"],
+                    confere(not r["perdidos"] and not r["coloridos"],
                             f"{nome}, {aba}: todo desenho de cor própria fica no melhor fundo que o painel tem ({r['coloridos']} seguem abaixo de 3:1 em todo fundo; perdidos: {r['perdidos'][:4]})")
 
             for larg in (390, 1280):

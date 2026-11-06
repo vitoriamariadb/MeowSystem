@@ -490,7 +490,7 @@ function previaDoRascunho() {
 function fundoDoCartao(cores, paleta) {
   if (!cores || !cores.length || !paleta.base) return null;
   const melhor = (fundo) => Math.max(...cores.map((c) => contraste(c, fundo)));
-  const candidatos = ["base", "mantle", "crust", "text"].map((n) => paleta[n]).filter(Boolean).concat("#181825");
+  const candidatos = ["base", "mantle", "crust", "text"].map((n) => paleta[n]).filter(Boolean).concat("#000000");
   const padrao = melhor(paleta.base);
   if (padrao >= 3) return null;
   let fundo = paleta.base, nota = padrao;
