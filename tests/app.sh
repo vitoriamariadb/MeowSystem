@@ -122,7 +122,7 @@ _NAO_E_AJUSTE = {
     "SOM_GANHO",
     "VIDRO_OPACIDADE",
 }
-_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|GB_|SN_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
+_INTERNAS = _re.compile(r"^(MEOW_|FFL_|CP_|CV_|PA_|AP_|AS_|OT_|GB_|GR_|SN_|SPICE_|XDG_|ZDOTDIR|TMPDIR|NO_COLOR)")
 
 _catalogo = {i["chave"] for i in servidor.ler_esquema()}
 _lidas = {}
