@@ -84,7 +84,16 @@ sudo tee /etc/opt/chrome/policies/managed/compartilhar-tela.json >/dev/null <<'E
 EOF
 ```
 
-Sem Chrome instalado, pula. Os três valores já são o padrão do Chrome, e o efeito próprio deles não foi isolado: o relato
+Decisão de 06/11/2026: a solução do compositor cobre o caso de existir Chrome no PC da pessoa. A policy depende disso,
+e o resto da build não:
+
+- Com o pacote `google-chrome-stable` instalado: aplica a policy.
+- Sem Chrome: pula em silêncio, sem criar `/etc/opt/chrome`, sem pedir sudo e sem falhar a build. Portal e compositor
+  seguem iguais, porque a correção deles vale para qualquer app que compartilhe tela.
+- Chrome instalado depois: o gatilho pós-apt que já roda o `garantir_builds` aplica a policy, sem esperar outra build.
+- Chrome em Flatpak ou Chromium usam outro caminho de policy: medir antes de cobrir, sem assumir que este arquivo vale.
+
+Os três valores já são o padrão do Chrome, e o efeito próprio deles não foi isolado: o relato
 é que o compartilhamento passou a aparecer depois do comando, mas o crash do portal continuou até a cura. Entra por
 decisão, com arquivo próprio, sem tocar no `aurora-no-ai-no-antigravity.json` da Aurora.
 
@@ -102,5 +111,6 @@ problema, sem medição. Rodar a mesma prova em cada um, porque o `req` da séri
 2. `coredumpctl list --no-pager | grep portal-cosmic` não ganha entrada nova depois da tentativa.
 3. Repetir com Tela inteira e no Teams.
 4. Nos três PCs: `aplicar` duas vezes, e a segunda não muda nada.
+   Num PC sem Chrome, `aplicar` sai `ok` sem criar a pasta; instalar o Chrome depois e o pós-apt cria a policy.
 5. `apt` trazendo versão nova do portal: o `garantir_builds` recompila, ou o shim cai no pacote se o patch recusar.
 6. `reverter` deixa o portal do pacote funcionando e tira a policy.
