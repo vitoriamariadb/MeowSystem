@@ -734,7 +734,7 @@ reconciliar_sumicos() {
     return 0
   fi
 
-  mapfile -t sumidas < <(LC_ALL=C comm -23 <(LC_ALL=C sort -u "$VISTAS") \
+  mapfile -t sumidas < <(LC_ALL=C comm -23 <(grep -v '^\.meow\.' "$VISTAS" | LC_ALL=C sort -u) \
                                            <(printf '%s\n' ${agora[@]+"${agora[@]}"} | LC_ALL=C sort -u))
   [ "${#sumidas[@]}" = "0" ] && { meow_seco || _gravar_vistas ${agora[@]+"${agora[@]}"}; return 0; }
 
@@ -780,7 +780,7 @@ reconciliar_banidos_pasta() {
     [ -f "$BANIDOS_TXT" ] && LC_ALL=C grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
     [ -e "$ATIVOS/$nome" ] && continue
     novas+=("$nome")
-  done < <(find "$BASE/banidos" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | LC_ALL=C sort)
+  done < <(find "$BASE/banidos" -maxdepth 1 \( -type f -o -type l \) -printf '%f\n' 2>/dev/null | LC_ALL=C sort)
 
   [ "${#novas[@]}" = "0" ] && return 0
 
@@ -805,9 +805,10 @@ reconciliar_banidos_pasta() {
 limpar_banidos() {
   local -a apagar=() sair=()
   local nome p
-  if [ -d "$BASE/banidos" ] && [ -f "$BANIDOS_TXT" ]; then
+  if [ -d "$BASE/banidos" ]; then
     while IFS= read -r nome; do
-      [ -n "$nome" ] && LC_ALL=C grep -qxF -- "$nome" "$BANIDOS_TXT" && apagar+=("$nome")
+      [ -n "$nome" ] || continue
+      if [ -e "$ATIVOS/$nome" ] || LC_ALL=C grep -qxF -- "$nome" "$BANIDOS_TXT" 2>/dev/null; then apagar+=("$nome"); fi
     done < <(find "$BASE/banidos" -maxdepth 1 \( -type f -o -type l \) -printf '%f\n' 2>/dev/null | LC_ALL=C sort)
   fi
   [ -d "$BASE/favoritos" ] && [ -z "$(ls -A "$BASE/favoritos" 2>/dev/null)" ] && sair+=("$BASE/favoritos")

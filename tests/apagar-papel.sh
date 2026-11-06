@@ -120,16 +120,16 @@ LISTA3="$T/banidos3.txt"; printf '# recusadas\nrecusada.png\noutra-recusada.jpg\
 wp3() { papel "$C3" WALLPAPER_BANIDOS="$LISTA3" "$@" "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
 s3="$(wp3 MEOW_DRY_RUN=1)"; rc3=$?
 if [ "$rc3" = 1 ] && [ -f "$B3/banidos/recusada.png" ] && [ -d "$B3/favoritos" ] \
-   && [[ $s3 == *"apagaria 2 imagem(ns) recusada(s)"* ]] && [[ $s3 == *"tiraria a pasta vazia favoritos/"* ]]; then
-  ok "o ensaio (o que o doctor confere) acusa as 2 recusadas e a favoritos/ vazia, sem apagar"
+   && [[ $s3 == *"apagaria 3 imagem(ns) recusada(s)"* ]] && [[ $s3 == *"tiraria a pasta vazia favoritos/"* ]]; then
+  ok "o ensaio (o que o doctor confere) acusa as 2 recusadas, a cópia da devolvida e a favoritos/ vazia, sem apagar"
 else
   falha "o ensaio da etapa das banidas escreveu ou calou (rc=$rc3)" "$s3"
 fi
 s4="$(wp3)"; rc4=$?
 if [ "$rc4" = 1 ] && [ ! -e "$B3/banidos/recusada.png" ] && [ ! -e "$B3/banidos/outra-recusada.jpg" ] \
-   && [ -f "$B3/banidos/de-volta.png" ] && [ ! -e "$B3/favoritos" ] && [ -f "$B3/ativos/de-volta.png" ] \
+   && [ ! -e "$B3/banidos" ] && [ ! -e "$B3/favoritos" ] && [ -f "$B3/ativos/de-volta.png" ] \
    && [ "$(grep -c . "$LISTA3")" = 3 ]; then
-  ok "apaga só as que estão no BANIDOS.txt, a que não está fica, e a favoritos/ vazia sai"
+  ok "apaga as do BANIDOS.txt e a cópia da devolvida, a devolvida segue em ativos/ sem entrar na lista, e as pastas vazias saem"
 else
   falha "a etapa das banidas apagou demais ou de menos (rc=$rc4)" "$s4
 $(find "$B3" | sort)"
@@ -140,7 +140,7 @@ s6="$(wp3)"; rc6=$?
   && ok "a segunda passada não escreve nada (ensaio rc=$rc5, de verdade rc=$rc6)" \
   || falha "a segunda passada mexeu de novo (rc=$rc5 $rc6)" "$s5
 $s6"
-rm -f "$B3/banidos/de-volta.png"; printf 'de-volta.png\n' >> "$LISTA3"
+mkdir -p "$B3/banidos"; printf 'de-volta.png\n' >> "$LISTA3"
 png "$B3/banidos/de-volta.png" volta
 wp3 >/dev/null; [ ! -e "$B3/banidos" ] && ok "com todas listadas, a pasta banidos/ some junto" \
   || falha "a banidos/ vazia ficou" "$(ls -la "$B3")"
@@ -181,6 +181,33 @@ s5d="$(wp5)"; rc5d=$?
   || falha "a segunda passada mexeu de novo (rc=$rc5c $rc5d)" "$s5c
 $s5d"
 
+printf -- '--- 3b2. cópia só em banidos/: o ensaio do doctor enxerga, e link também sai ---\n'
+C8="$T/casa8"; B8="$C8/.local/share/backgrounds/meowsystem"
+mkdir -p "$B8/ativos" "$B8/banidos" "$C8/cosmic"
+png "$B8/ativos/um.png" um; png "$B8/ativos/dois.png" dois
+png "$B8/banidos/$SOCOPIA" so-copia; ln -s /nao/existe "$B8/banidos/ligada.png"
+wp8() { papel "$C8" "$@" "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
+s8a="$(wp8 MEOW_DRY_RUN=1)"; rc8a=$?
+[ "$rc8a" = 1 ] && [ -f "$B8/banidos/$SOCOPIA" ] && [[ $s8a == *"registraria 2 imagem(ns)"* ]] \
+  && ok "o ensaio acusa a cópia com emoji e o link fora da lista, sem escrever (rc=1)" \
+  || falha "o ensaio não enxergou o que está só em banidos/ (rc=$rc8a)" "$s8a"
+s8b="$(wp8)"; rc8b=$?
+if [ "$rc8b" = 1 ] && [ ! -e "$B8/banidos" ] \
+   && LC_ALL=C grep -qxF -- "$SOCOPIA" "$C8/estado/papeis-de-parede/BANIDOS.txt" \
+   && grep -qxF ligada.png "$C8/estado/papeis-de-parede/BANIDOS.txt"; then
+  ok "a cópia e o link saem de banidos/ e a pasta some"
+else
+  falha "sobrou coisa em banidos/ (rc=$rc8b)" "$s8b
+$(ls -la "$B8/banidos" 2>&1)"
+fi
+sha8="$(sha256sum "$C8/estado/papeis-de-parede/BANIDOS.txt")"
+s8c="$(wp8 MEOW_DRY_RUN=1)"; rc8c=$?
+s8d="$(wp8)"; rc8d=$?
+[ "$rc8c" = 0 ] && [ "$rc8d" = 0 ] && [ "$sha8" = "$(sha256sum "$C8/estado/papeis-de-parede/BANIDOS.txt")" ] \
+  && ok "a segunda passada não escreve nada (ensaio rc=$rc8c, de verdade rc=$rc8d)" \
+  || falha "a segunda passada mexeu de novo (rc=$rc8c $rc8d)" "$s8c
+$s8d"
+
 printf -- '--- 3c. o padrão do repositório só recebe nome que está no FONTES.tsv ---\n'
 R6="$T/raiz-padrao"; raiz_falsa "$R6"; mkdir -p "$R6/.git"
 C6="$T/casa6"; B6="$C6/.local/share/backgrounds/meowsystem"
@@ -209,6 +236,15 @@ wp7 >/dev/null
 ! grep -qxF .meow.AbC123 "$C7/estado/papeis-de-parede/BANIDOS.txt" 2>/dev/null \
   && ok "um .meow.XXXXXX que aparece e some em ativos/ não entra no BANIDOS.txt" \
   || falha "o arquivo temporário virou banida"
+
+C9="$T/casa9"; B9="$C9/.local/share/backgrounds/meowsystem"
+mkdir -p "$B9/ativos" "$C9/cosmic" "$C9/estado"
+png "$B9/ativos/um.png" um; png "$B9/ativos/dois.png" dois; png "$B9/ativos/tres.png" tres
+printf '.meow.Velho1\ndois.png\ntres.png\num.png\n' > "$C9/estado/wallpaper-vistas.txt"
+papel "$C9" "$RAIZ/scripts/wallpaper.sh" aplicar >/dev/null 2>&1
+! grep -qxF .meow.Velho1 "$C9/estado/papeis-de-parede/BANIDOS.txt" 2>/dev/null \
+  && ok "o .meow.XXXXXX que já estava na wallpaper-vistas.txt da máquina também não vira banida" \
+  || falha "o temporário da vistas antiga virou banida"
 
 printf -- '--- 3e. o BANIDOS.txt.padrao do repositório está limpo e o FONTES.tsv não lista o que ele bane ---\n'
 PADRAO="$RAIZ/packs/meowsystem/wallpapers/BANIDOS.txt.padrao"
