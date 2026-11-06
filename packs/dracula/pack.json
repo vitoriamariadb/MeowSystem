@@ -199,8 +199,8 @@
     "obs": {
       "_nota": "P129 (27/10/2026). Sem `arquivo`: o modelo é do motor (`scripts/temas-de-apps/obs/`), preenchido com a paleta deste pack."
     },
-    "waterfox": {
-      "_nota": "P129 (27/10/2026). Sem `arquivo`: o modelo é do motor (`scripts/temas-de-apps/waterfox/`), preenchido com a paleta deste pack."
+    "firefox": {
+      "_nota": "P129 (27/10/2026). Sem `arquivo`: o modelo é do motor (`scripts/temas-de-apps/firefox/`), preenchido com a paleta deste pack."
     }
   },
   "lancador": {

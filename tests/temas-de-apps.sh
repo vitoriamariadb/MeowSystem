@@ -27,7 +27,7 @@ declare -A TETO=(
   [libadwaita]=0
   [krita]=0
   [obs]=0
-  [waterfox]=0
+  [firefox]=0
 )
 
 citacoes_em_codigo() {

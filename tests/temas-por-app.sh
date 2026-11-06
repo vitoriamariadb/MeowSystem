@@ -7,7 +7,7 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 
 command -v python3 >/dev/null 2>&1 || { printf 'FALHOU: sem python3\n' >&2; exit 1; }
 
-APPS=(libadwaita krita obs waterfox)
+APPS=(libadwaita krita obs firefox)
 PACKS=(meowsystem:mocha dracula:dracula)
 
 T="$(mktemp -d)" || exit 2
@@ -53,7 +53,7 @@ no_disco() {
 }
 semear() {
   rm -rf "$CASA" "$FAKE" "$T/estado"; mkdir -p "$CASA/.config" "$FAKE/apps"
-  rm -f "$BIN/obs" "$BIN/krita" "$BIN/waterfox"
+  rm -f "$BIN/obs" "$BIN/krita" "$BIN/firefox"
   case "$1" in
     libadwaita)
       app_flatpak com.github.rafostar.Clapper sim
@@ -67,13 +67,13 @@ semear() {
       no_disco com.obsproject.Studio
       mkdir -p "$CASA/.var/app/com.obsproject.Studio/config/obs-studio"
       printf '[General]\nLanguage=pt-BR\n' > "$CASA/.var/app/com.obsproject.Studio/config/obs-studio/user.ini" ;;
-    waterfox)
-      no_disco net.waterfox.waterfox
-      mkdir -p "$CASA/.var/app/net.waterfox.waterfox/.waterfox/abc.default"
+    firefox)
+      no_disco org.mozilla.firefox
+      mkdir -p "$CASA/.var/app/org.mozilla.firefox/.mozilla/firefox/abc.default"
       printf '[Profile0]\nName=default\nIsRelative=1\nPath=abc.default\nDefault=1\n' \
-        > "$CASA/.var/app/net.waterfox.waterfox/.waterfox/profiles.ini"
+        > "$CASA/.var/app/org.mozilla.firefox/.mozilla/firefox/profiles.ini"
       printf 'user_pref("browser.startup.page", 3);\n' \
-        > "$CASA/.var/app/net.waterfox.waterfox/.waterfox/abc.default/user.js" ;;
+        > "$CASA/.var/app/org.mozilla.firefox/.mozilla/firefox/abc.default/user.js" ;;
   esac
 }
 mod() {
@@ -243,27 +243,44 @@ else
   falha "obs: o reverter deixou resto ou levou o que não era dele"
 fi
 
-semear waterfox
-WF="$CASA/.var/app/net.waterfox.waterfox/.waterfox/abc.default"
-mod waterfox aplicar dracula dracula >/dev/null
-if grep -q 'browser.startup.page' "$WF/user.js" && grep -q 'legacyUserProfileCustomizations.stylesheets", true' "$WF/user.js" \
-   && [ -f "$WF/chrome/userChrome.css" ]; then
-  ok "waterfox: o userChrome entra, o user.js liga a preferência e guarda a dele"
+semear firefox
+FF="$CASA/.var/app/org.mozilla.firefox/.mozilla/firefox/abc.default"
+mod firefox aplicar dracula dracula >/dev/null
+if grep -q 'browser.startup.page' "$FF/user.js" && grep -q 'legacyUserProfileCustomizations.stylesheets", true' "$FF/user.js" \
+   && [ -f "$FF/chrome/userChrome.css" ]; then
+  ok "firefox: o userChrome entra, o user.js liga a preferência e guarda a dele"
 else
-  falha "waterfox: o perfil não ficou como o esperado"
+  falha "firefox: o perfil não ficou como o esperado"
 fi
-mod waterfox reverter dracula dracula >/dev/null
-if grep -q 'browser.startup.page' "$WF/user.js" && ! grep -q 'legacyUserProfileCustomizations' "$WF/user.js" \
-   && [ ! -e "$WF/chrome/userChrome.css" ]; then
-  ok "waterfox: o reverter tira a linha dele e o userChrome e guarda o resto do user.js"
+mod firefox reverter dracula dracula >/dev/null
+if grep -q 'browser.startup.page' "$FF/user.js" && ! grep -q 'legacyUserProfileCustomizations' "$FF/user.js" \
+   && [ ! -e "$FF/chrome/userChrome.css" ]; then
+  ok "firefox: o reverter tira a linha dele e o userChrome e guarda o resto do user.js"
 else
-  falha "waterfox: o reverter deixou resto ou levou o que não era dele"
+  falha "firefox: o reverter deixou resto ou levou o que não era dele"
 fi
-semear waterfox
-rm -rf "$CASA/.var/app/net.waterfox.waterfox/.waterfox/profiles.ini"
-saida="$(mod waterfox aplicar meowsystem mocha)"; rc=$?
-[ "$rc" = 3 ] && ok "waterfox: sem profiles.ini o módulo se pula (3)" \
-  || falha "waterfox: sem profiles.ini devia dar 3 e deu $rc" "$saida"
+semear firefox
+rm -rf "$CASA/.var/app/org.mozilla.firefox/.mozilla/firefox/profiles.ini"
+saida="$(mod firefox aplicar meowsystem mocha)"; rc=$?
+[ "$rc" = 3 ] && ok "firefox: sem profiles.ini o módulo se pula (3)" \
+  || falha "firefox: sem profiles.ini devia dar 3 e deu $rc" "$saida"
+
+semear firefox
+rm -rf "$CASA/.var"
+printf '#!/bin/sh\nexit 0\n' > "$BIN/firefox"; chmod +x "$BIN/firefox"
+FA="$CASA/.mozilla/firefox"; mkdir -p "$FA/xyz.default"
+printf '[Profile0]\nName=default\nIsRelative=1\nPath=xyz.default\nDefault=1\n' > "$FA/profiles.ini"
+mod firefox aplicar dracula dracula >/dev/null
+if grep -q 'legacyUserProfileCustomizations.stylesheets", true' "$FA/xyz.default/user.js" && [ -s "$FA/xyz.default/chrome/userChrome.css" ]; then
+  ok "firefox: o perfil do apt em ~/.mozilla/firefox recebe o userChrome e a preferência"
+else
+  falha "firefox: o perfil do apt não ficou como o esperado"
+fi
+mod firefox reverter dracula dracula >/dev/null
+[ ! -e "$FA/xyz.default/chrome/userChrome.css" ] && [ ! -e "$FA/xyz.default/user.js" ] \
+  && ok "firefox: o reverter limpa o perfil do apt" \
+  || falha "firefox: o reverter deixou resto no perfil do apt"
+rm -f "$BIN/firefox"
 
 semear libadwaita
 OV="$CASA/.local/share/flatpak/overrides"; mkdir -p "$OV"

@@ -60,29 +60,29 @@ s="$(casa env MEOW_DRY_RUN=1 APPS_ATIVOS=qbittorrent bash "$RAIZ/scripts/aplicar
   && ok "1. no «ver sem mudar» o meow.conf não muda" \
   || falha "1. o «ver sem mudar» mexeu no meow.conf" "$s"
 
-WF="$CASA/.var/app/net.waterfox.waterfox/.waterfox"
-mkdir -p "$CASA/.local/share/flatpak/app/net.waterfox.waterfox/x86_64/stable/0123abcd"
-ln -sfn 0123abcd "$CASA/.local/share/flatpak/app/net.waterfox.waterfox/x86_64/stable/active"
-ln -sfn x86_64/stable "$CASA/.local/share/flatpak/app/net.waterfox.waterfox/current"
-mkdir -p "$WF"
-s="$(casa env APPS_ATIVOS=waterfox bash "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1)"
+FF="$CASA/.var/app/org.mozilla.firefox/.mozilla/firefox"
+mkdir -p "$CASA/.local/share/flatpak/app/org.mozilla.firefox/x86_64/stable/0123abcd"
+ln -sfn 0123abcd "$CASA/.local/share/flatpak/app/org.mozilla.firefox/x86_64/stable/active"
+ln -sfn x86_64/stable "$CASA/.local/share/flatpak/app/org.mozilla.firefox/current"
+mkdir -p "$FF"
+s="$(casa env APPS_ATIVOS=firefox bash "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1)"
 printf '%s\n' "$s" | grep -qiE 'abra|rode|digite|meow\.conf' \
-  && falha "2. o Waterfox sem perfil manda abrir o programa" "$s" \
-  || ok "2. o Waterfox sem perfil diz o estado, sem ordem"
+  && falha "2. o Firefox sem perfil manda abrir o programa" "$s" \
+  || ok "2. o Firefox sem perfil diz o estado, sem ordem"
 printf '%s\n' "$s" | grep -q 'ainda sem perfil; o tema entra quando o perfil existir' \
-  && ok "2. a frase do Waterfox sem perfil é o fato" \
-  || falha "2. a frase do Waterfox sem perfil mudou" "$s"
-mkdir -p "$WF/abc.default"
-printf '[Profile0]\nName=default\nIsRelative=1\nPath=abc.default\nDefault=1\n' > "$WF/profiles.ini"
-s="$(casa env APPS_ATIVOS=waterfox bash "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1)"
-[ -s "$WF/abc.default/chrome/userChrome.css" ] \
+  && ok "2. a frase do Firefox sem perfil é o fato" \
+  || falha "2. a frase do Firefox sem perfil mudou" "$s"
+mkdir -p "$FF/abc.default"
+printf '[Profile0]\nName=default\nIsRelative=1\nPath=abc.default\nDefault=1\n' > "$FF/profiles.ini"
+s="$(casa env APPS_ATIVOS=firefox bash "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1)"
+[ -s "$FF/abc.default/chrome/userChrome.css" ] \
   && ok "2. com o perfil criado, a passada seguinte aplica o tema" \
-  || falha "2. a passada seguinte não aplicou o tema do Waterfox" "$s"
+  || falha "2. a passada seguinte não aplicou o tema do Firefox" "$s"
 antes="$(retrato)"
-casa env APPS_ATIVOS=waterfox bash "$RAIZ/scripts/aplicar_apps.sh" aplicar >/dev/null 2>&1
+casa env APPS_ATIVOS=firefox bash "$RAIZ/scripts/aplicar_apps.sh" aplicar >/dev/null 2>&1
 [ "$antes" = "$(retrato)" ] \
-  && ok "2. a segunda passada do Waterfox não escreve" \
-  || falha "2. a segunda passada do Waterfox escreveu" "$(diff <(printf '%s\n' "$antes") <(retrato))"
+  && ok "2. a segunda passada do Firefox não escreve" \
+  || falha "2. a segunda passada do Firefox escreveu" "$(diff <(printf '%s\n' "$antes") <(retrato))"
 
 for par in meowsystem:mocha dracula:dracula; do
   p="${par%%:*}"; f="${par#*:}"

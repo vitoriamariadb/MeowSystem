@@ -1069,7 +1069,7 @@ derivado não se edita: a próxima instalação apaga o retoque.
 | 2. derivado não se edita | o que está no tema é calculado da fonte, na instalação | `meow_icones_derivar`, em `lib/icones.sh` |
 | 3. derivado não se versiona | o git guarda a fonte; o derivado nasce no tema | a própria forma: nenhum derivado mora no repositório |
 | 4. mapa não aponta para fora | alvo é pack, `motor:` ou `pack:` — `~/` e absoluto são recusados | `validar`, `pack.py alvo` |
-| 5. arte de terceiro entra por cópia | copiada para dentro do pack, com uma linha no `PROCEDENCIA.md` | `tests/fonte-unica.sh` (o Waterfox) |
+| 5. arte de terceiro entra por cópia | copiada para dentro do pack, com uma linha no `PROCEDENCIA.md` | `tests/fonte-unica.sh` (o Firefox) |
 | 6. recolorir é por papel | `sujeito`, `tinta`, `fundo` resolvidos na paleta do flavor | `gerar_icones_autorais.py` — é por papel que o `alucard` ganhou os seus |
 | 7. uma linha responde | `meow icones fonte <nome>` diz a fonte e o que deriva dela | `bin/meow` |
 | 8. a cópia tem caminho de volta | `meow pack sincronizar <id>` compara cópia e origem, e **não copia** | `pack.py sincronizar` |
@@ -1107,11 +1107,11 @@ onde o tema deriva (o no ar, os herdados, o pack-base), uma linha de mapa ou o
 ### `meow icones fonte`
 
 ```
-$ meow icones fonte net.waterfox.waterfox
-fonte: packs/dracula/icones/apps/net.waterfox.waterfox.svg
+$ meow icones fonte firefox
+fonte: packs/dracula/icones/apps/firefox.svg
 deriva: scalable
        camada    pack:dracula  (ICONES_DRACULA="sim")
-       scalable  ~/.local/share/icons/MeowSystem-Icons/scalable/apps/net.waterfox.waterfox.svg — igual à fonte
+       scalable  ~/.local/share/icons/MeowSystem-Icons/scalable/apps/firefox.svg — igual à fonte
 ```
 
 A fonte vem do `pack.py fonte`, que lê os mapas e recusa o empate. O `deriva`
@@ -1128,7 +1128,7 @@ corte de bandeja), **só a primeira tem para onde ir:**
 - **Tamanhos.** O `index.theme` do MeowSystem-Icons declara dois diretórios de
   aplicativo, `48x48/apps` e `scalable/apps`, e os dois têm **zero** `.png`. O
   COSMIC rasteriza o vetor no tamanho pedido: `Type=Fixed` contra `Type=Scalable` dá zero
-  pixel de diferença. Os PNG de 16 a 256 do Waterfox existem, mas no
+  pixel de diferença. Os PNG de 16 a 256 do Firefox existem, mas no
   `Dracula-Icones`, que é tema de outro projeto, herdado pelo nosso e sombreado
   por ele. Pôr PNG no `48x48/apps` seria disputar arquivo com o
   `icones_apps_arcticons.sh`, que é o dono único daquele diretório.
@@ -1154,7 +1154,7 @@ Cada cópia ganha uma linha no `packs/<id>/PROCEDENCIA.md`:
 ```
 | arquivo | de onde | lido de | licença | copiado em | sha256 |
 |---|---|---|---|---|---|
-| `icones/apps/net.waterfox.waterfox.svg` | `m4thewz/dracula-icons`, ramo `circle` — … |  | GPL-3.0 | 2026-09-23 | `a13118bd…` |
+| `icones/biblioteca/net.waterfox.waterfox.svg` | `m4thewz/dracula-icons`, ramo `circle` — … |  | GPL-3.0 | 2026-09-23 | `a13118bd…` |
 | `icones/biblioteca/guvcview.svg` | este repositório — `assets/icones/resgatados/guvcview.svg` | `pack:dracula:biblioteca/guvcview.svg` | a do pacote `guvcview` | 2026-09-17 | `085829f8…` |
 ```
 

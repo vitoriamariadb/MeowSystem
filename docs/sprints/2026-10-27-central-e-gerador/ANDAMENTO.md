@@ -28,6 +28,7 @@
   - P163 (06/11): captura na placa que renderiza, para o híbrido usar a GPU em vez de SHM; depois da P159;
   - P164 (06/11): build do compositor liberado sozinho, sem esperar o «Instalar», e sem a sessão cair calada na fábrica;
   - P165 (06/11): o Meow sabe o que deixa no disco: inventário, limpeza contínua, tetos e `meow espaco`; 16 GB medidos no nitro-5;
+  - P166 (06/11): o tema de app e o ícone saem do Waterfox e vão para o Firefox do apt (perfil em `~/.mozilla/firefox`, `Icon=firefox`);
   - a banida com emoji no nome (`Cyberpunk Neon Cat Wallpaper …`, com dois emojis): o `limpar_banidos` e o `banir` pulam nomes
     fora do ASCII;
   - num checkout o lixo põe no BANIDOS.txt.padrao até foto dela que o `semear` nunca baixa; cópias em

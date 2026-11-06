@@ -1039,6 +1039,13 @@ lá, intacta, como alternativa. O que mudou é que ela deixou de ser o que vence
 calado: o `apps-resgatados.map` não a instala mais, e o nome
 `net.waterfox.waterfox` tem **uma** fonte — esta.
 
+### O desenho passa do Waterfox para o Firefox — 06/11/2026, P166
+
+O Waterfox saiu da máquina e o Firefox do apt do Pop entrou (`Icon=firefox`). O desenho `icones/apps/firefox.svg`, copiado do upstream em
+23/09/2026 e escolhido por quem usa em 23/10, não mudou (mesma origem, mesmo sha256): o `apps.map` é que passou a vesti-lo como
+`firefox` e `org.mozilla.firefox`, e não mais como `net.waterfox.waterfox`. A cópia `icones/biblioteca/net.waterfox.waterfox.svg`
+continua na biblioteca, com a sua linha acima, como história do desenho.
+
 ## Os temas de aplicativo — 24/09/2026, sprint P42
 
 Cinco modelos em `apps/`, um por aplicativo, declarados no bloco `apps` do

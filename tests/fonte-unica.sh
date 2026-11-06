@@ -71,20 +71,35 @@ for nome in guvcview setup-mozc; do
     || falha "$nome com o Catppuccin no ar ainda tem fonte (rc=$rc)" "$saida"
 done
 
-saida="$(pack_py fonte net.waterfox.waterfox dracula 2>&1)"; rc=$?
-[ "$rc" = "0" ] && [ "$saida" = "net.waterfox.waterfox	packs/dracula/icones/apps/firefox.svg	pack:dracula" ] \
-  && ok "o Waterfox tem uma fonte só, e ela é packs/dracula/icones/apps/firefox.svg" \
-  || falha "a fonte do Waterfox não é a do pack (rc=$rc)" "$saida"
+for nome in firefox org.mozilla.firefox; do
+  saida="$(pack_py fonte "$nome" dracula 2>&1)"; rc=$?
+  [ "$rc" = "0" ] && [ "$saida" = "$nome	packs/dracula/icones/apps/firefox.svg	pack:dracula" ] \
+    && ok "$nome tem uma fonte só, e ela é packs/dracula/icones/apps/firefox.svg" \
+    || falha "a fonte de $nome não é a do pack (rc=$rc)" "$saida"
+done
 
-if sed -e 's/#.*//' "$RAIZ/packs/dracula/icones/apps-resgatados.map" | grep -q '^[[:space:]]*net\.waterfox\.waterfox[[:space:]]*:'; then
-  falha "o apps-resgatados.map voltou a nomear o Waterfox — duas fontes para um nome"
+saida="$(pack_py fonte net.waterfox.waterfox dracula 2>&1)"; rc=$?
+[ "$rc" = "1" ] \
+  && ok "o Waterfox saiu: net.waterfox.waterfox não tem mais fonte no pack" \
+  || falha "net.waterfox.waterfox ainda tem fonte no pack (rc=$rc)" "$saida"
+
+if sed -e 's/#.*//' "$RAIZ/packs/dracula/icones/apps-resgatados.map" | grep -q '^[[:space:]]*\(net\.waterfox\.waterfox\|firefox\|org\.mozilla\.firefox\)[[:space:]]*:'; then
+  falha "o apps-resgatados.map nomeia o Firefox ou o Waterfox — duas fontes para um nome"
 else
-  ok "o apps-resgatados.map não nomeia mais o Waterfox"
+  ok "o apps-resgatados.map não nomeia o Firefox nem o Waterfox"
 fi
 
+CASA_TR="$T/traco"; mkdir -p "$CASA_TR/.config"
+env -i PATH="$PATH" HOME="$CASA_TR" XDG_CACHE_HOME="$CASA_TR/.cache" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+  PACK=dracula FLAVOR=mocha ACCENT=mauve ICONES_DRACULA=sim NOME_TEMA_ICONES=MeowSystem-Icons \
+  bash "$RAIZ/scripts/icones_apps_arcticons.sh" --aplicar </dev/null >/dev/null 2>&1
+[ ! -e "$CASA_TR/.local/share/icons/MeowSystem-Icons/48x48/apps/firefox.svg" ] \
+  && ok "com o Dracula no ar, o traço do firefox não é gravado a 48 px: o scalable do pack decide" \
+  || falha "o 48x48/apps/firefox.svg do traço ainda é gravado e vence o scalable do pack"
+
 grep -q '^| `icones/apps/firefox.svg` |' "$RAIZ/packs/dracula/PROCEDENCIA.md" \
-  && ok "o Waterfox copiado tem linha de procedência no pack" \
-  || falha "packs/dracula/PROCEDENCIA.md não tem a linha do Waterfox — arte copiada sem origem"
+  && ok "o Firefox copiado tem linha de procedência no pack" \
+  || falha "packs/dracula/PROCEDENCIA.md não tem a linha do Firefox — arte copiada sem origem"
 
 fora=""
 for mapa in "$RAIZ"/assets/icones/*.map "$RAIZ"/packs/*/icones/*.map; do
@@ -166,8 +181,8 @@ py_pares="$(ICONES_DRACULA=sim pack_py fontes dracula 2>/dev/null | awk -F'\t' -
 
 tema="$T/home/tema"
 plano="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
-  meow_icones_derivados "$1" net.waterfox.waterfox "$2"' _ "$RAIZ/packs/dracula/icones/apps/firefox.svg" "$tema")"
-[ "$plano" = "scalable	$tema/scalable/apps/net.waterfox.waterfox.svg" ] \
+  meow_icones_derivados "$1" firefox "$2"' _ "$RAIZ/packs/dracula/icones/apps/firefox.svg" "$tema")"
+[ "$plano" = "scalable	$tema/scalable/apps/firefox.svg" ] \
   && ok "uma fonte SVG deriva o vetor em scalable/apps" \
   || falha "o plano de derivados não é o esperado" "$plano"
 amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
@@ -176,19 +191,19 @@ amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
   && ok "raster não é fonte: um PNG é recusado com 2" \
   || falha "o derivar aceitou um PNG como fonte"
 r1="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
-  meow_icones_derivar "$1" net.waterfox.waterfox "$2"; printf %s $?' _ "$RAIZ/packs/dracula/icones/apps/firefox.svg" "$tema" 2>/dev/null | tail -c1)"
+  meow_icones_derivar "$1" firefox "$2"; printf %s $?' _ "$RAIZ/packs/dracula/icones/apps/firefox.svg" "$tema" 2>/dev/null | tail -c1)"
 r2="$(amb bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/icones.sh"
-  meow_icones_derivar "$1" net.waterfox.waterfox "$2"; printf %s $?' _ "$RAIZ/packs/dracula/icones/apps/firefox.svg" "$tema" 2>/dev/null | tail -c1)"
-[ "$r1" = "1" ] && [ "$r2" = "0" ] && [ -f "$tema/scalable/apps/net.waterfox.waterfox.svg" ] \
+  meow_icones_derivar "$1" firefox "$2"; printf %s $?' _ "$RAIZ/packs/dracula/icones/apps/firefox.svg" "$tema" 2>/dev/null | tail -c1)"
+[ "$r1" = "1" ] && [ "$r2" = "0" ] && [ -f "$tema/scalable/apps/firefox.svg" ] \
   && ok "o derivar escreve na primeira vez e não reescreve na segunda (1, depois 0)" \
   || falha "o derivar não é idempotente (primeira=$r1 segunda=$r2)"
 
 printf 'FLAVOR="dracula"\nACCENT="mauve"\nICONES_DRACULA="sim"\n' > "$T/meow.conf"
-saida="$(amb env MEOW_CONF="$T/meow.conf" "$RAIZ/bin/meow" icones fonte net.waterfox.waterfox 2>&1)"; rc=$?
+saida="$(amb env MEOW_CONF="$T/meow.conf" "$RAIZ/bin/meow" icones fonte firefox 2>&1)"; rc=$?
 [ "$rc" = "0" ] \
   && [ "$(printf '%s\n' "$saida" | sed -n 1p)" = "fonte: packs/dracula/icones/apps/firefox.svg" ] \
   && [ "$(printf '%s\n' "$saida" | sed -n 2p)" = "deriva: scalable" ] \
-  && ok "meow icones fonte diz a fonte do Waterfox e o que deriva dela" \
+  && ok "meow icones fonte diz a fonte do Firefox e o que deriva dela" \
   || falha "meow icones fonte não respondeu como a P28 pede (rc=$rc)" "$saida"
 
 d="$(pack_de_brinquedo copia)"

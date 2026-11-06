@@ -104,7 +104,7 @@ io.github.cosmic_utils.camera : apps/io.github.cosmic_utils.camera.svg   # Câme
 #     funcionar no minuto em que alguém clona só o pack. Um pack precisa ser
 #     AUTOCONTIDO; reusar arte do núcleo é copiar, respeitando a licença dela.
 
-# O WATERFOX VESTE O FIREFOX-DRACULA — 23/09/2026, P28
+# O FIREFOX VESTE O FIREFOX-DRACULA — 23/09/2026, P28 (era o Waterfox; passou ao Firefox em 06/11/2026, P166)
 #   A linha estava lá embaixo, em "sem desenho ainda", como
 #   `# net.waterfox.waterfox : ?`. O ícone que aparecia era a raposa roxa da
 #   lua, instalada pelo `apps-resgatados.map` do motor — e a decisão que abriu a
@@ -120,7 +120,15 @@ io.github.cosmic_utils.camera : apps/io.github.cosmic_utils.camera.svg   # Câme
 #   e no Waterfox vence a raposa do motor (0,048 contra o `firefox.png`, 0,069
 #   da P84). O Firefox-Dracula fica em `apps/` como alternativa, achado na
 #   busca pelo `catalog.json` da pasta.]
-net.waterfox.waterfox : apps/firefox.svg   # Waterfox — o desenho escolhido por quem usa em 23/10 (P96)
+#   [06/11/2026, P166: o Waterfox saiu da máquina e o Firefox do apt do Pop
+#   entrou (`Icon=firefox`). O desenho escolhido em 23/10 passa a vestir o
+#   `firefox` (apt) e o `org.mozilla.firefox` (Flatpak); o
+#   `net.waterfox.waterfox` não tem mais linha. Com `firefox` neste mapa o pack
+#   vence o traço também a 48 px (`_ceder_ao_pack`), então o
+#   `48x48/apps/firefox.svg` do Arcticons sai e o `scalable/apps/firefox.svg`
+#   é o que resolve o `Icon=firefox`.]
+firefox               : apps/firefox.svg   # Firefox — o desenho escolhido por quem usa em 23/10 (P96), movido do Waterfox em 06/11 (P166)
+org.mozilla.firefox   : apps/firefox.svg   # Firefox (Flatpak) — o mesmo desenho
 
 # OS TRÊS RESGATADOS APROVADOS — 09/10/2026, P73 (I8)
 #   Pedido dela, 16/09: «Syncthing eu ia pedir pra refazer…» e, sobre a leva

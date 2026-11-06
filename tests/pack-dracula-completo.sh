@@ -506,7 +506,7 @@ printf '[Icon Theme]\nName=MeowSystem-Icons\nDirectories=scalable/apps\n\n[scala
   > "$CD/.local/share/icons/MeowSystem-Icons/index.theme"
 saida="$(env -i PATH="$FALSO:$PATH" HOME="$CD" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_DRY_RUN=1 \
            PACK=dracula FLAVOR=dracula "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar 2>&1)"
-if grep -q 'mudaria .*/scalable/apps/net\.waterfox\.waterfox\.svg' <<< "$saida"; then
+if grep -q 'mudaria .*/scalable/apps/firefox\.svg' <<< "$saida"; then
   ok "sem a linha ICONES_DRACULA no conf, com o Dracula no ar, os desenhos do pack entram"
 else
   falha "sem a linha ICONES_DRACULA, os desenhos do pack não entram" "$(tail -3 <<< "$saida")"

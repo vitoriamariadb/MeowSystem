@@ -49,7 +49,7 @@ extase-em-4r73               : ~/.local/share/icons/Dracula-Icones/scalable/apps
 
 # --- logos de terceiro que ela customizou -------------------------------------
 com.microsoft.Edge           : ~/.local/share/icons/Dracula-Icones/scalable/apps/com.microsoft.Edge.png  : terceiro
-# O WATERFOX SAIU DAQUI EM 23/09/2026 (P28), E O DESENHO DELE FICOU
+# O WATERFOX SAIU DAQUI EM 23/09/2026 (P28), E O DESENHO DELE FICOU (em 06/11/2026, P166, o desenho passou ao `firefox`)
 #   A decisão foi vestir o Waterfox com o Firefox do upstream Dracula, e o
 #   desenho novo mora no pack: `packs/dracula/icones/apps.map`, com a origem no
 #   `packs/dracula/PROCEDENCIA.md`. Esta linha e aquela escreveriam o MESMO

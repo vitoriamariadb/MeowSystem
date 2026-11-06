@@ -130,7 +130,7 @@ checa(not fora_da_regra,
 
 achados = {os.path.relpath(caminho_de(it), raiz) for it in glifos("firefox").get("glifos", [])}
 checa("packs/dracula/icones/apps/firefox.svg" in achados,
-      "«firefox» acha o firefox.svg (o desenho que veste o Firefox e o Waterfox)",
+      "«firefox» acha o firefox.svg (o desenho que veste o Firefox)",
       repr(sorted(achados)[:8]))
 achados = {os.path.relpath(caminho_de(it), raiz) for it in glifos("alienígena").get("glifos", [])}
 checa("packs/dracula/icones/biblioteca/alien.svg" in achados,
@@ -175,7 +175,7 @@ checa(not sub, "nenhum grupo de subpasta: as três pastas são planas", repr(sub
 
 por_arquivo = {os.path.relpath(caminho_de(it), raiz): it for it in itens}
 esperados = {
-    "packs/dracula/icones/apps/firefox.svg": "Waterfox",
+    "packs/dracula/icones/apps/firefox.svg": "Firefox",
     "packs/dracula/icones/biblioteca/alien.svg": "Alienígena",
     "packs/dracula/icones/biblioteca/005-potion.svg": "Poção",
 }
@@ -224,9 +224,9 @@ checa({"packs/dracula/icones/apps/firefox.svg",
       "«firefox» acha o desenho que veste e a chama guardada na biblioteca",
       repr(sorted(a for a in achados if "waterfox" in a)))
 
-veste = glifos("", "net.waterfox.waterfox").get("veste")
+veste = glifos("", "firefox").get("veste")
 checa(veste == "packs/dracula/icones/apps/firefox.svg",
-      "o net.waterfox.waterfox vem com «veste» no desenho do pack no ar", "veio %r" % veste)
+      "o firefox vem com «veste» no desenho do pack no ar", "veio %r" % veste)
 
 import json  # noqa: E402
 bib = os.path.join(raiz, "packs", "dracula", "icones", "biblioteca")
