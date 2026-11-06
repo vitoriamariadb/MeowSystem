@@ -115,6 +115,7 @@ PORTATIL=(
   wallpaper-base.sh
   gpu-do-compositor.sh
   deb.sh
+  espaco.sh
 )
 
 MAQUINA=(
@@ -141,6 +142,7 @@ MAQUINA=(
   p113-navegador.py
   gate-link-externo.py
   extensoes-pagina.py
+  espaco-pagina.py
   modificacoes-pagina.py
   logo-pagina.py
   logo-do-pack-pessoal-pagina.py
@@ -151,6 +153,7 @@ SEM_PULO=(
   app-completo.py
   app-uso-real.py
   extensoes-pagina.py
+  espaco-pagina.py
   modificacoes-pagina.py
   logo-pagina.py
   logo-do-pack-pessoal-pagina.py

@@ -259,7 +259,7 @@ def main():
             print("1. a porta Extensões: um cartão por applet, com a versão e a origem")
             ir(pag, "extensoes")
             checa(pag.locator(".portas a", has_text="Extensões").count() == 1, "a porta Extensões está no cabeçalho")
-            checa(pag.locator(".abas-ajustes a").all_inner_texts() == ["Applets", "Builds"], "as abas são Applets e Builds")
+            checa(pag.locator(".abas-ajustes a").all_inner_texts() == ["Applets", "Builds", "Espaço"], "as abas são Applets, Builds e Espaço")
             checa(pag.locator("article[data-applet]").count() == 3, "há um cartão por applet do catálogo, e o compositor e o menu ficam nos Builds")
             checa(eventual(lambda: pilula(pag, "casa-um") == "Não instalada"), f"o applet de fora aparece «{pilula(pag, 'casa-um')}»")
             checa(botoes(pag, "casa-um") == ["Instalar"], f"e só oferece Instalar ({botoes(pag, 'casa-um')})")
