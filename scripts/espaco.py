@@ -21,6 +21,7 @@ PESADOS = ("deps", ".fingerprint", "build", "incremental", "examples", "registry
 RE_HASH = re.compile(r"-([0-9a-f]{16})(?:[./\"]|$)")
 RE_DATA = re.compile(r"^(\d{4})-(\d\d)-(\d\d)T(\d\d)-(\d\d)-(\d\d)")
 RE_DATA_CURTA = re.compile(r"(\d{4})(\d\d)(\d\d)")
+RE_SUFIXO_DA_VERSAO = re.compile(r"(\.dsc|\.tar\..*|\.tentado)$")
 
 
 def ambiente():
@@ -135,6 +136,8 @@ def ultimo_uso(caminho):
         st = os.lstat(caminho)
     except OSError:
         return 0
+    if stat.S_ISDIR(st.st_mode):
+        return st.st_mtime
     return max(st.st_mtime, st.st_atime)
 
 
@@ -210,12 +213,12 @@ def disco_apertado():
     return uso_pct() >= APERTADO_PCT
 
 
-def versao_do_compositor():
-    forcada = os.environ.get("ESPACO_VERSAO_COMPOSITOR")
+def versao_do_pacote(pacote):
+    forcada = os.environ.get("ESPACO_VERSAO_DO_PACOTE")
     if forcada is not None:
         return forcada
     try:
-        saida = subprocess.run(["dpkg-query", "-W", "-f=${Version}", "cosmic-comp"],
+        saida = subprocess.run(["dpkg-query", "-W", "-f=${Version}", pacote],
                                capture_output=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return ""
@@ -245,7 +248,7 @@ def hashes_em_uso(estado):
     try:
         nomes = sorted(os.listdir(base))
     except OSError:
-        return None
+        return achados, False
     for nome in nomes:
         pasta = os.path.join(base, nome)
         if nome in (".target", "usuario") or not os.path.isfile(os.path.join(pasta, "carimbo")):
@@ -257,9 +260,7 @@ def hashes_em_uso(estado):
         listadas += 1
         with open(lista, encoding="utf-8") as fh:
             achados.update(l.strip() for l in fh if l.strip())
-    if instaladas == 0 or instaladas != listadas:
-        return None
-    return achados
+    return achados, instaladas > 0 and instaladas == listadas
 
 
 def unidades_do_alvo(alvo):
@@ -288,7 +289,7 @@ def plano_unidades(e, alvo, estado, apertado, agora):
     teto = e["teto"] // 2 if apertado else e["teto"]
     idade = IDADE_UNIDADE_S // 3 if apertado else IDADE_UNIDADE_S
     unidades = unidades_do_alvo(alvo)
-    em_uso = hashes_em_uso(estado)
+    em_uso, lista_completa = hashes_em_uso(estado)
     cortes = []
     perfil = os.path.join(alvo, "debug")
     gasto = 0
@@ -297,19 +298,17 @@ def plano_unidades(e, alvo, estado, apertado, agora):
         cortes.append({"caminho": perfil, "motivo": "perfil que ninguém usa", "bytes": gasto})
     marcadas = {}
     for h, u in unidades.items():
-        if agora - u["uso"] < GUARDA_S:
+        if h in em_uso or agora - u["uso"] < GUARDA_S:
             continue
-        if em_uso is not None:
-            if h not in em_uso:
-                marcadas[h] = "fora do build atual"
+        if lista_completa:
+            marcadas[h] = "fora do build atual"
         elif agora - u["uso"] >= idade:
             marcadas[h] = "sem uso há dias"
     gasto += sum(unidades[h]["bytes"] for h in marcadas)
     total = tamanho(alvo)
     if teto and total - gasto > teto:
         restantes = sorted((u["uso"], h) for h, u in unidades.items()
-                           if h not in marcadas and agora - u["uso"] >= GUARDA_S
-                           and (em_uso is None or h not in em_uso))
+                           if h not in marcadas and h not in em_uso and agora - u["uso"] >= GUARDA_S)
         for _, h in restantes:
             if total - gasto <= teto:
                 break
@@ -322,25 +321,58 @@ def plano_unidades(e, alvo, estado, apertado, agora):
     return cortes
 
 
+def versoes_que_ficam(quando, em_uso, manter):
+    ficam = {em_uso} & set(quando)
+    for ver in sorted(quando, key=quando.get, reverse=True):
+        if len(ficam) >= manter:
+            break
+        ficam.add(ver)
+    return ficam
+
+
+def versao_no_nome(nome, pacote):
+    if nome.startswith(pacote + "_"):
+        nome = nome[len(pacote) + 1:]
+    ver = RE_SUFIXO_DA_VERSAO.sub("", nome)
+    return ver.split(":")[-1] if ver[:1].isdigit() else None
+
+
+def plano_guardados(e):
+    manter = e["args"][0] if e["args"] else 2
+    cortes = []
+    for pasta in e["caminhos"]:
+        pacote = os.path.basename(pasta)
+        em_uso = versao_do_pacote(pacote).split(":")[-1]
+        grupos = {}
+        try:
+            nomes = sorted(os.listdir(pasta))
+        except OSError:
+            continue
+        for nome in nomes:
+            ver = versao_no_nome(nome, pacote)
+            if ver:
+                grupos.setdefault(ver, []).append(os.path.join(pasta, nome))
+        quando = {ver: max(ultimo_uso_da_pasta(c) for c in lista) for ver, lista in grupos.items()
+                  if any(not c.endswith(".tentado") for c in lista)}
+        ficam = versoes_que_ficam(quando, em_uso, manter) | {em_uso}
+        for ver in sorted(grupos):
+            if ver not in ficam:
+                cortes += [{"caminho": c, "motivo": "versão antiga"} for c in grupos[ver]]
+    return cortes
+
+
 def plano_versoes(e, apertado, agora):
     pasta = e["caminhos"][0] if e["caminhos"] else None
     if not pasta or not os.path.isdir(pasta):
         return []
     manter = e["args"][0] if e["args"] else 2
-    em_uso = versao_do_compositor()
+    em_uso = versao_do_pacote("cosmic-comp")
     versoes = []
     for nome in sorted(os.listdir(pasta)):
         caminho = os.path.join(pasta, nome)
         if nome.startswith("cosmic-comp-") and os.path.isdir(caminho):
             versoes.append((nome[len("cosmic-comp-"):], caminho))
-    ficam = set()
-    if em_uso:
-        ficam.add(em_uso)
-    por_idade = sorted(versoes, key=lambda v: ultimo_uso_da_pasta(v[1]), reverse=True)
-    for ver, _ in por_idade:
-        if len(ficam) >= manter:
-            break
-        ficam.add(ver)
+    ficam = versoes_que_ficam({ver: ultimo_uso_da_pasta(c) for ver, c in versoes}, em_uso, manter)
     cortes = []
     for ver, caminho in versoes:
         if ver in ficam:
@@ -388,7 +420,7 @@ def plano_rotacao(e, apertado, agora):
     itens = []
     for nome in os.listdir(pasta):
         caminho = os.path.join(pasta, nome)
-        if "-tema-PRIMEIRO" in nome or nome.startswith("PRIMEIRO"):
+        if "-tema-PRIMEIRO-" in nome:
             continue
         itens.append((data_do_backup(nome, caminho), caminho))
     itens.sort(reverse=True)
@@ -416,6 +448,8 @@ def planejar(entradas, modo, agora=None, apertado=None):
                 cortes += plano_unidades(e, alvo, estado, apertado, agora)
         elif corte == "versoes":
             cortes = plano_versoes(e, apertado, agora)
+        elif corte == "guardados":
+            cortes = plano_guardados(e)
         elif corte == "ocioso":
             cortes = plano_ocioso(e, apertado, agora)
         elif corte == "orfao":
@@ -481,10 +515,11 @@ def executar(modo, seco=False, agora=None, apertado=None):
         if e["modo"] != "rotacao" and em_curso_para(e, cortes):
             esperou.append(e["nome"])
             continue
-        bytes_do_item = sum(c["bytes"] for c in cortes)
         if not seco:
-            for c in cortes:
-                remover(c["caminho"])
+            cortes = [c for c in cortes if remover(c["caminho"])]
+            if not cortes:
+                continue
+        bytes_do_item = sum(c["bytes"] for c in cortes)
         liberou += bytes_do_item
         saida.append((e["nome"], bytes_do_item, cortes[0]["motivo"]))
     return {"liberou": liberou, "itens": saida, "esperou": esperou}
@@ -510,7 +545,7 @@ def montar_relatorio(agora=None):
         liberavel = sum(c["bytes"] for c in cortes_liberar.get(e["id"], []))
         itens.append({"id": e["id"], "nome": e["nome"], "categoria": e["categoria"], "bytes": ocupa,
                       "liberavel": liberavel,
-                      "refazer": e["refazer"] if liberavel else 0, "dica": e["dica"],
+                      "refazer": e["refazer"] if liberavel and e["modo"] != "guardados" else 0, "dica": e["dica"],
                       "desinstala": e["desinstala"]})
     return itens
 
@@ -522,15 +557,15 @@ def agrupar_por_nome(itens):
         chave = (it["nome"], it["categoria"])
         if chave not in grupos:
             grupos[chave] = {"nome": it["nome"], "categoria": it["categoria"], "bytes": 0,
-                             "liberavel": 0, "refazer": 0, "dica": "", "ids": []}
+                             "liberavel": 0, "refazer": 0, "dica": "", "peso": -1, "ids": []}
             ordem.append(chave)
         g = grupos[chave]
         g["bytes"] += it["bytes"]
         g["liberavel"] += it["liberavel"]
         g["refazer"] += it["refazer"]
         g["ids"].append(it["id"])
-        if not g["dica"] or (it["liberavel"] and it["dica"]):
-            g["dica"] = it["dica"]
+        if it["bytes"] > g["peso"]:
+            g["dica"], g["peso"] = it["dica"], it["bytes"]
     return [grupos[c] for c in ordem if grupos[c]["bytes"] or grupos[c]["liberavel"]]
 
 
@@ -549,7 +584,6 @@ def dados():
     return {"total": sum(i["bytes"] for i in itens),
             "liberavel": sum(i["liberavel"] for i in itens),
             "refazer": sum(i["refazer"] for i in itens),
-            "apertado": disco_apertado(),
             "ocupado": ocupado,
             "categorias": categorias, "grupos": grupos, "itens": itens}
 
@@ -588,17 +622,12 @@ def cmd_conferir():
     if plano["esperou"]:
         print("%s; há build em curso, a limpeza espera" % base)
         return 0
-    if d["apertado"]:
-        print("%s; o disco está apertado e já está no menor teto" % base)
-        return 0
     print(base)
     return 0
 
 
 def cmd_cortar(modo):
     seco = os.environ.get("MEOW_DRY_RUN") == "1"
-    if modo == "tetos" and disco_apertado():
-        print("o disco está apertado: os tetos ficam pela metade")
     resultado = executar(modo, seco=seco)
     for linha in linhas_do_resultado(resultado, seco):
         print(linha)
@@ -610,6 +639,18 @@ def cmd_cortar(modo):
     if modo == "liberar":
         print("nada a liberar")
     return 0
+
+
+def hash_do_executavel(caminho):
+    try:
+        inode = os.stat(caminho).st_ino
+        with os.scandir(os.path.join(os.path.dirname(caminho), "deps")) as it:
+            for filho in it:
+                if filho.is_file(follow_symlinks=False) and filho.inode() == inode:
+                    return RE_HASH.findall(filho.name + "/")
+    except OSError:
+        pass
+    return []
 
 
 def cmd_uso(destino):
@@ -627,6 +668,8 @@ def cmd_uso(destino):
             for f in (msg.get("filenames") or []):
                 achados.update(RE_HASH.findall(os.path.basename(f) + "/"))
                 achados.update(RE_HASH.findall(os.path.basename(os.path.dirname(f)) + "/"))
+            if msg.get("executable"):
+                achados.update(hash_do_executavel(msg["executable"]))
         elif razao == "build-script-executed":
             achados.update(RE_HASH.findall(os.path.basename(os.path.dirname(msg.get("out_dir") or "")) + "/"))
     if not ok or not achados:
@@ -693,21 +736,37 @@ def cmd_inventario():
     return 0
 
 
-def cmd_cobre():
+def dono_de(caminho, donos):
+    while caminho not in donos:
+        pai = os.path.dirname(caminho)
+        if pai == caminho:
+            return None
+        caminho = pai
+    return donos[caminho]
+
+
+def cmd_cobre(casa_toda=False):
     entradas = ler_registro()
     donos = donos_dos_caminhos(entradas)
     env = ambiente()
+    if casa_toda:
+        fora = [os.path.join(pasta, nome) for pasta, _, nomes in os.walk(env["HOME"]) for nome in nomes
+                if dono_de(os.path.join(pasta, nome), donos) is None]
+        for caminho in sorted(fora):
+            print(caminho)
+        return 1 if fora else 0
     raizes = [env["MEOW_ESTADO"], env["MEOW_CACHE"],
               os.path.join(env["HOME"], ".local", "libexec", "meow"),
               os.path.join(env["HOME"], ".local", "share", "meowsystem"),
-              os.path.join(env["HOME"], ".config", "meowsystem")]
+              os.path.join(env["HOME"], ".config", "meowsystem"),
+              os.path.join(env["HOME"], ".config", "meow")]
     sem_dono = []
     for raiz in raizes:
         if not os.path.isdir(raiz):
             continue
         for nome in sorted(os.listdir(raiz)):
             caminho = os.path.join(raiz, nome)
-            dono = donos.get(caminho)
+            dono = dono_de(caminho, donos)
             if dono is None or dono == "estado-geral" or dono.endswith("-resto"):
                 sem_dono.append(caminho)
     for caminho in sem_dono:
@@ -736,7 +795,7 @@ def main(argv):
     if verbo == "inventario":
         return cmd_inventario()
     if verbo == "cobre":
-        return cmd_cobre()
+        return cmd_cobre("--casa" in argv)
     sys.stderr.write("uso: espaco.py [relatorio|json|conferir|aparar|continua|liberar|desinstalar|inventario|cobre]\n")
     return 2
 

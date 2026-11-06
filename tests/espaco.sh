@@ -35,7 +35,7 @@ mundo() {
 
 esp() {
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$E" MEOW_CACHE="$C" MEOW_RAIZ="$CLONE" \
-    ESPACO_REGISTRO="${ESPACO_REGISTRO_USADO:-$REGISTRO}" ESPACO_VERSAO_COMPOSITOR="${VERSAO_COMP:-}" \
+    ESPACO_REGISTRO="${ESPACO_REGISTRO_USADO:-$REGISTRO}" ESPACO_VERSAO_DO_PACOTE="${VERSAO_COMP:-}" \
     ESPACO_DISCO_USO_PCT="${USO_PCT:-10}" ESPACO_GUARDA_DO_COMPOSITOR="$M/guarda" \
     MEOW_GUARDAR_BACKUPS="${GUARDAR:-0}" python3 "$ESPACO" "$@"
 }
@@ -64,14 +64,19 @@ igual "o compositor guarda a versão em uso e uma anterior" "$(awk -F'\t' '$1 ==
 igual "os backups guardam 30 dias" "$(awk -F'\t' '$1 == "backups" {print $7}' "$REGISTRO")" "rotacao:30:100"
 
 mundo
-nomes_do_codigo="$(cd "$RAIZ" && grep -rhoE '(\$MEOW_ESTADO|\$\{MEOW_ESTADO\})/[A-Za-z0-9_.-]+' bin lib scripts install.sh app/servidor.py 2>/dev/null \
-  | sed -E 's|^[^/]*/||' | sort -u)"
-cache_do_codigo="$(cd "$RAIZ" && grep -rhoE '(\$MEOW_CACHE|\$\{MEOW_CACHE\})/[A-Za-z0-9_.-]+' bin lib scripts install.sh app/servidor.py 2>/dev/null \
-  | sed -E 's|^[^/]*/||' | sort -u)"
+nomes_do_codigo="$(cd "$RAIZ" && { grep -rhoE '(\$MEOW_ESTADO|\$\{MEOW_ESTADO\}|\$\{MEOW_ESTADO:-[^}]*\}|\$HOME/\.local/state/meowsystem)/[A-Za-z0-9_.-]+' bin lib scripts install.sh app/run.sh app/servidor.py 2>/dev/null
+  grep -hoE 'ESTADO, "[A-Za-z0-9_.-]+"' app/servidor.py | sed -E 's|.*"(.*)"|/\1|'; } | sed -E 's|^.*/||' | grep -v '^meowsystem$' | sort -u)"
+cache_do_codigo="$(cd "$RAIZ" && grep -rhoE '(\$MEOW_CACHE|\$\{MEOW_CACHE\}|\$\{MEOW_CACHE:-[^}]*\}|\$HOME/\.cache/meowsystem|\$\{XDG_CACHE_HOME:-[^}]*\}/meowsystem)/[A-Za-z0-9_.-]+' bin lib scripts install.sh app/run.sh app/servidor.py 2>/dev/null \
+  | sed -E 's|^.*/||' | grep -v '^meowsystem$' | sort -u)"
 for nome in $nomes_do_codigo; do mkdir -p "$E/$nome" 2>/dev/null || : > "$E/$nome"; done
 for nome in $cache_do_codigo; do mkdir -p "$C/$nome"; done
 mkdir -p "$LIBEXEC/cosmic-comp" "$LIBEXEC/oraculo-tema" "$CASA/.local/share/meowsystem/fastfetch" \
-  "$CASA/.local/share/meowsystem/packs" "$CASA/.config/meowsystem"
+  "$CASA/.local/share/meowsystem/packs" "$CASA/.local/share/meowsystem/temas-de-apps" "$CASA/.local/share/meowsystem/bin" \
+  "$CASA/.config/meowsystem/extensoes" "$CASA/.config/meow" "$C/pintados" "$C/painel" "$E/vizinhos" "$E/paineis" "$E/zapzap"
+: > "$C/flatpak-libadwaita.tsv"; : > "$CASA/.config/meow/meow.conf"
+for nome in navegador painel paineis restauros vizinhos; do
+  [ -e "$E/$nome" ] && ok "a varredura achou o que o código escreve: $nome" || falha "a varredura não achou $nome"
+done
 sem_dono="$(esp cobre)"; rc=$?
 igual "todo caminho que o código escreve em estado e cache tem dono no registro" "$rc" 0
 [ -n "$sem_dono" ] && printf '        sem dono: %s\n' "$sem_dono"
@@ -85,7 +90,7 @@ FK="$T/fork"; PF="$T/pinos"; mkdir -p "$FK/data" "$PF"
 (
   cd "$FK" && git init -q -b main . && git config user.email t@t && git config user.name t
   printf '[package]\nname = "x"\n' > Cargo.toml
-  printf '[Desktop Entry]\nExec=@bindir@/meowsystem-teste\n' > data/io.github.teste.Fake.desktop.in
+  printf '[Desktop Entry]\nExec=@bindir@/meowsystem-teste\n' > data/io.github.meowsystem.Fake.desktop.in
   printf 'um\n' > versao.txt
   git add -A && git -c core.hooksPath=/dev/null commit -q -m um
 )
@@ -98,32 +103,36 @@ URL="$FK"
 COMMIT="$(commit)"
 VERSAO="0.1.0"
 LIBCOSMIC="1111111111111111111111111111111111111111"
-APP_ID="io.github.teste.Fake"
+APP_ID="io.github.meowsystem.Fake"
 BIN="meowsystem-teste"
-DESKTOP="data/io.github.teste.Fake.desktop.in"
+DESKTOP="data/io.github.meowsystem.Fake.desktop.in"
 FIM
 }
 cat > "$T/bin/cargo" <<'FIM'
 #!/bin/sh
 d="${CARGO_TARGET_DIR:-target}/release"
 h="$(printf '%s' "$(cat "$FALSO_VERSAO")" | md5sum | cut -c1-16)"
+hb="$(printf 'bin%s' "$(cat "$FALSO_VERSAO")" | md5sum | cut -c1-16)"
 json=0
 for a in "$@"; do [ "$a" = "--message-format=json" ] && json=1; done
 if [ "$json" = 1 ]; then
   printf '{"reason":"compiler-artifact","filenames":["%s/deps/libdep-%s.rlib","%s/deps/libdep-%s.rmeta"],"fresh":true}\n' "$d" "$h" "$d" "$h"
   printf '{"reason":"build-script-executed","out_dir":"%s/build/dep-%s/out"}\n' "$d" "$h"
+  printf '{"reason":"compiler-artifact","filenames":["%s/%s"],"executable":"%s/%s","fresh":true}\n' "$d" "$FAKE_BIN" "$d" "$FAKE_BIN"
   printf '{"reason":"build-finished","success":true}\n'
   exit 0
 fi
 case "$1" in
   build)
-    mkdir -p "$d/deps" "$d/.fingerprint/dep-$h" "$d/build/dep-$h/out"
+    mkdir -p "$d/deps" "$d/.fingerprint/dep-$h" "$d/.fingerprint/app-$hb" "$d/build/dep-$h/out"
     head -c 400000 /dev/zero > "$d/deps/libdep-$h.rlib"
     head -c 100000 /dev/zero > "$d/deps/libdep-$h.rmeta"
     printf 'x' > "$d/deps/dep-$h.d"
     printf 'x' > "$d/.fingerprint/dep-$h/dep.json"
     printf 'x' > "$d/build/dep-$h/out/saida"
-    printf '#!/bin/sh\n' > "$d/$FAKE_BIN"; chmod 755 "$d/$FAKE_BIN" ;;
+    printf 'x' > "$d/.fingerprint/app-$hb/bin.json"
+    printf '#!/bin/sh\n' > "$d/deps/meowsystem_teste-$hb"; chmod 755 "$d/deps/meowsystem_teste-$hb"
+    rm -f "$d/$FAKE_BIN"; ln "$d/deps/meowsystem_teste-$hb" "$d/$FAKE_BIN" ;;
 esac
 exit 0
 FIM
@@ -150,6 +159,13 @@ ALVO="$E/extensoes/.target"
 sem_dono="$(esp cobre)"; rc=$?
 igual "tudo o que o build criou em estado e cache está no registro" "$rc" 0
 [ -n "$sem_dono" ] && printf '        sem dono: %s\n' "$sem_dono"
+fora="$(esp cobre --casa)"; rc=$?
+igual "e nada do que o build criou na casa fica sem dono" "$rc" 0
+[ -n "$fora" ] && printf '        sem dono: %s\n' "$fora"
+printf 'x' > "$CASA/.local/share/applications/de-outro.desktop"
+fora="$(esp cobre --casa)"; rc=$?
+igual "um arquivo que não é do Meow na casa é apontado" "$rc" 1
+rm -f "$CASA/.local/share/applications/de-outro.desktop"
 
 echo "== 2. dois builds com versões diferentes de dependência: o .target não soma os dois"
 TAM1="$(kb "$ALVO")"
@@ -170,6 +186,14 @@ grep -q 'cortou Applets' "$M/construir.log" && ok "o build conta o que cortou" |
 [ -x "$CASA/.local/bin/meowsystem-teste" ] && ok "o binário instalado segue de pé" || falha "o binário sumiu"
 saida="$(esp continua)"; rc=$?
 igual "a segunda passada não corta nada" "$rc" 0
+HB2="$(hash_de binv2)"
+grep -qx "$HB2" "$E/extensoes/fake/uso.lista" && ok "a unidade do próprio binário está na lista, mesmo o cargo citando só release/<bin>" \
+  || falha "a unidade do binário ficou fora da lista: $(cat "$E/extensoes/fake/uso.lista")"
+velho "$ALVO"
+saida="$(esp aparar)"; rc=$?
+igual "com tudo parado há horas, o doctor não acha o que cortar no build atual" "$rc" 0
+[ -e "$ALVO/release/deps/meowsystem_teste-$HB2" ] && [ -e "$ALVO/release/.fingerprint/app-$HB2" ] \
+  && ok "e a unidade do binário fica, senão o próximo build recompila o applet" || falha "o doctor cortou a unidade do binário em uso"
 
 echo "== 3. cache acima do teto: o doctor corta, o build em uso fica de pé, e nunca durante um build"
 mundo
@@ -235,6 +259,18 @@ saida="$(esp aparar)"
 [ ! -e "$alvo/release/deps/libnova-cccccccccccccccc.rlib" ] && ok "sem lista de uso, a de oito dias saiu" || falha "a de oito dias ficou"
 [ -e "$alvo/release/deps/libusada-aaaaaaaaaaaaaaaa.rlib" ] && ok "e a de dois dias, sem lista, fica" || falha "a de dois dias saiu"
 
+mundo
+mkdir -p "$E/extensoes/com" "$E/extensoes/sem" "$E/extensoes/.target/release/deps"
+alvo="$E/extensoes/.target"
+printf 'x' > "$E/extensoes/com/carimbo"; printf 'x' > "$E/extensoes/sem/carimbo"
+printf 'aaaaaaaaaaaaaaaa\n' > "$E/extensoes/com/uso.lista"
+grande "$alvo/release/deps/libcom-aaaaaaaaaaaaaaaa.rlib" 300000
+grande "$alvo/release/deps/libvelha-bbbbbbbbbbbbbbbb.rlib" 300000
+touch -d '9 days ago' "$alvo/release/deps/libcom-aaaaaaaaaaaaaaaa.rlib" "$alvo/release/deps/libvelha-bbbbbbbbbbbbbbbb.rlib"
+saida="$(esp aparar)"
+[ -e "$alvo/release/deps/libcom-aaaaaaaaaaaaaaaa.rlib" ] && ok "com um applet ainda sem lista, a lista do outro segue protegendo" || falha "a unidade listada saiu por idade"
+[ ! -e "$alvo/release/deps/libvelha-bbbbbbbbbbbbbbbb.rlib" ] && ok "e o que ninguém lista sai por idade" || falha "a velha ficou"
+
 echo "== 3c. disco apertado: os tetos pela metade"
 mundo
 REG="$M/registro.tsv"
@@ -257,7 +293,8 @@ done
 saida="$(esp aparar)"
 n_apertado="$(ls "$alvo/release/deps" | wc -l)"
 [ "$n_apertado" -lt "$n_folgado" ] && ok "apertado, ficam menos unidades ($n_apertado) do que folgado ($n_folgado)" || falha "o aperto não cortou mais ($n_apertado contra $n_folgado)"
-case "$saida" in *"disco está apertado"*) ok "e o doctor diz que apertou" ;; *) falha "sem aviso do aperto: $saida" ;; esac
+case "$saida" in *apertado*) falha "disco apertado não aparece na tela (decisão 27): $saida" ;; *) ok "e aperta sem aviso" ;; esac
+case "$(esp conferir)" in *apertado*) falha "a linha do doctor fala do aperto" ;; *) ok "nem na linha do doctor" ;; esac
 USO_PCT=10; ESPACO_REGISTRO_USADO=""
 
 echo "== 4. backups acima da rotação: ficam os mais novos e o tema-PRIMEIRO"
@@ -306,6 +343,47 @@ saida="$(esp aparar)"
 [ -e "$C/cosmic-comp/cosmic-comp_1.1.dsc" ] && ok "e o que não está guardado fica" || falha "dsc sem guarda saiu"
 VERSAO_COMP=""
 
+echo "== 4b2. o que já está pronto ou baixado de versões antigas: ficam a em uso e uma anterior"
+mundo
+GUARDA_F="$CASA/.local/share/meowsystem/fontes"
+mkdir -p "$LIBEXEC/cosmic-comp" "$E/cosmic-files" "$GUARDA_F/cosmic-comp"
+for v in 1.0 1.1 1.2 1.3; do
+  mkdir -p "$LIBEXEC/cosmic-comp/$v" "$E/cosmic-files/$v"
+  grande "$LIBEXEC/cosmic-comp/$v/cosmic-comp" 100000
+  grande "$E/cosmic-files/$v/cosmic-files" 100000
+  printf 'x' > "$E/cosmic-files/$v.tentado"
+  grande "$GUARDA_F/cosmic-comp/cosmic-comp_$v.tar.xz" 100000
+  printf 'x' > "$GUARDA_F/cosmic-comp/cosmic-comp_$v.dsc"
+done
+printf 'x' > "$E/cosmic-files/1.4.tentado"
+for v in 1.0 1.1 1.2 1.3; do
+  dias="$(( 40 - ${v#1.} * 10 ))"
+  find "$LIBEXEC/cosmic-comp/$v" "$E/cosmic-files/$v" "$E/cosmic-files/$v.tentado" "$GUARDA_F/cosmic-comp/cosmic-comp_$v".* -exec touch -d "$dias days ago" {} +
+done
+VERSAO_COMP=1.1
+json="$(esp json)"
+refaz="$(printf '%s' "$json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["refazer"])')"
+igual "tirar versão antiga não põe preço de refazer no Liberar" "$refaz" 0
+saida="$(esp aparar)"; rc=$?
+igual "o doctor corta o que passou das duas versões" "$rc" 1
+for caminho in "$LIBEXEC/cosmic-comp" "$E/cosmic-files"; do
+  [ -d "$caminho/1.1" ] && ok "a versão em uso fica, mesmo mais velha: ${caminho##*/}" || falha "cortou a versão em uso em $caminho"
+  [ -d "$caminho/1.3" ] && ok "a mais nova fica: ${caminho##*/}" || falha "cortou a mais nova em $caminho"
+  [ ! -d "$caminho/1.0" ] && [ ! -d "$caminho/1.2" ] && ok "as outras saem: ${caminho##*/}" || falha "sobrou versão antiga em $caminho"
+done
+[ -e "$E/cosmic-files/1.1.tentado" ] && [ ! -e "$E/cosmic-files/1.0.tentado" ] && ok "a marca de tentativa acompanha a versão" || falha "marca de tentativa fora do lugar"
+[ -e "$GUARDA_F/cosmic-comp/cosmic-comp_1.1.tar.xz" ] && [ -e "$GUARDA_F/cosmic-comp/cosmic-comp_1.3.dsc" ] \
+  && [ ! -e "$GUARDA_F/cosmic-comp/cosmic-comp_1.2.tar.xz" ] && [ ! -e "$GUARDA_F/cosmic-comp/cosmic-comp_1.0.dsc" ] \
+  && ok "e os fontes guardados seguem a mesma conta" || falha "fontes guardados fora do lugar: $(ls "$GUARDA_F/cosmic-comp")"
+saida="$(esp aparar)"; rc=$?
+igual "a segunda passada não corta nada" "$rc" 0
+mkdir -p "$LIBEXEC/cosmic-comp/1.4"
+VERSAO_COMP=1.9
+saida="$(esp aparar)"
+[ -d "$LIBEXEC/cosmic-comp/1.4" ] && [ -d "$LIBEXEC/cosmic-comp/1.3" ] && [ ! -d "$LIBEXEC/cosmic-comp/1.1" ] \
+  && ok "pacote novo ainda sem build: ficam os dois mais novos" || falha "versão sem build tomou lugar: $(ls "$LIBEXEC/cosmic-comp")"
+VERSAO_COMP=""
+
 echo "== 4c. resíduos: o target esquecido no clone, a prévia e o oráculo parados"
 mundo
 mkdir -p "$CLONE/src/applets/leitura/target" "$CLONE/src/oraculo-tema/target" "$C/cosmic-prever/serie" "$C/oraculo-tema/rev1"
@@ -318,6 +396,17 @@ saida="$(esp aparar)"
 [ ! -e "$CLONE/src/applets/leitura/target" ] && [ ! -e "$CLONE/src/oraculo-tema/target" ] && ok "o target órfão do clone sai" || falha "target órfão ficou"
 [ ! -e "$C/cosmic-prever/serie" ] && ok "a prévia parada há mais de uma semana sai" || falha "prévia ficou"
 [ -e "$C/oraculo-tema/rev1" ] && ok "o oráculo mexido agora fica" || falha "oráculo recente saiu"
+
+echo "== 4d. medir não renova a idade: a leitura da pasta acerta o atime dela"
+mundo
+mkdir -p "$C/cosmic-prever/lida/sub" "$C/cosmic-prever/usada"
+grande "$C/cosmic-prever/lida/sub/f" 1000
+grande "$C/cosmic-prever/usada/f" 1000
+touch -d '8 days ago' "$C/cosmic-prever/lida/sub/f" "$C/cosmic-prever/lida/sub" "$C/cosmic-prever/lida" "$C/cosmic-prever/usada/f" "$C/cosmic-prever/usada"
+touch -a "$C/cosmic-prever/lida" "$C/cosmic-prever/lida/sub" "$C/cosmic-prever/usada/f"
+saida="$(esp aparar)"
+[ ! -e "$C/cosmic-prever/lida" ] && ok "pasta com atime novo e nada mexido dentro sai" || falha "a leitura do doctor renovou a idade da pasta"
+[ -e "$C/cosmic-prever/usada" ] && ok "arquivo lido agora conta como uso" || falha "o atime do arquivo foi ignorado"
 
 echo "== 5. o espaço do meow bate com o du"
 mundo
@@ -473,6 +562,59 @@ saida="$(env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$E" MEOW_C
   ESPACO_DISCO_USO_PCT=10 "$RAIZ/bin/meow" espaco liberar 2>&1)"; rc=$?
 [ ! -e "$E/extensoes/.target" ] && ok "meow espaco liberar corta o .target" || falha "não cortou: $saida"
 [ ! -s "$T/recusas.log" ] && ok "nenhum falso recusou chamada (sem sudo, sem apt, sem systemctl de escrita)" || falha "chamou o que não devia: $(cat "$T/recusas.log")"
+
+echo "== 6e. o meow_desinstalar de verdade, num clone mínimo"
+mundo
+cp -a "$RAIZ/lib" "$RAIZ/bin" "$RAIZ/install.sh" "$CLONE/"
+mkdir -p "$CLONE/scripts" "$CLONE/assets" "$CLONE/app"
+cp -a "$RAIZ/assets/contratos" "$CLONE/assets/"
+cp -a "$RAIZ/scripts/espaco.py" "$RAIZ/scripts/compositor_patches.sh" "$RAIZ/scripts/files_menu.sh" "$CLONE/scripts/"
+for c in systemctl update-desktop-database gtk-update-icon-cache fc-cache; do
+  printf '#!/bin/sh\nexit 0\n' > "$T/bin/$c"; chmod 755 "$T/bin/$c"
+done
+mkdir -p "$E/extensoes/.target/release/deps" "$E/extensoes/a/src" "$E/extensoes/usuario" "$E/oficina" "$E/vizinhos" \
+  "$C/cosmic-comp/cosmic-comp-1.0" "$LIBEXEC/cosmic-comp/1.0" "$E/cosmic-files/1.0" "$CASA/.local/bin" "$CASA/.config/meow" "$M/sistema" \
+  "$E/backups/2026-01-01T00-00-00-x" "$E/backups/2026-01-02T00-00-00-sistema$M/sistema"
+grande "$E/extensoes/.target/release/deps/libx-0000000000000001.rlib" 5000000
+grande "$C/cosmic-comp/cosmic-comp-1.0/f" 3000000
+grande "$LIBEXEC/cosmic-comp/1.0/cosmic-comp" 2000000
+grande "$E/cosmic-files/1.0/cosmic-files" 1000000
+grande "$E/backups/2026-01-01T00-00-00-x/f" 1000000
+printf 'de meu\n' > "$E/oficina/meu.svg"
+printf 'pino\n' > "$E/extensoes/usuario/meu.pino"
+printf 'copia\n' > "$E/vizinhos/antigo"
+printf 'PACK="meowsystem"\n' > "$CASA/.config/meow/meow.conf"
+printf 'x\n' > "$E/meow.log"
+printf 'mexido pelo meow\n' > "$M/sistema/app.desktop"
+printf 'do apt\n' > "$E/backups/2026-01-02T00-00-00-sistema$M/sistema/app.desktop"
+printf '#!/bin/sh\n# MEOW-COSMIC-COMP-SHIM\n' > "$CASA/.local/bin/cosmic-comp"; chmod 755 "$CASA/.local/bin/cosmic-comp"
+printf 'menu' > "$CASA/.local/bin/cosmic-files"; printf 'menu' > "$CASA/.local/bin/cosmic-files-applet"
+printf '#!/bin/sh\n' > "$CASA/.local/bin/meow"; chmod 755 "$CASA/.local/bin/meow"
+antes_mb="$(( $(kb "$E" "$C" "$LIBEXEC") / 1024 ))"
+desinstalar() {
+  env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" NO_COLOR=1 USER=t MEOW_ESTADO="$E" MEOW_CACHE="$C" MEOW_RAIZ="$CLONE" \
+    MEOW_CONF="$CASA/.config/meow/meow.conf" XDG_DATA_HOME="$CASA/.local/share" XDG_CONFIG_HOME="$CASA/.config" "$@" \
+    bash -c '. "$MEOW_RAIZ/lib/comum.sh"; . "$MEOW_RAIZ/lib/desinstalar.sh"; meow_desinstalar' 2>&1
+}
+saida="$(desinstalar MEOW_DRY_RUN=1)"
+[ -e "$E/extensoes/.target" ] && [ -e "$E/backups/2026-01-01T00-00-00-x/f" ] && [ -e "$CASA/.local/bin/cosmic-comp" ] \
+  && ok "o ensaio do desinstalador não apaga nada" || falha "o ensaio apagou"
+igual "nem devolve o .desktop" "$(cat "$M/sistema/app.desktop")" "mexido pelo meow"
+saida="$(desinstalar)"
+depois_mb="$(( $(kb "$E" "$C" "$LIBEXEC") / 1024 ))"
+disse="$(printf '%s\n' "$saida" | sed -n 's/.*liberou \([0-9]*\) MB.*/\1/p' | head -1)"
+[ -n "$disse" ] && [ $(( disse - (antes_mb - depois_mb) )) -ge -1 ] && [ $(( disse - (antes_mb - depois_mb) )) -le 1 ] \
+  && ok "o valor dito ($disse MB) bate com o medido ($((antes_mb - depois_mb)) MB)" || falha "disse '$disse', mediu $((antes_mb - depois_mb)): $(printf '%s' "$saida" | tail -3)"
+igual "o .desktop do sistema voltou ao que o apt instalou antes de o backup sair" "$(cat "$M/sistema/app.desktop")" "do apt"
+case "$saida" in *"Tema de antes"*) falha "promete o Tema de antes depois de apagar os backups" ;; *) ok "e não promete o que os backups faziam" ;; esac
+[ ! -e "$CASA/.local/bin/cosmic-comp" ] && ok "o shim do compositor saiu com o build que ele chamava" || falha "o shim ficou"
+[ ! -e "$CASA/.local/bin/cosmic-files" ] && [ ! -e "$CASA/.local/bin/cosmic-files-applet" ] && ok "e o menu patchado também" || falha "o menu patchado ficou"
+for f in "$E/extensoes/.target" "$E/extensoes/a" "$E/backups" "$E/cosmic-files" "$E/meow.log" "$C/cosmic-comp" "$LIBEXEC"; do
+  [ ! -e "$f" ] || falha "sobrou: ${f#"$M/"}"
+done
+[ ! -e "$E/backups" ] && [ ! -e "$LIBEXEC" ] && [ ! -e "$E/meow.log" ] && ok "nada do que sai sobrou, nem o registro renasceu depois" || falha "algo renasceu: $(ls -A "$E")"
+[ -e "$E/oficina/meu.svg" ] && [ -e "$E/extensoes/usuario/meu.pino" ] && [ -e "$E/vizinhos/antigo" ] && [ -e "$CASA/.config/meow/meow.conf" ] \
+  && ok "o que é de quem usa ficou" || falha "o desinstalador apagou o que é de quem usa"
 
 echo
 [ "$falhas" -eq 0 ] && { echo "espaco: tudo certo"; exit 0; }

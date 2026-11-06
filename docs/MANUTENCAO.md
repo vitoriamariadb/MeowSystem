@@ -65,7 +65,7 @@ campos separados por tabulação: id, categoria, caminho (com `$MEOW_ESTADO`, `$
 `$MEOW_RAIZ`, alternativas separadas por `|`), nome curto, minutos para refazer, teto em MB, corte,
 o que o desinstalar faz (`sim`, `nao`, `passo` ou `backups`) e a dica da tela. A categoria é
 `reconstruível`, `backup` ou `de quem usa`. O corte é `unidades` (artefatos do cargo por idade e por
-teto), `versoes:N` (o build em uso e os mais novos), `ocioso`, `orfao`, `rotacao:dias:quantas` ou `nunca`.
+teto), `versoes:N` (o cache do build em uso e dos mais novos), `guardados:N` (o que já está pronto ou baixado, por versão do pacote), `ocioso`, `orfao`, `rotacao:dias:quantas` ou `nunca`.
 `tests/espaco.sh` cobra que todo caminho que o código escreve tenha dono nesse arquivo.
 
 - **No fim de cada build** de applet, o que não serve ao build atual sai do `.target`.
