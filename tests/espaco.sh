@@ -654,6 +654,7 @@ sleep 0.5
 saida="$(esp liberar)"
 [ -e "$E/extensoes/.target/release/deps/libx-0000000000000001.rlib" ] && ok "com um build falso em andamento o Liberar não corta nada" || falha "cortou com build em curso"
 case "$saida" in *"build em curso"*) ok "e diz que fica para depois" ;; *) falha "sem aviso: $saida" ;; esac
+case "$saida" in *"nada a liberar"*) falha "disse que não há nada, com o corte só adiado: $saida" ;; *) ok "e não diz que não há nada a liberar" ;; esac
 kill "$build_falso" 2>/dev/null; wait "$build_falso" 2>/dev/null
 
 echo "== 7b. o fim do build limpa mesmo segurando a trava dele"
@@ -672,8 +673,52 @@ antes="$(find "$CASA" -printf '%p %T@ %s\n' | sort | md5sum)"
 saida="$(fim_de_build)"
 igual "a segunda passada não diz nada" "$saida" ""
 igual "e não escreve nada" "$(find "$CASA" -printf '%p %T@ %s\n' | sort | md5sum)" "$antes"
-grep -q 'meow_limpar_fim_de_build' "$RAIZ/scripts/compositor_patches.sh" && ok "o build do compositor chama a limpeza no fim" || falha "o compositor não limpa no fim"
-grep -q 'meow_limpar_fim_de_build' "$RAIZ/scripts/files_menu.sh" && ok "o build do menu do Arquivos chama a limpeza no fim" || falha "o menu não limpa no fim"
+
+echo "== 7b2. o build de verdade, de dentro da trava de quem o chamou, limpa no fim"
+mundo
+REG="$M/registro.tsv"
+sed 's#^\(extensoes-alvo\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*\t\)8192#\11#' "$REGISTRO" > "$REG"
+mkdir -p "$M/falso" "$C/cosmic-comp/cosmic-comp-1.0~teste/src"
+printf '#!/bin/sh\nprintf "1.0~teste"\n' > "$M/falso/dpkg-query"
+printf '#!/bin/sh\nexit 0\n' > "$M/falso/patch"
+cat > "$M/falso/make" <<'FIM'
+#!/bin/sh
+mkdir -p target/release && printf '#!/bin/sh\nexit 0\n' > target/release/cosmic-comp && chmod 755 target/release/cosmic-comp
+FIM
+cat > "$M/falso/cargo" <<'FIM'
+#!/bin/sh
+mkdir -p target/release
+for b in cosmic-files cosmic-files-applet; do printf 'MEOW-FILES-WALLPAPER-PATCH-2' > target/release/$b; done
+FIM
+cat > "$M/falso/apt-get" <<'FIM'
+#!/bin/sh
+mkdir -p cosmic-files-1.0~teste/src && printf 'MEOW-FILES-WALLPAPER-PATCH-2' > cosmic-files-1.0~teste/src/app.rs
+FIM
+chmod 755 "$M/falso/"*
+printf '[package]\nname = "cosmic-comp"\n' > "$C/cosmic-comp/cosmic-comp-1.0~teste/Cargo.toml"
+printf 'all:\n\ttrue\n' > "$C/cosmic-comp/cosmic-comp-1.0~teste/Makefile"
+: > "$M/serie-vazia"
+inchar() {
+  mkdir -p "$E/extensoes/.target/release/deps"
+  for i in 1 2 3; do grande "$E/extensoes/.target/release/deps/libx-000000000000000$i.rlib" 600000; touch -d "$((i + 1)) hours ago" "$E/extensoes/.target/release/deps/libx-000000000000000$i.rlib"; done
+}
+sob_a_trava() {
+  env -i PATH="$M/falso:$T/bin:/usr/bin:/bin" HOME="$CASA" NO_COLOR=1 MEOW_ESTADO="$E" MEOW_CACHE="$C" ESPACO_REGISTRO="$REG" ESPACO_DISCO_USO_PCT=10 \
+    CP_SERIE="$M/serie-vazia" FILES_MENU=sim \
+    bash -c 'exec 9>>"$MEOW_ESTADO/builds.lock"; flock 9; bash "$@"' _ "$@" 2>&1
+}
+inchar
+saida="$(sob_a_trava "$RAIZ/scripts/compositor_patches.sh" compilar)"
+case "$saida" in *"cortou Applets"*) ok "o build do compositor limpa no fim" ;; *) falha "o compositor não limpou: $saida" ;; esac
+case "$saida" in *"build em curso"*) falha "o compositor esperou por si mesmo: $saida" ;; *) ok "e não espera por si mesmo" ;; esac
+inchar
+saida="$(sob_a_trava "$RAIZ/scripts/compositor_patches.sh" compilar)"
+case "$saida" in *"nada a instalar"*) ok "o build repetido dá o mesmo binário" ;; *) falha "não caiu no binário igual: $saida" ;; esac
+case "$saida" in *"cortou Applets"*) ok "e limpa no fim do mesmo jeito" ;; *) falha "o binário igual não limpou: $saida" ;; esac
+inchar
+saida="$(sob_a_trava "$RAIZ/scripts/files_menu.sh" build)"
+case "$saida" in *"cortou Applets"*) ok "o build do menu do Arquivos limpa no fim" ;; *) falha "o menu não limpou: $saida" ;; esac
+[ -x "$CASA/.local/bin/cosmic-files" ] && ok "e o menu segue instalado depois da limpeza" || falha "a limpeza atrapalhou o aplicar: $saida"
 
 echo "== 7c. oraculo-builds guarda o em uso e um anterior"
 mundo
@@ -692,6 +737,18 @@ saida="$(esp aparar)"; rc=$?
 igual "a segunda passada não corta nada" "$rc" 0
 saida="$(esp liberar)"
 [ -e "$LIBEXEC/oraculo-tema/revC" ] && [ -e "$LIBEXEC/oraculo-tema/revD" ] && ok "o Liberar não toca no oráculo em uso" || falha "o Liberar cortou o oráculo"
+mkdir -p "$LIBEXEC/oraculo-tema/revA" "$LIBEXEC/oraculo-tema/revB"
+for r in revA revB; do grande "$LIBEXEC/oraculo-tema/$r/meow-oraculo-tema" 100000; done
+touch -d '5 days ago' "$LIBEXEC/oraculo-tema/revA/meow-oraculo-tema" "$LIBEXEC/oraculo-tema/revA"
+touch -d '4 days ago' "$LIBEXEC/oraculo-tema/revB/meow-oraculo-tema" "$LIBEXEC/oraculo-tema/revB"
+saida="$(esp json | python3 -c 'import json, sys; d = json.load(sys.stdin); print(d["liberavel"] > 0, d["refazer"])')"
+igual "cortar revisão antiga não promete recompilar nada" "$saida" "True 0"
+touch -d '4 days ago' "$LIBEXEC/oraculo-tema/revC/meow-oraculo-tema" "$LIBEXEC/oraculo-tema/revC"
+touch -d '3 days ago' "$LIBEXEC/oraculo-tema/revD/meow-oraculo-tema" "$LIBEXEC/oraculo-tema/revD"
+touch -a "$LIBEXEC/oraculo-tema/revA/meow-oraculo-tema"
+touch -d '10 days ago' -m "$LIBEXEC/oraculo-tema/revA/meow-oraculo-tema"
+esp aparar >/dev/null
+[ -e "$LIBEXEC/oraculo-tema/revA" ] && ok "a revisão velha que acabou de rodar é a em uso e fica" || falha "cortou o oráculo que acabou de rodar: $(ls "$LIBEXEC/oraculo-tema")"
 
 echo "== 7d. cosmic-prever tem teto e o mais antigo sai primeiro"
 mundo
@@ -719,6 +776,14 @@ grande "$C/cosmic-prever/src/a-1/f" 700000
 grande "$C/cosmic-prever/src/b-2/f" 700000
 saida="$(esp aparar)"; rc=$?
 [ -e "$C/cosmic-prever/src/a-1" ] && [ -e "$C/cosmic-prever/src/b-2" ] && ok "o que acabou de ser mexido não sai, mesmo acima do teto" || falha "cortou fonte em uso agora"
+mundo
+mkdir -p "$C/cosmic-prever/src/a-1" "$C/cosmic-prever/src/b-2" "$C/cosmic-prever/src/c-3"
+for d in a-1 b-2 c-3; do grande "$C/cosmic-prever/src/$d/f" 400000; done
+touch -d '6 hours ago' "$C/cosmic-prever/src/a-1/f" "$C/cosmic-prever/src/a-1"
+touch -d '5 hours ago' "$C/cosmic-prever/src/b-2/f" "$C/cosmic-prever/src/b-2"
+touch -d '4 hours ago' "$C/cosmic-prever/src/c-3/f" "$C/cosmic-prever/src/c-3"
+USO_PCT=90 esp aparar >/dev/null
+[ ! -e "$C/cosmic-prever/src/b-2" ] && [ -e "$C/cosmic-prever/src/c-3" ] && ok "com o disco apertado o teto cai à metade" || falha "o teto apertado não valeu: $(ls "$C/cosmic-prever/src")"
 ESPACO_REGISTRO_USADO=""
 
 echo

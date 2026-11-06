@@ -649,7 +649,8 @@ def montar_relatorio(agora=None):
         liberavel = sum(c["bytes"] for c in cortes_liberar.get(e["id"], []))
         itens.append({"id": e["id"], "nome": e["nome"], "categoria": e["categoria"], "bytes": ocupa,
                       "liberavel": liberavel,
-                      "refazer": e["refazer"] if liberavel and e["modo"] != "guardados" else 0, "dica": e["dica"],
+                      "refazer": e["refazer"] if liberavel and e["modo"] not in ("guardados", "recentes") else 0,
+                      "dica": e["dica"],
                       "desinstala": e["desinstala"]})
     return itens
 
@@ -740,7 +741,7 @@ def cmd_cortar(modo):
         registrar("espaco %s liberou %s" % (modo, bonito(resultado["liberou"])))
     if resultado["itens"]:
         return 1
-    if modo == "liberar":
+    if modo == "liberar" and not resultado["esperou"]:
         print("nada a liberar")
     return 0
 

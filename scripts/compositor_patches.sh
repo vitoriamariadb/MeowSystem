@@ -959,6 +959,7 @@ cmd_compilar() {
   if cmp -s "$bin" "$destino/cosmic-comp" && [ -f "$destino/estado" ] && [ ! -e "$destino/ruim" ] \
      && ! _cp_digital_mudou "$destino" && grep -q '^bibliotecas=' "$destino/estado"; then
     meow_ok "o binário compilado é o que já está em $destino — nada a instalar"
+    meow_limpar_fim_de_build
     return "$MEOW_OK"
   fi
   mkdir -p "$destino" || { meow_erro "não consegui criar $destino"; return "$MEOW_ERRO"; }
