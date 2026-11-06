@@ -44,6 +44,33 @@ chmod 755 "$T/bin/cosmic-randr"
 AREAS_NOMES="Uma" PATH="$T/bin:$PATH" "$RAIZ/scripts/areas.sh" alfinetar-primeira >/dev/null 2>&1
 [ -f "$C/com.system76.CosmicComp/v2/pinned_workspaces" ] && ok "areas.sh: pinned_workspaces no v2" \
   || falha "areas.sh não gravou no v2"
+echo "== o painel lê do v2"
+mkdir -p "$C/com.system76.CosmicComp/v1"
+echo false > "$C/com.system76.CosmicComp/v1/autotile"
+echo true > "$C/com.system76.CosmicComp/v2/autotile"
+printf '(workspace_mode: OutputBound)' > "$C/com.system76.CosmicComp/v1/workspaces"
+printf '(workspace_mode: Global)' > "$C/com.system76.CosmicComp/v2/workspaces"
+echo '"07:15"' > "$C/com.system76.CosmicComp/v2/leitura_hora_inicio"
+echo '"19:45"' > "$C/com.system76.CosmicComp/v2/leitura_hora_fim"
+echo false > "$C/com.system76.CosmicAppletTime/v2/show_seconds"
+echo true > "$C/com.system76.CosmicPanel.Panel/v2/anchor_gap"
+saida="$(env -u MEOW_COSMIC_DIR MEOW_ESTADO="$T/estado-painel" MEOW_RAIZ="$RAIZ" PYTHONDONTWRITEBYTECODE=1 \
+  python3 - "$RAIZ/app" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+for chave in ("JANELAS_TILING", "AREAS_MODO", "RELOGIO_SEGUNDOS", "FORMA_PAINEL_SOLTO"):
+    print("%s=%s" % (chave, servidor._valendo_agora(chave)))
+print("noite=%s" % servidor._noite_do_applet())
+print("areas=%s" % servidor._areas_alfinetadas())
+PY
+)"
+for esperado in "JANELAS_TILING=sim" "AREAS_MODO=juntas" "RELOGIO_SEGUNDOS=nao" "FORMA_PAINEL_SOLTO=sim"; do
+  grep -qx "$esperado" <<< "$saida" && ok "painel: $esperado, lido do v2" || falha "painel: esperava $esperado, veio: $saida"
+done
+grep -q "'ini': '07:15'" <<< "$saida" && ok "painel: a noite do applet vem do v2" || falha "painel: a noite não veio do v2: $saida"
+grep -q "areas=\['Uma'\]" <<< "$saida" && ok "painel: as áreas fixas vêm do v2" || falha "painel: as áreas não vieram do v2: $saida"
+rm -rf "$C/com.system76.CosmicComp/v1"
 echo "== o alfinete que cai volta pelo doctor"
 PW="$C/com.system76.CosmicComp/v2/pinned_workspaces"
 doutor_areas() {
