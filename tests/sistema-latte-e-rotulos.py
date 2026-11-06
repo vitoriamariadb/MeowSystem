@@ -55,18 +55,25 @@ MEDIR = """async () => {
   const hex = (rgb) => '#' + rgb.match(/\\d+/g).slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('');
   const razao = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
   const tinta = vinteSeis().text.toLowerCase();
-  const ruins = []; let total = 0, coloridos = 0;
+  const ruins = [], perdidos = []; let total = 0, coloridos = 0;
+  const pal = vinteSeis();
+  const candidatos = ['base', 'mantle', 'crust', 'text'].map((n) => pal[n]).filter(Boolean).concat('#181825');
   for (const card of document.querySelectorAll('.grade-apps.pastas .app')) {
     const fundo = hex(getComputedStyle(card).backgroundColor);
     const texto = await (await fetch(card.querySelector('img').src)).text();
     const cores = [...texto.matchAll(/(?:stroke|fill)="(#[0-9a-fA-F]{6})"/g)].map((m) => m[1]);
     if (!cores.length) continue;
     const melhor = Math.max(...cores.map((c) => razao(c, fundo)));
-    if (!cores.some((c) => c.toLowerCase() === tinta)) { if (melhor < 3) coloridos++; continue; }
+    if (!cores.some((c) => c.toLowerCase() === tinta)) {
+      if (melhor < 3) coloridos++;
+      const possivel = Math.max(...candidatos.map((f) => Math.max(...cores.map((c) => razao(c, f)))));
+      if (melhor < 3 && melhor < possivel - 0.06) perdidos.push(card.dataset.nome + ' ' + melhor.toFixed(2) + ' de ' + possivel.toFixed(2));
+      continue;
+    }
     total++;
     if (melhor < 3) ruins.push(card.dataset.nome + ' ' + melhor.toFixed(2));
   }
-  return { total, ruins, coloridos };
+  return { total, ruins, coloridos, perdidos };
 }"""
 
 ROTULOS = """() => [...document.querySelectorAll('.grade-apps.pastas .app .nome')].map((n) => ({
@@ -97,6 +104,8 @@ def main():
                 r = pag.evaluate(MEDIR)
                 confere(r["total"] > 20 and not r["ruins"],
                         f"Latte, {aba}: nenhum desenho no traço do texto abaixo de 3:1 no cartão ({r['total']} medidos, ruins: {len(r['ruins'])}: {r['ruins'][:6]}; {r['coloridos']} de cor própria fora da conta)")
+                confere(not r["perdidos"],
+                        f"Latte, {aba}: todo desenho de cor própria fica no melhor fundo que o painel tem ({r['coloridos']} seguem abaixo de 3:1 em todo fundo; perdidos: {r['perdidos'][:4]})")
 
             for pack, flavor, nome in (("meowsystem", "mocha", "Mocha"), ("dracula", "dracula", "Dracula")):
                 confere(partir_do_flavor(pag, pack, flavor), f"o rascunho parte do {nome}")
@@ -106,6 +115,8 @@ def main():
                     r = pag.evaluate(MEDIR)
                     confere(r["total"] > 20 and not r["ruins"],
                             f"{nome}, {aba}: nenhum desenho no traço do texto abaixo de 3:1 no cartão ({r['total']} medidos, ruins: {len(r['ruins'])}: {r['ruins'][:6]}; {r['coloridos']} de cor própria fora da conta)")
+                    confere(not r["perdidos"],
+                            f"{nome}, {aba}: todo desenho de cor própria fica no melhor fundo que o painel tem ({r['coloridos']} seguem abaixo de 3:1 em todo fundo; perdidos: {r['perdidos'][:4]})")
 
             for larg in (390, 1280):
                 pag.set_viewport_size({"width": larg, "height": 800})

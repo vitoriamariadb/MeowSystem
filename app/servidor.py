@@ -589,6 +589,11 @@ def _url_de_svg(texto):
     return "data:image/svg+xml;charset=utf-8," + quote(texto, safe="")
 
 
+def _cores_do_traco(texto):
+    achadas = re.findall(r'(?:stroke|fill)="(#[0-9a-fA-F]{6})"', texto or "")
+    return sorted({c.lower() for c in achadas})[:16]
+
+
 def _previa_para_a_tela(previa):
     return {"dock": [{"app": d["app"], "url": _url_de_svg(d["svg"])} for d in previa["dock"]],
             "pasta": _url_de_svg(previa["pasta"]) if previa["pasta"] else ""}
@@ -8212,11 +8217,18 @@ class Manipulador(BaseHTTPRequestHandler):
                 pintado = i["previa"] if i.get("previa") is not None else i["svg"]
                 if pintado is not None:
                     url = _url_de_svg(pintado)
+                    cores_do_desenho = _cores_do_traco(pintado)
                 else:
                     _ICONES_DECLARADOS.add(os.path.normpath(i["arq"]))
                     url = "/previa?tipo=arquivo&id=" + quote(i["arq"], safe="")
+                    try:
+                        with open(i["arq"], encoding="utf-8", errors="replace") as fh:
+                            cores_do_desenho = _cores_do_traco(fh.read(300000))
+                    except OSError:
+                        cores_do_desenho = []
                 icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
-                                      "grupo": i.get("grupo", ""), "levado": i["levado"], "url": url})
+                                      "grupo": i.get("grupo", ""), "levado": i["levado"], "url": url,
+                                      "cores": cores_do_desenho})
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:
