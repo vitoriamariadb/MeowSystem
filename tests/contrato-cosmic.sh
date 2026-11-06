@@ -54,6 +54,7 @@ echo '"07:15"' > "$C/com.system76.CosmicComp/v2/leitura_hora_inicio"
 echo '"19:45"' > "$C/com.system76.CosmicComp/v2/leitura_hora_fim"
 echo false > "$C/com.system76.CosmicAppletTime/v2/show_seconds"
 echo true > "$C/com.system76.CosmicPanel.Panel/v2/anchor_gap"
+for b in Panel Dock; do echo M > "$C/com.system76.CosmicPanel.$b/v2/size"; done
 saida="$(env -u MEOW_COSMIC_DIR MEOW_ESTADO="$T/estado-painel" MEOW_RAIZ="$RAIZ" PYTHONDONTWRITEBYTECODE=1 \
   python3 - "$RAIZ/app" <<'PY'
 import sys
@@ -63,6 +64,7 @@ for chave in ("JANELAS_TILING", "AREAS_MODO", "RELOGIO_SEGUNDOS", "FORMA_PAINEL_
     print("%s=%s" % (chave, servidor._valendo_agora(chave)))
 print("noite=%s" % servidor._noite_do_applet())
 print("areas=%s" % servidor._areas_alfinetadas())
+print("teto=%s" % servidor.teto_do_raio())
 PY
 )"
 for esperado in "JANELAS_TILING=sim" "AREAS_MODO=juntas" "RELOGIO_SEGUNDOS=nao" "FORMA_PAINEL_SOLTO=sim"; do
@@ -70,6 +72,7 @@ for esperado in "JANELAS_TILING=sim" "AREAS_MODO=juntas" "RELOGIO_SEGUNDOS=nao" 
 done
 grep -q "'ini': '07:15'" <<< "$saida" && ok "painel: a noite do applet vem do v2" || falha "painel: a noite não veio do v2: $saida"
 grep -q "areas=\['Uma'\]" <<< "$saida" && ok "painel: as áreas fixas vêm do v2" || falha "painel: as áreas não vieram do v2: $saida"
+grep -qE "teto=.*'Panel': [0-9]+.*'Dock': [0-9]+" <<< "$saida" && ok "painel: o teto do raio vem do v2" || falha "painel: o teto não veio do v2: $saida"
 rm -rf "$C/com.system76.CosmicComp/v1"
 echo "== o alfinete que cai volta pelo doctor"
 PW="$C/com.system76.CosmicComp/v2/pinned_workspaces"

@@ -1847,7 +1847,7 @@ def teto_do_raio():
         '. "$1/lib/comum.sh"; . "$1/lib/painel.sh"\n'
         'printf "experimental\\t%s\\n" "${FORMA_RAIO_EXPERIMENTAL-}"\n'
         'for b in Panel Dock; do\n'
-        '  d="$MEOW_PAINEL_BASE/com.system76.CosmicPanel.$b/v1"\n'
+        '  d="$MEOW_PAINEL_BASE/com.system76.CosmicPanel.$b/$(meow_cosmic_v "com.system76.CosmicPanel.$b")"\n'
         '  [ -d "$d" ] || continue\n'
         '  t="$(meow_painel_teto "$d" 2>/dev/null)" || continue\n'
         '  printf "%s\\t%s\\n" "$b" "$t"\n'
