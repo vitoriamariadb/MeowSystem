@@ -44,7 +44,7 @@ chave de feature».
 Vira correção e chave de feature. Decisão de 06/11/2026: **juntas por padrão**. Sim explícito para trocar o padrão da decisão
 53, que precisa ser reescrita no mesmo commit do código.
 
-- **Juntas:** `workspace_mode: Global` na chave `workspaces` do `CosmicComp`, nativo do COSMIC, sem patch. Trocar de área troca
+- **Juntas:** `workspace_mode: Global` na chave `workspaces` do `CosmicComp`, nativo do COSMIC, e o patch tira só a área vazia do fim. Trocar de área troca
   as duas telas juntas, e tirar o monitor não duplica nada.
 - **Independentes:** continua disponível na chave, com o comportamento da decisão 53. Decisão de 06/11: sem patch; as áreas
   do monitor que saiu continuam vindo para a outra tela, e quem não quer isso usa Juntas.
@@ -153,10 +153,8 @@ vermelho antes e verde depois:
 
 - A prova 2 (janelas nas duas telas, desconectar e reconectar) e a leitura de «a barra mostra só as áreas» só existem com dois
   monitores e o compositor vivo: está em «da mão de quem usa».
-- A área vazia do fim em `juntas` (medida acima) contradiz a prova 1 se for lida ao pé da letra. Não corrigi: a decisão de
-  06/11 diz «sem patch» para as duas pontas, e a decisão só se desfaz com sim. Um hunk de uma linha no ramo Global do
-  `refresh` resolveria, mas é patch novo no compositor, que está `retido` à espera do «Instalar». Vale com um monitor e com dois:
-  é o «5» do relato virando «3», e pede o sim de quem usa.
+- A área vazia do fim em `juntas` saiu com o sim de 06/11: o ramo Global do `refresh`, no `cosmic-comp-sem-workspace-vazio.patch`, só cria área quando falta alguma. A sugestão de trocar `!w.is_empty() || w.pinned` por `!w.is_empty()` não bastava: a área vazia voltaria com janela na última. A série inteira compilou com `cargo check` (rc=0) no fonte de ec674cd; a tela real é da mão de quem usa.
+- O modo vale mesmo com `AREAS_NOMES` vazio, com o sim de 06/11, no `aplicar`, no `alfinetes` e no `refazer-alfinetes`; o controle do painel fica livre.
 - Em `juntas`, os nomes aparecem numa tela só (a da primeira entrada do arquivo); na outra, as áreas têm o número. Sem patch não
   há como dar o nome nas duas sem voltar à duplicata.
 

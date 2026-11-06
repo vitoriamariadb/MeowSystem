@@ -121,3 +121,5 @@ Da mão de quem usa, depois do install e do reboot:
 A herança no compositor rodando não foi exercitada: um compositor aninhado mexeria na sessão de quem usa. A dock foi lida no fonte da versão instalada, não executada.
 
 A confirmação com `WAYLAND_DEBUG=client` num Chrome à parte não foi feita: o patch não depende dela.
+
+Decisão de 06/11: o patch segue `req`, por escolha de quem usa, mesmo com a sessão caindo na fábrica se ele deixar de aplicar num apt futuro.

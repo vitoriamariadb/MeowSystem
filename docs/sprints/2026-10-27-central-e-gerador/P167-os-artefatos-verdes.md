@@ -30,6 +30,8 @@ antes de uma prova separar as causas.
 2. Se apareceu com o eDP a 144 Hz com VRR.
 3. O kernel 7.2.15 tem 15 min de uso: não prova nada, e a taxa de `import for wrong devices` não caiu.
 
+Em 06/11 quem usa disse: o verde apareceu só na tela do note (`eDP-1`, amdgpu). A saída HDMI da NVIDIA fica fora de suspeita; seguem o VRR a 144 Hz, o travamento do anel da amdgpu e o import entre as placas. Com as telas a 60 Hz sem VRR, se o verde não voltar, o VRR passa à frente.
+
 ## Causas candidatas, por ordem
 
 1. Caminho entre placas: o quadro da NVIDIA chega à AMD, e o import falha.
