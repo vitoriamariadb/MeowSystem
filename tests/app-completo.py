@@ -1040,10 +1040,11 @@ class Percurso:
                 if (!img.src.startsWith("data:image/svg+xml")) { saida.semData.push(nome); continue; }
                 const texto = decodeURIComponent(img.src.split(",").slice(1).join(","));
                 if (/currentColor/.test(texto)) { saida.cru.push(nome); continue; }
-                const cores = [...texto.matchAll(/(?:fill|stroke)="#([0-9a-fA-F]{6})"/g)].map((m) => m[1]);
+                const pasta = img.closest(".grade-apps").dataset.acervo;
+                const cores = (ACERVO[pasta].find((i) => i.nome === nome) || {}).cores || [];
                 if (!cores.length) continue;
                 const f = lum("#" + fundoDe(img));
-                const melhor = Math.max(...cores.map((c) => { const l = lum("#" + c);
+                const melhor = Math.max(...cores.map((c) => { const l = lum(c);
                     return (Math.max(l, f) + 0.05) / (Math.min(l, f) + 0.05); }));
                 if (melhor < 3) saida.fracos.push(nome + ":" + melhor.toFixed(1));
             }
