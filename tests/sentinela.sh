@@ -110,16 +110,16 @@ sentinela() {
 }
 contar() { [ -f "$2" ] || { echo 0; return 0; }; grep -c "$1" "$2" || true; }
 chamadas() { contar prever "$T/prever.log"; }
-cartoes() { contar . "$E/precisa-de-gente.tsv"; }
+quedas() { contar "O COSMIC da fila não entra" "$E/meow.log"; }
 estado() { awk -F'\t' -v k="$1" '$1==k {print $2}' "$E/sentinela.tsv" 2>/dev/null; }
 
-echo "== 1. a fila sem COSMIC: nada a medir, nenhum cartão"
+echo "== 1. a fila sem COSMIC: nada a medir, nada no registro"
 : > "$T/fila.txt"
 sentinela bom; rc=$?
 igual "rc 0" "$rc" 0
 igual "o prever não rodou" "$(chamadas)" 0
 igual "o estado diz que não há candidato" "$(estado resultado)" nada
-igual "nenhum cartão" "$(cartoes)" 0
+igual "nada novo no registro" "$(quedas)" 0
 grep -q 'apt list --upgradable' "$T/apt.log" && ok "só pergunta ao apt o que há para atualizar (list --upgradable)" || falha "não chamou apt list --upgradable"
 grep -qv 'list --upgradable' "$T/apt.log" && falha "chamou o apt para outra coisa: $(grep -v 'list --upgradable' "$T/apt.log")" || ok "o apt só foi lido"
 
@@ -130,7 +130,7 @@ igual "rc 0" "$rc" 0
 igual "o prever rodou uma vez" "$(chamadas)" 1
 igual "resultado verde ou amarelo, nunca vermelho" "$(estado resultado | grep -c vermelho)" 0
 [ -n "$(estado candidato)" ] && ok "o estado guarda a assinatura do candidato" || falha "o sentinela.tsv não tem o candidato"
-igual "nenhum cartão" "$(cartoes)" 0
+igual "nada novo no registro" "$(quedas)" 0
 
 echo "== 3. o mesmo candidato de novo: nada novo, nada escrito"
 antes="$(stat -c %Y.%s "$E/sentinela.tsv")"; sleep 1
@@ -139,52 +139,49 @@ igual "rc 0" "$rc" 0
 igual "o prever não rodou de novo" "$(chamadas)" 1
 igual "o sentinela.tsv não foi tocado" "$(stat -c %Y.%s "$E/sentinela.tsv")" "$antes"
 
-echo "== 4. o candidato quebrado: UM cartão, com desde quando e o porquê"
+echo "== 4. o candidato quebrado: UMA linha no registro, com a data e o porquê"
 printf 'cosmic-comp/jammy 1.0~quebrado amd64 [upgradable from: 0.9]\n' > "$T/fila.txt"
 sentinela quebrado CV_SEM=just; rc=$?
 igual "rc 1 (há vermelho)" "$rc" 1
 igual "resultado vermelho" "$(estado resultado)" vermelho
-igual "um cartão só" "$(cartoes)" 1
-linha="$(cat "$E/precisa-de-gente.tsv" 2>/dev/null)"
-igual "o id do cartão" "$(printf '%s' "$linha" | cut -f1)" sentinela-cosmic
-printf '%s' "$linha" | cut -f3 | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' && ok "tem o desde quando (data)" || falha "o cartão não tem data: $linha"
-printf '%s' "$linha" | cut -f4 | grep -q 'brinquedo.patch' && ok "o porquê cita o patch obrigatório que não entra" || falha "o porquê não cita a série: $linha"
-printf '%s' "$linha" | cut -f4 | grep -qi 'just' && ok "o porquê cita a ferramenta de build que falta" || falha "o porquê não cita o just: $linha"
-printf '%s' "$linha" | cut -f2 | grep -q . && [ "$(printf '%s' "$linha" | cut -f2 | wc -c)" -le 60 ] && ok "o nome do cartão é curto" || falha "o nome do cartão é longo ou vazio: $linha"
-printf '%s' "$linha" | grep -qiE 'rode|digite|execute' && falha "o cartão manda digitar: $linha" || ok "o cartão não manda digitar"
+igual "uma linha só" "$(quedas)" 1
+linha="$(grep 'O COSMIC da fila não entra' "$E/meow.log" 2>/dev/null)"
+printf '%s' "$linha" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' && ok "o registro tem a data" || falha "o registro não tem data: $linha"
+printf '%s' "$linha" | grep -q 'brinquedo.patch' && ok "o porquê cita o patch obrigatório que não entra" || falha "o porquê não cita a série: $linha"
+printf '%s' "$linha" | grep -qi 'just' && ok "o porquê cita a ferramenta de build que falta" || falha "o porquê não cita o just: $linha"
+printf '%s' "$linha" | grep -qiE 'rode|digite|execute' && falha "o registro manda digitar: $linha" || ok "o registro não manda digitar"
+[ ! -e "$E/precisa-de-gente.tsv" ] && ok "a queda não escreve cartão: o arquivo sem leitor saiu" || falha "a sentinela voltou a escrever o precisa-de-gente.tsv"
 
-echo "== 5. o mesmo candidato quebrado de novo: o cartão fica igual (idempotente)"
-c1="$(cat "$E/precisa-de-gente.tsv")"; s1="$(stat -c %Y.%s "$E/sentinela.tsv")"; sleep 1
+echo "== 5. o mesmo candidato quebrado de novo: o registro fica igual (idempotente)"
+s1="$(stat -c %Y.%s "$E/sentinela.tsv")"; sleep 1
 sentinela quebrado CV_SEM=just; rc=$?
 igual "o prever não rodou de novo" "$(chamadas)" 2
-igual "o cartão é byte a byte o mesmo" "$(cat "$E/precisa-de-gente.tsv")" "$c1"
+igual "o registro segue com uma linha" "$(quedas)" 1
 igual "o sentinela.tsv não foi tocado" "$(stat -c %Y.%s "$E/sentinela.tsv")" "$s1"
 
-echo "== 6. o desde quando sobrevive a uma medida nova do mesmo problema"
-d1="$(printf '%s' "$c1" | cut -f3)"; sleep 1
+echo "== 6. uma fila nova com o mesmo problema ganha a sua linha"
 printf 'cosmic-comp/jammy 1.0~quebrado amd64 [upgradable from: 0.8]\ncosmic-files/jammy 1.0~quebrado amd64 [upgradable from: 0.8]\n' > "$T/fila.txt"
 sentinela quebrado CV_SEM=just; rc=$?
-igual "o cartão continua um só" "$(cartoes)" 1
-igual "o desde quando é o de antes" "$(cut -f3 "$E/precisa-de-gente.tsv")" "$d1"
+igual "a medida nova entra no registro" "$(quedas)" 2
 
-echo "== 6b. um candidato bom toma o lugar do quebrado: o cartão some, sem gente"
+echo "== 6b. um candidato bom toma o lugar do quebrado: nada novo no registro"
 printf 'cosmic-comp/jammy 1.0~bom amd64 [upgradable from: 0.9]\n' > "$T/fila.txt"
 sentinela bom; rc=$?
 igual "rc 0" "$rc" 0
 igual "resultado sem vermelho" "$(estado resultado | grep -c vermelho)" 0
-igual "nenhum cartão" "$(cartoes)" 0
+igual "nada novo no registro" "$(quedas)" 2
 
-echo "== 7. a fila esvazia (quem usa atualizou): o cartão some sozinho"
+echo "== 7. a fila esvazia (quem usa atualizou): nada novo no registro"
 : > "$T/fila.txt"
 sentinela bom; rc=$?
 igual "rc 0" "$rc" 0
 igual "o estado volta a nada" "$(estado resultado)" nada
-igual "nenhum cartão" "$(cartoes)" 0
+igual "nada novo no registro" "$(quedas)" 2
 
 echo "== 8. o seco não escreve nada"
 rm -rf "$E"; printf 'cosmic-comp/jammy 1.0~quebrado amd64 [upgradable from: 0.9]\n' > "$T/fila.txt"
 sentinela quebrado MEOW_DRY_RUN=1 CV_SEM=just
-[ ! -e "$E/sentinela.tsv" ] && [ ! -e "$E/precisa-de-gente.tsv" ] && ok "o seco não gravou estado nem cartão" || falha "o seco escreveu em $E"
+[ ! -e "$E/sentinela.tsv" ] && [ ! -e "$E/precisa-de-gente.tsv" ] && ok "o seco não gravou estado" || falha "o seco escreveu em $E"
 
 echo "== 9. a unidade: timer diário de usuário, leve, e a etapa do instalador o arma"
 T1="$RAIZ/systemd/meow-sentinela.timer"; S1="$RAIZ/systemd/meow-sentinela.service"

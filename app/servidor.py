@@ -5308,22 +5308,6 @@ def pendencias():
         return []
     return fora
 
-PRECISA_DE_GENTE = os.path.join(ESTADO, "precisa-de-gente.tsv")
-
-
-def precisa_de_gente():
-    fora = []
-    try:
-        with open(PRECISA_DE_GENTE, "r", encoding="utf-8") as fh:
-            for linha in fh:
-                campos = linha.rstrip("\n").split("\t")
-                if len(campos) != 4 or not campos[0] or not campos[1]:
-                    continue
-                fora.append(dict(zip(("id", "nome", "desde", "porque"), campos)))
-    except OSError:
-        return []
-    return fora
-
 
 def _trabalho_json(trabalho, acao_id, seco=False):
     return {"id": trabalho.id, "rotulo": trabalho.rotulo, "acao": acao_id,
@@ -8102,9 +8086,6 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/pendencias":
             return self._json({"pendencias": pendencias()})
-
-        if caminho == "/api/precisa-de-gente":
-            return self._json({"itens": precisa_de_gente()})
 
         if caminho == "/api/packs":
             return self._json({"packs": packs_com_vitrine()})

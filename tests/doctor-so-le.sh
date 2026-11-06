@@ -15,7 +15,18 @@ mkdir -p "$CASA" "$FALSO" || exit 2
 export DOCTOR_REGISTRO="$TMP/registro"
 : > "$DOCTOR_REGISTRO"
 
-for c in sudo pkill killall kill notify-send systemd-run pkexec; do
+cat > "$FALSO/sudo" <<'FIM'
+#!/bin/sh
+echo "sudo $*" >> "$DOCTOR_REGISTRO"
+exit 0
+FIM
+chmod 755 "$FALSO/sudo"
+PONTE="$TMP/ponte/ponte_root.sh"
+mkdir -p "${PONTE%/*}" || exit 2
+printf '#!/bin/sh\n' > "$PONTE"; chmod 755 "$PONTE"
+printf 'lar=%s\nraiz=%s\n' "$CASA" "$RAIZ" > "${PONTE%/*}/perfil"
+
+for c in pkill killall kill notify-send systemd-run pkexec; do
   cat > "$FALSO/$c" <<'FIM'
 #!/bin/sh
 echo "$(basename "$0") $*" >> "$DOCTOR_REGISTRO"
@@ -66,7 +77,7 @@ printf '\n--- o doctor numa casa de brinquedo ---\n'
 PATH="$PATH_DOCTOR" command -v starship >/dev/null 2>&1 \
   && printf '  --   o starship está no diretório do sistema — o ramo sem starship não rodou aqui\n'
 ANTES="$(painel_real)"
-env PATH="$FALSO:$PATH_DOCTOR" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+env PATH="$FALSO:$PATH_DOCTOR" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_PONTE="$PONTE" NO_COLOR=1 \
   "$RAIZ/bin/meow" doctor > "$TMP/saida" 2>&1
 RC=$?
 DEPOIS="$(painel_real)"
@@ -87,12 +98,27 @@ else
   printf '%s\n' "$novos" | sed 's/^/       /' >&2
 fi
 
-if [ ! -s "$DOCTOR_REGISTRO" ] || ! grep -vE '^sudo ' "$DOCTOR_REGISTRO" | grep -q .; then
-  ok "nenhum pkill/kill/killall, e nenhum systemctl/gsettings/dconf que escreva"
+if [ ! -s "$DOCTOR_REGISTRO" ]; then
+  ok "nenhum sudo, pkill/kill/killall, e nenhum systemctl/gsettings/dconf que escreva"
 else
   falha "o doctor sem --consertar chamou o que não devia:"
-  grep -vE '^sudo ' "$DOCTOR_REGISTRO" | LC_ALL=C sort | uniq -c | sed 's/^/       /' >&2
+  LC_ALL=C sort "$DOCTOR_REGISTRO" | uniq -c | sed 's/^/       /' >&2
 fi
+
+: > "$DOCTOR_REGISTRO"
+rc_ponte="$(env PATH="$FALSO:$PATH_DOCTOR" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_PONTE="$PONTE" MEOW_SO_LE=1 bash -c '
+  . "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1
+  meow_ponte greeter-ver; printf "%s" "$?"')"
+[ "$rc_ponte" = 127 ] && [ ! -s "$DOCTOR_REGISTRO" ] \
+  && ok "só lendo, a ponte não chama sudo em verbo nenhum" \
+  || falha "só lendo, a ponte respondeu $rc_ponte e chamou: $(cat "$DOCTOR_REGISTRO")"
+env PATH="$FALSO:$PATH_DOCTOR" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_PONTE="$PONTE" bash -c '
+  . "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1
+  meow_ponte_viva' >/dev/null 2>&1
+grep -q "^sudo -n $PONTE estado" "$DOCTOR_REGISTRO" \
+  && ok "fora do modo só leitura, a ponte viva continua sendo perguntada" \
+  || falha "a ponte viva parou de perguntar à ponte fora do modo só leitura"
+: > "$DOCTOR_REGISTRO"
 
 if [ -z "$ANTES" ]; then
   printf '  --   sem cosmic-panel nesta máquina — o PID de verdade não foi conferido\n'
