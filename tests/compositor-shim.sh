@@ -212,7 +212,8 @@ grep -q 'caiu 1 vez' "$T/saida" && ok "a queda antes da primeira linha do compos
 mv "$T/bin/journalctl" "$T/journalctl.guardado"
 printf '#!/bin/sh\nexit 1\n' > "$T/bin/journalctl"; chmod 755 "$T/bin/journalctl"
 date -Is > "$B/ruim"
-CP cuidar >/dev/null
+mkdir "$T/sem-coredump"; ln -s /usr/bin/* "$T/sem-coredump/"; rm -f "$T/sem-coredump/coredumpctl"
+PATH="$T/sem-coredump" CP cuidar >/dev/null
 igual "sem registro legível, na dúvida: fica de lado" "$(head -c 4 "$B/ruim")" caiu
 mv -f "$T/journalctl.guardado" "$T/bin/journalctl"
 fazer_build "$VER_INST"; rm -f "$B/ruim" "$B/perdoado"

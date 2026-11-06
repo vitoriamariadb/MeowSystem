@@ -141,7 +141,7 @@ if g -C "$R" push -q origem master >/dev/null 2>&1; then
 else
   ok "o push para quando o gancho regera o README"
 fi
-grep -q '^global-pre-push refs/heads/dev ' "$LOG" && grep -qx 'readme --commit' "$LOG" \
+grep -q '^global-pre-push refs/heads/master ' "$LOG" && grep -qx 'readme --commit' "$LOG" \
   && ok "o pre-push global recebe a entrada e chama o da árvore" || falha "o pre-push não encadeou" "$(cat "$LOG")"
 printf '0\n' > "$T/rc"
 g -C "$R" push -q origem master >/dev/null 2>&1 && ok "o push passa com o README em dia" || falha "o push foi barrado com o README em dia"
