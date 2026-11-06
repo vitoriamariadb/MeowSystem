@@ -32,6 +32,7 @@ FIM2
 
 cat > "$T/bin/cargo" <<FIM2
 #!/bin/sh
+case "\$*" in *--message-format=json*) exit 0 ;; esac
 echo "cargo \$*" >> "$T/cargo.log"
 [ "\$1" = build ] || exit 0
 mkdir -p "\$CARGO_TARGET_DIR/release"

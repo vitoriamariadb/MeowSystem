@@ -62,6 +62,7 @@ cmd_construir() {
   local tmp; tmp="$(mktemp -p "${bin%/*}" .oraculo.XXXXXX)" || return "$MEOW_ERRO"
   cp -f "$trabalho/target/release/meow-oraculo-tema" "$tmp" && chmod 755 "$tmp" && mv -f "$tmp" "$bin" \
     || { rm -f "$tmp"; meow_erro "não consegui guardar $bin"; return "$MEOW_ERRO"; }
+  rm -rf "$trabalho"
   meow_muda "oráculo do tema do libcosmic ${rev:0:7} em $bin"
   return "$MEOW_DIVERGENTE"
 }

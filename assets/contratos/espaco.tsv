@@ -1,0 +1,32 @@
+extensoes-alvo	reconstruível	$MEOW_ESTADO/extensoes/.target	Applets	10	8192	unidades	sim	A compilação dos applets, num lugar só. Cada versão nova de biblioteca soma arquivos, e o que ficou velho sai sozinho. Apagar tudo faz o próximo applet compilar do zero.
+extensoes-usuario	de quem usa	$MEOW_ESTADO/extensoes/usuario	Ajustes	-	-	nunca	nao	Os repositórios que você adicionou na página Extensões.
+extensoes-fontes	reconstruível	$MEOW_ESTADO/extensoes/*/src	Applets	2	-	nunca	sim	O fonte de cada applet no commit pinado. Volta com a rede.
+extensoes-estado	de quem usa	$MEOW_ESTADO/extensoes	Ajustes	-	-	nunca	sim	O registro de cada applet instalado: carimbo, lista de ícones e de uso.
+compositor-cache	reconstruível	$MEOW_CACHE/cosmic-comp	Compositor	4	-	versoes:2	sim	Fonte e compilação do compositor. Ficam a versão em uso e uma anterior, para a próxima atualização do COSMIC não recompilar tudo.
+compositor-builds	reconstruível	$HOME/.local/libexec/meow/cosmic-comp	Em uso	4	-	nunca	sim	O compositor que a sessão usa. Só sai ao desinstalar.
+oraculo-builds	reconstruível	$HOME/.local/libexec/meow/oraculo-tema	Em uso	3	-	nunca	sim	O oráculo do tema que o doctor usa. Só sai ao desinstalar.
+libexec-resto	reconstruível	$HOME/.local/libexec/meow	Em uso	-	-	nunca	sim	O que o MeowSystem compilou para a sua sessão.
+menu-builds	reconstruível	$MEOW_ESTADO/cosmic-files	Em uso	4	-	nunca	sim	O menu do Arquivos já compilado, um por versão do pacote. Só sai ao desinstalar.
+compositor-estado	de quem usa	$MEOW_ESTADO/cosmic-comp	Ajustes	-	-	nunca	sim	O que o MeowSystem lembra do compositor: matriz de patches e alvos.
+previa-cache	reconstruível	$MEOW_CACHE/cosmic-prever	Prévia	4	-	ocioso	sim	A compilação de prévia dos patches contra o COSMIC novo. Sai quando fica parada.
+oraculo-cache	reconstruível	$MEOW_CACHE/oraculo-tema	Oráculo	3	-	ocioso	sim	A compilação do oráculo do tema. O binário pronto mora em outro lugar, então sai quando fica parada.
+upstream-cache	reconstruível	$MEOW_CACHE/upstream	Baixados	2	-	nunca	sim	O que veio da internet para construir ícones e pastas. Volta com a rede.
+cache-resto	reconstruível	$MEOW_CACHE/*	Baixados	-	-	nunca	sim	O resto do cache do MeowSystem.
+orfaos-do-checkout	reconstruível	$MEOW_RAIZ/src/*/target|$MEOW_RAIZ/src/applets/*/target	Resíduo	5	-	orfao	sim	Pasta de compilação esquecida dentro do clone. Nada compila ali desde que os applets passaram a usar um lugar só.
+backups	backup	$MEOW_ESTADO/backups	Backups	-	-	rotacao:30:100	backups	Uma cópia de cada operação. Ficam os últimos 30 dias, no máximo 100, e o tema de antes da instalação fica sempre.
+tema-de-icones	de quem usa	$HOME/.local/share/icons/MeowSystem-Icons|$HOME/.local/share/icons/MeowSystem-Icons-Base*	Tema	-	-	nunca	passo	O tema de ícones instalado. O desinstalador o tira num passo próprio.
+fontes-do-tema	de quem usa	$HOME/.local/share/fonts/MeowSystem	Tema	-	-	nunca	passo	As fontes instaladas. O desinstalador as tira num passo próprio.
+acervo-de-papeis	de quem usa	$HOME/.local/share/backgrounds/meowsystem	Papéis	-	-	nunca	passo	A sua coleção de imagens. Só sai se você pedir ao desinstalar.
+curadoria-de-papeis	de quem usa	$MEOW_ESTADO/papeis-de-parede	Ajustes	-	-	nunca	passo	As listas de papel de parede que você montou. Só saem se você pedir ao desinstalar.
+dados-packs	de quem usa	$HOME/.local/share/meowsystem/packs	Seus temas	-	-	nunca	nao	Os temas que você abriu ou criou.
+dados-fontes	reconstruível	$HOME/.local/share/meowsystem/fontes	Baixados	2	-	nunca	sim	O fonte do compositor e do que se compila, guardado para não baixar de novo. Volta com a rede.
+dados-fastfetch	de quem usa	$HOME/.local/share/meowsystem/fastfetch	Ajustes	-	-	nunca	sim	O logo e a configuração do fastfetch que o MeowSystem gerou.
+dados-resto	de quem usa	$HOME/.local/share/meowsystem/*	Ajustes	-	-	nunca	sim	Logo do terminal, fontes e temas de aplicativo do MeowSystem.
+config-meow	de quem usa	$HOME/.config/meowsystem	Ajustes	-	-	nunca	nao	A configuração dos applets e do terminal, que fica depois de desinstalar.
+estado-de-quem-usa	de quem usa	$MEOW_ESTADO/oficina|$MEOW_ESTADO/rascunho-*.json|$MEOW_ESTADO/jogos-apagados|$MEOW_ESTADO/starship-recusado	Ajustes	-	-	nunca	nao	O que você enviou, rascunhou ou recusou.
+estado-travas	de quem usa	$MEOW_ESTADO/lock|$MEOW_ESTADO/lock.troca|$MEOW_ESTADO/builds.lock|$MEOW_ESTADO/app.pid	Ajustes	-	-	nunca	sim	As travas que impedem duas execuções ao mesmo tempo.
+estado-registros	de quem usa	$MEOW_ESTADO/*.log|$MEOW_ESTADO/*.log.*|$MEOW_ESTADO/logs	Ajustes	-	-	nunca	sim	O registro do que o MeowSystem fez.
+estado-tabelas	de quem usa	$MEOW_ESTADO/*.tsv|$MEOW_ESTADO/*.txt|$MEOW_ESTADO/*.md5|$MEOW_ESTADO/*.json|$MEOW_ESTADO/raiz	Ajustes	-	-	nunca	sim	O que o MeowSystem lembra: pendências, manifesto, avisos e escolhas.
+estado-marcas	de quem usa	$MEOW_ESTADO/wallpaper-*|$MEOW_ESTADO/logo-*|$MEOW_ESTADO/libreoffice-*|$MEOW_ESTADO/flatpak-*|$MEOW_ESTADO/lancador-*|$MEOW_ESTADO/relogio|$MEOW_ESTADO/areas|$MEOW_ESTADO/janelas|$MEOW_ESTADO/som-do-pack|$MEOW_ESTADO/cosmic-versoes|$MEOW_ESTADO/pack-do-install|$MEOW_ESTADO/temas-de-apps|$MEOW_ESTADO/midia|$MEOW_ESTADO/leitura|$MEOW_ESTADO/rust	Ajustes	-	-	nunca	sim	O que cada etapa do MeowSystem lembra do que já fez.
+estado-temas	reconstruível	$MEOW_ESTADO/temas	Ajustes	1	-	nunca	sim	Os temas gerados da paleta. Voltam sozinhos.
+estado-geral	de quem usa	$MEOW_ESTADO/*	Ajustes	-	-	nunca	sim	O resto do estado do MeowSystem.

@@ -58,6 +58,7 @@ lock_painel 1111111111111111111111111111111111111111
 
 cat > "$T/bin/cargo" <<FIM
 #!/bin/sh
+case "\$*" in *--message-format=json*) exit 0 ;; esac
 echo "cargo \$*" >> "$T/cargo.log"
 [ "\$1" = build ] || exit 0
 case "\$*" in *--locked*) ;; *) [ -f "$T/painel-falha" ] && exit 101 ;; esac
@@ -312,6 +313,7 @@ P9="$T/pinos9"; H9="$T/lar9"; E9="$H9/.local/state/meowsystem/extensoes"; ALVO9=
 mkdir -p "$P9" "$H9" "$T/bin9"
 cat > "$T/bin9/cargo" <<FIM
 #!/bin/sh
+case "\$*" in *--message-format=json*) exit 0 ;; esac
 [ "\$1" = build ] || exit 0
 echo "\$CARGO_TARGET_DIR" >> "$T/alvos.log"
 [ -f "$T/cargo9-falha" ] && { echo "error: linker \\\`cc\\\` not found" >&2; exit 101; }
