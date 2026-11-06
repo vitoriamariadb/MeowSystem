@@ -29,7 +29,8 @@ O registro é [`docs/DECISOES.md`](docs/DECISOES.md): uma linha por decisão que
 - `sudo` é `NOPASSWD: ALL` e escreve no sistema real. Teste que chama `sudo` não falha: escreve.
 - Teste e QA usam HOME temporário, falsos no PATH que recusam escrita (`sudo`, `pkexec`, `su`, `apt`, `cargo`, `just`, `make`, `systemctl` de escrita, `pkill`) e nenhum barramento da sessão.
 - Painel só com HOME temporário, PID próprio, nunca `--parar`.
-- Não rode `install.sh`, `meow compositor` nem `meow doctor --consertar` com o HOME real.
+- Agente não roda `install.sh`, `meow compositor` nem `meow doctor --consertar` com o HOME real; quem coordena a
+  sessão (o orquestrador) pode.
 - O gancho de commit troca palavras, às vezes dentro do código. Confira o diff de cada commit.
 - `/tmp` some no reboot. O estado de um bloco mora num arquivo do projeto.
 - Trabalhe na worktree e na branch do bloco, nunca no checkout principal.
