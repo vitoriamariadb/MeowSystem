@@ -347,6 +347,11 @@ for n in com.beholder.app elden-ring-tracker protocolo-ouroboros; do
     && ok "13: $n veste o desenho dele no Dracula" || falha "13: $n não veste desenho no Dracula"
 done
 registro 17 'AGENTS.md' && ok "17: o AGENTS.md é exceção do sanitizador" || falha "a decisão 17 saiu do registro"
+cobre 14 acervo-da-ficha.sh 'as três pastas são planas'
+cobre 15 derivados.sh 'o SVG editado chegou ao tema instalado'
+cobre 15 derivados.sh 'salvar de novo o mesmo conteúdo não escreve nada'
+git -C "$RAIZ" ls-files --error-unmatch AGENTS.md >/dev/null 2>&1 \
+  && ok "17: o AGENTS.md está versionado" || falha "17: o AGENTS.md saiu do repositório"
 r="$(resolvedor autorais 2>&1)"
 [ "$r" = "proibidos=" ] && ok "29: hefesto e fogstripper fora dos autorais dos packs" || falha "29: projeto pessoal nos autorais: $r"
 c="$(grep -E '^LANCADOR_OCULTAR=' "$RAIZ/meow.conf.exemplo" | head -1)"
@@ -470,27 +475,31 @@ registro 37 'sons/' && grep -q 'som-padrao' "$RAIZ/scripts/ponte_root.sh" && gre
   && ok "37: os sons do pack vão ao sistema pela ponte, o pós-apt os repõe e a página lista cada evento" \
   || falha "37: a ponte, o pós-apt ou o catálogo de sons saiu"
 cobre 27 manter-sem-pendencias.py 'o Manter .* e o Tema não mostram'
+cobre 27 apagar-papel.sh 'a devolvida segue em ativos/ sem entrar na lista'
 cobre 28 seletor-do-pack.sh 'a escolha sai do estado de quem usa' app/servidor.py '/api/app-icone'
+cobre 28 git-limpo.sh 'a linha, o retoque e o construído foram para o estado de quem usa'
 cobre 31 pack-dracula-completo.sh 'o Vesktop veste o Discord do pack Dracula' packs/dracula/icones/apps.map 'dev\.vencord\.Vesktop'
 cobre 31 pack-dracula-completo.sh 'o traço do Firefox é peach' packs/meowsystem/icones/apps-arcticons.map '^firefox:firefox:peach$'
 cobre 32 pack-dracula-completo.sh 'Hidden=true' scripts/construir_icones.sh 'Hidden=true'
 cobre 32 pack-dracula-completo.sh 'Tema-Base,Tema-Base-2,Cosmic,Adwaita,hicolor' lib/icones.sh 'Cosmic,Adwaita,hicolor'
 cobre 33 pack-dracula-completo.sh 'o Catppuccin não herda a lista' scripts/ocultar_apps.sh 'pack\.py" ocultar'
 cobre 34 app.sh 'a noite com uma ponta só é recusada \(409\)' app/servidor.py 'a noite pede as duas pontas'
+pula "34: o «— não tocar —» e o ⊘ saíram do painel na P98 (hoje o vazio é «Automático»): falta a palavra de quem usa"
 cobre 35 fonte-unica.sh 'ICONES_DRACULA="nao"' scripts/icones_apps_dracula.sh 'ICONES_DRACULA:-sim\}" = "nao"'
 ! grep -q 'ICONES_DRACULA' "$RAIZ/scripts/migrar_conf.py" \
   && ok "35: o migrar_conf.py não toca na chave ICONES_DRACULA: o «nao» escrito fica como está" \
   || falha "35: o migrar_conf.py passou a mexer no ICONES_DRACULA"
 so_texto 38
-cobre 39 par-do-pack.sh 'o mimetypes nunca sai calado com 1'
+cobre 39 pack-dracula-completo.sh 'o pack Dracula não guarda tipo de arquivo pintado nem cópia do molde'
+faltam_pasta=""
 for pack in meowsystem dracula; do
-  ls "$RAIZ/packs/$pack/icones/biblioteca" | grep -qiE 'folder' || faltam_pasta="$faltam_pasta $pack"
+  [ -n "$(find "$RAIZ/packs/$pack/icones/biblioteca" -maxdepth 1 -iname '*folder*' -print -quit)" ] || faltam_pasta+=" $pack"
 done
 comuns="$(comm -12 <(ls "$RAIZ/packs/meowsystem/icones/biblioteca" | grep -i folder | sort) \
                    <(ls "$RAIZ/packs/dracula/icones/biblioteca" | grep -i folder | sort) | wc -l)"
-[ -z "${faltam_pasta:-}" ] && [ "$comuns" = 0 ] \
+[ -z "$faltam_pasta" ] && [ "$comuns" = 0 ] \
   && ok "39: cada pack guarda os desenhos de pasta na biblioteca dele, e nenhum nome se repete nos dois" \
-  || falha "39: pasta fora da biblioteca do pack (sem:${faltam_pasta:-nenhum}, repetidos: $comuns)"
+  || falha "39: pasta fora da biblioteca do pack (sem:${faltam_pasta:- nenhum}, repetidos: $comuns)"
 so_texto 40
 cobre 41 pack-malicioso.sh 'um mapa que aponta para fora recusa o pack inteiro' scripts/pack.py 'def _dentro'
 cobre 41 pack-malicioso.sh 'as linhas ruins foram puladas e as boas chegaram ao tema'
