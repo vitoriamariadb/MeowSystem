@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import importlib.util
+import json
 import os
 import shutil
 import sys
@@ -118,6 +119,41 @@ def main():
                                   arg=casa.PAREDES - 1, timeout=60000)
             pag.wait_for_timeout(600)
             checa(not sem_previa, f"o Desfazer traz a pasta de volta sem 404 ({len(sem_previa)} respostas)")
+            pag.evaluate("""() => { const f = window.fetch; window.fetchDeVerdade = f;
+                window.fetch = async (u, o) => { const r = await f(u, o);
+                    if (String(u).includes('/api/previas')) await window.previasSoltas;
+                    return r; };
+                window.previasSoltas = new Promise((s) => { window.soltarPrevias = s; });
+                PREVIAS.delete('parede/ativos'); carregarPrevias('parede', 'ativos'); }""")
+            pag.wait_for_timeout(600)
+            pag.evaluate("(base) => gravarAgora({ WALLPAPER_BASE: base })", outra)
+            pag.wait_for_function("() => !EM_VOO", timeout=60000)
+            pag.evaluate("() => { window.fetch = window.fetchDeVerdade; window.soltarPrevias(); }")
+            pag.wait_for_timeout(1500)
+            pag.evaluate("() => render()")
+            pag.wait_for_timeout(600)
+            lista_atrasada = pag.evaluate("() => (previasDe('parede', 'ativos') || { itens: [] }).itens.length")
+            checa(lista_atrasada == 0 and not sem_previa,
+                  f"a lista que chega depois da troca da pasta não entra ({lista_atrasada} itens, {len(sem_previa)} respostas 404)")
+            pag.evaluate("() => desfazerTudo()")
+            pag.wait_for_function("(n) => document.querySelectorAll('.galeria figure img').length === n",
+                                  arg=casa.PAREDES - 1, timeout=60000)
+            pag.wait_for_timeout(600)
+            def falha_parcial(rota):
+                resposta = rota.fetch()
+                rota.fulfill(status=500, content_type="application/json", body=json.dumps(
+                    {"gravadas": ["WALLPAPER_BASE"], "iguais": [], "erro": "nem tudo foi gravado",
+                     "falhas": [{"chave": "WALLPAPER_INTERVALO", "erro": "não consegui gravar"}], "real": resposta.status}))
+            pag.route("**/api/salvar", falha_parcial)
+            pag.evaluate("(base) => gravarAgora({ WALLPAPER_BASE: base, WALLPAPER_INTERVALO: '7m' })", outra)
+            pag.wait_for_function("() => !EM_VOO", timeout=60000)
+            pag.unroute("**/api/salvar")
+            for _vez in range(3):
+                pag.evaluate("() => render()")
+                pag.wait_for_timeout(400)
+            parcial = pag.evaluate("() => (previasDe('parede', 'ativos') || { itens: [] }).itens.length")
+            checa(parcial == 0 and not sem_previa,
+                  f"com a outra chave em falha, a pasta nova já vale na galeria ({parcial} itens, {len(sem_previa)} respostas 404)")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:
