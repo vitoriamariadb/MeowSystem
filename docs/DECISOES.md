@@ -43,9 +43,9 @@ prova no código. O texto de antes de cada linha mora no histórico do git.
 | 35 | Um `ICONES_DRACULA="nao"` escrito fica, sem migrar | é escolha |
 | 36 | O tema instalado continua `MeowSystem-Icons`; o exportado leva o nome do pack | é o nome que o COSMIC lê |
 | 37 | O pack traz os sons do sistema (`sons/`), e a página Sons lista cada um para ouvir e trocar; carregador e bateria vão para `/usr/share/sounds/Pop` pela ponte root, e o pós-apt os repõe; um `SOM_*` do `meow.conf` só vale para o pack em que ela o mexeu | pedido de 26/10 (QA final, Q1-04) |
-| 38 | Os gatos `coquinha` e `mimir` não se repintam; os 52 nomes do tema antigo sem desenho ficam fora; o índice do upstream fica como veio; o Discord escuro fica | é da arte, do upstream |
+| 38 | Os gatos `coquinha` e `mimir` não se repintam; os 52 nomes do tema antigo sem desenho ficam fora; o índice do upstream fica como veio; o Discord escuro fica | é da arte, do upstream; só texto, nada no código a lê |
 | 39 | Desenhos de pasta e de mimetype ficam na biblioteca do pack a que pertencem | decisão 3 |
-| 40 | Nomes em inglês que vêm do `.desktop` do sistema ficam | é o nome do lançador |
+| 40 | Nomes em inglês que vêm do `.desktop` do sistema ficam | é o nome do lançador; só texto, nada no código a lê |
 | 41 | Alvo de pack que sai da raiz recusa o pack inteiro; nome torto é pulado e contado | sair da raiz é fuga |
 | 42 | O `pack.py sincronizar` fica no verbo manual, com a guarda de mesma extensão | só compara arte com arte |
 | 43 | O aviso do `NOPASSWD: ALL` diz o estado, sem receita; tirar o `NOPASSWD` é de quem usa | segurança da conta |
