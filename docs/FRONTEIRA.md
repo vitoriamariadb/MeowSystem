@@ -64,7 +64,7 @@ a máquina gerou.
 | `patches/series` e `patches/*.patch` | **Meow** |
 | `cosmic-files` e `cosmic-files-applet` | **Meow, por PATH**; o build sai da frente quando o pacote sobe sem build correspondente |
 | `xdg-desktop-portal-cosmic` com a série de `patches/graficos.series` | **Meow, pelo drop-in**: o build mora em `~/.local/libexec/meow/graficos/<versão>/`, o `meow-graficos.conf` do `org.freedesktop.impl.portal.desktop.cosmic.service.d` aponta para o shim `portal-shim`, e o shim escolhe a cada subida entre o build e `/usr/libexec/xdg-desktop-portal-cosmic`, do apt. É do Meow, como o `cosmic-comp`, porque o defeito é do upstream (#286, #384), o conserto é patch, e a captura de tela é o outro lado do compositor que o Meow já mantém; sai do trilho quando `patches/graficos.versao` declara a versão com a correção oficial |
-| `/etc/opt/chrome/policies/managed/compartilhar-tela.json` | **Meow**, pela ponte root, só com o `google-chrome-stable` instalado; o resto da pasta (os arquivos da Aurora, por exemplo) o Meow não toca |
+| `/etc/opt/chrome/policies/managed/compartilhar-tela.json` | **Meow**, pela ponte root, só com o `google-chrome-stable` instalado. É do Meow porque faz parte da build do portal: o arquivo é igual em todo PC, e o `meow graficos reverter` o tira. O resto da pasta (os arquivos da Aurora, por exemplo) o Meow não toca |
 | `/etc/apt/apt.conf.d/99-meow-lancador`, `/usr/local/sbin/meow-lancador-apt.sh` | **Meow** (o `sbin` separa do `/usr/local/bin` da Aurora) |
 | `/etc/apt/apt.conf.d/99-ritual-aurora-self-heal` | **Aurora** |
 | `/usr/local/lib/meowsystem/{ponte_root.sh,perfil}`, `/etc/sudoers.d/49-meowsystem-ponte` | **Meow**; o `sudoers.d` é compartilhado, cada projeto escreve só o seu arquivo |

@@ -172,6 +172,20 @@ Provas: `graficos.sh validar` contra o `apt-get source` real, com `-F0` nos trê
 c0cff4d); `graficos.sh compilar` em HOME temporário (3m47s), os dois marcadores no binário; `compilar` de novo diz
 "nada a compilar" e `pendente` sai vazio; `tests/graficos.sh` (portátil) e `tests/graficos-fonte-real.sh` (máquina).
 
+Conferência do bloco, com caso em `tests/graficos.sh` para cada item:
+
+- Compartilhamento pausado deixa o nó `cosmic-screencast` em `suspended`: agora o nó conta como no ar em qualquer
+  estado, e `pw-dump` que não se entende nunca libera o reinício.
+- Esperar build ou stream não é escrita. Antes a etapa devolvia 1 em toda passagem, e o laço do install acusava
+  idempotência e saía 2, também em PC com o patch recusado.
+- O `garantir_builds` liga o portal antes dos retornos do compositor (degrau 4, espera), e a recusa sai 0.
+- Uma queda só não põe o build de lado, porque no híbrido o pacote cai a cada tentativa: a regra é cair repetido.
+- `meow graficos reverter` grava `GRAFICOS="nao"`, como o Remover do cartão, e o doctor das 5h não desfaz.
+- O `reverter` com stream no ar espera, e a passada seguinte devolve; sem a ponte ele não diz que voltou.
+
 Não coberto: nada foi aplicado na máquina (sem `install.sh`, sem reiniciar o portal); a prova de 30 minutos e a
-chamada no Teams ficam para quem usa, em "Como se prova". Falhas anteriores a este bloco e fora do escopo:
-`decisoes.sh` (comentário no `.gitignore`), `compositor-shim.sh`, `ganchos.sh`.
+chamada no Teams ficam para quem usa, em "Como se prova". O PR #385 sem o SHM forçado nunca rodou ao vivo: o que
+se mediu no nitro-5 foi o binário só SHM. Seguem sem medida o Chrome híbrido importar o LINEAR de outra GPU e o furo
+da #286, em que o modifier fixado como `Value::Long` cai no `return`. Se a tela vier preta, a causa é uma dessas e a
+parte 2 é a P163. Falhas anteriores a este bloco e fora do escopo: `decisoes.sh` (comentário no `.gitignore`),
+`compositor-shim.sh`, `ganchos.sh`.

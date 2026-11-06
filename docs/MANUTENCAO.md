@@ -15,7 +15,7 @@ para qualquer limpeza do `~/.cache`.
 | Passo | O que o MeowSystem faz |
 |---|---|
 | `apt update` | Nada. Nenhuma versão mudou, e nenhum byte é escrito. |
-| `apt full-upgrade` | O hook de apt toca o carimbo, e o `meow-pos-apt` acorda. O menu é compilado primeiro (minutos), depois o compositor (até meia hora, com prioridade mínima). |
+| `apt full-upgrade` | O hook de apt toca o carimbo, e o `meow-pos-apt` acorda. O menu é compilado primeiro (minutos), depois o compositor (até meia hora, com prioridade mínima) e o portal (minutos). |
 | `topgrade` | Nada, se não trouxer COSMIC novo. Se trouxer, vale o passo de cima. |
 | `apt autoremove`, `apt autoclean`, `apt clean` | Nada. O fonte baixado fica guardado em `~/.local/share/meowsystem/fontes/`, fora do cache do apt. |
 | `cargo update` | Não é do MeowSystem. Fora de uma pasta de projeto ele sai com o código 101, e um `&&` depois dele interrompe o resto da cadeia. |
@@ -48,6 +48,9 @@ patches e o esquema de chaves vão entrar na versão nova. O build pergunta ao f
 - **O menu da área de trabalho.** Janelas novas do gerenciador de arquivos já trazem o menu novo. A
   área de trabalho só o mostra no próximo login.
 
+O portal não espera o login: ele reinicia assim que o build fica pronto, e nunca com
+compartilhamento no ar. Nesse caso a troca espera o compartilhamento acabar.
+
 ## Quando um build não sai
 
 - **Patch obrigatório que não entra na versão nova.** Nada é trocado, e a sessão sobe com o
@@ -58,6 +61,10 @@ patches e o esquema de chaves vão entrar na versão nova. O build pergunta ao f
   `~/.cache/meowsystem/cosmic-comp/compilar-<versão>.log`.
 - **Build que cai duas vezes seguidas ao subir a sessão.** A guarda do shim o põe de lado, e a
   sessão volta ao compositor de fábrica até a próxima versão.
+- **Portal: patch que não entra ou build que cai repetido.** O shim sobe o portal do pacote, e o
+  compositor e o login seguem sem mudança. A recusa espera um rebase em `patches/graficos.series`.
+  A série sai do trilho quando `patches/graficos.versao` declara `fim <versão>`, a primeira que traz a
+  correção oficial. O registro do portal fica em `~/.cache/meowsystem/graficos/compilar-<versão>.log`.
 
 ## Como voltar
 
@@ -68,6 +75,9 @@ e o doctor ligam o shim sozinhos quando o build da casa está pronto.
 
 Para o menu da área de trabalho, ponha `FILES_MENU="nao"` no `meow.conf`. O doctor seguinte devolve o
 menu de fábrica.
+
+Para o portal, **Remover** no cartão Aprimoramentos gráficos e `meow graficos reverter` são o mesmo
+gesto: tiram o shim, o drop-in e a policy do Chrome e gravam `GRAFICOS="nao"`. O build fica guardado.
 
 O que o projeto entrega, o que roda sozinho e quando, e o caminho de volta de cada coisa estão
 em [`ESTADO-FINAL.md`](ESTADO-FINAL.md).
