@@ -18,6 +18,11 @@
   papel de parede, Criar o meu tema e Personalizar no painel; no Mascote, Tamanho 57, Altura no ↶ e Linhas
   antes 0 deixam o gato do tamanho do texto, com a paleta logo abaixo.
   PRÓXIMO (achados, nenhum em voo):
+  - P159 (06/11): compartilhar tela e janela no COSMIC vira feature no trilho do `meow compositor`; o portal aborta
+    (pop-os/xdg-desktop-portal-cosmic#286). Curado à mão só no nitro-5;
+  - P160 (06/11): o compartilhamento ainda congela; corrida no toolkit (`create_frame`), medida, cura a aplicar;
+  - P161 (06/11): áreas fixadas do HDMI duplicam no note ao tirar o monitor; o «5» é a área vazia do compositor de
+    fábrica. Falta decidir a cura e medir janelas abertas;
   - a banida com emoji no nome (`Cyberpunk Neon Cat Wallpaper …`, com dois emojis): o `limpar_banidos` e o `banir` pulam nomes
     fora do ASCII;
   - num checkout o lixo põe no BANIDOS.txt.padrao até foto dela que o `semear` nunca baixa; cópias em
