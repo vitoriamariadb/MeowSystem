@@ -542,6 +542,12 @@ chk_extensoes() {
     "$RAIZ/scripts/extensoes_build.sh" --todas --conferir 2>&1
 }
 
+chk_disco() {
+  meow_tem python3 || { meow_pula "sem python3 para medir o disco"; return "$MEOW_SEM_DEPENDENCIA"; }
+  MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$RAIZ" \
+    python3 "$RAIZ/scripts/espaco.py" conferir 2>&1
+}
+
 chk_extensoestema() {
   FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/extensoes_tema.sh" --conferir 2>&1
 }
@@ -1280,6 +1286,8 @@ fix_forma()     { rodar_forma "$RAIZ" 2>&1; }
 fix_extensoes()  { EXTENSOES_COMPILAR=1 EXTENSOES="${EXTENSOES:-}" MIDIA="${MIDIA:-}" \
                     LEITURA_APPLET="${LEITURA_APPLET:-}" \
                     "$RAIZ/scripts/extensoes_build.sh" --todas --aplicar 2>&1; }
+fix_disco()      { MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$RAIZ" \
+                    python3 "$RAIZ/scripts/espaco.py" aparar 2>&1; }
 fix_extensoestema() { FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/extensoes_tema.sh" --aplicar 2>&1; }
 fix_patches()    { "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1; local rc=$? r; "$RAIZ/scripts/compositor_patches.sh" cuidar 2>&1; r=$?; case "$r" in 1) [ "$rc" = 0 ] && rc=1 ;; 2) rc=2 ;; esac; _patches_shim_falta || return "$rc"; "$RAIZ/scripts/compositor_patches.sh" ativar 2>&1; }
 
@@ -1506,7 +1514,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 if ! meow_ponte_viva; then
   SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal gpu libreoffice "
@@ -2960,6 +2968,9 @@ cmd_ajuda() {
   meow leitura aplicar         põe o degrau da hora (o timer já faz sozinho)
   meow leitura remover         zera temperatura e textura, e desarma o timer
 
+  meow espaco                  quanto o MeowSystem ocupa no disco e o que dá para liberar
+  meow espaco liberar          tira o que se reconstrói (o próximo build refaz)
+
   meow compositor [--seco]     recompila o cosmic-comp com os patches de patches/ e
                                instala (sudo só no fim; vale no próximo login)
   meow compositor validar      confere se a série entra na versão instalada
@@ -3007,6 +3018,29 @@ cmd_painel() {
       printf '  ~20 mortes na mesma sessão (o backoff dele não tem teto e nunca zera).\n'
       ;;
     *) meow_erro "verbo desconhecido: $1"; meow_info "veja: meow painel --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_espaco() {
+  local verbo="${1:-ver}"
+  carregar_conf --ponte-opcional || return "$MEOW_ERRO"
+  meow_tem python3 || { meow_erro "falta o python3 para medir o disco"; return "$MEOW_SEM_DEPENDENCIA"; }
+  case "$verbo" in
+    ver|json|inventario) MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$RAIZ" \
+                           python3 "$RAIZ/scripts/espaco.py" "$verbo" ;;
+    aparar|liberar)
+      meow_travar || return "$MEOW_ERRO"
+      MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$RAIZ" \
+        python3 "$RAIZ/scripts/espaco.py" "$verbo" ;;
+    -h|--help)
+      meow_titulo "meow espaco"
+      printf '  meow espaco            quanto o MeowSystem ocupa, por categoria e por item\n'
+      printf '  meow espaco json       o mesmo, para outro programa ler\n'
+      printf '  meow espaco inventario cada caminho que o MeowSystem escreve, com a categoria\n'
+      printf '  meow espaco aparar     corta o que passou do teto (o doctor já faz sozinho)\n'
+      printf '  meow espaco liberar    tira tudo o que se reconstrói; o próximo build refaz\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow espaco --help"; return "$MEOW_ERRO" ;;
   esac
 }
 
@@ -3388,6 +3422,7 @@ despachar() {
     pack|packs)       shift; cmd_pack "$@" ;;
     leitura)          shift; cmd_leitura "$@" ;;
     compositor)       shift; cmd_compositor "$@" ;;
+    espaco|espaço)    shift; cmd_espaco "$@" ;;
     cosmic)           shift
       case "${1:-prever}" in
         prever|ler|icones) "$RAIZ/scripts/cosmic_prever.sh" "$@"; exit $? ;;

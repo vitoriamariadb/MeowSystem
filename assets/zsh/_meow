@@ -62,6 +62,7 @@ _meow() {
     'wallpaper:carrossel de papéis de parede'
     'files-menu:os 2 itens de papel de parede no menu da área de trabalho'
     'compositor:baixa, patcha e compila o cosmic-comp (é o que a linha patches do doctor pede)'
+    'espaco:quanto o MeowSystem ocupa no disco, e o que dá para liberar'
     'apps:tabela de módulo, app instalado e tema'
     'configurar:wizard curto: as chaves essenciais do meow.conf (--tudo para o resto)'
     'ativar:roda o install.sh inteiro'
@@ -138,6 +139,18 @@ _meow() {
               'conferir:os marcadores no disco e na sessão'
               'reverter:diz como voltar ao binário do pacote'
               '--seco:diz o que faria, sem baixar, compilar nem pedir senha'
+            )
+            _describe -t acoes 'ação' acoes
+          fi
+          ;;
+        espaco)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'json:o mesmo relatório, para outro programa ler'
+              'inventario:cada caminho que o MeowSystem escreve'
+              'aparar:corta o que passou do teto'
+              'liberar:tira o que se reconstrói'
             )
             _describe -t acoes 'ação' acoes
           fi
