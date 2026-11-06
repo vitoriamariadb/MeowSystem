@@ -588,7 +588,7 @@ _ativa() {
   case "$(_tipo)" in
     compositor) grep -qs -- "$SHIM_MARCA" "$SHIM" && [ "${B_SITUACAO:-}" != retido ] ;;
     menu) grep -a -qs -- "$MENU_MARCA" "$BINDIR/$P_BIN" && grep -a -qs -- "$MENU_MARCA" "$BINDIR/$P_BIN-applet" ;;
-    graficos) "$GRAFICOS_SH" estado 2>/dev/null | grep -qx 'dropin=sim' && { [ -z "${B_SITUACAO:-}" ] || [ "$B_SITUACAO" = ok ]; } ;;
+    graficos) [ "${B_SITUACAO:-}" = oficial ] || { "$GRAFICOS_SH" estado 2>/dev/null | grep -qx 'dropin=sim' && { [ -z "${B_SITUACAO:-}" ] || [ "$B_SITUACAO" = ok ]; }; } ;;
     *) _painel_cita "$P_APP_ID" ;;
   esac
 }
@@ -719,7 +719,7 @@ _b_aplicar() {
       if [ -n "$P_CHAVE_DO_CONF" ]; then env "$P_CHAVE_DO_CONF=sim" "$GARANTIR" --fundo; rc=$?
       else "$GARANTIR" --fundo; rc=$?; fi
       [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
-      [ "$rc" = "$MEOW_SEM_DEPENDENCIA" ] || mudou=1
+      [ "$rc" = "$MEOW_DIVERGENTE" ] && mudou=1
     else
       _b_compilar; rc=$?
       _b_campos "$(_b_prefixo)"

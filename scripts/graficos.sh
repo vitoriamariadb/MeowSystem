@@ -30,6 +30,8 @@ GR_PW_DUMP="${GR_PW_DUMP:-pw-dump}"
 GR_JOURNALCTL="${GR_JOURNALCTL:-journalctl}"
 GR_ESPACO_KB="${GR_ESPACO_KB:-6500000}"
 GR_JANELA_QUEDAS="${GR_JANELA_QUEDAS:-86400}"
+GR_QUEDAS_RUIM="${GR_QUEDAS_RUIM:-2}"
+GR_ASSINATURA='screencast_thread\.rs|create_frame sent before'
 
 GR_POLICY_TEXTO='{
   "ScreenCaptureAllowed": true,
@@ -217,12 +219,12 @@ _gr_policy_aplicar() {
 
 _gr_policy_tirar() {
   local rc
-  [ -e "$GR_POLICY" ] || return 0
+  [ -e "$GR_POLICY" ] || [ -L "$GR_POLICY" ] || return 0
   meow_muda "a policy de compartilhar tela do Chrome sairia ($GR_POLICY)"
   meow_seco && return 1
   _gr_policy_pedir chrome-policy-tirar "tirar a policy de compartilhar tela do Chrome"; rc=$?
   [ "$rc" = 0 ] || return "$rc"
-  [ ! -e "$GR_POLICY" ] || { meow_erro "a policy do Chrome continua em $GR_POLICY"; return 2; }
+  [ ! -e "$GR_POLICY" ] && [ ! -L "$GR_POLICY" ] || { meow_erro "a policy do Chrome continua em $GR_POLICY"; return 2; }
   return 1
 }
 
@@ -254,23 +256,21 @@ _gr_exe_vivo() {
 }
 
 _gr_stream() {
-  local saida
+  local saida veredito
   meow_tem "$GR_PW_DUMP" || return 2
   saida="$("$GR_PW_DUMP" 2>/dev/null)" || return 2
-  printf '%s' "$saida" | python3 -I -c '
+  veredito="$(printf '%s' "$saida" | python3 -I -c '
 import json, sys
-try:
-    nos = json.load(sys.stdin)
-except ValueError:
-    sys.exit(2)
-for o in nos:
-    if o.get("type") != "PipeWire:Interface:Node":
-        continue
-    info = o.get("info") or {}
-    props = info.get("props") or {}
-    if props.get("node.name") == "cosmic-screencast" and info.get("state") in ("running", "idle", "creating"):
-        sys.exit(0)
-sys.exit(1)'
+nos = json.load(sys.stdin)
+print("no-ar" if any(
+    o.get("type") == "PipeWire:Interface:Node"
+    and ((o.get("info") or {}).get("props") or {}).get("node.name") == "cosmic-screencast"
+    for o in nos) else "livre")' 2>/dev/null)"
+  case "$veredito" in
+    no-ar) return 0 ;;
+    livre) return 1 ;;
+  esac
+  return 2
 }
 
 _gr_esperado() {
@@ -281,7 +281,7 @@ _gr_reiniciar() {
   local frase="$1" rc
   _gr_stream; rc=$?
   case "$rc" in
-    0) meow_muda "$frase: há compartilhamento no ar, e a troca espera ele acabar"; return 1 ;;
+    0) meow_info "$frase: há compartilhamento no ar, e a troca espera ele acabar"; return 0 ;;
     2) meow_info "$frase: não consegui ver o PipeWire, e a troca vale na próxima subida do portal"; return 0 ;;
   esac
   if ! systemctl --user restart "$GR_UNIDADE" >/dev/null 2>&1; then
@@ -346,6 +346,8 @@ _gr_ligar_portal() {
 
 _gr_tirar_portal() {
   local mudou=0 vivo
+  meow_precisa_de_gente_resolvida graficos-caiu
+  meow_precisa_de_gente_resolvida graficos-nao-encaixa
   if [ -e "$GR_DROPIN" ]; then
     if _gr_dropin_nosso; then
       meow_muda "o drop-in do portal sairia ($GR_DROPIN)"
@@ -360,21 +362,28 @@ _gr_tirar_portal() {
     meow_seco || { meow_guardar_antes "$GR_SHIM"; rm -f "$GR_SHIM"; }
     mudou=1
   fi
-  [ "$mudou" = 1 ] || return 0
-  meow_seco && return 1
-  _gr_recarregar
+  if [ "$mudou" = 1 ] && ! meow_seco; then
+    _gr_recarregar
+    meow_registrar "graficos.sh tirou o shim e o drop-in do portal"
+  fi
   vivo="$(_gr_exe_vivo)" || vivo=""
   case "$vivo" in
-    "$GR_CASA"/*) _gr_reiniciar "o portal volta ao do pacote" >/dev/null ;;
+    "$GR_CASA"/*)
+      if meow_seco; then
+        meow_muda "o portal roda o build da casa e voltaria ao do pacote"
+        return 1
+      fi
+      _gr_reiniciar "o portal volta ao do pacote"
+      return $(( $? | mudou ))
+      ;;
   esac
-  meow_registrar "graficos.sh tirou o shim e o drop-in do portal"
-  return 1
+  return "$mudou"
 }
 
 _gr_quedas() {
   local desde="$1"
   meow_tem "$GR_JOURNALCTL" && meow_tem python3 || return 1
-  "$GR_JOURNALCTL" --user -q --no-pager --since="@$desde" -o json "_SYSTEMD_USER_UNIT=$GR_UNIDADE" 2>/dev/null \
+  "$GR_JOURNALCTL" --user -q --no-pager --since="@$desde" -o json -g "$GR_ASSINATURA" "_SYSTEMD_USER_UNIT=$GR_UNIDADE" 2>/dev/null \
     | python3 -I -c '
 import json, sys
 assinaturas = ("screencast_thread.rs", "create_frame sent before")
@@ -429,7 +438,7 @@ cmd_cuidar() {
   [ -n "$ver" ] || return 0
   dir="$GR_CASA/$ver"
   [ -x "$(_gr_binario "$ver")" ] || return 0
-  if [ ! -e "$dir/ruim" ] && q="$(_gr_quedas_do "$(_gr_binario "$ver")" "$(_gr_desde_do_build "$ver")")" && [ "${q:-0}" -gt 0 ]; then
+  if [ ! -e "$dir/ruim" ] && q="$(_gr_quedas_do "$(_gr_binario "$ver")" "$(_gr_desde_do_build "$ver")")" && [ "${q:-0}" -ge "$GR_QUEDAS_RUIM" ]; then
     _gr_marcar_caiu "$ver" "o build caiu $q vez(es) com a assinatura medida"
     return $?
   fi
@@ -536,7 +545,7 @@ cmd_validar() {
     return "$MEOW_DIVERGENTE"
   fi
   mkdir -p "$GR_CACHE" || return "$MEOW_ERRO"
-  fonte="$GR_CACHE/fonte"; log="$GR_CACHE/validar-$ver.log"; : > "$log"
+  fonte="$GR_CACHE/fonte-validar"; log="$GR_CACHE/validar-$ver.log"; : > "$log"
   _gr_preparar "$ver" "$fonte" "$log"; local rc=$?
   rm -rf "$fonte"
   [ "$rc" = 0 ] && { meow_ok "a série entra no portal $ver"; return "$MEOW_OK"; }
@@ -662,8 +671,10 @@ cmd_aplicar() {
   fi
   if ! _gr_quer; then
     _gr_tirar_portal; rc=$?; [ "$rc" = 1 ] && mudou=1
-    _gr_policy_tirar; rc=$?; [ "$rc" = 1 ] && mudou=1
+    _gr_policy_tirar; rc=$?
+    case "$rc" in 1) mudou=1 ;; 2) return "$MEOW_ERRO" ;; 3) bloqueado=1 ;; esac
     [ "$mudou" = 1 ] && return "$MEOW_DIVERGENTE"
+    [ "$bloqueado" = 1 ] && return "$MEOW_SEM_DEPENDENCIA"
     meow_pula "GRAFICOS=\"nao\" — o portal e a policy ficam de fábrica"
     return "$MEOW_OK"
   fi
@@ -677,6 +688,7 @@ cmd_aplicar() {
     return "$MEOW_OK"
   fi
 
+  cmd_cuidar; [ "$?" = 1 ] && mudou=1
   s="$(_gr_situacao)"
   if [ "$s" = nao-encaixa ]; then
     meow_precisa_de_gente graficos-nao-encaixa "Patch do portal precisa de rebase" \
@@ -687,13 +699,22 @@ cmd_aplicar() {
     _gr_ruim "$ver" && meow_pula "o build do portal $ver está de lado (caiu) — o portal do pacote segue valendo"
   fi
   if ! _gr_valido "$ver" && [ "$s" != nao-encaixa ]; then
-    if [ "$GR_COMPILAR" = sim ] && ! meow_seco; then
-      _gr_compilar_travado; rc=$?
-      [ "$rc" = 0 ] && mudou=1
-      _gr_valido "$ver" || meow_aviso "o build do portal $ver não ficou pronto — o portal do pacote segue valendo"
-    else
+    if meow_seco; then
       meow_muda "o portal $ver ainda não tem build da casa"
       mudou=1
+    elif [ "$GR_COMPILAR" = sim ]; then
+      _gr_compilar_travado; rc=$?
+      [ "$rc" = 0 ] && mudou=1
+      if ! _gr_valido "$ver"; then
+        meow_aviso "o build do portal $ver não ficou pronto — o portal do pacote segue valendo"
+        if [ "$rc" = "$MEOW_SEM_DEPENDENCIA" ]; then
+          bloqueado=1
+        elif [ "$(_gr_situacao)" != nao-encaixa ]; then
+          mudou=1
+        fi
+      fi
+    else
+      meow_info "o portal $ver ainda não tem build da casa — o do pacote segue valendo"
     fi
   fi
 
@@ -702,10 +723,10 @@ cmd_aplicar() {
   _gr_policy_aplicar; rc=$?
   case "$rc" in 1) mudou=1 ;; 2) return "$MEOW_ERRO" ;; 3) bloqueado=1 ;; esac
 
-  local q
-  if [ -x "$(_gr_binario "$ver")" ] && q="$(_gr_quedas_do "$GR_FABRICA" "$(( $(date +%s) - GR_JANELA_QUEDAS ))")" && [ "${q:-0}" -gt 0 ] \
-     && [ "$(_gr_esperado 2>/dev/null)" = "$GR_FABRICA" ]; then
-    meow_info "o portal do pacote caiu $q vez(es) nas últimas 24 h com a assinatura medida"
+  local q esperado
+  esperado="$(_gr_esperado)"
+  if [ -n "$esperado" ] && q="$(_gr_quedas_do "$esperado" "$(( $(date +%s) - GR_JANELA_QUEDAS ))")" && [ "${q:-0}" -gt 0 ]; then
+    meow_info "$esperado caiu $q vez(es) nas últimas 24 h com a assinatura medida"
   fi
 
   if [ "$mudou" = 1 ]; then
@@ -714,6 +735,7 @@ cmd_aplicar() {
   if [ "$bloqueado" = 1 ]; then
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  _gr_valido "$ver" && ! _gr_ruim "$ver" || return "$MEOW_OK"
   if _gr_chrome_instalado; then
     meow_ok "aprimoramentos gráficos em dia: portal $ver, shim, drop-in e policy"
   else
@@ -726,7 +748,7 @@ cmd_reverter() {
   local mudou=0 rc
   _gr_tirar_portal; rc=$?; [ "$rc" = 1 ] && mudou=1
   _gr_policy_tirar; rc=$?
-  case "$rc" in 1) mudou=1 ;; 2) return "$MEOW_ERRO" ;; esac
+  case "$rc" in 1) mudou=1 ;; 2) return "$MEOW_ERRO" ;; 3) return "$MEOW_SEM_DEPENDENCIA" ;; esac
   if [ "$mudou" = 1 ]; then
     meow_seco || meow_muda "o portal e a policy voltaram ao estado do pacote"
     return "$MEOW_DIVERGENTE"

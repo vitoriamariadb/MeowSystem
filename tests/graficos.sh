@@ -144,6 +144,11 @@ graf() {
     GR_POLICY="$POLICY" GR_PROC="$PROC" GR_ESPACO_KB=1 GRAFICOS="${GRAFICOS_T:-sim}" "$@" \
     "$RAIZ/scripts/graficos.sh" "$verbo" > "$T/saida" 2>&1
 }
+ext() {
+  env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR HOME="$CASA" PATH="$FALSO:$PATH" MEOW_RAIZ="$RAIZ" NO_COLOR=1 LC_ALL=C MEOW_ESTADO="$ESTADO" \
+    MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE="$PONTE" GR_REPO="$T/patches" GR_SERIE="$T/patches/graficos.series" GR_VERSOES="$T/patches/graficos.versao" \
+    GR_POLICY="$POLICY" GR_PROC="$PROC" GR_ESPACO_KB=1 CP_REPO="$T/patches" CP_SERIE="$T/patches/graficos.series" "$@" > "$T/saida" 2>&1
+}
 foto() { (cd "$T" && find casa etc -printf '%p %s %T@ %i\n' 2>/dev/null | grep -v '/\.cache/' | sort; find casa etc -type f ! -path '*/.cache/*' -exec sha256sum {} + 2>/dev/null | sort) | sha256sum; }
 linhas() { local n; n="$(grep -c "$1" "$2" 2>/dev/null)" || n=0; printf '%s' "$n"; }
 chrome() { printf 'google-chrome-stable\t146.0\tinstalled\n' >> "$T/dpkg.tsv"; }
@@ -222,10 +227,20 @@ confere "o estado diz ok, com build, shim, drop-in e policy" 'grep -qx estado=ok
 printf '\n7. o portal vivo só reinicia se a versão mudou, e nunca com stream no ar\n'
 portal_vivo /usr/libexec/xdg-desktop-portal-cosmic; stream; : > "$T/systemctl.log"; rm -f "$T/reiniciou"
 graf aplicar; rc=$?
-confere "rodando o do pacote, com compartilhamento no ar: não reinicia, diverge (1)" '[ "$rc" = 1 ] && [ ! -e "$T/reiniciou" ] && grep -q "espera" "$T/saida"' "$(cat "$T/saida")"
+confere "rodando o do pacote, com compartilhamento no ar: não reinicia e não conta como escrita" '[ "$rc" = 0 ] && [ ! -e "$T/reiniciou" ] && grep -q "espera" "$T/saida"' "$(cat "$T/saida")"
+graf conferir; rc=$?
+confere "o conferir segue divergindo, para o doctor tentar quando o compartilhamento acabar" '[ "$rc" = 1 ]' "$(cat "$T/saida")"
 sem_stream
 graf aplicar; rc=$?
 confere "sem stream: reinicia uma vez" '[ "$rc" = 1 ] && [ -e "$T/reiniciou" ] && [ "$(linhas "restart" "$T/systemctl.log")" = 1 ]' "$(cat "$T/saida")"
+portal_vivo /usr/libexec/xdg-desktop-portal-cosmic; rm -f "$T/reiniciou"
+printf '[{"type":"PipeWire:Interface:Node","info":{"state":"suspended","props":{"node.name":"cosmic-screencast"}}}]\n' > "$T/pw.json"
+graf aplicar; rc=$?
+confere "compartilhamento pausado (o nó existe, suspenso) conta como no ar: não reinicia" '[ "$rc" = 0 ] && [ ! -e "$T/reiniciou" ] && grep -q "espera" "$T/saida"' "$(cat "$T/saida")"
+printf '{"inesperado":1}\n' > "$T/pw.json"
+graf aplicar; rc=$?
+confere "pw-dump com JSON de outra forma não libera o reinício" '[ ! -e "$T/reiniciou" ] && grep -q "próxima subida" "$T/saida"' "$(cat "$T/saida")"
+sem_stream
 portal_vivo "$LIBEXEC/$VER1/xdg-desktop-portal-cosmic"; rm -f "$T/reiniciou"
 graf aplicar; rc=$?
 confere "já rodando o build: sai 0 e não reinicia" '[ "$rc" = 0 ] && [ ! -e "$T/reiniciou" ]' "$(cat "$T/saida")"
@@ -246,10 +261,7 @@ confere "sem Chrome: sai 0, não cria /etc/opt, não usa a ponte e não fala de 
 graf estado
 confere "o estado diz sem-chrome" 'grep -qx policy=sem-chrome "$T/saida"'
 chrome
-env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR HOME="$CASA" PATH="$FALSO:$PATH" MEOW_RAIZ="$RAIZ" NO_COLOR=1 LC_ALL=C MEOW_ESTADO="$ESTADO" \
-  MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE="$PONTE" GR_REPO="$T/patches" GR_SERIE="$T/patches/graficos.series" GR_VERSOES="$T/patches/graficos.versao" \
-  GR_POLICY="$POLICY" GR_PROC="$PROC" GR_ESPACO_KB=1 CP_REPO="$T/patches" CP_SERIE="$T/patches/graficos.series" \
-  "$RAIZ/scripts/garantir_builds.sh" > "$T/saida" 2>&1; rc=$?
+ext "$RAIZ/scripts/garantir_builds.sh"; rc=$?
 confere "o gatilho pós-apt (garantir_builds) aplica a policy sem compilar de novo" '[ -f "$POLICY" ] && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ]' "$(cat "$T/saida")"
 env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR HOME="$CASA" PATH="$FALSO:$PATH" MEOW_RAIZ="$RAIZ" NO_COLOR=1 LC_ALL=C MEOW_ESTADO="$ESTADO" \
   MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE="$PONTE" GR_REPO="$T/patches" GR_SERIE="$T/patches/graficos.series" GR_VERSOES="$T/patches/graficos.versao" \
@@ -269,6 +281,14 @@ cp "$T/ponte-guardada" "$PONTE"
 graf aplicar
 confere "com a ponte de volta a policy entra" '[ -f "$POLICY" ]'
 
+printf '\n9b. a build do portal não depende do compositor\n'
+rm -f "$POLICY"; mkdir -p "$T/mz"
+printf 'cosmic-comp\t0.1~t\tinstalled\n' >> "$T/dpkg.tsv"
+printf '0.1~t\tx\tp.patch:4\t\n' > "$T/mz/matriz.tsv"
+ext env GB_MATRIZ="$T/mz/matriz.tsv" COMPOSITOR=sim "$RAIZ/scripts/garantir_builds.sh"; rc=$?
+confere "compositor em degrau 4: o garantir_builds ainda liga o portal e a policy" '[ "$rc" = 0 ] && grep -q "degrau 4" "$T/saida" && [ -f "$POLICY" ]' "$(cat "$T/saida")"
+sed -i '/^cosmic-comp/d' "$T/dpkg.tsv"
+
 printf '\n10. versão nova: sem compilar vira pendente; o garantir_builds compila e poda a velha\n'
 versoes "xdg-desktop-portal-cosmic=$VER2" "google-chrome-stable=146.0"
 printf '%s\n%s\n' "$VER1" "$VER2" > "$T/patches/graficos.versao"
@@ -276,12 +296,9 @@ graf estado
 confere "o estado vira pendente" 'grep -qx estado=pendente "$T/saida"' "$(cat "$T/saida")"
 n_cargo="$(wc -l < "$T/cargo.log")"
 GR_COMPILAR=nao graf aplicar; rc=$?
-confere "aplicar sem compilar diz que falta o build, e não compila" '[ "$rc" = 1 ] && grep -q "ainda não tem build" "$T/saida" && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ]' "$(cat "$T/saida")"
+confere "aplicar sem compilar diz que falta o build, não compila e não conta como escrita" '[ "$rc" = 0 ] && grep -q "ainda não tem build" "$T/saida" && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ]' "$(cat "$T/saida")"
 confere "o shim cai no pacote enquanto não há build" '[ "$(MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$LIBEXEC" PATH="$FALSO:$PATH" bash "$LIBEXEC/portal-shim")" = /usr/libexec/xdg-desktop-portal-cosmic ]'
-env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR HOME="$CASA" PATH="$FALSO:$PATH" MEOW_RAIZ="$RAIZ" NO_COLOR=1 LC_ALL=C MEOW_ESTADO="$ESTADO" \
-  MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE="$PONTE" GR_REPO="$T/patches" GR_SERIE="$T/patches/graficos.series" GR_VERSOES="$T/patches/graficos.versao" \
-  GR_POLICY="$POLICY" GR_PROC="$PROC" GR_ESPACO_KB=1 CP_REPO="$T/patches" CP_SERIE="$T/patches/graficos.series" \
-  "$RAIZ/scripts/garantir_builds.sh" > "$T/saida" 2>&1; rc=$?
+ext "$RAIZ/scripts/garantir_builds.sh"; rc=$?
 confere "o garantir_builds compilou a versão nova, e o build velho foi podado" '[ "$(wc -l < "$T/cargo.log")" = "$((n_cargo + 1))" ] && [ -x "$LIBEXEC/$VER2/xdg-desktop-portal-cosmic" ] && [ ! -e "$LIBEXEC/$VER1" ]' "$(cat "$T/saida")"
 confere "e o shim passa a escolher o build novo" '[ "$(MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$LIBEXEC" PATH="$FALSO:$PATH" bash "$LIBEXEC/portal-shim")" = "$LIBEXEC/$VER2/xdg-desktop-portal-cosmic" ]'
 n_cargo="$(wc -l < "$T/cargo.log")"
@@ -301,10 +318,21 @@ graf estado
 confere "o estado vira nao-encaixa" 'grep -qx estado=nao-encaixa "$T/saida"' "$(cat "$T/saida")"
 confere "pede gente, sem receita" 'grep -q "^graficos-nao-encaixa" "$ESTADO/precisa-de-gente.tsv" && ! grep -qiE "digite|rode |execute" "$ESTADO/precisa-de-gente.tsv"' "$(cat "$ESTADO/precisa-de-gente.tsv" 2>&1)"
 confere "o shim fica no pacote" '[ "$(MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$LIBEXEC" PATH="$FALSO:$PATH" bash "$LIBEXEC/portal-shim")" = /usr/libexec/xdg-desktop-portal-cosmic ]'
+ext env EXTENSOES_FUNDO=1 EXTENSOES_COMPILAR=1 "$RAIZ/scripts/extensoes_build.sh" graficos --aplicar; rc=$?
+confere "com a recusa, a etapa do install não conta como escrita (o laço não acusa idempotência)" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
 graf pendente
 confere "a recusa não volta a ser pendente (o garantir_builds não repete)" '[ ! -s "$T/saida" ]' "$(cat "$T/saida")"
 printf 'um\ndois\ntres\nquatro\ncinco\n' > "$T/fix/a/src/a.rs"
+ext "$RAIZ/scripts/garantir_builds.sh"; rc=$?
+confere "a recusa já gravada não é falha do garantir_builds" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
+f4="$(foto)"; graf conferir; rc=$?
+confere "o conferir com a recusa gravada não escreve nada" '[ "$(foto)" = "$f4" ]'
 printf 'portal p-portal.patch MEOW-PORTAL-PATCH-1\nportal p-wiring.patch -\ntoolkit p-toolkit.patch MEOW-TOOLKIT-PATCH-1\n\n' > "$T/patches/graficos.series"
+sed -i 's/^um$/ZZ/' "$T/fix/a/src/a.rs"
+ext "$RAIZ/scripts/garantir_builds.sh"; rc=$?
+confere "a recusa na hora do garantir_builds sai 0, sem prometer outra tentativa" '[ "$rc" = 0 ] && grep -q "não entra" "$T/saida" && ! grep -q "tenta de novo" "$T/saida"' "$(cat "$T/saida")"
+sed -i 's/^ZZ$/um/' "$T/fix/a/src/a.rs"
+printf 'portal p-portal.patch MEOW-PORTAL-PATCH-1\nportal p-wiring.patch -\ntoolkit p-toolkit.patch MEOW-TOOLKIT-PATCH-1\n\n\n' > "$T/patches/graficos.series"
 graf pendente
 confere "mexer na série devolve a versão à fila" '[ "$(cat "$T/saida")" = "1.13.0~1~24.04~bbbbbbb" ]' "$(cat "$T/saida")"
 
@@ -317,6 +345,12 @@ sed -i 's#grep -h MEOW- src/a.rs meow-toolkit/client-toolkit/src/b.rs#grep -h ME
 GR_COMPILAR=sim graf compilar; rc=$?
 confere "marcador ausente no binário: erro, e nada vai para a casa" '[ "$rc" = 2 ] && grep -q "NÃO no binário" "$T/saida" && [ ! -e "$LIBEXEC/1.14.0~1~24.04~ccccccc" ]' "$(cat "$T/saida")"
 cp "$T/cargo-bom" "$FALSO/cargo"
+
+printf '\n12b. o build que não sai não é "em dia"\n'
+: > "$T/cargo-falha"
+graf aplicar; rc=$?
+confere "cargo que falha no aplicar: diverge (1) e não diz em dia" '[ "$rc" = 1 ] && ! grep -q "em dia" "$T/saida"' "$(cat "$T/saida")"
+rm -f "$T/cargo-falha" "$ESTADO/graficos/falhas.tsv"
 
 printf '\n13. cargo que falha: nada é instalado e a espera cresce\n'
 : > "$T/cargo-falha"
@@ -362,7 +396,14 @@ confere "queda do portal do pacote não põe o build de lado" '[ "$rc" = 0 ] && 
 for i in 1 2 3; do printf '{"MESSAGE":"create_frame sent before the previous frame was destroyed","_EXE":"%s","__REALTIME_TIMESTAMP":"%s"}\n' "$LIBEXEC/$VER1/xdg-desktop-portal-cosmic" "$(( (agora + 5) * 1000000 + i ))"; done > "$T/journal.jsonl"
 sleep 1; touch -d "@$((agora - 60))" "$LIBEXEC/$VER1/digital"
 graf cuidar; rc=$?
-confere "mil linhas do mesmo episódio contam uma queda, e o build vai de lado (caiu)" '[ "$rc" = 1 ] && [ "$(head -c 4 "$LIBEXEC/$VER1/ruim")" = caiu ] && grep -q "caiu 1 vez" "$T/saida"' "$(cat "$T/saida")"
+confere "mil linhas do mesmo episódio contam uma queda, e uma queda só não põe o build de lado" '[ "$rc" = 0 ] && [ ! -e "$LIBEXEC/$VER1/ruim" ]' "$(cat "$T/saida")"
+graf conferir; rc=$?
+confere "o conferir diz a queda do portal da vez, sem divergir por ela" '[ "$rc" = 0 ] && grep -q "caiu 1 vez" "$T/saida"' "$(cat "$T/saida")"
+printf '{"MESSAGE":"create_frame sent before the previous frame was destroyed","_EXE":"%s","__REALTIME_TIMESTAMP":"%s"}\n' "$LIBEXEC/$VER1/xdg-desktop-portal-cosmic" "$(( (agora + 30) * 1000000 ))" >> "$T/journal.jsonl"
+graf conferir; rc=$?
+confere "cair de novo faz o conferir divergir, sem escrever" '[ "$rc" = 1 ] && [ ! -e "$LIBEXEC/$VER1/ruim" ] && grep -q "poria de lado" "$T/saida"' "$(cat "$T/saida")"
+graf cuidar; rc=$?
+confere "cair repetido põe o build de lado (caiu)" '[ "$rc" = 1 ] && [ "$(head -c 4 "$LIBEXEC/$VER1/ruim")" = caiu ] && grep -q "caiu 2 vez" "$T/saida"' "$(cat "$T/saida")"
 confere "pede gente, sem receita" 'grep -q "^graficos-caiu" "$ESTADO/precisa-de-gente.tsv"'
 confere "o shim volta ao pacote" '[ "$(MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$LIBEXEC" PATH="$FALSO:$PATH" bash "$LIBEXEC/portal-shim")" = /usr/libexec/xdg-desktop-portal-cosmic ]'
 graf cuidar; rc=$?
@@ -371,11 +412,13 @@ rm -f "$LIBEXEC/$VER1/ruim" "$T/journal.jsonl"; date -Is > "$LIBEXEC/$VER1/ruim"
 graf cuidar; rc=$?
 confere "o ruim do shim, sem queda no registro, se perdoa uma vez" '[ "$rc" = 1 ] && [ ! -e "$LIBEXEC/$VER1/ruim" ] && [ -e "$LIBEXEC/$VER1/perdoado" ]' "$(cat "$T/saida")"
 date -Is > "$LIBEXEC/$VER1/ruim"
+graf conferir; rc=$?
+confere "o ruim do shim faz o conferir divergir, para o doctor cuidar dele" '[ "$rc" = 1 ] && grep -qx "ruim=sim" <(graf estado; cat "$T/saida")' "$(cat "$T/saida")"
 graf cuidar; rc=$?
 confere "voltando a cair depois de perdoado, vai de lado de vez (caiu)" '[ "$rc" = 1 ] && [ "$(head -c 4 "$LIBEXEC/$VER1/ruim")" = caiu ]' "$(cat "$T/saida")"
 n_cargo="$(wc -l < "$T/cargo.log")"
 GR_COMPILAR=nao graf aplicar; rc=$?
-confere "com o build de lado, o aplicar avisa que o pacote vale e não compila" '[ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ] && grep -q "de lado" "$T/saida"' "$(cat "$T/saida")"
+confere "com o build de lado, o aplicar avisa que o pacote vale, não compila e não diz em dia" '[ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ] && grep -q "de lado" "$T/saida" && ! grep -q "em dia" "$T/saida"' "$(cat "$T/saida")"
 rm -f "$LIBEXEC/$VER1/ruim" "$LIBEXEC/$VER1/perdoado"
 
 printf '\n16. sair do trilho sozinho quando o pacote traz a correção\n'
@@ -387,6 +430,9 @@ graf aplicar; rc=$?
 confere "aplicar tira o drop-in e o shim, não compila e mantém a policy" '[ "$rc" = 1 ] && [ ! -e "$DROPIN" ] && [ ! -e "$LIBEXEC/portal-shim" ] && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ] && [ -f "$POLICY" ]' "$(cat "$T/saida")"
 graf aplicar; rc=$?
 confere "a segunda passada sai 0" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
+confere "a correção oficial encerra o que pedia gente" '! grep -q "^graficos-" "$ESTADO/precisa-de-gente.tsv"' "$(cat "$ESTADO/precisa-de-gente.tsv" 2>&1)"
+ext "$RAIZ/scripts/extensoes_build.sh" graficos --estado
+confere "no cartão a correção oficial conta como ativa" 'grep -qx instalada=sim "$T/saida" && grep -qx ativa=sim "$T/saida"' "$(cat "$T/saida")"
 printf '%s\n' "$VER1" > "$T/patches/graficos.versao"
 graf aplicar
 
@@ -397,10 +443,27 @@ graf reverter; rc=$?
 confere "reverter sai 1, tira drop-in, shim e policy" '[ "$rc" = 1 ] && [ ! -e "$DROPIN" ] && [ ! -e "$LIBEXEC/portal-shim" ] && [ ! -e "$POLICY" ]' "$(cat "$T/saida")"
 confere "o portal que rodava o build reiniciou para voltar ao do pacote" '[ -e "$T/reiniciou" ]'
 confere "o build fica guardado" '[ -x "$LIBEXEC/$VER1/xdg-desktop-portal-cosmic" ]'
+portal_vivo /usr/libexec/xdg-desktop-portal-cosmic
 f2="$(foto)"; n_sc="$(grep -c 'restart\|daemon-reload' "$T/systemctl.log")"; sleep 1
 graf reverter; rc=$?
 confere "o segundo reverter sai 0, sem escrever nem reiniciar" '[ "$rc" = 0 ] && [ "$(foto)" = "$f2" ] && [ "$(grep -c "restart\|daemon-reload" "$T/systemctl.log")" = "$n_sc" ]' "$(cat "$T/saida")"
 portal_parado
+graf aplicar
+portal_vivo "$LIBEXEC/$VER1/xdg-desktop-portal-cosmic"; stream; rm -f "$T/reiniciou"
+graf reverter; rc=$?
+confere "reverter com compartilhamento no ar não reinicia, e diz que espera" '[ "$rc" = 1 ] && [ ! -e "$T/reiniciou" ] && grep -q "espera" "$T/saida" && [ ! -e "$DROPIN" ]' "$(cat "$T/saida")"
+sem_stream
+graf reverter; rc=$?
+confere "acabado o compartilhamento, o reverter seguinte devolve o portal" '[ "$rc" = 1 ] && [ -e "$T/reiniciou" ]' "$(cat "$T/saida")"
+portal_parado
+graf aplicar; : > "$T/sem-ponte"
+graf reverter; rc=$?
+confere "reverter sem a ponte: sai 3, não diz que voltou e a policy fica" '[ "$rc" = 3 ] && [ -f "$POLICY" ] && ! grep -q "voltaram" "$T/saida"' "$(cat "$T/saida")"
+GRAFICOS_T=nao graf aplicar; rc=$?
+confere "GRAFICOS=nao sem a ponte: sai 3, sem dizer que ficou de fábrica" '[ "$rc" = 3 ] && ! grep -q "ficam de fábrica" "$T/saida"' "$(cat "$T/saida")"
+rm -f "$T/sem-ponte"; graf reverter; rm -f "$POLICY"; ln -s /nao/existe "$POLICY"
+graf reverter; rc=$?
+confere "reverter tira também o link quebrado no lugar da policy" '[ ! -e "$POLICY" ] && [ ! -L "$POLICY" ]' "$(cat "$T/saida")"
 
 printf '\n18. GRAFICOS="nao" tira o que o meow pôs e fica quieto\n'
 graf aplicar
@@ -435,11 +498,9 @@ confere "o pino da casa é de tipo graficos, com a chave GRAFICOS e ícone" 'gre
 printf '\n21. a página Extensões: o construtor entende o tipo graficos\n'
 versoes "xdg-desktop-portal-cosmic=$VER1" "google-chrome-stable=146.0"
 rm -rf "$LIBEXEC" "$ESTADO/graficos"
-ext() {
-  env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR HOME="$CASA" PATH="$FALSO:$PATH" MEOW_RAIZ="$RAIZ" NO_COLOR=1 LC_ALL=C MEOW_ESTADO="$ESTADO" \
-    MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE="$PONTE" GR_REPO="$T/patches" GR_SERIE="$T/patches/graficos.series" GR_VERSOES="$T/patches/graficos.versao" \
-    GR_POLICY="$POLICY" GR_PROC="$PROC" GR_ESPACO_KB=1 CP_REPO="$T/patches" CP_SERIE="$T/patches/graficos.series" "$@" > "$T/saida" 2>&1
-}
+for i in 1 2; do ext env EXTENSOES_FUNDO=1 EXTENSOES_COMPILAR=1 "$RAIZ/scripts/extensoes_build.sh" graficos --aplicar; eval "rc$i=$?"; done
+confere "a etapa do install com o build ainda por fazer converge: a segunda passada não escreve" '[ "$rc2" = 0 ] && [ ! -e "$LIBEXEC/$VER1" ]' "rc1=$rc1 rc2=$rc2; $(cat "$T/saida")"
+ext "$RAIZ/scripts/extensoes_build.sh" graficos --reverter
 ext "$RAIZ/scripts/extensoes_build.sh" graficos --estado
 confere "estado: tipo graficos, não instalada, situação pendente" 'grep -qx tipo=graficos "$T/saida" && grep -qx instalada=nao "$T/saida" && grep -qx situacao=pendente "$T/saida"' "$(cat "$T/saida")"
 ext env EXTENSOES_COMPILAR=1 EXTENSOES_FUNDO=0 "$RAIZ/scripts/extensoes_build.sh" graficos --aplicar; rc=$?

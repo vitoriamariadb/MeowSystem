@@ -132,6 +132,10 @@ _gb_compilar_graficos() {
   "$GB_GRAFICOS" compilar; local rc=$?
   _gb_graficos_valido && return 0
   [ "$rc" = "3" ] && { meow_pula "portal $1: falta ferramenta de compilação nesta máquina — o do pacote segue valendo"; return 0; }
+  if "$GB_GRAFICOS" estado 2>/dev/null | grep -qx 'estado=nao-encaixa'; then
+    meow_pula "portal $1: o patch não entra nesta versão — o do pacote segue valendo até um rebase"
+    return 0
+  fi
   meow_aviso "portal $1: o build não ficou pronto — o do pacote segue valendo, e o próximo gatilho tenta de novo"
   return 2
 }
@@ -140,7 +144,6 @@ _gb_graficos_ligar() {
   local rc=0
   meow_seco && return 0
   [ -n "$(_gb_instalados | awk -F'\t' '$1=="xdg-desktop-portal-cosmic" {print $2}')" ] || return 0
-  GR_COMPILAR=nao "$GB_GRAFICOS" cuidar || true
   GR_COMPILAR=nao "$GB_GRAFICOS" aplicar || rc=$?
   [ "$rc" = "2" ] && return 2
   return 0
@@ -167,19 +170,20 @@ cmd_rodar() {
   mapfile -t pend < <(_gb_pendentes)
   if [ "${#pend[@]}" = "0" ]; then
     _gb_gente
+    local rg="$MEOW_OK"
+    _gb_graficos_ligar || rg="$MEOW_ERRO"
     local vc; vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
     if [ -n "$vc" ] && _gb_comp_degrau4 "$vc" && ! _gb_comp_valido "$vc"; then
       meow_pula "cosmic-comp $vc: o patch obrigatório não entra nesta versão (degrau 4) — a sessão segue no de fábrica até a série mudar"
-      return "$MEOW_OK"
+      return "$rg"
     fi
     local espera
     if [ -n "$vc" ] && _gb_comp_quer && [ ! -e "$GB_CASA/$vc/ruim" ] && espera="$(_gb_comp_espera "$vc")"; then
       meow_pula "cosmic-comp $vc: a compilação falhou $( [ "${espera#* }" = 1 ] && echo "1 vez" || echo "${espera#* } vezes") nesta versão e série — a próxima tentativa é a partir de $(date -d "@${espera%% *}" '+%d/%m %H:%M')"
-      return "$MEOW_OK"
+      return "$rg"
     fi
-    _gb_graficos_ligar || return "$MEOW_ERRO"
     meow_ok "o compositor e o menu do cosmic-files têm build para a versão instalada"
-    return "$MEOW_OK"
+    return "$rg"
   fi
   if meow_seco; then
     for p in "${pend[@]}"; do meow_muda "compilaria o ${p%%$'\t'*} ${p#*$'\t'}"; done
