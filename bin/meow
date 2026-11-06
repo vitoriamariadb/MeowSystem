@@ -3068,8 +3068,8 @@ cmd_compositor() {
       printf '  meow compositor ativar     liga o shim em ~/.local/bin: o próximo login usa o build\n'
       printf '  meow compositor desativar  desliga o shim: o próximo login volta a /usr/bin\n'
       printf '  meow compositor qual       o binário que o próximo login vai rodar\n\n'
-      printf '  Ele só compila sobre uma versão que esteja em patches/versao, e diz por quê\n'
-      printf '  quando recusa. A tela de login não vê o shim: ela fica sempre de fábrica.\n'
+      printf '  Versão nova não pede commit: a série entra patch a patch, e o build bom vale no\n'
+      printf '  próximo login. A tela de login não vê o shim: ela fica sempre de fábrica.\n'
       ;;
     *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow compositor --help"; return "$MEOW_ERRO" ;;
   esac

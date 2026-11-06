@@ -194,6 +194,16 @@ comp6 env CP_BIN="$C6/bin/cargo" bash "$RAIZ/scripts/compositor_patches.sh" conf
 confere "o doctor diz que o patch entrou com o contexto mudado" 'grep -q "contexto mudado: t6.patch" "$T/saida"'
 confere "nenhum sudo no compilar" '! grep -qv "^sudo -n true$" "$T/recusados" 2>/dev/null'
 
+printf '\n7. patches/versao acompanha a matriz no gancho de commit\n'
+V7="$T/versao7"; E7="$T/estado7"; mkdir -p "$E7/cosmic-comp"
+printf '# cabeça\n1.0~velha\n' > "$V7"
+printf '2.0~boa\t2026-11-06\tp.patch:2\n3.0~quebra\t2026-11-06\tp.patch:4\n4.0~falha\t2026-11-06\t\tfalhou=1@1\n' > "$E7/cosmic-comp/matriz.tsv"
+env MEOW_ESTADO="$E7" NUMEROS_VERSAO="$V7" bash "$RAIZ/tests/numeros.sh" > "$T/saida" 2>&1
+confere "a versão atrasada fica vermelha" 'grep -q "não tem a última versão boa da matriz: 2.0~boa" "$T/saida"'
+env MEOW_ESTADO="$E7" NUMEROS_VERSAO="$V7" MEOW_NUMEROS_CORRIGIR=1 bash "$RAIZ/tests/numeros.sh" > "$T/saida" 2>&1
+confere "o gancho a corrige, e só a linha da versão" '[ "$(cat "$V7")" = "# cabeça
+2.0~boa" ]'
+
 printf '\n'
 [ "$falhas" = 0 ] && { printf 'etapa-compositor: tudo verde\n'; exit 0; }
 printf 'etapa-compositor: %s falha(s)\n' "$falhas"; exit 1
