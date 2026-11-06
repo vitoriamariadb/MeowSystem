@@ -23,12 +23,12 @@ Na sessão de 06/11, com o portal da P159 instalado às 11:01 e o `cosmic-comp` 
 - Cada queda gera de 1.400 a 2.000 linhas repetidas no journal.
 - O serviço sobe de novo sozinho, mas o stream em andamento morre, e é isso que a pessoa vê como tela congelada.
 
-## O relato que falta medir
+## O espelho que não aparece não é defeito
 
-Mesmo com o compartilhamento no ar: «minha tela não aparecia como espelhada enquanto isso, mas nas prévias do
-navegador ela aparecia». Falta confirmar em qual site foi e onde o espelho deveria aparecer. Não se sabe se é o
-mesmo defeito: a prévia prova que chegam quadros ao Chrome, então o ponto a separar é o trecho entre o Chrome e a
-página. Medir na página de teste do WebRTC e no site real, antes e depois da cura.
+Relato: «minha tela não aparecia como espelhada enquanto isso, mas nas prévias do navegador ela aparecia». Medido
+em 06/11, 11:48, numa call de teste no Teams web, com o celular entrando como participante: o celular recebeu a
+tela ao vivo. Na mesma hora, o PipeWire tinha `cosmic-screencast` e `chrome` em `running`, e o portal seguia de pé
+desde 11:34. O Teams só não mostra a própria tela para quem apresenta, que continua vendo a câmera no palco.
 
 ## A causa
 
@@ -58,4 +58,4 @@ Depois do reboot, com o `cosmic-comp` ec674cd:
 1. Sem patch novo, medir se ainda cai: a versão nova do compositor pode mudar o quadro.
 2. Com o patch, compartilhar janela por 30 minutos no Chrome, cobrindo o caso em que a janela é o próprio navegador.
 3. `coredumpctl list --no-pager | grep portal-cosmic` sem entrada nova, e sem `create_frame sent before` no journal.
-4. A tela compartilhada aparece no espelho da própria página, e não só nas prévias do navegador.
+4. Confirmar por um segundo participante, como o celular: no Teams, a tela de quem apresenta não prova nada.
