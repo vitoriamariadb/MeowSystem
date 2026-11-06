@@ -9,6 +9,7 @@ JANELAS_TILING_ESCOPO	janelas	nao
 ESCALA_TELA	escala	nao
 CURSOR	cursor,flatpak_tema	nao
 CURSOR_VERSAO	cursor,flatpak_tema	nao
+AREAS_MODO	janelas	nao
 AREAS_NOMES	-	nao
 AREAS_FOLGA	-	nao
 AREAS_ENCAIXE	-	nao

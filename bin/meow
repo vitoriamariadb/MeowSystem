@@ -1015,7 +1015,7 @@ chk_janelas() {
 }
 
 chk_areas() {
-  AREAS_NOMES="${AREAS_NOMES:-}" AREAS_FOLGA="${AREAS_FOLGA:-}" AREAS_ENCAIXE="${AREAS_ENCAIXE:-}" \
+  AREAS_MODO="${AREAS_MODO:-juntas}" AREAS_NOMES="${AREAS_NOMES:-}" AREAS_FOLGA="${AREAS_FOLGA:-}" AREAS_ENCAIXE="${AREAS_ENCAIXE:-}" \
     "$RAIZ/scripts/areas.sh" alfinetes 2>&1
 }
 
@@ -1412,7 +1412,7 @@ fix_relogio()   { RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" \
                     "$RAIZ/scripts/relogio.sh" aplicar 2>&1; }
 fix_janelas()   { JANELAS_TILING="${JANELAS_TILING:-}" JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}" \
                   "$RAIZ/scripts/janelas.sh" aplicar 2>&1; }
-fix_areas()     { AREAS_NOMES="${AREAS_NOMES:-}" AREAS_FOLGA="${AREAS_FOLGA:-}" AREAS_ENCAIXE="${AREAS_ENCAIXE:-}" \
+fix_areas()     { AREAS_MODO="${AREAS_MODO:-juntas}" AREAS_NOMES="${AREAS_NOMES:-}" AREAS_FOLGA="${AREAS_FOLGA:-}" AREAS_ENCAIXE="${AREAS_ENCAIXE:-}" \
                   "$RAIZ/scripts/areas.sh" refazer-alfinetes 2>&1; }
 fix_leitura()   { "$RAIZ/scripts/leitura.sh" aplicar 2>&1; }
 fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \

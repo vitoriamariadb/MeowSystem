@@ -42,6 +42,7 @@ chave	com.system76.CosmicComp	autotile	cosmic-comp	scripts/janelas.sh
 chave	com.system76.CosmicComp	autotile_behavior	cosmic-comp	scripts/janelas.sh
 chave	com.system76.CosmicComp	pinned_workspaces	cosmic-comp	scripts/areas.sh
 chave	com.system76.CosmicComp	tiling_enabled	cosmic-comp	scripts/areas.sh
+chave	com.system76.CosmicComp	workspaces	cosmic-comp	scripts/areas.sh
 chave	com.system76.CosmicComp	leitura_temperatura	cosmic-comp	patch:cosmic-comp-modo-leitura.patch
 chave	com.system76.CosmicTheme.Mode	is_dark	cosmic-settings	scripts/aplicar_tema.sh
 chave	com.system76.CosmicTheme.Mode	auto_switch	cosmic-settings	scripts/aplicar_tema.sh

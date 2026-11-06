@@ -7,6 +7,8 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 AREAS_PENDENCIA=4
 
+AREAS_MODO="${AREAS_MODO:-juntas}"
+export AREAS_MODO
 AREAS_NOMES="${AREAS_NOMES:-}"
 AREAS_FOLGA="${AREAS_FOLGA:-}"
 AREAS_ENCAIXE="${AREAS_ENCAIXE:-}"
@@ -14,6 +16,8 @@ JANELAS_TILING="${JANELAS_TILING:-}"
 
 AREAS_BASE="${MEOW_COSMIC_DIR:-$HOME/.config/cosmic}/com.system76.CosmicComp/$(meow_cosmic_v com.system76.CosmicComp)"
 AREAS_ALVO="$AREAS_BASE/pinned_workspaces"
+AREAS_ALVO_MODO="$AREAS_BASE/workspaces"
+AREAS_MODO_PADRAO='(workspace_mode: %s, workspace_layout: Vertical, action_on_typing: None, workspace_wraparound: true)'
 AREAS_BINARIO="/usr/bin/cosmic-comp"
 
 AREAS_ANTES="$MEOW_ESTADO/areas"
@@ -269,6 +273,24 @@ def igual_ao_modelo(texto, entrada, modelo):
     return bruto
 
 
+def juntas():
+    return os.environ.get("AREAS_MODO", "juntas") != "independentes"
+
+
+def so_da_primeira_tela(texto):
+    _, _, todas = entradas(texto)
+    base = da_primeira_tela(todas)
+    if len(base) == len(todas):
+        return texto
+    emenda = texto[todas[0][1] + 1 : todas[1][0]]
+    crus = [texto[a : b + 1] for a, b, _ in base]
+    return texto[: todas[0][0]] + emenda.join(crus) + texto[todas[-1][1] + 1 :]
+
+
+def ajustar(texto):
+    return so_da_primeira_tela(texto) if juntas() else em_cada_tela(texto)
+
+
 def em_cada_tela(texto):
     """As áreas da primeira tela repetidas nas outras telas e nas ligadas sem área."""
     _, _, todas = entradas(texto)
@@ -325,7 +347,7 @@ def montar(caminho, encaixes, nomes):
                 trocas.append((c["tiling_span"], encaixes[i]))
         for (ini, fim), novo in sorted(trocas, key=lambda t: -t[0][0]):
             texto = texto[:ini] + novo + texto[fim:]
-        sys.stdout.write(em_cada_tela(texto))
+        sys.stdout.write(ajustar(texto))
         return
 
     herdado = next((c["output"] for _, _, c in achadas if c["output"]), None)
@@ -362,7 +384,7 @@ def montar(caminho, encaixes, nomes):
     emenda = ",\n    "
     if len(achadas) > 1:
         emenda = texto[achadas[0][1] + 1 : achadas[1][0]]
-    sys.stdout.write(em_cada_tela(cabeca + emenda.join(crus) + rabo))
+    sys.stdout.write(ajustar(cabeca + emenda.join(crus) + rabo))
 
 
 def refazer(caminho, encaixes, nomes):
@@ -382,7 +404,7 @@ def refazer(caminho, encaixes, nomes):
     for entrada in achadas:
         de_pe.setdefault(sem_folga(entrada[2]["nome"]), entrada)
     if all(sem_folga(n) in de_pe for n in nomes):
-        sys.stdout.write(em_cada_tela(texto))
+        sys.stdout.write(ajustar(texto))
         return
 
     usados = {c["id"] for _, _, c in achadas if c["id"]}
@@ -407,7 +429,7 @@ def refazer(caminho, encaixes, nomes):
     emenda = ",\n    "
     if len(achadas) > 1:
         emenda = texto[achadas[0][1] + 1 : achadas[1][0]]
-    sys.stdout.write(em_cada_tela(cabeca + emenda.join(crus) + rabo))
+    sys.stdout.write(ajustar(cabeca + emenda.join(crus) + rabo))
 
 
 def tirar(caminho, indice):
@@ -517,10 +539,20 @@ try:
         primeira(sys.argv[2], sys.argv[3], sys.argv[4])
     elif verbo == "telas-sem-area":
         texto = open(sys.argv[2], encoding="utf-8").read()
-        if em_cada_tela(texto) != texto:
+        if not juntas() and em_cada_tela(texto) != texto:
             telas = {saida_de(e) for e in da_primeira_tela(entradas(texto)[2])}
             ligadas = [s for s in os.environ.get("AREAS_SAIDAS", "").split(",") if s]
             print(", ".join(s for s in ligadas if s not in telas))
+    elif verbo == "telas-a-mais":
+        texto = open(sys.argv[2], encoding="utf-8").read()
+        if juntas() and so_da_primeira_tela(texto) != texto:
+            todas = entradas(texto)[2]
+            primeira = saida_de(todas[0])
+            telas = []
+            for entrada in todas:
+                if saida_de(entrada) != primeira and saida_de(entrada) not in telas:
+                    telas.append(saida_de(entrada))
+            print(", ".join(telas))
     elif verbo == "tirar":
         tirar(sys.argv[2], int(sys.argv[3]))
     else:
@@ -529,6 +561,61 @@ except (ValueError, OSError, IndexError) as erro:
     sys.stderr.write("%s\n" % erro)
     sys.exit(2)
 PY
+}
+
+_areas_modo_valido() {
+  case "$AREAS_MODO" in
+    juntas|independentes) return 0 ;;
+  esac
+  meow_erro "AREAS_MODO='$AREAS_MODO' — esperado juntas ou independentes"
+  return 1
+}
+
+_areas_modo_pedido() {
+  case "$AREAS_MODO" in
+    juntas)        printf 'Global' ;;
+    independentes) printf 'OutputBound' ;;
+  esac
+}
+
+_areas_modo_no_disco() {
+  local atual=""
+  [ -f "$AREAS_ALVO_MODO" ] && atual="$(sed -nE 's/.*workspace_mode:[[:space:]]*([A-Za-z]+).*/\1/p' "$AREAS_ALVO_MODO" | head -1)"
+  printf '%s' "${atual:-OutputBound}"
+}
+
+_areas_modo_conferir() {
+  _areas_modo_valido || return "$MEOW_ERRO"
+  local pedido atual
+  pedido="$(_areas_modo_pedido)"; atual="$(_areas_modo_no_disco)"
+  [ "$pedido" = "$atual" ] && return "$MEOW_OK"
+  meow_muda "áreas $AREAS_MODO: workspace_mode está $atual e o conf pede $pedido"
+  return "$MEOW_DIVERGENTE"
+}
+
+_areas_modo_aplicar() {
+  _areas_modo_valido || return "$MEOW_ERRO"
+  local pedido atual novo rc
+  pedido="$(_areas_modo_pedido)"; atual="$(_areas_modo_no_disco)"
+  [ "$pedido" = "$atual" ] && return "$MEOW_OK"
+  if [ -f "$AREAS_ALVO_MODO" ] && grep -qE 'workspace_mode:[[:space:]]*[A-Za-z]+' "$AREAS_ALVO_MODO"; then
+    novo="$(sed -E "s/(workspace_mode:[[:space:]]*)[A-Za-z]+/\1$pedido/" "$AREAS_ALVO_MODO")"
+  else
+    novo="$(printf "$AREAS_MODO_PADRAO" "$pedido")"
+  fi
+  meow_escrever "$AREAS_ALVO_MODO" "$novo" 644; rc=$?
+  case "$rc" in
+    "$MEOW_ERRO") meow_erro "não consegui gravar $AREAS_ALVO_MODO"; return "$MEOW_ERRO" ;;
+    "$MEOW_DIVERGENTE")
+      meow_seco || meow_muda "áreas $AREAS_MODO: workspace_mode=$pedido gravado"
+      meow_registrar "areas.sh modo $AREAS_MODO" ;;
+  esac
+  return "$rc"
+}
+
+_areas_pior() {
+  [ "$1" -gt "$2" ] && return "$1"
+  return "$2"
 }
 
 _areas_nome_seguro() {
@@ -682,7 +769,7 @@ cmd_estado() {
   fi
 
   local i nu dono
-  meow_info "áreas alfinetadas, na ordem em que nascem:"
+  meow_info "áreas $AREAS_MODO, alfinetadas na ordem em que nascem:"
   for i in "${!AREAS_NOME[@]}"; do
     nu="$(_areas_sem_folga "${AREAS_NOME[$i]}")"
     dono="nosso"
@@ -852,6 +939,14 @@ cmd_aplicar() {
   fi
   _areas_dependencia || return $?
 
+  local rc_modo rc_pinos
+  _areas_modo_aplicar; rc_modo=$?
+  [ "$rc_modo" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+  _areas_aplicar_pinos; rc_pinos=$?
+  _areas_pior "$rc_modo" "$rc_pinos"
+}
+
+_areas_aplicar_pinos() {
   _areas_ler || return $?
 
   if [ ! -f "$AREAS_ALVO" ] || [ "${#AREAS_NOME[@]}" -eq 0 ]; then
@@ -924,12 +1019,14 @@ cmd_conferir() {
   fi
   _areas_dependencia || return $?
   _areas_ler || return $?
+  local divergente=0
+  _areas_modo_conferir || divergente=1
   [ "${#AREAS_NOME[@]}" -gt 0 ] || { meow_aviso "nenhuma área alfinetada"; return "$AREAS_PENDENCIA"; }
 
   local rc_plano; _areas_planejar; rc_plano=$?
   [ "$rc_plano" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
 
-  local i divergente=0
+  local i
   for i in "${!AREAS_ALVO_NOME[@]}"; do
     if [ "$i" -ge "${#AREAS_NOME[@]}" ]; then
       meow_muda "área $((i + 1)) '${AREAS_ALVO_NOME[$i]}' não existe no disco"
@@ -946,6 +1043,8 @@ cmd_conferir() {
 
   local telas; telas="$(_areas_telas_sem_area)"
   [ -n "$telas" ] && { meow_muda "tela sem as áreas: $telas"; divergente=1; }
+  local a_mais; a_mais="$(_areas_telas_a_mais)"
+  [ -n "$a_mais" ] && { meow_muda "áreas repetidas na tela: $a_mais"; divergente=1; }
 
   if [ "$divergente" = "0" ]; then
     [ "$rc_plano" = "$MEOW_OK" ] && meow_ok "as áreas de trabalho estão conformes"
@@ -972,17 +1071,24 @@ _areas_telas_sem_area() {
   [ -f "$AREAS_ALVO" ] && _areas_motor telas-sem-area "$AREAS_ALVO" 2>/dev/null
 }
 
+_areas_telas_a_mais() {
+  [ -f "$AREAS_ALVO" ] && _areas_motor telas-a-mais "$AREAS_ALVO" 2>/dev/null
+}
+
 cmd_alfinetes() {
   [ -n "$AREAS_NOMES" ] || { meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"; return "$MEOW_OK"; }
   _areas_dependencia || return $?
   _areas_ler || return $?
   _areas_caidos
-  local telas; telas="$(_areas_telas_sem_area)"
-  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && [ -z "$telas" ]; then
+  local telas a_mais modo_div=0
+  telas="$(_areas_telas_sem_area)"; a_mais="$(_areas_telas_a_mais)"
+  _areas_modo_conferir || modo_div=1
+  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && [ -z "$telas" ] && [ -z "$a_mais" ] && [ "$modo_div" = 0 ]; then
     meow_ok "os alfinetes das áreas estão de pé ($(_areas_juntar "${AREAS_NOME[@]}"))"
     return "$MEOW_OK"
   fi
   [ -n "$telas" ] && meow_muda "tela sem as áreas: $telas"
+  [ -n "$a_mais" ] && meow_muda "áreas repetidas na tela: $a_mais"
   local n
   for n in "${AREAS_CAIDOS[@]}"; do meow_muda "o alfinete da área «$n» caiu"; done
   return "$MEOW_DIVERGENTE"
@@ -991,6 +1097,14 @@ cmd_alfinetes() {
 cmd_refazer_alfinetes() {
   [ -n "$AREAS_NOMES" ] || { meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"; return "$MEOW_OK"; }
   _areas_dependencia || return $?
+  local rc_modo rc_pinos
+  _areas_modo_aplicar; rc_modo=$?
+  [ "$rc_modo" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+  _areas_refazer_pinos; rc_pinos=$?
+  _areas_pior "$rc_modo" "$rc_pinos"
+}
+
+_areas_refazer_pinos() {
   _areas_ler || return $?
   if [ "${#AREAS_NOME[@]}" -eq 0 ]; then
     meow_seco && { meow_muda "refaria os alfinetes: $(_areas_partir "$AREAS_NOMES" | paste -sd, | sed 's/,/, /g')"; return "$MEOW_DIVERGENTE"; }
@@ -998,8 +1112,9 @@ cmd_refazer_alfinetes() {
     _areas_ler || return $?
   fi
   _areas_caidos
-  local telas; telas="$(_areas_telas_sem_area)"
-  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && [ -z "$telas" ]; then
+  local telas a_mais
+  telas="$(_areas_telas_sem_area)"; a_mais="$(_areas_telas_a_mais)"
+  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && [ -z "$telas" ] && [ -z "$a_mais" ]; then
     meow_ok "os alfinetes das áreas estão de pé"
     return "$MEOW_OK"
   fi
@@ -1029,13 +1144,13 @@ cmd_refazer_alfinetes() {
   _areas_recusar_vazio "$novo" || return "$MEOW_ERRO"
 
   if meow_seco; then
-    meow_muda "refaria os alfinetes${telas:+ da tela $telas}"
+    meow_muda "refaria os alfinetes${telas:+ da tela $telas}${a_mais:+, sem as repetidas da tela $a_mais}"
     return "$MEOW_DIVERGENTE"
   fi
   _areas_guardar || return "$MEOW_ERRO"
   meow_escrever "$AREAS_ALVO" "$novo" 644
   case $? in "$MEOW_ERRO") meow_erro "não consegui gravar $AREAS_ALVO"; return "$MEOW_ERRO" ;; esac
-  meow_muda "alfinetes refeitos${telas:+ na tela $telas}: $(_areas_juntar "${nomes[@]}")"
+  meow_muda "alfinetes refeitos${telas:+ na tela $telas}${a_mais:+, sem as repetidas da tela $a_mais}: $(_areas_juntar "${nomes[@]}")"
   _areas_so_no_login
   meow_registrar "areas.sh refazer-alfinetes caidos=${#AREAS_CAIDOS[@]}"
   return "$MEOW_DIVERGENTE"
