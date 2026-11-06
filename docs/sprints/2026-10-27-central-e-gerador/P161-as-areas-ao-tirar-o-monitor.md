@@ -129,8 +129,10 @@ a segunda `alfinetes` rc=0.
 
 Vermelhos que já eram da árvore antes do bloco: `decisoes.sh` (askpass 600 e um comentário no `.gitignore`; igual com o bloco
 guardado por `git stash`) e `ganchos.sh` («o pre-push não encadeou»: o teste procura a branch `dev`, e o tronco é o `master`;
-lido no teste, não medido sem o bloco). O `app-completo.py` marca `XX [tema] a gravação passou do teto de 240s` com a
-máquina a carga 10 (outros blocos rodando), um teto de tempo que não é desta sprint.
+lido no teste, não medido sem o bloco). O `app-completo.py`, com a
+máquina a carga 10 (outros blocos rodando), marcou só `XX [tema] a gravação passou do teto de 240s`, um teto de tempo que não é
+desta sprint; a seção `ajustes/janelas` (a do controle novo) correu sem `XX`, mas o teste foi cortado pelo `timeout` de 1700 s
+na seção `cuidar`, sem chegar ao veredito: não é verde, é parcial.
 
 ### O que falta, e por quê
 
