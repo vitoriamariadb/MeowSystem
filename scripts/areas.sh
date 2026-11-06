@@ -277,13 +277,19 @@ def juntas():
     return os.environ.get("AREAS_MODO", "juntas") != "independentes"
 
 
+def repetidas(todas):
+    base = da_primeira_tela(todas)
+    nomes = {sem_folga(c["nome"]) for _, _, c in base if c["nome"]}
+    return [e for e in todas if e not in base and sem_folga(e[2]["nome"]) in nomes]
+
+
 def so_da_primeira_tela(texto):
     _, _, todas = entradas(texto)
-    base = da_primeira_tela(todas)
-    if len(base) == len(todas):
+    fora = repetidas(todas)
+    if not fora:
         return texto
     emenda = texto[todas[0][1] + 1 : todas[1][0]]
-    crus = [texto[a : b + 1] for a, b, _ in base]
+    crus = [texto[a : b + 1] for a, b, _ in (e for e in todas if e not in fora)]
     return texto[: todas[0][0]] + emenda.join(crus) + texto[todas[-1][1] + 1 :]
 
 
@@ -327,6 +333,8 @@ def em_cada_tela(texto):
 def montar(caminho, encaixes, nomes):
     """O texto NOVO do arquivo, no stdout. Nada é escrito aqui."""
     texto = open(caminho, encoding="utf-8").read()
+    if juntas():
+        texto = so_da_primeira_tela(texto)
     achadas = da_primeira_tela(entradas(texto)[2])
 
     if len(nomes) < len(achadas):
@@ -545,12 +553,10 @@ try:
             print(", ".join(s for s in ligadas if s not in telas))
     elif verbo == "telas-a-mais":
         texto = open(sys.argv[2], encoding="utf-8").read()
-        if juntas() and so_da_primeira_tela(texto) != texto:
-            todas = entradas(texto)[2]
-            primeira = saida_de(todas[0])
+        if juntas():
             telas = []
-            for entrada in todas:
-                if saida_de(entrada) != primeira and saida_de(entrada) not in telas:
+            for entrada in repetidas(entradas(texto)[2]):
+                if saida_de(entrada) not in telas:
                     telas.append(saida_de(entrada))
             print(", ".join(telas))
     elif verbo == "tirar":
@@ -768,8 +774,9 @@ cmd_estado() {
     return "$MEOW_OK"
   fi
 
-  local i nu dono
-  meow_info "áreas $AREAS_MODO, alfinetadas na ordem em que nascem:"
+  local i nu dono modo="independentes"
+  [ "$(_areas_modo_no_disco)" = "Global" ] && modo="juntas"
+  meow_info "áreas $modo, alfinetadas na ordem em que nascem:"
   for i in "${!AREAS_NOME[@]}"; do
     nu="$(_areas_sem_folga "${AREAS_NOME[$i]}")"
     dono="nosso"
@@ -939,8 +946,10 @@ cmd_aplicar() {
   fi
   _areas_dependencia || return $?
 
-  local rc_modo rc_pinos
-  _areas_modo_aplicar; rc_modo=$?
+  local rc_modo="$MEOW_OK" rc_pinos
+  if [ -n "$AREAS_NOMES" ]; then
+    _areas_modo_aplicar; rc_modo=$?
+  fi
   [ "$rc_modo" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
   _areas_aplicar_pinos; rc_pinos=$?
   _areas_pior "$rc_modo" "$rc_pinos"
@@ -1020,7 +1029,7 @@ cmd_conferir() {
   _areas_dependencia || return $?
   _areas_ler || return $?
   local divergente=0
-  _areas_modo_conferir || divergente=1
+  [ -z "$AREAS_NOMES" ] || _areas_modo_conferir || divergente=1
   [ "${#AREAS_NOME[@]}" -gt 0 ] || { meow_aviso "nenhuma área alfinetada"; return "$AREAS_PENDENCIA"; }
 
   local rc_plano; _areas_planejar; rc_plano=$?

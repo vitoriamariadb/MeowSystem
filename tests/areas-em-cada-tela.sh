@@ -149,12 +149,70 @@ confere "voltar a independentes devolve a lista a cada tela" '[ "$(da_tela eDP-1
 NOMES="Casa, OS" MODO_PADRAO="AREAS_MODO=juntas" da_conf refazer-alfinetes >/dev/null
 confere "e juntas de novo tira as repetidas e liga o Global" 'grep -q "workspace_mode: Global" "$WM" && grep -q "workspace_layout: Horizontal" "$WM" && [ "$(grep -c "output:" "$PW")" = 2 ]' "$(cat "$WM") $(cat "$PW")"
 
+printf '\no instalador sai das quatro entradas direto para a lista única\n'
+semear
+areas refazer-alfinetes >/dev/null
+confere "partida do instalador com quatro entradas" '[ "$(grep -c "output:" "$PW")" = 4 ]'
+da_conf aplicar >/dev/null
+confere "aplicar reduz a lista e liga o Global" '[ "$(grep -c "output:" "$PW")" = 2 ] && grep -q "workspace_mode: Global" "$WM"' "$(cat "$PW")"
+marca() { stat -c '%i %Y' "$PW" "$WM" | md5sum; }
+antes="$(marca)"
+saida="$(da_conf aplicar)"; rc=$?
+confere "a segunda passada do instalador não troca nem o inode" '[ "$rc" = 0 ] && [ "$antes" = "$(marca)" ]' "rc=$rc $saida"
+
+printf '\nem juntas só sai o que é repetido\n'
+semear
+areas refazer-alfinetes >/dev/null
+rm -f "$WM"
+python3 -I - "$PW" <<'PY'
+import sys
+c = sys.argv[1]
+t = open(c, encoding="utf-8").read()
+fim = t.rindex("]")
+t = t[:fim] + """    (
+        output: (
+            name: "eDP-1",
+            edid: None,
+        ),
+        tiling_enabled: false,
+        id: Some("cafe01"),
+        name: Some("Estudo"),
+    ),
+""" + t[fim:]
+open(c, "w", encoding="utf-8").write(t)
+PY
+da_conf refazer-alfinetes >/dev/null
+confere "a área só da outra tela fica" '[ "$(da_tela HDMI-A-1 | paste -sd,)" = "Pop,OS" ] && [ "$(da_tela eDP-1 | paste -sd,)" = "Estudo" ]' "$(cat "$PW")"
+saida="$(da_conf alfinetes)"; rc=$?
+confere "e o doctor a deixa quieta" '[ "$rc" = 0 ]' "rc=$rc $saida"
+antes="$(md5sum < "$PW")"
+da_conf aplicar >/dev/null; da_conf refazer-alfinetes >/dev/null
+confere "as passadas seguintes não a tiram" '[ "$antes" = "$(md5sum < "$PW")" ]'
+
+printf '\nrenomear no mesmo gesto da virada para juntas não deixa o nome velho na outra tela\n'
+semear
+areas refazer-alfinetes >/dev/null
+NOMES="Casa, OS" da_conf aplicar >/dev/null
+confere "só a lista nova fica" '[ "$(da_tela HDMI-A-1 | paste -sd,)" = "Casa,OS" ] && [ -z "$(da_tela eDP-1)" ]' "$(cat "$PW")"
+
 printf '\no que não é do doctor fica quieto\n'
 semear
 saida="$(NOMES="" da_conf refazer-alfinetes)"; rc=$?
 confere "sem nomes as áreas são dela e o modo não é tocado" '[ "$rc" = 0 ] && [ ! -e "$WM" ]' "rc=$rc $saida"
+NOMES="" MODO_PADRAO="AREAS_ENCAIXE=sim" da_conf aplicar >/dev/null
+confere "só o encaixe, sem nomes, também não toca no modo" '[ ! -e "$WM" ]' "$(cat "$WM" 2>&1)"
+saida="$(NOMES="" MODO_PADRAO="AREAS_ENCAIXE=sim" da_conf conferir)"
+confere "e a conferência nem cobra o modo" '! printf "%s" "$saida" | grep -q workspace_mode' "$saida"
 saida="$(MODO_PADRAO="AREAS_MODO=em-pares" da_conf aplicar)"; rc=$?
 confere "um modo que não existe é recusado sem escrever" '[ "$rc" = 2 ] && [ ! -e "$WM" ]' "rc=$rc $saida"
+
+printf '\no estado diz o modo do disco, não o do conf\n'
+semear
+saida="$(da_conf estado)"
+confere "sem o arquivo do modo o estado diz independentes" 'printf "%s" "$saida" | grep -q "áreas independentes"' "$saida"
+printf '(workspace_mode: Global, workspace_layout: Vertical, action_on_typing: None, workspace_wraparound: true)' > "$WM"
+saida="$(MODO_PADRAO="AREAS_MODO=independentes" da_conf estado)"
+confere "com Global no disco diz juntas, mesmo com o conf pedindo a outra" 'printf "%s" "$saida" | grep -q "áreas juntas"' "$saida"
 
 printf '\no painel conhece o modo e lê o que está no disco\n'
 semear
@@ -172,6 +230,21 @@ printf '(workspace_mode: Global, workspace_layout: Vertical, action_on_typing: N
 confere "com Global no disco o painel diz juntas" '[ "$(leitura_do_painel | awk "{print \$NF}")" = juntas ]' "$(leitura_do_painel 2>&1)"
 printf '(workspace_mode: OutputBound, workspace_layout: Vertical, action_on_typing: None, workspace_wraparound: true)' > "$WM"
 confere "com OutputBound no disco o painel diz independentes" '[ "$(leitura_do_painel | awk "{print \$NF}")" = independentes ]' "$(leitura_do_painel 2>&1)"
+
+printf '\nsem nomes o controle do painel fica apagado, com o porquê na dica\n'
+mkdir -p "$T/home/.config/meow"
+apagado() { env -i PATH=/usr/bin:/bin HOME="$T/home" MEOW_RAIZ="$RAIZ" python3 -I - "$RAIZ/app" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import servidor
+d = servidor._dominada_por("AREAS_MODO")
+print(d["chave"] if d else "livre")
+PY
+}
+printf 'AREAS_NOMES=""\n' > "$T/home/.config/meow/meow.conf"
+confere "AREAS_NOMES vazio apaga o controle" '[ "$(apagado)" = AREAS_NOMES ]' "$(apagado 2>&1)"
+printf 'AREAS_NOMES="Pop, OS"\n' > "$T/home/.config/meow/meow.conf"
+confere "com nomes o controle vale" '[ "$(apagado)" = livre ]' "$(apagado 2>&1)"
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'areas-em-cada-tela: tudo verde\n'; exit 0; fi

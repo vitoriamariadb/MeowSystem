@@ -315,7 +315,9 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 # AS ÁREAS COM MAIS DE UM MONITOR — 06/11/2026
 #   juntas         `workspace_mode: Global` na chave `workspaces` do cosmic-comp,
 #                  nativo, sem patch. Uma lista de áreas só, e trocar de área
-#                  troca as duas telas. Tirar o monitor não duplica nada.
+#                  troca as duas telas. Tirar o monitor não duplica nada. Sem
+#                  patch o Global mantém UMA área vazia, com número, depois da
+#                  lista; na outra tela as áreas têm o número, não o nome.
 #   independentes  cada tela tem a sua lista, repetida pelo doctor com os mesmos
 #                  nomes. Ao tirar o monitor as áreas dele vêm para a tela que
 #                  ficou, e a barra mostra as duplicadas mais a vazia do fim.
@@ -346,7 +348,8 @@ AREAS_MODO="juntas"               # juntas | independentes
 # lado do arquivo é HISTÓRIA e não modelo.
 #
 # Em `AREAS_MODO="independentes"` as áreas valem em cada tela ligada; em `juntas`
-# a lista é uma só. Um nome a mais nesta lista CRIA uma área nova. Um nome a MENOS é recusado: faltar um nome aqui apagaria uma área.
+# a lista é uma só. Um nome a mais nesta lista CRIA uma área nova. Um nome a
+# MENOS é recusado: faltar um nome aqui apagaria uma área.
 # Não cabem aspas, contrabarra, parênteses nem `#` — os três primeiros quebram o
 # formato do arquivo do COSMIC e o `#` corta a linha deste arquivo aqui.
 #

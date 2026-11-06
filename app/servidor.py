@@ -336,6 +336,12 @@ DOMINIOS = {
                   "dele: esta versão só vale para o ponteiro que o MeowSystem "
                   "baixa pelo nome.",
     },
+    "AREAS_MODO": {
+        "chave": "AREAS_NOMES",
+        "quando": lambda v: not v,
+        "porque": "Só vale com os nomes das áreas preenchidos: sem eles, as "
+                  "áreas e o jeito delas nas telas são os do sistema.",
+    },
 }
 
 
