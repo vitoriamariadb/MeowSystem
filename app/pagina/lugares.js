@@ -117,6 +117,7 @@ const AJUSTES = [
         { g: "acervo:cursor", r: "Trazer ponteiro", b: "Trazer .zip" },
       ] },
       { titulo: "Áreas de trabalho", linhas: [
+        { c: "AREAS_MODO", r: "Nas telas" },
         { c: "AREAS_NOMES", r: "Nomes", larga: true },
         { c: "AREAS_ENCAIXE", r: "Encaixe por área", larga: true },
         { c: "AREAS_FOLGA", r: "Folga no nome" },
