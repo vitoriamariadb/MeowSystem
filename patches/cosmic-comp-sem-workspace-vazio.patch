@@ -4,8 +4,9 @@
 # aurora-cosmic-comp-ws.sh aplica UM arquivo só — por isso vivem juntos.
 #
 # 1) O WORKSPACE VAZIO (04/08/2026, marcador AURORA-COSMIC-WS-PATCH)
-#    src/shell/mod.rs — ensure_last_empty deixa de criar um workspace vazio
-#    atrás do último alfinetado. Comentário completo dentro do próprio hunk.
+#    src/shell/mod.rs — ensure_last_empty e o ramo Global do refresh deixam de
+#    criar um workspace vazio atrás do último. Comentário completo dentro do
+#    próprio hunk.
 #
 # 2) AS ANIMAÇÕES 1,75x + O FADE DO OVERVIEW (25/08/2026, escolha dela)
 #    Oito durações const, porque o cosmic-comp NÃO tem chave de config de
@@ -224,6 +225,20 @@ index 108307b..7ea7b9d 100644
              self.add_empty_workspace(state);
          }
  
+@@ -1293,12 +1316,7 @@
+                 }
+ 
+                 // add empty at the end, if necessary
+-                if self
+-                    .sets
+-                    .values()
+-                    .flat_map(|set| set.workspaces.last())
+-                    .any(|w| !w.is_empty() || w.pinned)
+-                {
++                if self.sets.values().any(|set| set.workspaces.is_empty()) {
+                     for set in self.sets.values_mut() {
+                         set.add_empty_workspace(workspace_state);
+                     }
 diff --git a/src/shell/workspace.rs b/src/shell/workspace.rs
 index fd63dcb..e41f72d 100644
 --- a/src/shell/workspace.rs

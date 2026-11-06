@@ -938,19 +938,16 @@ cmd_alfinetar_primeira() {
 }
 
 cmd_aplicar() {
+  local rc_modo rc_pinos
+  _areas_modo_aplicar; rc_modo=$?
+  [ "$rc_modo" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
   if [ -z "$AREAS_NOMES" ] && [ -z "$AREAS_ENCAIXE" ]; then
-    meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"
+    meow_pula "AREAS_NOMES vazio — os nomes das áreas de trabalho são seus"
     local onde; onde="$(meow_onde_no_painel areas_ver)"
     meow_info "as de agora estão no painel: ${onde:-Definir, Áreas de trabalho}"
-    return "$MEOW_OK"
+    return "$rc_modo"
   fi
   _areas_dependencia || return $?
-
-  local rc_modo="$MEOW_OK" rc_pinos
-  if [ -n "$AREAS_NOMES" ]; then
-    _areas_modo_aplicar; rc_modo=$?
-  fi
-  [ "$rc_modo" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
   _areas_aplicar_pinos; rc_pinos=$?
   _areas_pior "$rc_modo" "$rc_pinos"
 }
@@ -1022,14 +1019,16 @@ _areas_aplicar_pinos() {
 }
 
 cmd_conferir() {
+  local rc_modo divergente=0
+  _areas_modo_conferir; rc_modo=$?
+  [ "$rc_modo" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
   if [ -z "$AREAS_NOMES" ] && [ -z "$AREAS_ENCAIXE" ]; then
-    meow_pula "AREAS_NOMES vazio — nada a conferir (as áreas são suas)"
-    return "$MEOW_OK"
+    meow_pula "AREAS_NOMES vazio — só o modo a conferir (os nomes são seus)"
+    return "$rc_modo"
   fi
   _areas_dependencia || return $?
   _areas_ler || return $?
-  local divergente=0
-  [ -z "$AREAS_NOMES" ] || _areas_modo_conferir || divergente=1
+  [ "$rc_modo" = "$MEOW_OK" ] || divergente=1
   [ "${#AREAS_NOME[@]}" -gt 0 ] || { meow_aviso "nenhuma área alfinetada"; return "$AREAS_PENDENCIA"; }
 
   local rc_plano; _areas_planejar; rc_plano=$?
@@ -1085,7 +1084,12 @@ _areas_telas_a_mais() {
 }
 
 cmd_alfinetes() {
-  [ -n "$AREAS_NOMES" ] || { meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"; return "$MEOW_OK"; }
+  if [ -z "$AREAS_NOMES" ]; then
+    local rc_vazio
+    _areas_modo_conferir; rc_vazio=$?
+    meow_pula "AREAS_NOMES vazio — só o modo a conferir (os nomes são seus)"
+    return "$rc_vazio"
+  fi
   _areas_dependencia || return $?
   _areas_ler || return $?
   _areas_caidos
@@ -1104,11 +1108,11 @@ cmd_alfinetes() {
 }
 
 cmd_refazer_alfinetes() {
-  [ -n "$AREAS_NOMES" ] || { meow_pula "AREAS_NOMES vazio — as áreas de trabalho são suas"; return "$MEOW_OK"; }
-  _areas_dependencia || return $?
   local rc_modo rc_pinos
   _areas_modo_aplicar; rc_modo=$?
   [ "$rc_modo" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+  [ -n "$AREAS_NOMES" ] || { meow_pula "AREAS_NOMES vazio — os nomes das áreas de trabalho são seus"; return "$rc_modo"; }
+  _areas_dependencia || return $?
   _areas_refazer_pinos; rc_pinos=$?
   _areas_pior "$rc_modo" "$rc_pinos"
 }

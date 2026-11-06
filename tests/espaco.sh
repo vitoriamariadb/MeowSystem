@@ -301,13 +301,17 @@ echo "== 4. backups acima da rotação: ficam os mais novos e o tema-PRIMEIRO"
 mundo
 mkdir -p "$E/backups"
 for d in 3 8 15 25; do mkdir -p "$E/backups/$(date -d "$d days ago" +%Y-%m-%dT%H-%M-%S)-tema"; done
-for d in 31 40 90 200 365; do mkdir -p "$E/backups/$(date -d "$d days ago" +%Y-%m-%dT%H-%M-%S)-sistema"; done
+for d in 31 40 90 200 365; do mkdir -p "$E/backups/$(date -d "$d days ago" +%Y-%m-%dT%H-%M-%S)-vizinho"; done
 mkdir -p "$E/backups/$(date -d '700 days ago' +%Y-%m-%dT%H-%M-%S)-tema-PRIMEIRO-pre-instalacao"
+mkdir -p "$E/backups/$(date -d '700 days ago' +%Y-%m-%dT%H-%M-%S)-sistema"
+mkdir -p "$E/backups/$(date -d '700 days ago' +%Y-%m-%dT%H-%M-%S)-meow.conf-antes-da-instalacao"
 saida="$(esp aparar)"; rc=$?
 igual "a rotação por idade corta" "$rc" 1
-igual "ficam os quatro dos últimos 30 dias e o tema-PRIMEIRO" "$(ls "$E/backups" | wc -l)" 5
+igual "ficam os quatro dos últimos 30 dias e os três protegidos" "$(ls "$E/backups" | wc -l)" 7
 ls "$E/backups" | grep -q 'tema-PRIMEIRO' && ok "o tema-PRIMEIRO ficou" || falha "o PRIMEIRO saiu"
-ls "$E/backups" | grep -q -- '-sistema' && falha "sobrou um backup velho" || ok "nenhum backup velho sobrou"
+ls "$E/backups" | grep -q -- '-sistema$' && ok "o -sistema ficou" || falha "o -sistema saiu"
+ls "$E/backups" | grep -q -- '-meow.conf-antes-da-instalacao$' && ok "o meow.conf de antes da instalação ficou" || falha "o meow.conf de antes da instalação saiu"
+ls "$E/backups" | grep -q -- '-vizinho$' && falha "sobrou um backup velho" || ok "nenhum backup velho sobrou"
 saida="$(esp aparar)"; rc=$?
 igual "a segunda passada não corta nada" "$rc" 0
 

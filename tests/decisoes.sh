@@ -489,7 +489,9 @@ cobre 32 pack-dracula-completo.sh 'Hidden=true' scripts/construir_icones.sh 'Hid
 cobre 32 pack-dracula-completo.sh 'Tema-Base,Tema-Base-2,Cosmic,Adwaita,hicolor' lib/icones.sh 'Cosmic,Adwaita,hicolor'
 cobre 33 pack-dracula-completo.sh 'o Catppuccin não herda a lista' scripts/ocultar_apps.sh 'pack\.py" ocultar'
 cobre 34 app.sh 'a noite com uma ponta só é recusada \(409\)' app/servidor.py 'a noite pede as duas pontas'
-pula "34: o «— não tocar —» e o ⊘ saíram do painel na P98 (hoje o vazio é «Automático»): falta a palavra de quem usa"
+grep -q 'value: "", texto: "Automático"' "$RAIZ/app/pagina/app.js" && ! grep -q 'não tocar\|⊘' "$RAIZ/app/pagina/app.js" \
+  && ok "34: o valor vazio chama «Automático» no painel" \
+  || falha "34: o valor vazio do painel mudou de nome"
 cobre 35 fonte-unica.sh 'ICONES_DRACULA="nao"' scripts/icones_apps_dracula.sh 'ICONES_DRACULA:-sim\}" = "nao"'
 ! grep -q 'ICONES_DRACULA' "$RAIZ/scripts/migrar_conf.py" \
   && ok "35: o migrar_conf.py não toca na chave ICONES_DRACULA: o «nao» escrito fica como está" \

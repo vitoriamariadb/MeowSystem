@@ -195,14 +195,25 @@ areas refazer-alfinetes >/dev/null
 NOMES="Casa, OS" da_conf aplicar >/dev/null
 confere "só a lista nova fica" '[ "$(da_tela HDMI-A-1 | paste -sd,)" = "Casa,OS" ] && [ -z "$(da_tela eDP-1)" ]' "$(cat "$PW")"
 
-printf '\no que não é do doctor fica quieto\n'
+printf '\nsem nomes, o modo vale e os nomes não são tocados\n'
 semear
+antes_dos_pinos="$(md5sum < "$PW")"
+saida="$(NOMES="" da_conf alfinetes)"; rc=$?
+confere "o doctor vê o modo divergente mesmo sem nomes" '[ "$rc" = 1 ] && [ ! -e "$WM" ]' "rc=$rc $saida"
 saida="$(NOMES="" da_conf refazer-alfinetes)"; rc=$?
-confere "sem nomes as áreas são dela e o modo não é tocado" '[ "$rc" = 0 ] && [ ! -e "$WM" ]' "rc=$rc $saida"
+confere "o conserto grava o Global sem nomes" '[ "$rc" = 1 ] && grep -q "workspace_mode: Global" "$WM"' "rc=$rc $saida"
+saida="$(NOMES="" da_conf refazer-alfinetes)"; rc=$?
+confere "a segunda passada não escreve" '[ "$rc" = 0 ]' "rc=$rc $saida"
+confere "e a lista de áreas fica como estava" '[ "$(md5sum < "$PW")" = "$antes_dos_pinos" ]' "$(cat "$PW")"
+semear
+NOMES="" da_conf aplicar >/dev/null
+confere "o install também aplica o modo sem nomes" 'grep -q "workspace_mode: Global" "$WM"' "$(cat "$WM" 2>&1)"
+semear
 NOMES="" MODO_PADRAO="AREAS_ENCAIXE=sim" da_conf aplicar >/dev/null
-confere "só o encaixe, sem nomes, também não toca no modo" '[ ! -e "$WM" ]' "$(cat "$WM" 2>&1)"
+confere "só o encaixe, sem nomes, também aplica o modo" 'grep -q "workspace_mode: Global" "$WM"' "$(cat "$WM" 2>&1)"
+semear
 saida="$(NOMES="" MODO_PADRAO="AREAS_ENCAIXE=sim" da_conf conferir)"
-confere "e a conferência nem cobra o modo" '! printf "%s" "$saida" | grep -q workspace_mode' "$saida"
+confere "e a conferência cobra o modo" 'printf "%s" "$saida" | grep -q workspace_mode' "$saida"
 saida="$(MODO_PADRAO="AREAS_MODO=em-pares" da_conf aplicar)"; rc=$?
 confere "um modo que não existe é recusado sem escrever" '[ "$rc" = 2 ] && [ ! -e "$WM" ]' "rc=$rc $saida"
 
@@ -231,7 +242,7 @@ confere "com Global no disco o painel diz juntas" '[ "$(leitura_do_painel | awk 
 printf '(workspace_mode: OutputBound, workspace_layout: Vertical, action_on_typing: None, workspace_wraparound: true)' > "$WM"
 confere "com OutputBound no disco o painel diz independentes" '[ "$(leitura_do_painel | awk "{print \$NF}")" = independentes ]' "$(leitura_do_painel 2>&1)"
 
-printf '\nsem nomes o controle do painel fica apagado, com o porquê na dica\n'
+printf '\nsem nomes o controle do painel continua valendo\n'
 mkdir -p "$T/home/.config/meow"
 apagado() { env -i PATH=/usr/bin:/bin HOME="$T/home" MEOW_RAIZ="$RAIZ" python3 -I - "$RAIZ/app" <<'PY'
 import sys
@@ -242,7 +253,7 @@ print(d["chave"] if d else "livre")
 PY
 }
 printf 'AREAS_NOMES=""\n' > "$T/home/.config/meow/meow.conf"
-confere "AREAS_NOMES vazio apaga o controle" '[ "$(apagado)" = AREAS_NOMES ]' "$(apagado 2>&1)"
+confere "AREAS_NOMES vazio deixa o controle livre" '[ "$(apagado)" = livre ]' "$(apagado 2>&1)"
 printf 'AREAS_NOMES="Pop, OS"\n' > "$T/home/.config/meow/meow.conf"
 confere "com nomes o controle vale" '[ "$(apagado)" = livre ]' "$(apagado 2>&1)"
 

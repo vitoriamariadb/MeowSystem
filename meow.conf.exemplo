@@ -314,10 +314,11 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 # > Juntas: trocar de área troca todas as telas. Independentes: cada tela tem as suas.
 # AS ÁREAS COM MAIS DE UM MONITOR — 06/11/2026
 #   juntas         `workspace_mode: Global` na chave `workspaces` do cosmic-comp,
-#                  nativo, sem patch. Uma lista de áreas só, e trocar de área
-#                  troca as duas telas. Tirar o monitor não duplica nada. Sem
-#                  patch o Global mantém UMA área vazia, com número, depois da
-#                  lista; na outra tela as áreas têm o número, não o nome.
+#                  com o `cosmic-comp-sem-workspace-vazio.patch` tirando a área
+#                  vazia do fim. Uma lista de áreas só, e trocar de área troca
+#                  as duas telas. Tirar o monitor não duplica nada. Na outra
+#                  tela as áreas têm o número, não o nome. Vale mesmo com
+#                  `AREAS_NOMES` vazio.
 #   independentes  cada tela tem a sua lista, repetida pelo doctor com os mesmos
 #                  nomes. Ao tirar o monitor as áreas dele vêm para a tela que
 #                  ficou, e a barra mostra as duplicadas mais a vazia do fim.
@@ -360,7 +361,7 @@ AREAS_MODO="juntas"               # juntas | independentes
 #   que um nome a mais aqui CRIA área. Era a chave deste arquivo com o efeito
 #   mais visível e menos pedido.
 #   Vazio já era caso tratado no código desde antes: o `scripts/areas.sh`
-#   responde `AREAS_NOMES vazio — as áreas de trabalho são suas` e se pula.
+#   não toca nos nomes das suas áreas; só o modo acima vale.
 #   Para assumir as áreas, escreva os nomes na ordem em que você os quer na
 #   barra; `meow areas` imprime a linha pronta a partir do que está no disco.
 AREAS_NOMES=""

@@ -420,7 +420,7 @@ def plano_rotacao(e, apertado, agora):
     itens = []
     for nome in os.listdir(pasta):
         caminho = os.path.join(pasta, nome)
-        if "-tema-PRIMEIRO-" in nome:
+        if "-tema-PRIMEIRO-" in nome or nome.endswith(("-sistema", "-meow.conf-antes-da-instalacao")):
             continue
         itens.append((data_do_backup(nome, caminho), caminho))
     itens.sort(reverse=True)

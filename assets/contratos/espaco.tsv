@@ -16,7 +16,7 @@ upstream-cache	reconstruível	$MEOW_CACHE/upstream	Baixados	2	-	nunca	sim	O que 
 cache-miudo	reconstruível	$MEOW_CACHE/painel|$MEOW_CACHE/pintados|$MEOW_CACHE/flatpak-*.tsv	Baixados	1	-	nunca	sim	O que o painel e os ícones pintados guardam para abrir mais rápido. Volta sozinho.
 cache-resto	reconstruível	$MEOW_CACHE/*	Baixados	-	-	nunca	sim	O resto do cache do MeowSystem.
 orfaos-do-checkout	reconstruível	$MEOW_RAIZ/src/*/target|$MEOW_RAIZ/src/applets/*/target	Resíduo	5	-	orfao	sim	Pasta de compilação esquecida dentro do clone. Nada compila ali desde que os applets passaram a usar um lugar só.
-backups	backup	$MEOW_ESTADO/backups	Backups	-	-	rotacao:30:100	backups	Uma cópia de cada operação. Ficam os últimos 30 dias, no máximo 100, e o tema de antes da instalação fica sempre.
+backups	backup	$MEOW_ESTADO/backups	Backups	-	-	rotacao:30:100	backups	Uma cópia de cada operação. Ficam os últimos 30 dias, no máximo 100, e o que guarda o estado de antes do Meow fica sempre: tema-PRIMEIRO, -sistema e meow.conf-antes-da-instalacao.
 tema-de-icones	de quem usa	$HOME/.local/share/icons/MeowSystem-Icons|$HOME/.local/share/icons/MeowSystem-Icons-Base*	Tema	-	-	nunca	passo	O tema de ícones instalado. O desinstalador o tira num passo próprio.
 fontes-do-tema	de quem usa	$HOME/.local/share/fonts/MeowSystem	Tema	-	-	nunca	passo	As fontes instaladas. O desinstalador as tira num passo próprio.
 acervo-de-papeis	de quem usa	$HOME/.local/share/backgrounds/meowsystem	Papéis	-	-	nunca	passo	A sua coleção de imagens. Só sai se você pedir ao desinstalar.
