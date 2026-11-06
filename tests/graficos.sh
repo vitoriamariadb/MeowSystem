@@ -233,7 +233,7 @@ portal_vivo "/usr/libexec/xdg-desktop-portal-cosmic (deleted)"; printf '' > "$T/
 graf aplicar; rc=$?
 confere "sem pw-dump a troca espera a próxima subida, sem reiniciar e sem amarelo" '[ "$rc" = 0 ] && [ ! -e "$T/reiniciou" ] && grep -q "próxima subida" "$T/saida"' "$(cat "$T/saida")"
 mv "$FALSO/pw-dump.bak" "$FALSO/pw-dump"; portal_parado
-printf '%s\n' "/home/alguem/.local/libexec/aurora/xdg-desktop-portal-cosmic" > "$T/outro-dropin"; portal_vivo "/home/alguem/.local/libexec/aurora/xdg-desktop-portal-cosmic"; rm -f "$T/reiniciou"
+printf '%s\n' "/opt/da-maquina/libexec/xdg-desktop-portal-cosmic" > "$T/outro-dropin"; portal_vivo "/opt/da-maquina/libexec/xdg-desktop-portal-cosmic"; rm -f "$T/reiniciou"
 graf aplicar; rc=$?
 confere "ExecStart de outro drop-in manda: o meow não reinicia, sai 3 e diz de quem é" '[ "$rc" = 3 ] && [ ! -e "$T/reiniciou" ] && grep -q "outro drop-in" "$T/saida"' "$(cat "$T/saida")"
 confere "e a segunda passada ainda não reinicia nada" '(graf aplicar; [ ! -e "$T/reiniciou" ])'

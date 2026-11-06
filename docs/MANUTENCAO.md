@@ -1,7 +1,8 @@
 # Manutenção: o que acontece sozinho depois de cada atualização
 
-O MeowSystem mantém dois builds próprios: o compositor (`cosmic-comp` com a série de `patches/`) e o
-menu de papel de parede da área de trabalho (`cosmic-files`). Cada build vale para uma versão do
+O MeowSystem mantém três builds próprios: o compositor (`cosmic-comp` com a série de `patches/`), o
+menu de papel de parede da área de trabalho (`cosmic-files`) e o portal de captura de tela
+(`xdg-desktop-portal-cosmic`, com a série `graficos` de `patches/`). Cada build vale para uma versão do
 pacote. Quando o apt troca a versão, o build é refeito sozinho, sem sudo e sem pergunta.
 
 ## A cadeia de atualização

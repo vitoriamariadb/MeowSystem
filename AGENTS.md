@@ -19,7 +19,7 @@ confere e conserta sozinho. Bash 4.3+ e Python 3 só com a biblioteca padrão.
 | `app/` | o painel local: `servidor.py` e `pagina/` (HTML, JS, CSS) |
 | `packs/` | os theme packs, só dados: `icones/`, `mascote/`, `wallpapers/`, `temas-de-apps/`, `sons/`, `temas/` |
 | `assets/` | o que o programa usa em todo pack: modelos que a paleta preenche, mapas de app, `contratos/` |
-| `patches/` | a série de patches do `cosmic-comp` (`series`, `versao`) |
+| `patches/` | as séries de patches: `cosmic-comp` (`series`, `versao`) e o portal de captura (`graficos.series`, `graficos.versao`) |
 | `src/` | applets e o oráculo em Rust |
 | `systemd/` | unidades de usuário (doctor, vigias `.path`, sentinela) |
 | `tests/` | a suíte; `tests/todos.sh` roda tudo |

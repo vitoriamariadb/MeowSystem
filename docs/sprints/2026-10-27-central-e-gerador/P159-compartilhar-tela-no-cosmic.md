@@ -146,3 +146,32 @@ problema, sem medição. Rodar a mesma prova em cada um, porque o `req` da séri
    Num PC sem Chrome, `aplicar` sai `ok` sem criar a pasta; instalar o Chrome depois e o pós-apt cria a policy.
 5. `apt` trazendo versão nova do portal: o `garantir_builds` recompila, ou o shim cai no pacote se o patch recusar.
 6. `reverter` deixa o portal do pacote funcionando e tira a policy.
+
+## Execução
+
+Feita no bloco `bloco/graficos`, em três commits (série de patches, verbos da ponte, a build inteira).
+
+- A cura é o PR #385 sem o SHM forçado (decisão de 06/11). A parte 2 (P163) ficou fora.
+- `patches/` ganhou `graficos.series` e `graficos.versao` (`1.11.0~1792525517~24.04~f448ddf`), com os três patches
+  do portal e do toolkit. Cada patch declara o marcador `MEOW-PORTAL-PATCH-1` ou `MEOW-TOOLKIT-PATCH-1`, conferido no
+  binário com `grep -a`.
+- O toolkit entra no portal por `[patch."https://github.com/pop-os/cosmic-protocols"]` com caminho relativo e sem as
+  linhas `source =` do `Cargo.lock`, para o `--frozen --offline` aceitar.
+- `scripts/graficos.sh` tem `aplicar`, `conferir`, `reverter`, `compilar`, `validar`, `cuidar`, `pendente` e `estado`.
+  A segunda passada do `aplicar` não compila, não escreve e não reinicia.
+- O portal patchado vai por drop-in `ExecStart=` para `scripts/portal_shim.sh`, que sempre existe e cai no pacote
+  quando falta build, marcador, biblioteca ou o arquivo `ruim` (a terceira queda dentro da janela escreve `ruim`).
+- A policy do Chrome é feita pelos verbos novos `chrome-policy` e `chrome-policy-tirar` da ponte root. Sem Chrome o
+  verbo sai 0 sem criar a pasta; com Chrome escreve os três booleanos e a segunda passada não escreve.
+- O cartão "Aprimoramentos gráficos" (`assets/extensoes/graficos.pino`, `TIPO="graficos"`, `GRAFICOS`) entra na página
+  Extensões; o `garantir_builds` conta o portal em `_gb_instalados` e recompila na troca de versão.
+- O doctor ganhou `chk_graficos` e `fix_graficos`; `meow graficos` é o comando. Decisão 54 em `docs/DECISOES.md`, no
+  mesmo commit do código, citando o sim de 06/11.
+
+Provas: `graficos.sh validar` contra o `apt-get source` real, com `-F0` nos três patches (portal f448ddf, cosmic-protocols
+c0cff4d); `graficos.sh compilar` em HOME temporário (3m47s), os dois marcadores no binário; `compilar` de novo diz
+"nada a compilar" e `pendente` sai vazio; `tests/graficos.sh` (portátil) e `tests/graficos-fonte-real.sh` (máquina).
+
+Não coberto: nada foi aplicado na máquina (sem `install.sh`, sem reiniciar o portal); a prova de 30 minutos e a
+chamada no Teams ficam para quem usa, em "Como se prova". Falhas anteriores a este bloco e fora do escopo:
+`decisoes.sh` (comentário no `.gitignore`), `compositor-shim.sh`, `ganchos.sh`.
