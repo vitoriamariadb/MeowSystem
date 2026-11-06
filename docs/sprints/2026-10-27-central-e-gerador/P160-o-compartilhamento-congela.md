@@ -15,6 +15,7 @@ Na sessão de 06/11, com o portal da P159 instalado às 11:01 e o `cosmic-comp` 
 | 11:04:13 | 11:09:02 | 4 min 49 s | ABRT |
 | 11:11:52 | 11:32:52 | 21 min | SEGV |
 | 11:34:23 | 11:49:17 | 15 min | não anotado |
+| 11:50:35 | 11:52:47 | 2 min 12 s | sem core dump, `Connection reset by peer` |
 
 - A vida conta desde a subida do portal, não desde o início de cada compartilhamento.
 - As seis quedas têm `create_frame sent before the previous frame was destroyed` em
@@ -30,6 +31,8 @@ Call de teste no Teams web, 06/11, com o celular como participante:
 
 - 11:48: o celular recebia a tela ao vivo, com `cosmic-screencast` e `chrome` em `running` no PipeWire.
 - 11:49:17: o portal caiu com o mesmo `create_frame sent before`, depois de 15 min de pé. Sexta queda da tabela.
+- 11:52:47: o stream refeito caiu de novo, ainda com o binário anterior à cura. O celular ficou parado no relógio 11:52
+  até pelo menos 11:59, e a barra do Chrome seguia dizendo que compartilhava. `aurora-portal-orfao` só rodou às 11:55.
 - Quando trava, congela só a imagem enviada: Chrome e Teams seguem respondendo.
 - No navegador, a própria tela não aparece na call: fica a câmera, às vezes parada na aba com o rosto da pessoa. Pelo
   relato, no Windows e antes aqui no COSMIC a própria tela aparecia, então isso é defeito, não comportamento do Teams.
@@ -51,7 +54,9 @@ Essa causa vem do PR, não foi medida aqui.
 
 ## A cura na máquina (nitro-5)
 
-Instalada em 06/11/2026; **prova pendente**. É o diff do [cosmic-protocols#95](https://github.com/pop-os/cosmic-protocols/pull/95),
+Instalada em 06/11/2026, 11:57. Parcial: o relato de 12:15 é de 12 min transmitindo certo no celular, e nesse
+horário o portal tinha 18 min 40 s de pé, com stream ativo, sem queda e sem os dois erros. Falta passar de 30 min,
+repetir depois do reboot e ver a própria tela no Teams. É o diff do [cosmic-protocols#95](https://github.com/pop-os/cosmic-protocols/pull/95),
 fechado por ser duplicado do #92, ainda sem merge: destruir o frame antes de notificar
 (`client-toolkit/src/screencopy/dispatch.rs`, +8 −2). O PR registra de 10 quedas em 15 min para 0, em outro hardware.
 

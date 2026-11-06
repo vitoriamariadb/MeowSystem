@@ -1,7 +1,7 @@
 # P159 — compartilhar tela e janela no COSMIC (06/11/2026)
 
-Pedido de 06/11/2026: transformar em feature do MeowSystem a correção feita à mão no nitro-5. Hoje ela só
-existe naquela máquina. Estado: **o crash daqui acabou**: a tela apareceu no navegador e nenhum panic em
+Pedido de 06/11/2026: transformar em feature do MeowSystem a correção feita à mão no nitro-5, para os três PCs. Hoje
+ela só existe naquela máquina. Estado: **o crash daqui acabou**: a tela apareceu no navegador e nenhum panic em
 `screencast_thread.rs:456` desde 11:00. O compartilhamento ainda congela por outro defeito, a P160.
 
 ## O que se mediu
@@ -45,16 +45,55 @@ usuário da issue na 1.11.0. Custo: cópia pela CPU durante o compartilhamento.
 
 ## A feature
 
-O portal entra no mesmo trilho do `meow compositor` (`patches/`, `patches/versao`, dry-run com `-F0`, marcador
-no binário, `reverter`), sem misturar com a série do cosmic-comp, que é `req` e também é a tela de login. Portal
-ruim derruba o compartilhamento; não pode barrar o build do compositor.
+Decisão de 06/11/2026: a correção entra na build do MeowSystem, idempotente, para valer nos três PCs («tenho outros
+dois pcs com o mesmo problema»). Compositor e Extensões precisam conter todas as correções: P159, P160 e P162.
+A P159 é a dona do trilho do portal e da policy; a P160 entrega o patch do toolkit para ele.
 
-A decidir na hora de implementar:
+**1. O portal entra no molde do `files_menu.sh` e do `garantir_builds.sh`.** Um script `portal_captura.sh`, com os verbos
+`conferir`, `aplicar` e `reverter`, e o pacote `xdg-desktop-portal-cosmic` em `_gb_instalados`. Depois de cada apt o
+`garantir_builds` recompila sozinho para a versão nova, sem barrar o compositor nem o menu: portal ruim derruba o
+compartilhamento, não o login. Aparece no `meow doctor` e na página Extensões.
 
-1. Instalar por drop-in da unit de usuário ou no lugar de `/usr/libexec`. O drop-in sobrevive ao apt e se desfaz
-   apagando um arquivo.
-2. Quando o patch sai: `patches/versao` recusa versão nova, e o `meow doctor` avisa se a #286 foi corrigida.
-3. Medir o bug no MeowSystem (só RTX) e no Meow-portatil (Intel + RTX). Nenhum dos dois foi testado.
+- Em `patches/`: o `.patch` do portal (P159), o do toolkit (P160) e uma `versao` própria, com dry-run `-F0`.
+- O `[patch]` do `Cargo.toml` não pode ter caminho absoluto: hoje aponta para `/home/andrefarias/...`.
+- O binário entra por shim, como o do compositor, nunca direto pelo drop-in: drop-in apontando para binário
+  ausente deixaria a máquina sem portal nenhum. Sem build válida para a versão instalada, o shim chama
+  `/usr/libexec/xdg-desktop-portal-cosmic`.
+- Sair do trilho sozinho quando #286 e #384 tiverem correção oficial no pacote.
+
+**2. A policy do Chrome entra no mesmo verbo `aplicar`,** com o arquivo igual nos três PCs:
+`/etc/opt/chrome/policies/managed/compartilhar-tela.json`.
+
+```json
+{
+  "ScreenCaptureAllowed": true,
+  "VideoCaptureAllowed": true,
+  "AudioCaptureAllowed": true
+}
+```
+
+Comando manual usado no nitro-5:
+
+```bash
+sudo tee /etc/opt/chrome/policies/managed/compartilhar-tela.json >/dev/null <<'EOF'
+{
+  "ScreenCaptureAllowed": true,
+  "VideoCaptureAllowed": true,
+  "AudioCaptureAllowed": true
+}
+EOF
+```
+
+Sem Chrome instalado, pula. Os três valores já são o padrão do Chrome, e o efeito próprio deles não foi isolado: o relato
+é que o compartilhamento passou a aparecer depois do comando, mas o crash do portal continuou até a cura. Entra por
+decisão, com arquivo próprio, sem tocar no `aurora-no-ai-no-antigravity.json` da Aurora.
+
+**3. Idempotência é o critério de aceite.** Rodar `aplicar` duas vezes na mesma versão não compila, não escreve e não
+reinicia o portal: a segunda passagem compara e sai `ok`. O `reverter` devolve portal e policy ao estado do pacote.
+O portal só reinicia se a versão mudou, e nunca com stream ativo. A policy só pede sudo se o conteúdo divergir.
+
+**4. Os três PCs.** O nitro-5 mediu tudo. MeowSystem (só RTX 4060) e Meow-portatil (Intel + RTX 4060) relatam o mesmo
+problema, sem medição. Rodar a mesma prova em cada um, porque o `req` da série vale para todos.
 
 ## Como se prova
 
@@ -62,3 +101,6 @@ A decidir na hora de implementar:
    aparece e fica no ar.
 2. `coredumpctl list --no-pager | grep portal-cosmic` não ganha entrada nova depois da tentativa.
 3. Repetir com Tela inteira e no Teams.
+4. Nos três PCs: `aplicar` duas vezes, e a segunda não muda nada.
+5. `apt` trazendo versão nova do portal: o `garantir_builds` recompila, ou o shim cai no pacote se o patch recusar.
+6. `reverter` deixa o portal do pacote funcionando e tira a policy.

@@ -18,7 +18,8 @@
   papel de parede, Criar o meu tema e Personalizar no painel; no Mascote, Tamanho 57, Altura no ↶ e Linhas
   antes 0 deixam o gato do tamanho do texto, com a paleta logo abaixo.
   PRÓXIMO (achados, nenhum em voo):
-  - P159 (06/11): compartilhar tela e janela no COSMIC vira feature no trilho do `meow compositor`; o portal aborta
+  - P159 (06/11): compartilhar tela e janela no COSMIC vira build idempotente nos três PCs (portal e policy do Chrome),
+    no molde do `files_menu`/`garantir_builds`; o portal aborta
     (pop-os/xdg-desktop-portal-cosmic#286). Curado à mão só no nitro-5;
   - P160 (06/11): o compartilhamento congela e a própria tela não aparece no Teams; corrida no toolkit (`create_frame`);
   - P161 (06/11): as áreas do HDMI duplicam no note e o «5» aparece; vira correção e chave de feature, com dois caminhos
