@@ -59,9 +59,10 @@ Essa causa vem do PR, não foi medida aqui.
 
 ## A cura na máquina (nitro-5)
 
-Instalada em 06/11/2026, 11:57. Parcial: o relato de 12:15 é de 12 min transmitindo certo no celular, e nesse
-horário o portal tinha 18 min 40 s de pé, com stream ativo, sem queda e sem os dois erros. Falta passar de 30 min,
-repetir depois do reboot e ver a própria tela no Teams. É o diff do [cosmic-protocols#95](https://github.com/pop-os/cosmic-protocols/pull/95),
+Instalada em 06/11/2026, 11:57. **Prova de 30 min aprovada** em 06/11, no Teams com o celular como participante, relato de
+quem usa às 12:35. Às 12:35:05 o portal tinha 37 min 55 s de pé, com 0 queda e 0 dos dois erros desde a instalação. Antes,
+o maior tempo de pé tinha sido 21 min. Falta repetir depois do reboot e ver a própria tela no Teams.
+É o diff do [cosmic-protocols#95](https://github.com/pop-os/cosmic-protocols/pull/95),
 fechado por ser duplicado do [#92](https://github.com/pop-os/cosmic-protocols/pull/92), que segue aberto: destruir o frame antes de notificar
 (`client-toolkit/src/screencopy/dispatch.rs`, +8 −2). O PR registra de 10 quedas em 15 min para 0, em outro hardware.
 

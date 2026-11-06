@@ -15,6 +15,9 @@ com `0x03…` e LINEAR. `target_node_for_output` (`src/backend/kms/mod.rs:729`) 
 a placa dedicada no `--render-node-override`. O formato comum é só o LINEAR, e o relato do PR #385 é que o Chrome não importa
 LINEAR de outra GPU: a cópia acaba passando pela CPU.
 
+A leitura vem de uma sonda avulsa do `ext_image_copy_capture`, sem capturar quadro: `~/.local/src/sonda_copia.py`, só no
+nitro-5. Vale trazê-la para `scripts/`, ao lado da `appid_sonda.py`.
+
 ## O que falta medir
 
 1. Depois da P159: se o Chrome importa o LINEAR aqui ou renegocia para SHM.
