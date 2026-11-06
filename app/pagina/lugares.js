@@ -312,6 +312,7 @@ const LUGAR_EXTENSOES = {
     { a: "builds_refazer_tudo", r: "Refazer tudo" },
     { c: "BUILDS_AO_ENTRAR", r: "Refazer ao entrar na sessão" },
     { c: "COMPOSITOR", r: "Compositor" },
+    { c: "GRAFICOS", r: "Aprimoramentos gráficos" },
   ],
 };
 
