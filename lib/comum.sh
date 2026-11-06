@@ -486,6 +486,17 @@ meow_cosmic_comp_disco() {
   printf '%s\n' /usr/bin/cosmic-comp
 }
 
+meow_limpar_fim_de_build() {
+  local linha
+  meow_seco && return 0
+  meow_tem python3 || return 0
+  while IFS= read -r linha; do
+    [ -n "$linha" ] && meow_info "$linha"
+  done < <(ESPACO_TRAVA_FD=9 MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$MEOW_RAIZ" \
+             python3 "$MEOW_RAIZ/scripts/espaco.py" continua 2>&1)
+  return 0
+}
+
 MEOW_PROIBIDOS_SISTEMA=(/usr/share /usr/local/share /usr/bin /usr/lib)
 MEOW_PROIBIDOS_LOCAIS=()
 MEOW_EXCECOES_LOCAIS=()

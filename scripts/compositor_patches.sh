@@ -989,6 +989,7 @@ cmd_compilar() {
     rm -rf -- "$d" && meow_info "podei o fonte antigo: ${d##*/}"
   done
 
+  meow_limpar_fim_de_build
   meow_registrar "compositor_patches.sh compilar $ver"
   meow_info "vale no PRÓXIMO LOGIN — a sessão de agora segura o binário antigo até lá"
   return "$MEOW_OK"
