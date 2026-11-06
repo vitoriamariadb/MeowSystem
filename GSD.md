@@ -34,5 +34,5 @@ O registro é [`docs/DECISOES.md`](docs/DECISOES.md): uma linha por decisão que
 - O gancho de commit troca palavras, às vezes dentro do código. Confira o diff de cada commit.
 - `/tmp` some no reboot. O estado de um bloco mora num arquivo do projeto.
 - Trabalhe na worktree e na branch do bloco, nunca no checkout principal.
-- Senha nunca vai para arquivo, commit ou documento.
+- Senha nunca vai para commit nem documento; o segredo do askpass mora só no arquivo 600 dele, fora do repositório.
 - Adicione por caminho. Nunca `git add -A` nem `git add .`.

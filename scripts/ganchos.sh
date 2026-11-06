@@ -158,7 +158,7 @@ rodar() {
     post-merge)
       [ "${MEOW_SEM_README:-0}" = "1" ] && exit 0
       ramo="$(git symbolic-ref --short -q HEAD)"
-      [ "$ramo" = dev ] || exit 0
+      [ "$ramo" = master ] || exit 0
       bash scripts/readme.sh --commit
       exit 0
       ;;

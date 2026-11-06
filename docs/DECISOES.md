@@ -2,7 +2,7 @@
 
 Decisão de quem usa só se desfaz com sim explícito sobre aquele tema. Para desfazer: troque a linha
 aqui e o código que a lê, no mesmo commit, citando o sim. `tests/decisoes.sh` cobra cada uma que tem
-prova no código. O texto de antes de cada linha mora na branch `arquivo`.
+prova no código. O texto de antes de cada linha mora no histórico do git.
 
 | # | vale | base |
 |---|---|---|
@@ -10,7 +10,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 2 | PNG feito à mão vira vetor validado por RMSE; o PNG sai só quando o vetor passa | «pedimos pro agente criar e validamos» |
 | 3 | O seletor, a aba Sistema e a Biblioteca mostram só o acervo do pack em edição (e dos que ele herda, até o primeiro pack do projeto); ícone de um pack nunca aparece no outro | sim de 26/10: «o que eu falei hoje sobrescreve» |
 | 4 | `calcdeirao` fica fora do pack; `jogos`, `rede` e `clima2` entram | projeto pessoal fora do pack (23/09) |
-| 5 | Askpass da Aurora ativo (600, só do usuário); a senha nunca vai para arquivo, commit ou documento | «askpass ativa» (15/10) |
+| 5 | Askpass da Aurora ativo; o segredo mora só no arquivo 600 dele, fora do repositório, e a senha nunca vai para commit nem documento | «askpass ativa» (15/10) |
 | 6 | GPU do compositor na placa dedicada, detectada em cada máquina: `COSMIC_RENDER_DEVICE="0x<vendor>:0x<device>"` no `/etc/environment`, gravado pela ponte root (`gpu-compositor`); com uma GPU só não há linha; `GPU_COMPOSITOR="padrao"` no `meow.conf` não toca | «tudo nvidia de fato» (17/09), «sim por favor» (15/10); sim de 28/10: «Pensa num produto universal. Pra ser usado em outras máquinas no meu caso é a 4060 aí reapontamos pra lá» |
 | 7 | O «Consertar» do doctor baixa com o selo «baixa da internet», sem caixa de pergunta; a pergunta fica só para o que baixa e é opcional | «O doctor não tem que avisar nada. Tem que corrigir.» (09/10) |
 | 8 | QA do painel só com HOME temporário; o `run.sh --sem-abrir` recusa o HOME da conta sem `MEOW_QA_HOME_REAL=1` | o painel escreve no sistema real |
@@ -27,9 +27,9 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 19 | Cada pack tem o seu mascote em `packs/<id>/mascote/` (`mascote.dia`/`mascote.noite`): Coquinha e Mimir no `meowsystem`, os morcegos no `dracula` | pedido de 23/10 |
 | 20 | O MeowSystem escreve o bloco marcado do terminal no `.bashrc`/`.zshrc` e o tira ao desinstalar; o equivalente do Spellbook sai pelo `assets/contratos/vizinhos.tsv` | pedido de 23/10 |
 | 21 | O instalador baixa o que o Pop!_OS não traz: compilador e bibliotecas do que compila (`assets/pacotes/compilar.tsv`: applets, compositor, Menu do Arquivos), o Rust pelo rustup pinado (`assets/rust/rustup.pino`), fastfetch do PPA `zhangsongcui3371` | pedido de 23/10 |
-| 22 | O dev vai para o master de `vitoriamariadb/MeowSystem`, e o README aponta para lá | sim de 26/10 (troca do fork de 23/10) |
+| 22 | O tronco é só o `master` de `vitoriamariadb/MeowSystem`, cada bloco nasce dele, e o README aponta para lá | sim de 26/10 (troca do fork de 23/10); sim de 06/11: «Só master» |
 | 23 | O install semeia o papel de parede da origem que o `pack.json` declara (`origens.wallpapers`) | pedido de 23/10 |
-| 24 | Saem do dev (o git e a branch `arquivo` guardam): `docs/folhas/`, `docs/pesquisas/`, a etapa do `catppuccin-apps`, `docs/sprints/` antigas, `docs/historico/` e todo teste, script ou documento que nada alcança | pedidos de 23/10 e 26/10 |
+| 24 | Saem do tronco (o histórico do git guarda): `docs/folhas/`, `docs/pesquisas/`, a etapa do `catppuccin-apps`, `docs/sprints/` antigas, `docs/historico/` e todo teste, script ou documento que nada alcança | pedidos de 23/10 e 26/10 |
 | 25 | Papéis de parede separados por pack: só a coleção do pack no ar gira; a imagem sem pack gira com qualquer um | pedido de 23/10 |
 | 26 | O starship desce com o install (salvo recusa gravada); o doctor não o baixa: ausente é pulado de rotina | pedido de 23/10 |
 | 27 | Pendência não aparece na tela; o que dá para consertar se conserta. O papel de parede devolvido fica devolvido, sem autorizar | show, don't tell; «Não deveria aparecer» (28/10) |
@@ -50,7 +50,7 @@ prova no código. O texto de antes de cada linha mora na branch `arquivo`.
 | 42 | O `pack.py sincronizar` fica no verbo manual, com a guarda de mesma extensão | só compara arte com arte |
 | 43 | O aviso do `NOPASSWD: ALL` diz o estado, sem receita; tirar o `NOPASSWD` é de quem usa | segurança da conta |
 | 44 | O Light do tema segue o COSMIC instalado | o oráculo mostra a diferença |
-| 45 | O README regera o que vem do código e as capturas do painel (headless, HOME temporário) no merge para o dev e no push, nunca em cada commit | sim de 26/10 |
+| 45 | O README regera o que vem do código e as capturas do painel (headless, HOME temporário) no merge para o master e no push, nunca em cada commit | sim de 26/10 |
 | 46 | As duas regras do «lado vestido» ficam: as duas passam pelo `derivar_flavor.par_do_outro_lado` no lado escuro, e o `tests/variante.sh` vigia | uma derivação só |
 | 47 | O filtro `awk` do `_dracula_pares_do_mapa` fica como está | três testes extraem a função verbatim |
 | 48 | Os leitores `${ICONES_BASE:-Papirus-Dark}` ficam | variável interna, o mesmo padrão em todo lugar; nenhum defeito medido |

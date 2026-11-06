@@ -14,7 +14,7 @@ trap 'rm -rf "$T"' EXIT
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0
 LOG="$T/chamadas.log"
 : > "$LOG"
-g() { git -c user.name=teste -c user.email=teste@exemplo.invalid -c init.defaultBranch=dev "$@"; }
+g() { git -c user.name=teste -c user.email=teste@exemplo.invalid -c init.defaultBranch=master "$@"; }
 
 for n in pre-push post-merge; do
   [ -x "$RAIZ/scripts/gancho-$n.sh" ] && ok "scripts/gancho-$n.sh existe e é executável" \
@@ -119,16 +119,16 @@ printf 'z\n' > "$R/b"; g -C "$R" add b; g -C "$R" commit -q -m tres --no-verify
 g -C "$R" checkout -q lado
 : > "$LOG"
 g -C "$R" merge -q --no-edit outro >/dev/null 2>&1
-grep -q '^readme' "$LOG" && falha "o post-merge regerou o README fora do dev" || ok "post-merge fora do dev não toca no README"
-g -C "$R" checkout -q dev
+grep -q '^readme' "$LOG" && falha "o post-merge regerou o README fora do master" || ok "post-merge fora do master não toca no README"
+g -C "$R" checkout -q master
 : > "$LOG"
 g -C "$R" merge -q --no-edit outro >/dev/null 2>&1
-grep -qx 'readme --commit' "$LOG" && ok "post-merge no dev, pela chave, chama o readme.sh --commit" \
-  || falha "o post-merge no dev não chamou o readme" "$(cat "$LOG")"
+grep -qx 'readme --commit' "$LOG" && ok "post-merge no master, pela chave, chama o readme.sh --commit" \
+  || falha "o post-merge no master não chamou o readme" "$(cat "$LOG")"
 : > "$LOG"
 g -C "$R" checkout -q -b mais
 printf 'w\n' > "$R/c"; g -C "$R" add c; g -C "$R" commit -q -m quatro --no-verify
-g -C "$R" checkout -q dev
+g -C "$R" checkout -q master
 MEOW_SEM_README=1 g -C "$R" merge -q --no-edit mais >/dev/null 2>&1
 grep -q '^readme' "$LOG" && falha "MEOW_SEM_README=1 não calou o post-merge" || ok "MEOW_SEM_README=1 cala o post-merge"
 
@@ -136,7 +136,7 @@ g init -q --bare "$T/remoto.git"
 g -C "$R" remote add origem "$T/remoto.git"
 : > "$LOG"
 printf '1\n' > "$T/rc"
-if g -C "$R" push -q origem dev >/dev/null 2>&1; then
+if g -C "$R" push -q origem master >/dev/null 2>&1; then
   falha "o push passou com o README regerado no gancho"
 else
   ok "o push para quando o gancho regera o README"
@@ -144,9 +144,9 @@ fi
 grep -q '^global-pre-push refs/heads/dev ' "$LOG" && grep -qx 'readme --commit' "$LOG" \
   && ok "o pre-push global recebe a entrada e chama o da árvore" || falha "o pre-push não encadeou" "$(cat "$LOG")"
 printf '0\n' > "$T/rc"
-g -C "$R" push -q origem dev >/dev/null 2>&1 && ok "o push passa com o README em dia" || falha "o push foi barrado com o README em dia"
-[ "$(g -C "$T/remoto.git" rev-parse dev 2>/dev/null)" = "$(g -C "$R" rev-parse dev)" ] \
-  && ok "o remoto recebeu o dev" || falha "o remoto não recebeu o dev"
+g -C "$R" push -q origem master >/dev/null 2>&1 && ok "o push passa com o README em dia" || falha "o push foi barrado com o README em dia"
+[ "$(g -C "$T/remoto.git" rev-parse master 2>/dev/null)" = "$(g -C "$R" rev-parse master)" ] \
+  && ok "o remoto recebeu o master" || falha "o remoto não recebeu o master"
 
 g -C "$R" worktree add -q "$T/velha" -b velha >/dev/null 2>&1
 rm -f "$T/velha/scripts/higiene.sh"
@@ -192,4 +192,4 @@ if [ "$falhas" -gt 0 ]; then
   printf '\n%d falha(s) nos ganchos.\n' "$falhas" >&2
   exit 1
 fi
-printf '\no pre-commit encadeia na pasta comum; pre-push e post-merge são chaves para a árvore, e só regeram o README no dev e no push.\n'
+printf '\no pre-commit encadeia na pasta comum; pre-push e post-merge são chaves para a árvore, e só regeram o README no master e no push.\n'

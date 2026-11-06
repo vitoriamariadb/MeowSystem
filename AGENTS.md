@@ -50,7 +50,7 @@ Pulado não é verde. Toda afirmação precisa de prova rodada.
 - Pack é dado. A arte mora no pack.
 - Agente não roda `install.sh`, `meow compositor` nem `meow doctor --consertar` com o HOME real; quem coordena a
   sessão (o orquestrador) pode.
-- Senha nunca vai para arquivo, commit ou documento.
+- Senha nunca vai para commit nem documento; o segredo do askpass mora só no arquivo 600 dele, fora do repositório.
 - Commit pequeno, por caminho (nunca `git add -A`), em português.
 
 ## Comentários
@@ -62,6 +62,5 @@ do código; o `scripts/higiene.sh` zera as linhas novas do commit e corrige núm
 
 ## Onde não ler por padrão
 
-- `docs/sprints/`: só a leva em curso; leia o arquivo citado. O registro antigo mora na branch
-  `arquivo`.
+- `docs/sprints/`: só a leva em curso; leia o arquivo citado. O registro antigo mora no histórico do git.
 - `packs/*/icones/` (milhares de SVG), `docs/capturas/`.
