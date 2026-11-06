@@ -4098,6 +4098,7 @@ def nome_digitado(texto):
 
 def montar_novo(ident, csv=None, nome_dado=""):
     import time
+    import unicodedata
     nome = " ".join(parte.capitalize() for parte in ident.split("-"))
     if csv:
         try:
@@ -4117,6 +4118,14 @@ def montar_novo(ident, csv=None, nome_dado=""):
             reprovados = regua_de_contraste(paleta, _referencia_clara())
         except Recusa as e:
             raise Recusa(f"o CSV não virou paleta: {e}")
+        sem_acento = unicodedata.normalize("NFKD", nome).encode("ascii", "ignore").decode("ascii")
+        chave_do_nome = re.sub(r"[^a-z0-9]", "", sem_acento.lower())
+        for desenhado in [f for f in paleta["flavors"] if f not in (paleta.get("derivados") or {})]:
+            if desenhado == chave_do_nome:
+                paleta["nomes"][desenhado] = nome
+                for claro, escuro in (paleta.get("derivados") or {}).items():
+                    if escuro == desenhado:
+                        paleta["nomes"][claro] = f"{nome} claro"
         bruto_paleta = (json.dumps(paleta, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
         flavor, accent = next(iter(paleta["flavors"])), ACCENT_PADRAO_DO_LOGO
     else:

@@ -107,7 +107,8 @@ try:
                            '  <rect x="6" y="6" width="36" height="36" fill="{foto}"/>',
                            '</svg>']}, fh)
     os.environ["MEOW_PACKS"] = tmp
-    dir_t = os.path.join(tmp, "terceiro")
+    os.environ["XDG_DATA_HOME"] = os.path.join(tmp, "xdg")
+    dir_t = os.path.join(tmp, "xdg", "meowsystem", "packs", "terceiro")
     dir_aut = os.path.join(dir_t, "icones", "autorais")
     os.makedirs(dir_aut)
     shutil.copy(os.path.join(raiz, "packs", "dracula", "paleta.json"), dir_t)
@@ -166,6 +167,23 @@ try:
         if vermelho.lower() not in gerado[i].lower():
             falhas.append("%s: o SVG regerado não traz o red (%s) na linha de %s: %s"
                           % (nome, vermelho, papel, gerado[i].strip()))
+    dir_alheio = os.path.join(tmp, "alheio")
+    pasta_alheia = os.path.join(dir_alheio, "icones", "autorais")
+    shutil.copytree(os.path.join(dir_t, "icones"), os.path.join(dir_alheio, "icones"))
+    shutil.copy(os.path.join(dir_t, "paleta.json"), dir_alheio)
+    with open(os.path.join(dir_alheio, "pack.json"), "w", encoding="utf-8") as fh:
+        json.dump({"formato": 1, "id": "alheio", "nome": "Alheio", "heranca": "pai",
+                   "paleta": {"arquivo": "paleta.json"},
+                   "icones": {"autorais": {"gerar": True}}}, fh)
+    servidor._pack_adotado = lambda: dir_alheio
+    foto = {a: os.path.getmtime(os.path.join(pasta_alheia, a)) for a in os.listdir(pasta_alheia)}
+    papeis_a = dict(((lista().get("meu-app") or {}).get("papeis")) or {})
+    papeis_a["fundo"] = {"escuro": "red", "claro": "red"}
+    r = autoral({"acao": "salvar", "nome": "meu-app", "papeis": papeis_a})
+    depois = {a: os.path.getmtime(os.path.join(pasta_alheia, a)) for a in os.listdir(pasta_alheia)}
+    if r.get("ok") or resposta.get("codigo") != 403 or depois != foto:
+        falhas.append("salvar num pack que não é da casa da pessoa devia ser recusado (403) sem escrever; "
+                      "veio %r (%s)" % (r, resposta.get("codigo")))
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
@@ -176,5 +194,5 @@ if falhas:
         print("    " + linha, file=sys.stderr)
     sys.exit(1)
 print("ok: a oficina de autoral, num pack sem `desenhos`, lê o que salva "
-      "(meu-app e a cópia do desenho herdado)")
+      "(meu-app e a cópia do desenho herdado), e recusa salvar num pack que não é da pessoa")
 PY

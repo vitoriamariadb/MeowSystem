@@ -1504,6 +1504,23 @@ PY
   && ok "o nome do pack de CSV sai do arquivo como foi escrito («Minha Tinta», «Tinta de teste»)" \
   || falha "o nome do pack de CSV não é o do arquivo" "Minha Tinta.csv -> $nome_csv; tinta de teste.csv -> $nome_minusculo"
 
+sed 's/,tinta,/,gatofinal,/' "$T/cores.csv" > "$T/gato final.csv"
+sed 's/,tinta,/,acaifinal,/' "$T/cores.csv" > "$T/acai-final.csv"
+nomes_da_variante="$(amb python3 - "$RAIZ" "$T/gato final.csv" "$T/cores.csv" "$T/acai-final.csv" <<'PY' 2>&1
+import json, os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "scripts"))
+import pack
+_a, com_nome, _r = pack.montar_novo(pack.id_do_csv(sys.argv[2]), sys.argv[2], "Gato Final")
+_b, sem_nome, _r = pack.montar_novo(pack.id_do_csv(sys.argv[3]), sys.argv[3], "Minha Tinta")
+print(com_nome["nomes"]["gatofinal"] + "|" + com_nome["nomes"]["gatofinalclaro"] + "|" + sem_nome["nomes"]["tinta"])
+_c, acentuado, _r = pack.montar_novo(pack.id_do_csv(sys.argv[4]), sys.argv[4], "Açaí Final")
+print(acentuado["nomes"]["acaifinal"] + "|" + acentuado["nomes"]["acaifinalclaro"])
+PY
+)"
+[ "$nomes_da_variante" = $'Gato Final|Gato Final claro|Tinta\nAçaí Final|Açaí Final claro' ] \
+  && ok "a variante do tema novo leva o nome digitado, e não o slug («Gato Final», não «Gatofinal»; «Açaí Final», não «Acaifinal»); a que não é o slug do nome segue como veio" \
+  || falha "o nome da variante do tema novo saiu como slug" "$nomes_da_variante"
+
 cp "$T/cores.csv" "$T/qa-um.csv"
 viaja env MEOW_PACK_NOME="QA Um" "$RAIZ/bin/meow" pack importar "$T/qa-um.csv" >/dev/null 2>&1
 nome_digitado="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["nome"])' \

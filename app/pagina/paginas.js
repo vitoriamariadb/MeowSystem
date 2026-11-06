@@ -448,7 +448,7 @@ function packEmEdicao() {
 }
 function chaveDoAcervo() {
   const r = rascunho();
-  return JSON.stringify([r.pack || "", r.base.pack, vinteSeis()]);
+  return JSON.stringify([modoDoRascunho(), r.pack || "", r.base.pack, vinteSeis()]);
 }
 async function carregarAcervo() {
   const chave = chaveDoAcervo();
@@ -465,7 +465,7 @@ let PREVIA_DO_RASCUNHO = null;
 let PREVIA_RELOGIO = null;
 function chaveDaPrevia() {
   const r = rascunho();
-  return JSON.stringify([r.pack || "", r.base.pack, r.base.flavor || "", vinteSeis()]);
+  return JSON.stringify([modoDoRascunho(), r.pack || "", r.base.pack, r.base.flavor || "", vinteSeis()]);
 }
 async function carregarPreviaDoRascunho(chave) {
   const r0 = rascunho();
@@ -487,6 +487,18 @@ function previaDoRascunho() {
   const r = rascunho();
   return previaDoPack(PACKS.find((x) => x.id === (r.pack || r.base.pack)) || PACKS.find((x) => x.id === r.base.pack) || packNoAr(), r.base.flavor);
 }
+function fundoDoCartao(cores, paleta) {
+  if (!cores || !cores.length || !paleta.base) return null;
+  const melhor = (fundo) => Math.max(...cores.map((c) => contraste(c, fundo)));
+  const candidatos = ["base", "mantle", "crust", "text"].map((n) => paleta[n]).filter(Boolean).concat("#000000");
+  const padrao = melhor(paleta.base);
+  if (padrao >= 3) return null;
+  let fundo = paleta.base, nota = padrao;
+  for (const c of candidatos) { const m = melhor(c); if (m > nota + 0.05) { fundo = c; nota = m; } }
+  if (fundo === paleta.base) return null;
+  const nome = contraste(paleta.text, fundo) >= contraste(paleta.base, fundo) ? paleta.text : paleta.base;
+  return { fundo, nome };
+}
 function gradeDoAcervo(pasta, grupo) {
   if (!ACERVO || ACERVO.chave !== chaveDoAcervo()) carregarAcervo();
   const pronto = ACERVO && !ACERVO.carregando;
@@ -503,8 +515,14 @@ function gradeDoAcervo(pasta, grupo) {
     grade.style.setProperty("--linha-previa", paleta.surface1 || paleta.overlay0 || paleta.text);
   }
   for (const i of itens) {
-    grade.append(elemento("div", { class: "app", "data-nome": i.nome }, [
-      elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })]));
+    const cartao = elemento("div", { class: "app", "data-nome": i.nome }, [
+      elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })]);
+    const outro = fundoDoCartao(i.cores, paleta);
+    if (outro) {
+      cartao.style.setProperty("--cartao-previa", outro.fundo);
+      cartao.style.setProperty("--nome-previa", outro.nome);
+    }
+    grade.append(cartao);
   }
   if (pronto && !itens.length) {
     grade.append(elemento("span", { class: "vazio-acervo", texto: BUSCA_ACERVO ? "Nada com esse nome" : "O pack não traz ícones aqui" }));

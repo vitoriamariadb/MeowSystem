@@ -24,6 +24,23 @@ registro() {
   grep -E "^\| $1 \|" "$DEC" | grep -qF -- "$2"
 }
 
+cobre() {
+  local n="$1" arq="$2" padrao="$3" cod="${4:-}" codpad="${5:-}"
+  if ! grep -qE "^\| $n \|" "$DEC"; then falha "$n: a decisão saiu do registro"; return; fi
+  if [ -f "$RAIZ/tests/$arq" ] && grep -qxF "  $arq" "$RAIZ/tests/todos.sh" \
+     && grep -qE -- "$padrao" "$RAIZ/tests/$arq" \
+     && { [ -z "$cod" ] || grep -qE -- "$codpad" "$RAIZ/$cod"; }; then
+    ok "$n: tests/$arq prova${cod:+ (e $cod ainda tem o que ela lê)}"
+  else
+    falha "$n: tests/$arq não está no runner ou perdeu a prova de /$padrao/${cod:+, ou $cod perdeu /$codpad/}"
+  fi
+}
+
+so_texto() {
+  if registro "$1" 'só texto, nada no código a lê'; then ok "$1: dita como só texto no registro, sem prova de código"
+  else falha "$1: a linha do registro não diz que é só texto"; fi
+}
+
 resolvedor() { python3 - "$RAIZ/scripts" "$@" <<'PY'
 import os, sys
 sys.path.insert(0, sys.argv[1])
@@ -75,17 +92,17 @@ PY
 echo "== D1. a base do Dracula: circle por cima, main por trás"
 r="$(resolvedor base 2>&1)"
 { grep -qx 'frente=True' <<< "$r" && grep -qx 'atras=True' <<< "$r"; } \
-  && ok "o pack pina o circle (00a230a2) na frente e o main (de2a8edd) atrás" \
-  || falha "a base do Dracula não é circle + main: $r"
-registro 1 'As duas' && ok "o registro diz «as duas»" || falha "a decisão 1 saiu do registro"
+  && ok "1: o pack pina o circle (00a230a2) na frente e o main (de2a8edd) atrás" \
+  || falha "1: a base do Dracula não é circle + main: $r"
+registro 1 'As duas' && ok "1: o registro diz «as duas»" || falha "1: a decisão 1 saiu do registro"
 
 echo "== D2. os PNG feitos à mão viraram vetor, e nenhum PNG ficou sem o vetor"
 nomes39="Antigravity box-buddy calculadora calendario camera cheese citrix clapper Clapper com.system76.CosmicSettings dbeaver demo-general2018 discord Easy-Effects edge FileZilla firefox flatseal gerenciador-de-extensoes gerenciador-de-menu gimp-48 gimp gnome-folder gparted gradia Heroic-Games-Launcher hplj1020 krita linux-toys obsidian obs-studio opera spotify Tweaks visualizador-de-imagens vscode warehouse weylus whatsapp"
 r="$(resolvedor vetores $nomes39 2>&1)"
-grep -q '^falta=' <<< "$r" && falha "vetor dos feitos à mão que sumiu do pack Dracula: $(grep '^falta=' <<< "$r" | tr '\n' ' ')" \
-  || ok "os 39 vetores dos feitos à mão estão no pack Dracula"
+grep -q '^falta=' <<< "$r" && falha "2: vetor dos feitos à mão que sumiu do pack Dracula: $(grep '^falta=' <<< "$r" | tr '\n' ' ')" \
+  || ok "2: os 39 vetores dos feitos à mão estão no pack Dracula"
 [ "$(grep '^png_sem_vetor=' <<< "$r")" = "png_sem_vetor=" ] \
-  && ok "nenhum PNG do pack ficou sem o vetor ao lado" || falha "PNG sem vetor: $(grep '^png_sem_vetor=' <<< "$r")"
+  && ok "2: nenhum PNG do pack ficou sem o vetor ao lado" || falha "2: PNG sem vetor: $(grep '^png_sem_vetor=' <<< "$r")"
 
 echo "== D3. o seletor mostra só o acervo do pack em edição"
 r="$(resolvedor seletor 2>&1)"
@@ -94,37 +111,37 @@ for no_ar in dracula meowsystem; do
   grep -qx "$no_ar:packs=$no_ar" <<< "$r" || bom=0
   grep -qx "$no_ar:primeiro=$no_ar:True" <<< "$r" || bom=0
 done
-[ "$bom" = 1 ] && ok "com um pack em edição: só o acervo dele aparece, e o do outro nunca" \
-  || falha "o seletor mistura acervos de packs: $r"
+[ "$bom" = 1 ] && ok "3: com um pack em edição: só o acervo dele aparece, e o do outro nunca" \
+  || falha "3: o seletor mistura acervos de packs: $r"
 registro 3 'só o acervo do pack em edição' && registro 3 '26/10' \
-  && ok "o registro diz «só o acervo do pack em edição», com o sim de 26/10" \
-  || falha "a decisão 3 do registro não cita o acervo do pack em edição e o sim de 26/10"
+  && ok "3: o registro diz «só o acervo do pack em edição», com o sim de 26/10" \
+  || falha "3: a decisão 3 do registro não cita o acervo do pack em edição e o sim de 26/10"
 
 echo "== D4. calcdeirao fica fora; jogos, rede e clima2 entram"
 r="$(resolvedor nomes jogos rede clima2 2>&1)"
 { grep -qx 'jogos=True' <<< "$r" && grep -qx 'rede=True' <<< "$r" && grep -qx 'clima2=True' <<< "$r"; } \
-  && ok "jogos, rede e clima2 estão no pack Dracula" || falha "jogos, rede ou clima2 saíram do pack: $r"
+  && ok "4: jogos, rede e clima2 estão no pack Dracula" || falha "4: jogos, rede ou clima2 saíram do pack: $r"
 fora="$(find "$RAIZ/packs" \( -iname '*calcdeirao*' -o -iname '*caldeirao*' \) -print -quit)"
 { [ -z "$fora" ] && ! grep -rIliE 'calcdeirao|caldeir[aã]o' "$RAIZ/packs" --include='*.map' --include='pack.json' >/dev/null; } \
-  && ok "nada do Caldeirão no pack (nome de arquivo, mapa, pack.json)" || falha "projeto pessoal dentro do pack: $fora"
+  && ok "4: nada do Caldeirão no pack (nome de arquivo, mapa, pack.json)" || falha "4: projeto pessoal dentro do pack: $fora"
 
 echo "== D5. askpass ativo, e a senha nunca em arquivo do projeto"
 if [ -d /usr/local/lib/aurora ]; then
   A=/usr/local/lib/aurora/askpass; S="$REAL/.config/zsh/.aurora-askpass-secret"
   [ -x "$A" ] && grep -qx "SUDO_ASKPASS=$A" "$ETC_ENV" \
-    && ok "o askpass da Aurora é executável e está no /etc/environment" \
-    || falha "o askpass não está ativo (executável em $A e SUDO_ASKPASS no /etc/environment)"
+    && ok "5: o askpass da Aurora é executável e está no /etc/environment" \
+    || falha "5: o askpass não está ativo (executável em $A e SUDO_ASKPASS no /etc/environment)"
   [ "$(stat -c %a "$S" 2>/dev/null)" = "600" ] && [ -s "$S" ] \
-    && ok "o arquivo do askpass é 600 e não está vazio" || falha "o arquivo do askpass não é 600 ou está vazio"
+    && ok "5: o arquivo do askpass é 600 e não está vazio" || falha "5: o arquivo do askpass não é 600 ou está vazio"
 else
   pula "sem /usr/local/lib/aurora: esta não é a máquina de quem usa"
 fi
 if git -C "$RAIZ" ls-files 2>/dev/null | grep -qiE 'askpass-secret|\.secret$'; then
-  falha "arquivo de segredo versionado: $(git -C "$RAIZ" ls-files | grep -iE 'askpass-secret|\.secret$' | head -2)"
+  falha "5: arquivo de segredo versionado: $(git -C "$RAIZ" ls-files | grep -iE 'askpass-secret|\.secret$' | head -2)"
 else
-  ok "nenhum arquivo de segredo versionado"
+  ok "5: nenhum arquivo de segredo versionado"
 fi
-registro 5 'askpass ativa' && ok "o registro diz «askpass ativa»" || falha "a decisão 5 saiu do registro"
+registro 5 'askpass ativa' && ok "5: o registro diz «askpass ativa»" || falha "5: a decisão 5 saiu do registro"
 
 echo "== D6. a GPU do compositor na placa dedicada"
 if [ -d /usr/local/lib/aurora ]; then
@@ -132,19 +149,19 @@ if [ -d /usr/local/lib/aurora ]; then
   atual="$(sed -n 's/^COSMIC_RENDER_DEVICE="\(.*\)"$/\1/p' "$ETC_ENV" | head -n1)"
   if [ -n "$dedicada" ]; then
     [ "$atual" = "$dedicada" ] \
-      && ok "COSMIC_RENDER_DEVICE do /etc/environment é a placa dedicada desta máquina ($dedicada)" \
-      || falha "a GPU do compositor não está na dedicada ($dedicada): o /etc/environment diz '${atual:-ausente}'; sem sim explícito de quem usa, ninguém reverte (GSD.md §1)"
+      && ok "6: COSMIC_RENDER_DEVICE do /etc/environment é a placa dedicada desta máquina ($dedicada)" \
+      || falha "6: a GPU do compositor não está na dedicada ($dedicada): o /etc/environment diz '${atual:-ausente}'; sem sim explícito de quem usa, ninguém reverte (GSD.md §1)"
   else
     [ -z "$atual" ] \
-      && ok "uma GPU só: o /etc/environment não tem COSMIC_RENDER_DEVICE" \
-      || falha "uma GPU só e o /etc/environment tem COSMIC_RENDER_DEVICE='$atual'"
+      && ok "6: uma GPU só: o /etc/environment não tem COSMIC_RENDER_DEVICE" \
+      || falha "6: uma GPU só e o /etc/environment tem COSMIC_RENDER_DEVICE='$atual'"
   fi
 else
   pula "sem /usr/local/lib/aurora: esta não é a máquina de quem usa"
 fi
-registro 6 'GPU_COMPOSITOR' && registro 6 '28/10' && ok "o registro guarda a chave e o aval de 28/10" || falha "a decisão 6 saiu do registro"
+registro 6 'GPU_COMPOSITOR' && registro 6 '28/10' && ok "6: o registro guarda a chave e o aval de 28/10" || falha "6: a decisão 6 saiu do registro"
 grep -q '^GPU_COMPOSITOR="dedicada"' "$RAIZ/meow.conf.exemplo" && grep -q 'etapa_compositor etapa_gpu ' "$RAIZ/install.sh" \
-  && ok "a fábrica é a dedicada e o instalador tem a etapa" || falha "a decisão 6 perdeu a chave de fábrica ou a etapa"
+  && ok "6: a fábrica é a dedicada e o instalador tem a etapa" || falha "6: a decisão 6 perdeu a chave de fábrica ou a etapa"
 
 echo "== o shim do compositor ligado (ESTADO.md de 15/10), no HOME de brinquedo"
 grep -q '^COMPOSITOR="sim"' "$RAIZ/meow.conf.exemplo" && grep -qE 'etapa_extensoes etapa_compositor ' "$RAIZ/install.sh" \
@@ -165,7 +182,7 @@ a = servidor.ACOES["doctor_consertar"]
 print("rede=%s confirma=%s" % (a.get("rede"), a.get("confirma")))
 PY
 )"
-[ "$r" = "rede=True confirma=False" ] && ok "doctor_consertar declara rede e não pergunta" || falha "o doctor_consertar mudou: $r"
+[ "$r" = "rede=True confirma=False" ] && ok "7: doctor_consertar declara rede e não pergunta" || falha "7: o doctor_consertar mudou: $r"
 
 echo "== D8. o QA do painel recusa o HOME da conta"
 mkdir -p "$T/falso-getent"
@@ -175,8 +192,8 @@ timeout 20 env -i PATH="$T/falso-getent:$FALSO:$PATH" HOME="$CASA" USER="${USER:
   MEOW_RAIZ="$RAIZ" MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE=/nao/existe \
   "$RAIZ/app/run.sh" --sem-abrir > "$T/qa.log" 2>&1; rc=$?
 { [ "$rc" = 2 ] && grep -q recusado "$T/qa.log" && ! grep -q 'http://127' "$T/qa.log"; } \
-  && ok "o run.sh --sem-abrir recusa o HOME da conta sem MEOW_QA_HOME_REAL=1" \
-  || falha "o painel subiu para QA com o HOME da conta (rc=$rc): $(tail -2 "$T/qa.log")"
+  && ok "8: o run.sh --sem-abrir recusa o HOME da conta sem MEOW_QA_HOME_REAL=1" \
+  || falha "8: o painel subiu para QA com o HOME da conta (rc=$rc): $(tail -2 "$T/qa.log")"
 
 echo "== D9. pack importado não instala extensão sozinho; pack do repositório não precisa de gesto"
 P9="$T/packs"; mkdir -p "$P9/noite"
@@ -201,10 +218,10 @@ import servidor
 print("lista=" + ",".join(servidor.PROVEDORES["extensoes_de_terceiro"]()))
 PY
 }
-[ "$(extensoes noite)" = "lista=noite.tema-noite" ] && ok "o pack importado pede a extensão por nome, para o gesto" \
-  || falha "o pack importado não aparece como pedido de gesto: $(extensoes noite)"
-[ "$(extensoes dracula)" = "lista=" ] && ok "o pack do repositório não pede gesto nenhum" \
-  || falha "o pack do repositório pede gesto: $(extensoes dracula)"
+[ "$(extensoes noite)" = "lista=noite.tema-noite" ] && ok "9: o pack importado pede a extensão por nome, para o gesto" \
+  || falha "9: o pack importado não aparece como pedido de gesto: $(extensoes noite)"
+[ "$(extensoes dracula)" = "lista=" ] && ok "9: o pack do repositório não pede gesto nenhum" \
+  || falha "9: o pack do repositório pede gesto: $(extensoes dracula)"
 
 echo "== D10. «Restaurar ao padrão» grava o valor de fábrica e só nasce quando o valor difere"
 if command -v node >/dev/null; then
@@ -306,7 +323,7 @@ conf "$C12" 'PACK="dracula"' 'FLAVOR="dracula"' 'CURSOR="Dracula-Cursor"'
 env -i PATH="$FALSO:$PATH" HOME="$CASA" MEOW_RAIZ="$RAIZ" NO_COLOR=1 XDG_CONFIG_HOME="$CASA/.config" \
     XDG_STATE_HOME="$CASA/.local/state" "$RAIZ/bin/meow" pack usar meowsystem --sem-aplicar >/dev/null 2>&1
 [ "$(grep -E '^CURSOR=' "$C12" | tail -n1)" = 'CURSOR="catppuccin-mocha-light"' ] \
-  && ok "Dracula -> Catppuccin: o ponteiro vira o do pack novo" || falha "o ponteiro não acompanhou o pack: $(grep -E '^CURSOR=' "$C12" | tail -n1)"
+  && ok "12: Dracula -> Catppuccin: o ponteiro vira o do pack novo" || falha "12: o ponteiro não acompanhou o pack: $(grep -E '^CURSOR=' "$C12" | tail -n1)"
 
 echo "== 13 a 17. o registro guarda as cinco, com a frase que as identifica"
 registro 13 'Joga tudo pro pack' && registro 13 'Tudo entra no pack' && ok "13: tudo entra no pack" || falha "a decisão 13 saiu do registro"
@@ -330,6 +347,11 @@ for n in com.beholder.app elden-ring-tracker protocolo-ouroboros; do
     && ok "13: $n veste o desenho dele no Dracula" || falha "13: $n não veste desenho no Dracula"
 done
 registro 17 'AGENTS.md' && ok "17: o AGENTS.md é exceção do sanitizador" || falha "a decisão 17 saiu do registro"
+cobre 14 acervo-da-ficha.sh 'as três pastas são planas'
+cobre 15 derivados.sh 'o SVG editado chegou ao tema instalado'
+cobre 15 derivados.sh 'salvar de novo o mesmo conteúdo não escreve nada'
+git -C "$RAIZ" ls-files --error-unmatch AGENTS.md >/dev/null 2>&1 \
+  && ok "17: o AGENTS.md está versionado" || falha "17: o AGENTS.md saiu do repositório"
 r="$(resolvedor autorais 2>&1)"
 [ "$r" = "proibidos=" ] && ok "29: hefesto e fogstripper fora dos autorais dos packs" || falha "29: projeto pessoal nos autorais: $r"
 c="$(grep -E '^LANCADOR_OCULTAR=' "$RAIZ/meow.conf.exemplo" | head -1)"
@@ -420,7 +442,8 @@ citas="$(git -C "$RAIZ" grep -nE 'docs/pesquisas/[0-9A-Za-z]' -- . ':!docs/sprin
 [ -z "$citas" ] \
   && ok "24: nenhum arquivo cita docs/pesquisas/ sem o git show da ponta antiga" \
   || falha "24: cita docs/pesquisas/ sem o git show 1b15ccb1^: $(printf '%s\n' "$citas" | head -2)"
-printf '%s\n' "$(python3 "$RAIZ/scripts/pack.py" colecoes-alheias "$RAIZ/packs/dracula")" | grep -qx "prefixo	cat" \
+alheias="$(python3 "$RAIZ/scripts/pack.py" colecoes-alheias "$RAIZ/packs/dracula")"
+grep -qx "prefixo	cat" <<< "$alheias" \
   && grep -q 'PACK_ATIVOS=' "$RAIZ/scripts/wallpaper.sh" \
   && ok "25: o papel de parede de outro pack não gira (o Catppuccin é alheio com o Dracula no ar)" \
   || falha "25: o wallpaper.sh não separa a coleção do pack no ar"
@@ -442,6 +465,7 @@ registro 51 'BANIDOS.txt.padrao' && grep -q 'BANIDOS.txt.padrao' "$RAIZ/scripts/
   && grep -q '^limpar_banidos()' "$RAIZ/scripts/wallpaper.sh" && ! grep -qE 'favoritar|desbanir' "$RAIZ/scripts/wallpaper.sh" \
   && ok "51: o lixo apaga de vez, o checkout perde a receita, e as banidas saem pela etapa" \
   || falha "51: o lixo voltou a mover para banidos/, ou a decisão saiu do registro"
+cobre 51 apagar-papel.sh 'banir apaga a imagem com emoji' scripts/wallpaper.sh 'na_fonte'
 registro 52 'packs/<id>/' && grep -q '^def motivo_para_nao_aprimorar' "$RAIZ/scripts/pack.py" \
   && grep -q 'href: "#novo/cores"' "$RAIZ/app/pagina/paginas.js" && grep -q '"/api/pack-cores"' "$RAIZ/app/servidor.py" \
   && ok "52: Criar o meu tema gera um tema novo; o Personalizar aprimora o tema no ar" \
@@ -455,6 +479,40 @@ registro 37 'sons/' && grep -q 'som-padrao' "$RAIZ/scripts/ponte_root.sh" && gre
   && [ -f "$RAIZ/assets/sons/eventos.json" ] \
   && ok "37: os sons do pack vão ao sistema pela ponte, o pós-apt os repõe e a página lista cada evento" \
   || falha "37: a ponte, o pós-apt ou o catálogo de sons saiu"
+cobre 27 manter-sem-pendencias.py 'o Manter .* e o Tema não mostram'
+cobre 27 apagar-papel.sh 'a devolvida segue em ativos/ sem entrar na lista'
+cobre 28 seletor-do-pack.sh 'a escolha sai do estado de quem usa' app/servidor.py '/api/app-icone'
+cobre 28 git-limpo.sh 'a linha, o retoque e o construído foram para o estado de quem usa'
+cobre 31 pack-dracula-completo.sh 'o Vesktop veste o Discord do pack Dracula' packs/dracula/icones/apps.map 'dev\.vencord\.Vesktop'
+cobre 31 pack-dracula-completo.sh 'o traço do Firefox é peach' packs/meowsystem/icones/apps-arcticons.map '^firefox:firefox:peach$'
+cobre 32 pack-dracula-completo.sh 'Hidden=true' scripts/construir_icones.sh 'Hidden=true'
+cobre 32 pack-dracula-completo.sh 'Tema-Base,Tema-Base-2,Cosmic,Adwaita,hicolor' lib/icones.sh 'Cosmic,Adwaita,hicolor'
+cobre 33 pack-dracula-completo.sh 'o Catppuccin não herda a lista' scripts/ocultar_apps.sh 'pack\.py" ocultar'
+cobre 34 app.sh 'a noite com uma ponta só é recusada \(409\)' app/servidor.py 'a noite pede as duas pontas'
+pula "34: o «— não tocar —» e o ⊘ saíram do painel na P98 (hoje o vazio é «Automático»): falta a palavra de quem usa"
+cobre 35 fonte-unica.sh 'ICONES_DRACULA="nao"' scripts/icones_apps_dracula.sh 'ICONES_DRACULA:-sim\}" = "nao"'
+! grep -q 'ICONES_DRACULA' "$RAIZ/scripts/migrar_conf.py" \
+  && ok "35: o migrar_conf.py não toca na chave ICONES_DRACULA: o «nao» escrito fica como está" \
+  || falha "35: o migrar_conf.py passou a mexer no ICONES_DRACULA"
+so_texto 38
+cobre 39 pack-dracula-completo.sh 'o pack Dracula não guarda tipo de arquivo pintado nem cópia do molde'
+faltam_pasta=""
+for pack in meowsystem dracula; do
+  [ -n "$(find "$RAIZ/packs/$pack/icones/biblioteca" -maxdepth 1 -iname '*folder*' -print -quit)" ] || faltam_pasta+=" $pack"
+done
+comuns="$(comm -12 <(ls "$RAIZ/packs/meowsystem/icones/biblioteca" | grep -i folder | sort) \
+                   <(ls "$RAIZ/packs/dracula/icones/biblioteca" | grep -i folder | sort) | wc -l)"
+[ -z "$faltam_pasta" ] && [ "$comuns" = 0 ] \
+  && ok "39: cada pack guarda os desenhos de pasta na biblioteca dele, e nenhum nome se repete nos dois" \
+  || falha "39: pasta fora da biblioteca do pack (sem:${faltam_pasta:- nenhum}, repetidos: $comuns)"
+so_texto 40
+cobre 41 pack-malicioso.sh 'um mapa que aponta para fora recusa o pack inteiro' scripts/pack.py 'def _dentro'
+cobre 41 pack-malicioso.sh 'as linhas ruins foram puladas e as boas chegaram ao tema'
+cobre 42 sem-dracula-os-theme.sh 'não chama o .pack.py sincronizar' scripts/pack.py 'não é o mesmo tipo de arquivo'
+cobre 44 oraculo-tema.sh 'd77e99f Light: só background.component.pressed difere' scripts/oraculo_tema.py 'comparar'
+cobre 45 ganchos.sh 'chama o readme.sh --commit' scripts/readme.sh 'commit'
+cobre 50 extensoes-gesto.sh 'instalar um repo do usuário: compila, não mexe no EXTENSOES' bin/meow 'EXTENSOES_COMPILAR=1'
+cobre 53 areas-em-cada-tela.sh 'a tela do notebook ganha Pop e OS, nessa ordem' scripts/areas.sh 'pinned_workspaces'
 registro 55 'entra sem clique' && ! grep -q 'retido\|liberar' "$RAIZ/scripts/compositor_shim.sh" \
   && ! grep -q 'cmd_liberar\|compositor-caiu' "$RAIZ/scripts/compositor_patches.sh" \
   && ! grep -q 'patch-obrigatorio' "$RAIZ/scripts/garantir_builds.sh" \
@@ -466,6 +524,14 @@ registro 55 'entra sem clique' && ! grep -q 'retido\|liberar' "$RAIZ/scripts/com
   && ! grep -q 'Uniform::new("leitura_temp"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
   && ok "P100: a série é toda req (dela, 28/09) e o neutro do modo de leitura é o zero" \
   || falha "P100: voltou patch opt na série, ou o uniform leitura_temp de neutro 1.0"
+
+sem_linha=""; total=0
+while read -r n; do
+  total=$((total + 1))
+  grep -qE "((ok|falha|pula) \"$n( \([0-9]+\))?: |^(cobre|so_texto) $n( |$))" "$RAIZ/tests/decisoes.sh" || sem_linha="$sem_linha $n"
+done < <(grep -oE '^\| [0-9]+ \|' "$DEC" | tr -dc '0-9\n')
+[ -z "$sem_linha" ] && ok "todas as $total decisões do registro têm linha aqui: decisões sem linha, 0" \
+  || falha "decisões sem linha em tests/decisoes.sh:$sem_linha"
 
 echo
 if [ "$falhas" = 0 ]; then echo "decisoes: tudo certo"; exit 0; fi
