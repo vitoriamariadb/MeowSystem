@@ -362,3 +362,9 @@ Decisões de 06/11 por AskUserQuestion:
 | P169 | os itens de dica dos três applets não se fazem: poluem a interface; clones intactos |
 
 Ordem: push do bloco 0; merge de A, B, C, D e E na integração; aplicar a tabela acima; regerar README e LEIA-ME; suíte inteira; push; install nas três máquinas; lista do que conferir depois do reboot.
+
+## 06/11, a ordem nova do fecho
+
+Instrução de quem usa: «Só instala nas três máquinas quando tiver concluído todos os Merges, push e afins, além dos portões e tal. Só aí pós integrado tudo. Incluindo outro pedido que é sempre fazer as Sprints que surgirem durante o caminho. Aí na conclusão dessas é que rola o install.»
+
+Sprints que surgiram no caminho e entram antes do install: P171, P172, P173, P174, P175. Depois do bloco A vêm essas, em blocos; achado novo vira sprint e entra na fila. O install fecha a lista.
