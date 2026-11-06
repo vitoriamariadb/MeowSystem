@@ -98,7 +98,7 @@ compartilhamento, não o login. O build mora em `~/.local/libexec/meow/graficos/
   medida (`screencast_thread.rs`, `create_frame sent before`). O doctor conserta e não manda digitar.
 - Sair do trilho sozinho quando #286 e #384 tiverem correção oficial no pacote: a versão que traz a correção vai para
   `patches/versao` como fim do patch.
-- `docs/FRONTEIRA.md` ganha as linhas do portal e da policy. Hoje a tabela diz que sistema é do vizinho, então a entrada
+- `docs/DECISOES.md` registra a build no commit do código (sim de 06/11: «Cria outra build»). `docs/FRONTEIRA.md` ganha as linhas do portal e da policy. Hoje a tabela diz que sistema é do vizinho, então a entrada
   precisa dizer por que estes dois são do Meow, como já diz do `cosmic-comp`. Tudo com teste em `tests/`, e HOME temporário.
 
 **2. A policy do Chrome entra no mesmo verbo `aplicar`,** com o arquivo igual em todo PC:
@@ -131,7 +131,9 @@ passou a aparecer depois do comando, mas o crash do portal continuou até a cura
 reinicia o portal: a segunda passagem compara e sai `ok`. O `reverter` devolve portal e policy ao estado do pacote.
 O portal só reinicia se a versão mudou, e nunca com stream ativo. A policy só passa pela ponte se o conteúdo divergir.
 
-**4. Os três PCs.** O nitro-5 mediu tudo. MeowSystem (só RTX 4060) e Meow-portatil (Intel + RTX 4060) relatam o mesmo
+**4. Os três PCs.** Decisão de 06/11/2026: a prova do Meow-portatil vai por SSH, com o ok de quem usa no dia; o desktop entra quando
+voltar à rede, marcado à parte. Medido: o Meow-portatil tem as mesmas versões e 0 queda do portal em 7 dias, sem compartilhamento
+medido. O nitro-5 mediu tudo. MeowSystem (só RTX 4060) e Meow-portatil (Intel + RTX 4060) relatam o mesmo
 problema, sem medição. Rodar a mesma prova em cada um, porque o `req` da série vale para todos.
 
 ## Como se prova

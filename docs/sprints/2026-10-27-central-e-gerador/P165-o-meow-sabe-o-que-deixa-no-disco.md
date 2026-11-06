@@ -60,12 +60,15 @@ O Meow passa a ser dono do que escreve: sabe o que deixou, quanto pesa, quanto c
 Os resíduos do Meow fora dele, como `~/.local/src/xdg-desktop-portal-cosmic/target` (2,8 GB), entram no mesmo inventário quando
 vierem de um fluxo do Meow.
 
-## Decisões em aberto
+## Decisões de 06/11/2026
 
-1. O valor dos tetos, por categoria, e se dependem do tamanho do disco. Faxina nenhuma pode forçar compilar o compositor a cada
-   semana.
-2. Cortar o `.target` por idade do artefato, com ferramenta externa, ou por script próprio. Dependência nova só com motivo.
-3. Se o `.target` dos applets pode ser dividido, para cortar um applet sem recompilar os outros.
+1. Tetos fixos: `.target` 8 GB; do compositor, o build em uso e um anterior; backups de 30 dias, sempre com o `tema-PRIMEIRO`. Faxina
+   nenhuma pode forçar compilar o compositor a cada semana.
+2. Corte por idade do artefato, por script próprio, sem dependência nova.
+3. O `.target` continua único (P147).
+
+Na tela vale a regra do GSD: nome curto, número e botão; o porquê e o custo de refazer vão na dica. Disco apertado o doctor resolve
+apertando os tetos, sem aviso na tela (decisão 27).
 
 ## Como se prova
 

@@ -21,7 +21,13 @@ Produto: acontece em todo PC a cada apt do `cosmic-comp` cujo patch entre com o 
    sendo o shim: duas quedas curtas e volta à fábrica.
 2. Registrar o `-F1` no estado, para o doctor saber que o patch entrou com contexto mudado.
 3. Avaliar se queda fora do código dos patches, como a de `libgallium`, deve consumir o `ruim`: o build de 05/11 saiu de cena
-   por um defeito que a fábrica também tem (quedas em 29/10 e 03/11).
+   por um defeito que a fábrica também tem (quedas em 29/10 e 03/11). Medido na P167: as duas quedas de 05/11 vêm no mesmo segundo
+   de um `ring gfx_0.1.0 timeout` da amdgpu.
+4. Decisão de 06/11/2026: a queda na fábrica não aparece na tela, nem no Manter. A decisão 27 vale ao pé da letra: fica no log e
+   no `meow doctor`. O parágrafo do `docs/ESTADO-FINAL.md` que diz que o Manter mostra a pendência do compositor se reescreve, e o
+   código que a mostra sai.
+5. `patches/versao` parou em 4d14528, três versões atrás do ec674cd: atualizar e fazer o trilho mantê-lo verdadeiro.
+6. Registrar em `docs/DECISOES.md`, no commit do código: «Build do compositor com todos os `req`, marcadores e fumaça entra sem clique» (sim de 06/11: «Liberar sozinho»).
 
 Reescrever o trecho da P154 e as entradas de `patches/LEIA-ME.txt` e `tests/etapa-compositor.sh` que cobram a retenção.
 

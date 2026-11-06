@@ -1,6 +1,17 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- 06/11, 16:40, sessão de estudo, nada em voo. Respostas de quem usa: o tronco é só `master` (reescrever as decisões 22 e 24 e
+  a citação à branch `arquivo`, que não existe); a queda na fábrica não aparece na tela, nem no Manter (vale a decisão 27 ao pé da
+  letra; o ESTADO-FINAL se corrige); a P162 herda o `app_id` do cliente, verificando antes se o compositor o guarda; a P159 e a
+  P160 se provam por SSH no Meow-portatil, com o ok de quem usa no dia, e o desktop quando voltar à rede.
+  Achados: CI nunca verde (`anonymity-check` com erro de sintaxe e `testes` cancelado aos 15 min); P167 aberta (artefatos verdes);
+  três decisões de 06/11 fora do `docs/DECISOES.md` (juntas por padrão, liberar sozinho, build Aprimoramentos gráficos).
+  Plano aprovado em 06/11 («Integra e vai rodando o install e pushando após conclusao de testes»). Cada bloco, em worktree própria
+  nascida do `master`: agentes, integração em `~/Desenvolvimento/.meow-wt-integracao`, suíte, `master`, install com o HOME real e push.
+  Blocos: 0 casa em ordem (sem agente); A gráficos P159 e P160; C áreas P161; B compositor P164, P162 e P163; D disco P165;
+  E produto P168, P169 e P170. P167 corre à parte. A e C juntos só com arquivos disjuntos.
+  PRÓXIMO: o bloco em curso; quem usa diz em qual tela apareceu o verde.
 - FECHO (04/11, noite): P155 (dica curta no botão da barra: Bateria «NN%», Copiados, Discos, Conta-gotas,
   Leitura ligada/desligada, Tocando «Título · Artista», Bandeja; sete applets com versão nova, no GitHub, pinos
   em dia), P156 (Cor de destaque, Claro ou escuro e Criar o meu tema numa fileira no rodapé do Tema), P157 (sem

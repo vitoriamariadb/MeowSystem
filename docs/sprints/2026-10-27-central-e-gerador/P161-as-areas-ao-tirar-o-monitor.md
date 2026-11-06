@@ -56,4 +56,5 @@ sentido no modo independente. Medir também as janelas abertas no HDMI ao descon
 
 1. Em Juntas, com um ou dois monitores, a barra mostra só as áreas de `AREAS_NOMES`.
 2. Com janelas nas duas telas, desconectar e reconectar: nenhuma janela some, e cada uma volta ao seu monitor.
-3. `pinned_workspaces` continua com as 4 entradas.
+3. Em Independentes, `pinned_workspaces` continua com as 4 entradas; em Juntas, com a quantidade medida para o Global, sem duplicata.
+4. O commit do código reescreve a decisão 53 e registra a chave, citando o sim de 06/11.

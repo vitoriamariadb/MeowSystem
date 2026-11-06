@@ -35,13 +35,16 @@ não percebe a queda, e a barra fica no ar com a imagem morta.
 O compositor anuncia o `app_id` vazio. Que o Chrome nunca chame `set_app_id` nessa janela é dedução; confirmar com
 `WAYLAND_DEBUG=client` num Chrome à parte. Não há flag conhecida do Chrome para isso, e nada do MeowSystem participa.
 
-## A cura proposta
+## A cura
+
+Decisão de 06/11/2026: a opção 1, herdar do cliente, mais o item 3. Se o compositor não guardar o cliente nesse ponto, a sprint
+para e volta a quem usa; a opção 2 não entra sem novo sim.
 
 Fazer a barra pertencer ao Chrome na dock, sem lista de nomes:
 
 1. Patch no `cosmic-comp`: janela sem `app_id` herda o de outra janela do mesmo cliente Wayland. Vale para qualquer app
-   com esse comportamento, e a barra entra no ícone do Chrome. Entra em `patches/`, onde tudo é `req` e o binário
-   também é a tela de login.
+   com esse comportamento, e a barra entra no ícone do Chrome. Entra em `patches/`, na série do compositor da sessão; a tela de
+   login usa `/usr/bin/cosmic-comp` (uid do greeter) e não recebe o patch.
 2. Alternativa no `cosmic-app-list`: esconder da dock janela sem `app_id`. Mais simples, mas a barra some em vez de
    virar do Chrome, e esconde também janela legítima.
 3. Em qualquer caso, a sonda passa a listar janelas sem `app_id`, e o `meow doctor` as aponta.

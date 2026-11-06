@@ -28,7 +28,7 @@ nitro-5. Vale trazê-la para `scripts/`, ao lado da `appid_sonda.py`.
 ## A cura proposta
 
 Patch no `cosmic-comp`: `constraints_for_output` e o render do `image_copy_capture` usam a placa que renderiza, em vez da placa
-ligada à tela, quando as duas diferem. Entra na série `req` do compositor, cujo binário também é a tela de login.
+ligada à tela, quando as duas diferem. Entra na série do compositor da sessão; a tela de login usa `/usr/bin/cosmic-comp` e não recebe o patch.
 
 ## Como se prova
 
