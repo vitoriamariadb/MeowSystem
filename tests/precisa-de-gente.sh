@@ -90,21 +90,11 @@ builds() {
 }
 touch "$T/req-falha"
 builds
-igual "o req que não entra: uma linha no cartão" "$(linhas)" 1
-igual "o id" "$(cut -f1 "$ARQ")" patch-obrigatorio
-cut -f4 "$ARQ" | grep -q 'sem-workspace-vazio.patch' && cut -f4 "$ARQ" | grep -q '0.9~a' \
-  && ok "o porquê cita a versão e o patch" || falha "o porquê não cita versão e patch: $(cut -f4 "$ARQ")"
-cut -f2 "$ARQ" | grep -qiE 'rode|digite' && falha "o nome manda digitar" || ok "o nome não manda digitar"
-antes="$(foto)"; sleep 1
-builds
-igual "a segunda passagem não escreve no cartão" "$(foto)" "$antes"
-rm -f "$T/req-falha"; sleep 0.05; touch "$T/patches/series"
-builds
-igual "o rebase chega (a série mudou) e o cartão some" "$(linhas)" 0
+igual "o req que não entra fica fora do cartão: log e doctor" "$(linhas)" 0
 
 echo "== 3. o servidor lê a lista"
 gente meow_precisa_de_gente sentinela-cosmic "O COSMIC da fila não entra" "serie: brinquedo.patch é obrigatório"
-gente meow_precisa_de_gente patch-obrigatorio "Patch obrigatório precisa de rebase" "cosmic-comp 0.9~a: a série não entra"
+gente meow_precisa_de_gente outra-coisa "Outra coisa" "motivo"
 r="$(env -i PATH="$PATH" HOME="$T/home" MEOW_ESTADO="$E" python3 - "$RAIZ/app" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])
@@ -116,7 +106,7 @@ print("ids=%s" % ",".join(i["id"] for i in l))
 PY
 )"
 { grep -qx 'n=2' <<< "$r" && grep -qx 'campos=desde,id,nome,porque' <<< "$r" \
-  && grep -qx 'ids=sentinela-cosmic,patch-obrigatorio' <<< "$r"; } \
+  && grep -qx 'ids=sentinela-cosmic,outra-coisa' <<< "$r"; } \
   && ok "precisa_de_gente() devolve id, nome, desde e porquê, na ordem" || falha "o servidor leu errado: $r"
 grep -q '"/api/precisa-de-gente"' "$RAIZ/app/servidor.py" && ok "a rota /api/precisa-de-gente existe" || falha "falta a rota /api/precisa-de-gente"
 

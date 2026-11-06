@@ -450,6 +450,12 @@ registro 37 'sons/' && grep -q 'som-padrao' "$RAIZ/scripts/ponte_root.sh" && gre
   && [ -f "$RAIZ/assets/sons/eventos.json" ] \
   && ok "37: os sons do pack vão ao sistema pela ponte, o pós-apt os repõe e a página lista cada evento" \
   || falha "37: a ponte, o pós-apt ou o catálogo de sons saiu"
+registro 55 'entra sem clique' && ! grep -q 'retido\|liberar' "$RAIZ/scripts/compositor_shim.sh" \
+  && ! grep -q 'cmd_liberar\|compositor-caiu' "$RAIZ/scripts/compositor_patches.sh" \
+  && ! grep -q 'patch-obrigatorio' "$RAIZ/scripts/garantir_builds.sh" \
+  && ! grep -q 'Não encaixa\|Em observação' "$RAIZ/app/pagina/extensoes.js" \
+  && ok "55: o build bom entra sem clique, e a queda não vai para a tela" \
+  || falha "55: o compositor voltou a esperar o clique, ou a queda voltou à tela"
 ! grep -qE '^opt[[:space:]]' "$RAIZ/patches/series" \
   && grep -q 'Uniform::new("leitura_atenuacao"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
   && ! grep -q 'Uniform::new("leitura_temp"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \

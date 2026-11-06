@@ -60,6 +60,7 @@ PORTATIL=(
   autostart.sh
   icones-do-sistema.sh
   compositor-shim.sh
+  janela-sem-app-id.sh
   decisoes.sh
   precisa-de-gente.sh
   sentinela.sh

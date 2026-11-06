@@ -171,6 +171,24 @@ else
   fi
 fi
 
+VERSAO_ARQ="${NUMEROS_VERSAO:-$RAIZ/patches/versao}"
+versao_boa_da_matriz() {
+  awk -F'\t' '$3 !~ /:4( |$)/ && $4 == "" {v = $1} END {print v}' \
+    "${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/cosmic-comp/matriz.tsv" 2>/dev/null
+}
+_versao_boa="$(versao_boa_da_matriz)"
+_versao_escrita="$(sed -e 's/#.*//' "$VERSAO_ARQ" | awk 'NF {v = $1} END {print v}')"
+if [ -z "$_versao_boa" ]; then
+  printf 'sem matriz de builds nesta casa: patches/versao não foi comparado\n'
+elif [ "$(printf '%s\n%s\n' "$_versao_boa" "$_versao_escrita" | sort -V | tail -1)" = "$_versao_escrita" ]; then
+  passou "patches/versao tem a última versão boa da matriz desta casa, ou uma mais nova: $_versao_escrita"
+elif [ "${MEOW_NUMEROS_CORRIGIR:-0}" = "1" ]; then
+  sed -i "s/^[0-9].*/$_versao_boa/" "$VERSAO_ARQ"
+  passou "patches/versao corrigido para $_versao_boa"
+else
+  falhou "patches/versao não tem a última versão boa da matriz: $_versao_boa"
+fi
+
 printf '\n'
 if [ "$FALHAS" -gt 0 ]; then
   printf '%s número(s) fora do lugar.\n' "$FALHAS" >&2

@@ -85,7 +85,7 @@ confere "o compositor não compila no primeiro plano do install" '! grep -q "^co
 confere "e diz o que acontece com o build" 'grep -qE "cosmic-comp 0.1~r (fica|—)" "$T/saida"'
 confere "o shim nasce mesmo assim" 'grep -q MEOW-COSMIC-COMP-SHIM-1 "$SHIM"'
 
-printf '\n6. o compilar: degrau 2 retido, falha na matriz, espera, espaço e fumaça\n'
+printf '\n6. o compilar: degrau 2 sem clique, falha na matriz, espera, espaço e fumaça\n'
 C6="$T/c6"; VER6="2.0~t"; FONTE6="$C6/cache/cosmic-comp-$VER6"
 CASA6="$C6/casa/.local/libexec/meow/cosmic-comp"; ESTADO6="$C6/estado"; MATRIZ6="$ESTADO6/cosmic-comp/matriz.tsv"
 mkdir -p "$C6/bin" "$C6/patches" "$C6/guarda" "$C6/casa/.local/bin"
@@ -175,27 +175,40 @@ comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar; rc=$?
 confere "o build bom: sai 0 e é instalado, com a impressão digital das bibliotecas" \
   '[ "$rc" = 0 ] && [ -x "$CASA6/$VER6/cosmic-comp" ] && grep -q "^bibliotecas=[0-9a-f]\{32\}$" "$CASA6/$VER6/estado"'
 confere "a matriz perde a falha" '! grep -q falhou "$MATRIZ6" && grep -q "^$VER6	" "$MATRIZ6"'
-confere "o primeiro build, sem base de contexto, não fica retido" '[ ! -e "$CASA6/$VER6/retido" ]'
+confere "o primeiro build, sem contexto mudado: a linha fica vazia" 'grep -qx "contexto=" "$CASA6/$VER6/estado"'
 
 rm -rf "${CASA6:?}/$VER6" "$FONTE6"
 printf 'fn um() {}\nfn dois() {}\nfn tres() {}\nfn quatro(x: u8) {}\n' > "$C6/a.rs"
 comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar; rc=$?
 confere "o patch que só entra com -F1: degrau 2 na matriz" 'grep -q "t6.patch:2" "$MATRIZ6"'
-confere "o build é guardado, e fica retido" '[ "$rc" = 0 ] && [ -x "$CASA6/$VER6/cosmic-comp" ] && grep -qx t6.patch "$CASA6/$VER6/retido"'
+confere "o build é guardado, e o estado guarda o -F1" '[ "$rc" = 0 ] && [ -x "$CASA6/$VER6/cosmic-comp" ] && grep -qx "contexto=t6.patch" "$CASA6/$VER6/estado"'
+confere "o degrau 2 entra sem marca nenhuma" '[ ! -e "$CASA6/$VER6/retido" ] && [ ! -e "$CASA6/$VER6/liberado" ]'
+printf '# recompilado\n' >> "$CASA6/$VER6/cosmic-comp"
+comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar
+confere "o rebuild sobre a árvore já remendada guarda o -F1" 'grep -qx "contexto=t6.patch" "$CASA6/$VER6/estado"'
 mkdir -p "$C6/casa/.local/bin"; cp "$RAIZ/scripts/compositor_shim.sh" "$C6/casa/.local/bin/cosmic-comp"
-confere "o shim não usa o retido" \
-  '[ "$(env PATH="$C6/bin:$PATH" HOME="$C6/casa" MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_FABRICA=/fabrica MEOW_SHIM_CASA="$CASA6" bash "$C6/casa/.local/bin/cosmic-comp")" = /fabrica ]'
+confere "o shim escolhe o build sem liberar" \
+  '[ "$(env PATH="$C6/bin:$PATH" HOME="$C6/casa" MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_FABRICA=/fabrica MEOW_SHIM_CASA="$CASA6" bash "$C6/casa/.local/bin/cosmic-comp")" = "$CASA6/$VER6/cosmic-comp" ]'
 gb6 estado
-confere "o estado diz retido" 'grep -qx "compositor_estado=retido" "$T/saida"'
+confere "o estado diz ok" 'grep -qx "compositor_estado=ok" "$T/saida"'
 : > "$C6/gb6.log"; gb6 rodar
 confere "e o garantir não o refaz" '[ ! -s "$C6/gb6.log" ]'
-comp6 bash "$RAIZ/scripts/compositor_patches.sh" liberar
-confere "o sim libera: o shim passa a usar o build" \
-  '[ "$(env PATH="$C6/bin:$PATH" HOME="$C6/casa" MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_FABRICA=/fabrica MEOW_SHIM_CASA="$CASA6" bash "$C6/casa/.local/bin/cosmic-comp")" = "$CASA6/$VER6/cosmic-comp" ]'
-rm -rf "$CASA6/$VER6/estado" "$FONTE6"
-comp6 bash "$RAIZ/scripts/compositor_patches.sh" compilar
-confere "o rebuild do mesmo degrau 2 já liberado não retém de novo" '[ ! -e "$CASA6/$VER6/retido" ]'
+comp6 env CP_BIN="$C6/bin/cargo" bash "$RAIZ/scripts/compositor_patches.sh" conferir
+confere "o doctor diz que o patch entrou com o contexto mudado" 'grep -q "contexto mudado: t6.patch" "$T/saida"'
 confere "nenhum sudo no compilar" '! grep -qv "^sudo -n true$" "$T/recusados" 2>/dev/null'
+
+printf '\n7. patches/versao acompanha a matriz no gancho de commit\n'
+V7="$T/versao7"; E7="$T/estado7"; mkdir -p "$E7/cosmic-comp"
+printf '# cabeça\n1.0~velha\n' > "$V7"
+printf '2.0~boa\t2026-11-06\tp.patch:2\n3.0~quebra\t2026-11-06\tp.patch:4\n4.0~falha\t2026-11-06\t\tfalhou=1@1\n' > "$E7/cosmic-comp/matriz.tsv"
+env MEOW_ESTADO="$E7" NUMEROS_VERSAO="$V7" bash "$RAIZ/tests/numeros.sh" > "$T/saida" 2>&1
+confere "a versão atrasada fica vermelha" 'grep -q "não tem a última versão boa da matriz: 2.0~boa" "$T/saida"'
+env MEOW_ESTADO="$E7" NUMEROS_VERSAO="$V7" MEOW_NUMEROS_CORRIGIR=1 bash "$RAIZ/tests/numeros.sh" > "$T/saida" 2>&1
+confere "o gancho a corrige, e só a linha da versão" '[ "$(cat "$V7")" = "# cabeça
+2.0~boa" ]'
+printf '1.5~outra-casa\t2026-11-06\tp.patch:1\n' > "$E7/cosmic-comp/matriz.tsv"
+env MEOW_ESTADO="$E7" NUMEROS_VERSAO="$V7" MEOW_NUMEROS_CORRIGIR=1 bash "$RAIZ/tests/numeros.sh" > "$T/saida" 2>&1
+confere "a casa de versão mais velha não puxa o arquivo para trás" 'grep -qx "2.0~boa" "$V7"'
 
 printf '\n'
 [ "$falhas" = 0 ] && { printf 'etapa-compositor: tudo verde\n'; exit 0; }

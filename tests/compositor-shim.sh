@@ -139,9 +139,15 @@ GENTE="$T/home/.local/state/meowsystem/precisa-de-gente.tsv"
 : > "$T/journal"
 cat > "$T/bin/journalctl" <<FIM
 #!/bin/sh
-cat "$T/journal"
+case "\$*" in
+  *_TRANSPORT=kernel*) cat "$T/kernel" ;;
+  *) cat "$T/journal" ;;
+esac
 FIM
 chmod 755 "$T/bin/journalctl"
+: > "$T/kernel"
+printf '#!/bin/sh\ncat "%s/cores"\n' "$T" > "$T/bin/coredumpctl"; chmod 755 "$T/bin/coredumpctl"
+: > "$T/cores"
 EXE="$(readlink -f "$B/cosmic-comp")"
 jornal() {
   printf '{"_BOOT_ID":"b1","SYSLOG_IDENTIFIER":"cosmic-session","MESSAGE":"starting process '"'"' X=1 cosmic-comp '"'"'"}\n' >> "$T/journal"
@@ -184,7 +190,9 @@ CP cuidar >/dev/null; igual "o cuidar de novo, sem nada: 0" "$?" 0
 date -Is > "$B/ruim"
 CP cuidar >/dev/null
 igual "posto de lado de novo depois de devolvido: fica de lado (caiu)" "$(head -c 4 "$B/ruim")" caiu
-grep -q '^compositor-caiu	' "$GENTE" 2>/dev/null && ok "e entra no precisa de gente" || falha "não entrou no precisa de gente"
+grep -q 'compositor' "$GENTE" 2>/dev/null && falha "a queda entrou no precisa de gente" || ok "e a queda fica fora da tela"
+grep -q 'pôs de lado o build' "$T/home/.local/state/meowsystem/meow.log" 2>/dev/null \
+  && ok "a queda fica no log" || falha "a queda não foi para o log"
 saida="$(CP conferir)"; rc=$?
 igual "o conferir de um build que caiu: 3, sem conserto" "$rc" 3
 grep -q '!!' <<< "$saida" && ok "com aviso" || falha "sem aviso: $saida"
@@ -218,16 +226,41 @@ igual "sem registro legível, na dúvida: fica de lado" "$(head -c 4 "$B/ruim")"
 mv -f "$T/journalctl.guardado" "$T/bin/journalctl"
 fazer_build "$VER_INST"; rm -f "$B/ruim" "$B/perdoado"
 
-echo "== P154 5: o build de degrau 2 fica retido até o sim"
+echo "== P164 3: a queda colada a um reset da GPU não põe o build de lado"
+agora="$(date +%s)"
+jornal "$EXE" 6
+sed -i '$s/^{/{"__REALTIME_TIMESTAMP":"'"$agora"'000000",/' "$T/journal"
+printf '%s.000000 nitro-5 kernel: amdgpu 0000:75:00.0: ring gfx_0.1.0 timeout, signaled seq=1, emitted seq=2\n' "$((agora - 2))" > "$T/kernel"
+CP conferir > "$T/saida"
+grep -q 'caiu' "$T/saida" && falha "a queda do reset da GPU contou para o build" || ok "a queda no segundo do reset não conta"
+printf '%s.000000 nitro-5 kernel: amdgpu 0000:75:00.0: ring gfx_0.1.0 timeout, signaled seq=1, emitted seq=2\n' "$((agora - 60))" > "$T/kernel"
+CP conferir > "$T/saida"
+grep -q 'caiu 1 vez' "$T/saida" && ok "o reset de um minuto antes não desculpa a queda" || falha "o reset longe desculpou a queda: $(cat "$T/saida")"
+printf '%s.000000 nitro-5 kernel: i915 0000:00:02.0: [drm] GPU HANG: ecode 12:1:85dffffb, in cosmic-comp\n' "$((agora + 3))" > "$T/kernel"
+CP conferir > "$T/saida"
+grep -q 'caiu' "$T/saida" && falha "o GPU HANG da Intel não desculpou a queda" || ok "o GPU HANG da Intel conta como reset"
+: > "$T/journal"
+printf '[{"time":%s000000,"pid":7,"uid":1000,"gid":1000,"sig":6,"corefile":"present","exe":"%s","size":1}]\n' "$agora" "$EXE" > "$T/cores"
+printf '%s.000000 nitro-5 kernel: amdgpu 0000:75:00.0: ring gfx_0.1.0 timeout, signaled seq=1, emitted seq=2\n' "$((agora - 2))" > "$T/kernel"
+CP conferir > "$T/saida"
+grep -q 'caiu' "$T/saida" && falha "o coredump do reset da GPU contou para o build" || ok "o coredump no segundo do reset não conta"
+: > "$T/kernel"
+CP conferir > "$T/saida"
+grep -q 'caiu 1 vez' "$T/saida" && ok "o coredump sem reset conta" || falha "o coredump sem reset não contou: $(cat "$T/saida")"
+: > "$T/cores"; : > "$T/kernel"
+
+echo "== P164 1: o build de degrau 2 entra sem clique"
 echo "cosmic-comp-raio-clampado.patch" > "$B/retido"
-igual "retido: fábrica" "$(rodar)" fabrica
+igual "a marca antiga não segura o build" "$(rodar)" build; rm -f "$B/quedas"
+printf '#!/usr/bin/env bash\n# MEOW-COSMIC-COMP-SHIM-1\nexec /usr/bin/cosmic-comp "$@"\n' > "$T/home/.local/bin/cosmic-comp"
+chmod 755 "$T/home/.local/bin/cosmic-comp"
 saida="$(CP conferir)"; rc=$?
-igual "o conferir do retido: 4, escolha" "$rc" 4
-grep -q 'degrau 2' <<< "$saida" && ok "e diz degrau 2" || falha "não disse degrau 2: $saida"
-CP liberar >/dev/null; igual "liberar escreve (1)" "$?" 1
-igual "liberado: build" "$(rodar)" build; rm -f "$B/quedas"
-igual "o liberado fica anotado" "$(cat "$B/liberado")" cosmic-comp-raio-clampado.patch
-CP liberar >/dev/null; igual "liberar de novo: 0" "$?" 0
+igual "o shim de antes: o conferir diverge" "$rc" 1
+grep -qE 'digite|rode |execute' <<< "$saida" && falha "a saída manda digitar: $saida" || ok "e não manda digitar"
+CP cuidar >/dev/null; igual "o cuidar renova o shim sozinho (1)" "$?" 1
+cmp -s "$SHIM" "$T/home/.local/bin/cosmic-comp" && ok "o shim do repositório está no lugar" || falha "o shim não foi renovado"
+[ ! -e "$B/retido" ] && ok "e a marca antiga sai" || falha "a marca antiga ficou"
+CP cuidar >/dev/null; igual "a segunda passada do cuidar: 0" "$?" 0
 
 echo "== P154: as bibliotecas mudaram desde o build"
 printf 'bibliotecas=00000000000000000000000000000000\n' >> "$B/estado"

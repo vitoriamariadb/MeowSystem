@@ -57,6 +57,7 @@ _gb_comp_velho() {
   local c a b m
   while read -r c a b _; do
     case "$c" in req|opt) ;; *) continue ;; esac
+    awk -v a="$a" '$3==a {x=1} END {exit !x}' "$GB_CASA/$1/estado" 2>/dev/null || return 0
     m="$(sed -n "s/^+.*\"\($b-[0-9][0-9.]*\)\".*/\1/p" "$GB_REPO/$a" 2>/dev/null | head -1)"
     [ -n "$m" ] || continue
     awk -v m="$m" -v a="$a" '$3==a && $4=="presente" && $2!=m {x=1} END {exit !x}' \
@@ -73,17 +74,6 @@ _gb_files_valido() {
 _gb_comp_degrau4() {
   awk -F'\t' -v v="$1" '$1==v && $3 ~ /:4( |$)/ {a=1} END {exit !a}' "$GB_MATRIZ" 2>/dev/null || return 1
   [ -z "$(find "$GB_REPO" "$GB_SERIE" -newer "$GB_MATRIZ" -print -quit 2>/dev/null)" ]
-}
-_gb_gente() {
-  local vc linhas
-  vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
-  if [ -n "$vc" ] && _gb_comp_degrau4 "$vc" && ! _gb_comp_valido "$vc"; then
-    linhas="$(awk -F'\t' -v v="$vc" '$1==v {for (i = 1; i <= split($3, a, " "); i++) if (a[i] ~ /:4$/) {sub(/:4$/, "", a[i]); print a[i]}}' "$GB_MATRIZ" 2>/dev/null | sort -u | tr '\n' ' ')"
-    meow_precisa_de_gente patch-obrigatorio "Patch obrigatório precisa de rebase" \
-      "cosmic-comp $vc: ${linhas:-a série} não entra, e a sessão segue no compositor de fábrica até um rebase em patches/"
-  else
-    meow_precisa_de_gente_resolvida patch-obrigatorio
-  fi
 }
 
 _gb_files_quer() {
@@ -143,7 +133,6 @@ cmd_rodar() {
   meow_tem dpkg-query || { meow_pula "sem dpkg nesta máquina"; return "$MEOW_SEM_DEPENDENCIA"; }
   mapfile -t pend < <(_gb_pendentes)
   if [ "${#pend[@]}" = "0" ]; then
-    _gb_gente
     local vc; vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
     if [ -n "$vc" ] && _gb_comp_degrau4 "$vc" && ! _gb_comp_valido "$vc"; then
       meow_pula "cosmic-comp $vc: o patch obrigatório não entra nesta versão (degrau 4) — a sessão segue no de fábrica até a série mudar"
@@ -178,7 +167,6 @@ cmd_rodar() {
     esac
   done
   meow_registrar "garantir_builds.sh falhou=$falhou"
-  _gb_gente
   [ "$falhou" = "1" ] && return "$MEOW_ERRO"
   return "$MEOW_OK"
 }
@@ -256,7 +244,6 @@ cmd_estado() {
   vf="$(_gb_instalados | awk -F'\t' '$1=="cosmic-files" {print $2}')"
   if [ -z "$vc" ]; then e_comp=ausente
   elif [ -e "$GB_CASA/$vc/ruim" ]; then e_comp=falhou
-  elif [ -e "$GB_CASA/$vc/retido" ] && _gb_comp_valido "$vc"; then e_comp=retido
   elif _gb_comp_valido "$vc"; then
     e_comp=ok
     [ "$("$GB_EXTENSOES" compositor --ativa 2>/dev/null)" = nao ] && e_comp=desligado

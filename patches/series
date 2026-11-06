@@ -36,3 +36,7 @@ req       cosmic-comp-modo-leitura.patch         AURORA-READING-MODE
 #
 # Este binário é TAMBÉM a tela de login.
 req       cosmic-comp-blur-cache-textura.patch   AURORA-BLUR-CACHE
+
+# A barra de compartilhar do Chrome vem sem app_id: a janela herda o de outra
+# janela do mesmo cliente, e a dock mostra um ícone só.
+req       cosmic-comp-app-id-do-cliente.patch    AURORA-APP-ID-CLIENTE

@@ -104,6 +104,15 @@ for b in cosmic-files cosmic-files-applet; do echo MEOW-FILES-WALLPAPER-PATCH-1 
 : > "$T/log"; rodar
 igual "um build do menu" "$(linhas '^files build')" 1
 
+echo "-- patch novo na série, que o build guardado não tem: refaz"
+versoes cosmic-comp=0.1~b cosmic-files=1.10~a
+printf 'req t.patch MEOW-T\nreq novo.patch MEOW-NOVO\n' > "$T/patches/series"
+: > "$T/log"; rodar
+igual "a série cresceu: um build do compositor" "$(linhas '^compositor compilar')" 1
+echo 'req t.patch MEOW-T' > "$T/patches/series"
+: > "$T/log"; rodar
+igual "a série como o build: nenhum build" "$(linhas '^compositor compilar')" 0
+
 echo "-- o build posto de lado (ruim) não se refaz"
 versoes cosmic-comp=0.1~c cosmic-files=1.10~a
 mkdir -p "$CASA/0.1~c"; date -Is > "$CASA/0.1~c/ruim"
@@ -117,11 +126,6 @@ echo "bibliotecas=00000000000000000000000000000000" >> "$CASA/0.1~b/estado"
 igual "a impressão digital que não bate pede um build" "$(linhas '^compositor compilar')" 1
 rodar estado
 grep -qxE 'compositor_estado=(ok|desligado)' "$T/saida" && ok "e o build velho segue valendo até o novo" || falha "o estado deixou de ser ok: $(grep compositor_estado "$T/saida")"
-echo "-- o build retido (degrau 2) não se refaz e o estado diz retido"
-: > "$CASA/0.1~b/retido"
-: > "$T/log"; rodar estado
-grep -qx 'compositor_estado=retido' "$T/saida" && ok "o estado diz retido" || falha "o estado do retido: $(grep compositor_estado "$T/saida")"
-rm -f "$CASA/0.1~b/retido"
 versoes cosmic-comp=0.1~c cosmic-files=1.10~a
 
 echo "-- FILES_MENU=\"nao\": o menu não se compila"
