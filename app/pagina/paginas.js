@@ -448,7 +448,7 @@ function packEmEdicao() {
 }
 function chaveDoAcervo() {
   const r = rascunho();
-  return JSON.stringify([r.pack || "", r.base.pack, vinteSeis()]);
+  return JSON.stringify([modoDoRascunho(), r.pack || "", r.base.pack, vinteSeis()]);
 }
 async function carregarAcervo() {
   const chave = chaveDoAcervo();
@@ -465,7 +465,7 @@ let PREVIA_DO_RASCUNHO = null;
 let PREVIA_RELOGIO = null;
 function chaveDaPrevia() {
   const r = rascunho();
-  return JSON.stringify([r.pack || "", r.base.pack, r.base.flavor || "", vinteSeis()]);
+  return JSON.stringify([modoDoRascunho(), r.pack || "", r.base.pack, r.base.flavor || "", vinteSeis()]);
 }
 async function carregarPreviaDoRascunho(chave) {
   const r0 = rascunho();

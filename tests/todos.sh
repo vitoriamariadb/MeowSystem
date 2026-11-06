@@ -29,6 +29,7 @@ PORTATIL=(
   logo-do-programa.sh
   logo-do-pack-pessoal.sh
   estilo.sh
+  chave-do-acervo.sh
   reversao.sh
   seco.sh
   convergencia.sh
