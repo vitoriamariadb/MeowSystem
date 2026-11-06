@@ -788,6 +788,10 @@ chk_ponte() {
     return "$MEOW_DIVERGENTE"
   fi
 
+  if [ "${MEOW_SO_LE:-0}" = 1 ]; then
+    meow_ok "ponte root no lugar — a senha e as regras dela se conferem no conserto"
+    return 0
+  fi
   meow_ok "ponte root no ar — o conserto de sistema não pede senha"
   return 0
 }

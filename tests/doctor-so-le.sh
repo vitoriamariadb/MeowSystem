@@ -98,6 +98,12 @@ else
   printf '%s\n' "$novos" | sed 's/^/       /' >&2
 fi
 
+if grep -q 'não pede senha' "$TMP/saida"; then
+  falha "só lendo, o doctor afirma o que não mediu: $(grep 'não pede senha' "$TMP/saida")"
+else
+  ok "só lendo, o doctor não afirma que o sudo da ponte responde"
+fi
+
 if [ ! -s "$DOCTOR_REGISTRO" ]; then
   ok "nenhum sudo, pkill/kill/killall, e nenhum systemctl/gsettings/dconf que escreva"
 else
