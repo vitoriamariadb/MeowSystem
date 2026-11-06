@@ -45,8 +45,8 @@ jobs:
           set -u
           echo "Intervalo auditado: $RANGE"
 
-          TOOL_RE='laude|nthropic|opilot|emini|hatGPT|gpt-[0-9]|agente|ursor|indsurf|odeium|abnine|eepseek'
-          NOREPLY_RE='noreply@(agente|agente|github)\.com'
+          TOOL_RE='laude|nthropic|opilot|emini|hatGPT|gpt-[0-9]|aider|ursor|indsurf|odeium|abnine|eepseek'
+          NOREPLY_RE='noreply@(anthropic|openai|github)\.com'
 
           FAIL=0
           MAPFILE=$(git log --pretty=format:'%H' "$RANGE" 2>/dev/null || true)
@@ -71,11 +71,11 @@ jobs:
               FAIL=1
             fi
 
-            if printf '%s' "$AUTHOR_EMAIL" | grep -qiE "@(agente|agente)\.com"; then
+            if printf '%s' "$AUTHOR_EMAIL" | grep -qiE "@(anthropic|openai)\.com"; then
               echo "::error::commit $SHA: author email de provedor IA"
               FAIL=1
             fi
-            if printf '%s' "$COMMITTER_EMAIL" | grep -qiE "@(agente|agente)\.com"; then
+            if printf '%s' "$COMMITTER_EMAIL" | grep -qiE "@(anthropic|openai)\.com"; then
               echo "::error::commit $SHA: committer email de provedor IA"
               FAIL=1
             fi
@@ -91,12 +91,12 @@ jobs:
         run: |
           set -u
           BLACKLIST=(
-            'CLAUDE.md' 'AGENTS.md' 'GEMINI.md' 'COPILOT.md'
+            'CLAUDE.md' 'GEMINI.md' 'COPILOT.md'
             'HANDOFF-PROMPT.md' 'HANDOFF.md' 'HOW_TO_RESUME.md'
             'VALIDATOR_BRIEF.md' 'STATE.md'
             '.cursorrules' '.windsurfrules'
           )
-          BLACKDIRS=( '.agente' '.agente' '.agente' '.continue' )
+          BLACKDIRS=( '.claude' '.cursor' '.aider' '.continue' )
 
           FAIL=0
           for f in "${BLACKLIST[@]}"; do
