@@ -342,3 +342,23 @@ Fotos em `fotos/1.png` a `fotos/5.png`.
 Os dois blocos da rodada 1 só dividem `app/servidor.py`, em funções diferentes (P116 `_cartoes_de_pack`; P120 o
 bloco `EXT_*` e as tabelas de pendência). P119 mexe nas mesmas tabelas da P120, por isso vai na rodada 2.
 Integração por bloco em `integracao/central-e-gerador`; o `dev` só recebe no fim.
+
+## 06/11, depois dos blocos: o que quem usa decidiu e a ordem do fecho
+
+Instrução vigente: sprints e workflows completos, em paralelo; integrar, testar e dar push; install uma vez só, no fim de tudo, nesta máquina, no Meow-portatil e no MeowSystem (Andromeda), por SSH. Quem usa reinicia ao final. O portátil sai da branch `dev` para o `master`.
+
+Decisões de 06/11 por AskUserQuestion:
+
+| tema | decisão |
+| --- | --- |
+| P167 | o verde apareceu só na tela do note (eDP-1, amdgpu) |
+| dock | `FORMA_ALA_FINAL_DOCK="XS"`, já no `meow.conf` desta máquina, vale no install |
+| P161 | a linha no ramo Global do `sem-workspace-vazio` entra, desfazendo o «sem patch» só nisso |
+| P161 | Juntas vale sempre, mesmo com `AREAS_NOMES` vazio |
+| P162 | o patch segue obrigatório (`req`) |
+| decisão 51 | fica o texto da P168, com o sim de 06/11 |
+| decisão 34 | vale o painel: o vazio chama «Automático»; a linha se reescreve |
+| P165 | `-sistema` e `meow.conf-antes-da-instalacao` ficam fora da rotação, como o `tema-PRIMEIRO` |
+| P169 | os itens de dica dos três applets não se fazem: poluem a interface; clones intactos |
+
+Ordem: push do bloco 0; merge de A, B, C, D e E na integração; aplicar a tabela acima; regerar README e LEIA-ME; suíte inteira; push; install nas três máquinas; lista do que conferir depois do reboot.
