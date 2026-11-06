@@ -620,6 +620,107 @@ done
 [ -e "$E/oficina/meu.svg" ] && [ -e "$E/extensoes/usuario/meu.pino" ] && [ -e "$E/vizinhos/antigo" ] && [ -e "$CASA/.config/meow/meow.conf" ] \
   && ok "o que é de quem usa ficou" || falha "o desinstalador apagou o que é de quem usa"
 
+echo "== 7. o Liberar segura o builds.lock do primeiro corte ao último"
+mundo
+mkdir -p "$E/extensoes/.target/release/deps" "$C/cosmic-comp/cosmic-comp-1.0"
+grande "$E/extensoes/.target/release/deps/libx-0000000000000001.rlib" 300000
+grande "$C/cosmic-comp/cosmic-comp-1.0/f" 300000
+saida="$(env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$E" MEOW_CACHE="$C" MEOW_RAIZ="$CLONE" ESPACO_REGISTRO="$REGISTRO" \
+  ESPACO_DISCO_USO_PCT=10 python3 - "$ESPACO" <<'PY'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("espaco", sys.argv[1])
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+original = m.remover
+vistos = []
+def com_sonda(caminho):
+    vistos.append(m.travado(m.trava_de_builds()))
+    return original(caminho)
+m.remover = com_sonda
+m.executar("liberar")
+print("%d %s" % (len(vistos), "presa" if vistos and all(vistos) else "solta"))
+PY
+)"
+case "$saida" in "2 presa"|"3 presa"|"4 presa") ok "a cada corte do Liberar o builds.lock está preso ($saida)" ;; *) falha "a trava soltou no meio: $saida" ;; esac
+[ ! -e "$E/extensoes/.target" ] && ok "e o Liberar cortou" || falha "o Liberar não cortou"
+
+mundo
+mkdir -p "$E/extensoes/.target/release/deps"
+grande "$E/extensoes/.target/release/deps/libx-0000000000000001.rlib" 300000
+: > "$E/builds.lock"
+flock "$E/builds.lock" sleep 4 &
+build_falso=$!
+sleep 0.5
+saida="$(esp liberar)"
+[ -e "$E/extensoes/.target/release/deps/libx-0000000000000001.rlib" ] && ok "com um build falso em andamento o Liberar não corta nada" || falha "cortou com build em curso"
+case "$saida" in *"build em curso"*) ok "e diz que fica para depois" ;; *) falha "sem aviso: $saida" ;; esac
+kill "$build_falso" 2>/dev/null; wait "$build_falso" 2>/dev/null
+
+echo "== 7b. o fim do build limpa mesmo segurando a trava dele"
+mundo
+REG="$M/registro.tsv"
+sed 's#^\(extensoes-alvo\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*\t\)8192#\11#' "$REGISTRO" > "$REG"
+mkdir -p "$E/extensoes/.target/release/deps"
+for i in 1 2 3; do grande "$E/extensoes/.target/release/deps/libx-000000000000000$i.rlib" 600000; touch -d "$((i + 1)) hours ago" "$E/extensoes/.target/release/deps/libx-000000000000000$i.rlib"; done
+fim_de_build() {
+  env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$E" MEOW_CACHE="$C" MEOW_RAIZ="$RAIZ" ESPACO_REGISTRO="$REG" ESPACO_DISCO_USO_PCT=10 \
+    bash -c '. "$MEOW_RAIZ/lib/comum.sh"; exec 9>>"$MEOW_ESTADO/builds.lock"; flock 9; meow_limpar_fim_de_build' 2>&1
+}
+saida="$(fim_de_build)"
+case "$saida" in *"cortou Applets"*) ok "segurando a trava do próprio build o fim do build corta ($saida)" ;; *) falha "não cortou: $saida" ;; esac
+antes="$(find "$CASA" -printf '%p %T@ %s\n' | sort | md5sum)"
+saida="$(fim_de_build)"
+igual "a segunda passada não diz nada" "$saida" ""
+igual "e não escreve nada" "$(find "$CASA" -printf '%p %T@ %s\n' | sort | md5sum)" "$antes"
+grep -q 'meow_limpar_fim_de_build' "$RAIZ/scripts/compositor_patches.sh" && ok "o build do compositor chama a limpeza no fim" || falha "o compositor não limpa no fim"
+grep -q 'meow_limpar_fim_de_build' "$RAIZ/scripts/files_menu.sh" && ok "o build do menu do Arquivos chama a limpeza no fim" || falha "o menu não limpa no fim"
+
+echo "== 7c. oraculo-builds guarda o em uso e um anterior"
+mundo
+mkdir -p "$LIBEXEC/oraculo-tema/revA" "$LIBEXEC/oraculo-tema/revB" "$LIBEXEC/oraculo-tema/revC" "$LIBEXEC/oraculo-tema/revD" "$LIBEXEC/oraculo-tema/revE"
+for r in revA revB revC revD; do grande "$LIBEXEC/oraculo-tema/$r/meow-oraculo-tema" 100000; done
+touch -d '5 days ago' "$LIBEXEC/oraculo-tema/revA/meow-oraculo-tema" "$LIBEXEC/oraculo-tema/revA"
+touch -d '4 days ago' "$LIBEXEC/oraculo-tema/revB/meow-oraculo-tema" "$LIBEXEC/oraculo-tema/revB"
+touch -d '3 days ago' "$LIBEXEC/oraculo-tema/revC/meow-oraculo-tema" "$LIBEXEC/oraculo-tema/revC"
+touch -d '2 days ago' "$LIBEXEC/oraculo-tema/revD/meow-oraculo-tema" "$LIBEXEC/oraculo-tema/revD"
+saida="$(esp aparar)"; rc=$?
+igual "o aparar corta as revisões antigas do oráculo" "$rc" 1
+[ ! -e "$LIBEXEC/oraculo-tema/revA" ] && [ ! -e "$LIBEXEC/oraculo-tema/revB" ] && ok "as duas mais velhas saíram" || falha "restou revisão velha: $(ls "$LIBEXEC/oraculo-tema")"
+[ -e "$LIBEXEC/oraculo-tema/revC" ] && [ -e "$LIBEXEC/oraculo-tema/revD" ] && ok "ficam a mais nova e a anterior" || falha "cortou o que devia ficar"
+[ -d "$LIBEXEC/oraculo-tema/revE" ] && ok "a pasta de um build em andamento, sem binário, não conta nem sai" || falha "mexeu na pasta ainda vazia"
+saida="$(esp aparar)"; rc=$?
+igual "a segunda passada não corta nada" "$rc" 0
+saida="$(esp liberar)"
+[ -e "$LIBEXEC/oraculo-tema/revC" ] && [ -e "$LIBEXEC/oraculo-tema/revD" ] && ok "o Liberar não toca no oráculo em uso" || falha "o Liberar cortou o oráculo"
+
+echo "== 7d. cosmic-prever tem teto e o mais antigo sai primeiro"
+mundo
+REG="$M/registro.tsv"
+sed 's#^\(previa-cache\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*\t\)1024#\11#' "$REGISTRO" > "$REG"
+ESPACO_REGISTRO_USADO="$REG"
+mkdir -p "$C/cosmic-prever/src/a-1" "$C/cosmic-prever/src/b-2" "$C/cosmic-prever/src/c-3" "$C/cosmic-prever/debs"
+for d in src/a-1 src/b-2 src/c-3; do grande "$C/cosmic-prever/$d/f" 700000; done
+grande "$C/cosmic-prever/debs/cosmic-comp_1.deb" 700000
+touch -d '6 hours ago' "$C/cosmic-prever/src/a-1/f" "$C/cosmic-prever/src/a-1"
+touch -d '5 hours ago' "$C/cosmic-prever/src/b-2/f" "$C/cosmic-prever/src/b-2"
+touch -d '4 hours ago' "$C/cosmic-prever/debs/cosmic-comp_1.deb"
+touch -d '3 hours ago' "$C/cosmic-prever/src/c-3/f" "$C/cosmic-prever/src/c-3"
+touch -d '1 hour ago' "$C/cosmic-prever" "$C/cosmic-prever/src" "$C/cosmic-prever/debs"
+saida="$(esp aparar)"; rc=$?
+igual "acima do teto o aparar corta" "$rc" 1
+[ ! -e "$C/cosmic-prever/src/a-1" ] && [ ! -e "$C/cosmic-prever/src/b-2" ] && [ ! -e "$C/cosmic-prever/debs/cosmic-comp_1.deb" ] && ok "saíram os três mais antigos, fontes e deb" || falha "restou o mais antigo: $(ls "$C/cosmic-prever/src")"
+[ -e "$C/cosmic-prever/src/c-3" ] && ok "o mais novo ficou" || falha "o mais novo saiu"
+perto "o que sobra é só o mais novo, dentro do teto de 1 MB" "$(kb "$C/cosmic-prever")" 700 10
+saida="$(esp aparar)"; rc=$?
+igual "a segunda passada não corta nada" "$rc" 0
+mundo
+mkdir -p "$C/cosmic-prever/src/a-1" "$C/cosmic-prever/src/b-2"
+grande "$C/cosmic-prever/src/a-1/f" 700000
+grande "$C/cosmic-prever/src/b-2/f" 700000
+saida="$(esp aparar)"; rc=$?
+[ -e "$C/cosmic-prever/src/a-1" ] && [ -e "$C/cosmic-prever/src/b-2" ] && ok "o que acabou de ser mexido não sai, mesmo acima do teto" || falha "cortou fonte em uso agora"
+ESPACO_REGISTRO_USADO=""
+
 echo
 [ "$falhas" -eq 0 ] && { echo "espaco: tudo certo"; exit 0; }
 echo "espaco: $falhas falha(s)"; exit 1
