@@ -67,6 +67,7 @@ WALLPAPER_FONTES_PERMITIDAS	wallpaper	nao
 WALLPAPER_NOTIFICAR	-	nao
 FILES_MENU	files_menu	nao
 FILES_MENU_AUTOBUILD	files_menu	nao
+GRAFICOS	graficos	nao
 NOITE_INICIO	wallpaper,logo,fastfetch_logo	nao
 NOITE_FIM	wallpaper,logo,fastfetch_logo	nao
 MODO_AUTO_CLARO_DE	modo	nao

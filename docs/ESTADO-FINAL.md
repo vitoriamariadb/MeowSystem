@@ -13,7 +13,7 @@ se mantém. As decisões de quem usa estão em [`DECISOES.md`](DECISOES.md).
 | **Painel** | `meow abrir`: cinco portas, **Tema**, **Personalizar**, **Definir**, **Manter** e **Extensões**. A interface mostra em vez de explicar; o porquê mora atrás do **?**. A barra de cima tem **Aplicar**, **Desfazer** e **Ver sem mudar**; a ação que escreve tem **Restaurar** ao lado; o resultado abre numa janela com **Parar** e **Guardar**; o que baixa da internet leva o selo | [app/LEIA-ME](../app/LEIA-ME.md) |
 | **Doctor** | `meow doctor` confere sem escrever; `meow doctor --consertar` conserta o que estiver fora, sem mandar ninguém digitar. Roda sozinho às 5h, e o **Consertar** do painel é o mesmo gesto | [README](../README.md) |
 | **Ponte root** | a senha do sudo uma vez, no instalador; depois, um conjunto fechado de verbos roda sem senha e sem terminal | [FRONTEIRA](FRONTEIRA.md) |
-| **COSMIC vivo** | o compositor com a série de `patches/` e o menu do `cosmic-files` são builds da casa, refeitos sozinhos quando o apt traz versão nova; o shim escolhe a cada sessão entre o build e o de fábrica | [MANUTENCAO](MANUTENCAO.md), [COSMIC-THEMING](COSMIC-THEMING.md) |
+| **COSMIC vivo** | o compositor com a série de `patches/`, o menu do `cosmic-files` e o portal de compartilhar tela (Aprimoramentos gráficos, com a policy do Chrome) são builds da casa, refeitos sozinhos quando o apt traz versão nova; o shim escolhe a cada sessão entre o build e o de fábrica | [MANUTENCAO](MANUTENCAO.md), [COSMIC-THEMING](COSMIC-THEMING.md) |
 | **Testes** | `./tests/todos.sh` roda a suíte numa casa de brinquedo, sem o barramento da sessão e com os comandos que escrevem no sistema recusando; o gate do painel pelo navegador está dentro dela | [AGENTS](../AGENTS.md) |
 
 ## 2. Onde mora o que é de quem usa
@@ -73,6 +73,7 @@ precisa de rebase em `patches/`. Até lá a sessão segue no compositor de fábr
 | o MeowSystem inteiro fora da máquina | `./install.sh --uninstall` |
 | o compositor de fábrica no próximo login | `meow compositor desativar` (religar: `meow compositor ativar`) |
 | o menu de fábrica do `cosmic-files` | `FILES_MENU="nao"` no `meow.conf` |
+| o portal e a policy do Chrome de fábrica | `meow graficos reverter`, ou `GRAFICOS="nao"` no `meow.conf` |
 | sem ponte root | `PONTE_ROOT="nao"` no `meow.conf` |
 | outro pack | `meow pack usar <id>`, ou **Aplicar tema** na porta Tema |
 | um pack importado fora | `meow pack remover <id>` |

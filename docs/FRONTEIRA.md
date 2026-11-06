@@ -63,6 +63,8 @@ a máquina gerou.
 | `cosmic-comp` com a série de `patches/` | **Meow, por PATH**: build em `~/.local/libexec/meow/cosmic-comp/<versão>/`, o shim `~/.local/bin/cosmic-comp` escolhe a cada sessão; `/usr/bin/cosmic-comp` é do apt e a tela de login usa só ele |
 | `patches/series` e `patches/*.patch` | **Meow** |
 | `cosmic-files` e `cosmic-files-applet` | **Meow, por PATH**; o build sai da frente quando o pacote sobe sem build correspondente |
+| `xdg-desktop-portal-cosmic` com a série de `patches/graficos.series` | **Meow, pelo drop-in**: o build mora em `~/.local/libexec/meow/graficos/<versão>/`, o `meow-graficos.conf` do `org.freedesktop.impl.portal.desktop.cosmic.service.d` aponta para o shim `portal-shim`, e o shim escolhe a cada subida entre o build e `/usr/libexec/xdg-desktop-portal-cosmic`, do apt. É do Meow, como o `cosmic-comp`, porque o defeito é do upstream (#286, #384), o conserto é patch, e a captura de tela é o outro lado do compositor que o Meow já mantém; sai do trilho quando `patches/graficos.versao` declara a versão com a correção oficial |
+| `/etc/opt/chrome/policies/managed/compartilhar-tela.json` | **Meow**, pela ponte root, só com o `google-chrome-stable` instalado; o resto da pasta (os arquivos da Aurora, por exemplo) o Meow não toca |
 | `/etc/apt/apt.conf.d/99-meow-lancador`, `/usr/local/sbin/meow-lancador-apt.sh` | **Meow** (o `sbin` separa do `/usr/local/bin` da Aurora) |
 | `/etc/apt/apt.conf.d/99-ritual-aurora-self-heal` | **Aurora** |
 | `/usr/local/lib/meowsystem/{ponte_root.sh,perfil}`, `/etc/sudoers.d/49-meowsystem-ponte` | **Meow**; o `sudoers.d` é compartilhado, cada projeto escreve só o seu arquivo |
@@ -82,7 +84,8 @@ a máquina gerou.
   `completion-remover`, `flatpak-global-limpar` (só as chaves de tema que apontam para tema
   ausente), `libreoffice-remover` e `libreoffice-devolver`, `atualizar` e `limpar` (só os
   repositórios já configurados), `gpu-compositor` e `gpu-compositor-tirar` (só a linha
-  `COSMIC_RENDER_DEVICE` do `/etc/environment`, com o arquivo de antes guardado), `pacotes` (só a lista literal de dentro da ponte; o
+  `COSMIC_RENDER_DEVICE` do `/etc/environment`, com o arquivo de antes guardado), `chrome-policy` e `chrome-policy-tirar` (só o
+  `compartilhar-tela.json`, com o texto de dentro da ponte, e só com o Chrome instalado), `pacotes` (só a lista literal de dentro da ponte; o
   `tests/doctor-veredito.sh` cobra que ela seja a do `etapa_pacotes`) e `estado`, que só lê.
 - **Cada uso vai para o journal:** `journalctl -t meowsystem-ponte`.
 - **A ponte não se instala nem se atualiza.** Trocá-la pede a senha, no `install.sh`; por isso

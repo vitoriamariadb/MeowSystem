@@ -67,7 +67,7 @@ function gestoDeExtensao(acaoId, e, verbo) {
 const idDaAcao = (e, casa, repo) => (e.casa ? casa : repo);
 const tipoDe = (e) => e.tipo || "applet";
 const ehApplet = (e) => tipoDe(e) === "applet";
-const BINARIO_DO_TIPO = { compositor: "cosmic-comp", menu: "cosmic-files" };
+const BINARIO_DO_TIPO = { compositor: "cosmic-comp", menu: "cosmic-files", graficos: "portal" };
 
 function botoesDoCartao(e, parado) {
   const b = (texto, props, acao) => botao(texto, { class: "bt pequeno" + (props.principal ? " principal" : ""),
