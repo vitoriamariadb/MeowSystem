@@ -1,0 +1,41 @@
+--- a/client-toolkit/src/screencopy/dispatch.rs
++++ b/client-toolkit/src/screencopy/dispatch.rs
+@@ -18,6 +18,9 @@
+ };
+ use crate::GlobalData;
+ 
++#[used]
++static MEOW_TOOLKIT_PATCH: &str = "MEOW-TOOLKIT-PATCH-1";
++
+ impl<D> Dispatch<ext_image_copy_capture_manager_v1::ExtImageCopyCaptureManagerV1, GlobalData, D>
+     for ScreencopyState
+ where
+@@ -149,6 +152,8 @@
+             }
+             ext_image_copy_capture_frame_v1::Event::Ready => {
+                 let frame = frame.lock().unwrap().clone();
++                screencopy_frame.destroy();
++                conn.flush().ok();
+                 app_data.ready(
+                     conn,
+                     qh,
+@@ -157,9 +162,10 @@
+                     },
+                     frame,
+                 );
+-                screencopy_frame.destroy();
+             }
+             ext_image_copy_capture_frame_v1::Event::Failed { reason } => {
++                screencopy_frame.destroy();
++                conn.flush().ok();
+                 app_data.failed(
+                     conn,
+                     qh,
+@@ -168,7 +174,6 @@
+                     },
+                     reason,
+                 );
+-                screencopy_frame.destroy();
+             }
+             _ => unreachable!(),
+         }

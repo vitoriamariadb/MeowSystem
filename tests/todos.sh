@@ -145,6 +145,7 @@ MAQUINA=(
   logo-pagina.py
   logo-do-pack-pessoal-pagina.py
   zapzap-tema-de-conversa.py
+  graficos-fonte-real.sh
 )
 
 SEM_PULO=(
