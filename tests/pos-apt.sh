@@ -54,10 +54,11 @@ cat > "$T/som" <<FIM
 echo "som \$*" >> "$T/log-som"
 FIM
 chmod 755 "$T/compositor" "$T/files" "$T/doctor" "$T/rustup" "$T/oraculo" "$T/som"
+echo 'req y X' > "$T/serie"
 
 rodar() {
   HOME="$T/home" PATH="$T/bin:$PATH" MEOW_ESTADO="$T/estado" MEOW_CONF="$T/nao-existe.conf" \
-  GB_CASA="$T/casa" GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" PA_DOCTOR="$T/doctor" \
+  GB_CASA="$T/casa" GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" PA_DOCTOR="$T/doctor" CP_SERIE="$T/serie" \
   PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" PA_ORACULO="$T/oraculo" PA_SOM="$T/som" \
     "$RAIZ/scripts/cosmic_pos_apt.sh" "$@" >/dev/null 2>&1
 }
@@ -152,7 +153,7 @@ FIM
 versoes cosmic-comp=0.1~e cosmic-files=1.10~f cosmic-panel=1.10~a
 : > "$T/log"
 HOME="$T/home" PATH="$T/bin:/usr/local/bin:/usr/bin:/bin" MEOW_ESTADO="$T/estado" MEOW_CONF="$T/nao-existe.conf" \
-  GB_CASA="$T/casa" GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" PA_DOCTOR="$T/doctor" \
+  GB_CASA="$T/casa" GB_COMPOSITOR="$T/compositor" GB_FILES="$T/files" PA_DOCTOR="$T/doctor" CP_SERIE="$T/serie" \
   PA_RUSTUP="$T/rustup" PA_CANDIDATO="$T/candidato.tsv" PA_ORACULO="$T/oraculo" PA_SOM="$T/som" \
   "$RAIZ/scripts/cosmic_pos_apt.sh" >/dev/null 2>&1
 igual "o passo de build acha o cargo do HOME" "$(sed -n 's/^files cargo=//p' "$T/log")" "$T/home/.cargo/bin/cargo"

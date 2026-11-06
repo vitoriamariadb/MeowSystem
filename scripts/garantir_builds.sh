@@ -57,6 +57,7 @@ _gb_comp_velho() {
   local c a b m
   while read -r c a b _; do
     case "$c" in req|opt) ;; *) continue ;; esac
+    awk -v a="$a" '$3==a {x=1} END {exit !x}' "$GB_CASA/$1/estado" 2>/dev/null || return 0
     m="$(sed -n "s/^+.*\"\($b-[0-9][0-9.]*\)\".*/\1/p" "$GB_REPO/$a" 2>/dev/null | head -1)"
     [ -n "$m" ] || continue
     awk -v m="$m" -v a="$a" '$3==a && $4=="presente" && $2!=m {x=1} END {exit !x}' \

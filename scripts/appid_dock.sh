@@ -175,6 +175,10 @@ _avisar_novos() {
   fi
   while IFS=$'\t' read -r id titulo; do
     [ -n "$id" ] || continue
+    if [ "$id" = - ]; then
+      meow_aviso "janela sem app_id, a dock a mostra como app à parte: ${titulo:-?}"
+      continue
+    fi
     [ -n "${MAPA_LIDO[$id]:-}" ] && continue
     case "$id" in steam_app_*) continue ;; esac
     vivos["$id"]=1

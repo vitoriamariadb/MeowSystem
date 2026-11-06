@@ -1,0 +1,116 @@
+# cosmic-comp-app-id-do-cliente.patch
+#
+# MARCADOR: AURORA-APP-ID-CLIENTE-1   (base: AURORA-APP-ID-CLIENTE)
+#
+# Janela Wayland sem app_id passa a anunciar o app_id de outra janela do mesmo
+# cliente, sem lista de nomes. A barra de compartilhar do Chrome é a medida de
+# 06/11/2026: app_id vazio, engrenagem na dock como app separado.
+#
+# Só o anúncio em toplevel_info e ext_foreign_toplevel muda: as regras de janela
+# seguem lendo o app_id próprio. O herdado fica na janela, para ela não virar
+# órfã quando a última irmã com app_id fecha. X11 fica de fora, porque todas as
+# janelas X11 são do mesmo cliente, o Xwayland.
+#
+--- a/src/wayland/handlers/toplevel_info.rs
++++ b/src/wayland/handlers/toplevel_info.rs
+@@ -1,6 +1,10 @@
+ // SPDX-License-Identifier: GPL-3.0-only
+ 
+-use smithay::utils::{Rectangle, user_data::UserDataMap};
++use smithay::{
++    desktop::WindowSurface,
++    reexports::wayland_server::{Resource, backend::ClientId},
++    utils::{Rectangle, user_data::UserDataMap},
++};
+ 
+ use crate::{
+     shell::CosmicSurface,
+@@ -31,6 +35,15 @@
+         CosmicSurface::app_id(self)
+     }
+ 
++    fn client_id(&self) -> Option<ClientId> {
++        match self.0.underlying_surface() {
++            WindowSurface::Wayland(toplevel) => {
++                toplevel.wl_surface().client().map(|client| client.id())
++            }
++            WindowSurface::X11(_) => None,
++        }
++    }
++
+     fn is_activated(&self) -> bool {
+         !self.is_minimized() && CosmicSurface::is_activated(self, true)
+     }
+--- a/src/wayland/protocols/toplevel_info.rs
++++ b/src/wayland/protocols/toplevel_info.rs
+@@ -32,9 +32,40 @@
+ };
+ use tracing::error;
+ 
++#[used]
++static AURORA_APP_ID_CLIENTE: &str = "AURORA-APP-ID-CLIENTE-1";
++
++fn app_id_do_irmao<C: PartialEq>(
++    cliente: &C,
++    irmaos: impl IntoIterator<Item = (Option<C>, String)>,
++) -> Option<String> {
++    irmaos
++        .into_iter()
++        .find(|(dono, app_id)| dono.as_ref() == Some(cliente) && !app_id.is_empty())
++        .map(|(_, app_id)| app_id)
++}
++
++fn herdar_app_ids<W: Window>(toplevels: &[W]) {
++    let vivas = || toplevels.iter().filter(|janela| janela.alive());
++    for janela in vivas().filter(|janela| janela.app_id().is_empty()) {
++        let Some(cliente) = janela.client_id() else {
++            continue;
++        };
++        let herdado = app_id_do_irmao(
++            &cliente,
++            vivas().map(|irma| (irma.client_id(), irma.app_id())),
++        );
++        if let (Some(herdado), Some(estado)) = (herdado, janela.user_data().get::<ToplevelState>())
++        {
++            estado.lock().unwrap().app_id_herdado = Some(herdado);
++        }
++    }
++}
++
+ pub trait Window: IsAlive + Clone + PartialEq + Send {
+     fn title(&self) -> String;
+     fn app_id(&self) -> String;
++    fn client_id(&self) -> Option<ClientId>;
+     fn is_activated(&self) -> bool;
+     fn is_maximized(&self) -> bool;
+     fn is_fullscreen(&self) -> bool;
+@@ -74,6 +105,7 @@
+     outputs: Vec<Output>,
+     workspaces: Vec<WorkspaceHandle>,
+     pub(super) rectangles: Vec<(Weak<WlSurface>, Rectangle<i32, Logical>)>,
++    app_id_herdado: Option<String>,
+ }
+ pub(super) type ToplevelState = Mutex<ToplevelStateInner>;
+ 
+@@ -384,6 +416,8 @@
+     pub fn refresh(&mut self, workspace_state: &WorkspaceState<D>) {
+         let mut dirty = std::mem::replace(&mut self.dirty, false);
+ 
++        herdar_app_ids(&self.toplevels);
++
+         self.toplevels.retain(|window| {
+             let mut state = window
+                 .user_data()
+@@ -504,7 +538,11 @@
+     let mut changed = false;
+ 
+     let new_title = (handle_state.title != window.title()).then(|| window.title());
+-    let new_app_id = (handle_state.app_id != window.app_id()).then(|| window.app_id());
++    let app_id = Some(window.app_id())
++        .filter(|app_id| !app_id.is_empty())
++        .or_else(|| state.app_id_herdado.clone())
++        .unwrap_or_default();
++    let new_app_id = (handle_state.app_id != app_id).then_some(app_id);
+ 
+     let new_states = if handle_state.states.as_ref().is_none_or(|states| {
+         (states.contains(&States::Maximized) != window.is_maximized())

@@ -104,6 +104,15 @@ for b in cosmic-files cosmic-files-applet; do echo MEOW-FILES-WALLPAPER-PATCH-1 
 : > "$T/log"; rodar
 igual "um build do menu" "$(linhas '^files build')" 1
 
+echo "-- patch novo na série, que o build guardado não tem: refaz"
+versoes cosmic-comp=0.1~b cosmic-files=1.10~a
+printf 'req t.patch MEOW-T\nreq novo.patch MEOW-NOVO\n' > "$T/patches/series"
+: > "$T/log"; rodar
+igual "a série cresceu: um build do compositor" "$(linhas '^compositor compilar')" 1
+echo 'req t.patch MEOW-T' > "$T/patches/series"
+: > "$T/log"; rodar
+igual "a série como o build: nenhum build" "$(linhas '^compositor compilar')" 0
+
 echo "-- o build posto de lado (ruim) não se refaz"
 versoes cosmic-comp=0.1~c cosmic-files=1.10~a
 mkdir -p "$CASA/0.1~c"; date -Is > "$CASA/0.1~c/ruim"

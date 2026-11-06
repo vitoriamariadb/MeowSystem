@@ -7,6 +7,7 @@ import struct
 import time
 
 MARCA_PONTE = "X-MeowSystem=janela-dock"
+SEM_APP_ID = "-"
 
 
 def caminhos_xdg():
@@ -158,7 +159,7 @@ def sondar_janelas(limite=3.0):
                 punhos[obj]["titulo" if op == 2 else "app_id"] = val
             elif retorno is not None and obj == retorno and op == 0:
                 s.close()
-                return [(v["app_id"], v["titulo"]) for v in punhos.values() if v["app_id"]]
+                return [(v["app_id"], v["titulo"]) for v in punhos.values()]
 
         if lista is None and retorno is None and globais:
             retorno = novo_id()
@@ -167,7 +168,7 @@ def sondar_janelas(limite=3.0):
     s.close()
     if lista is None:
         raise LookupError("ext_foreign_toplevel_list_v1 não exposto (%d globals vistos)" % len(globais))
-    return [(v["app_id"], v["titulo"]) for v in punhos.values() if v["app_id"]]
+    return [(v["app_id"], v["titulo"]) for v in punhos.values()]
 
 
 def normalizar(s):
@@ -211,7 +212,7 @@ def main(argv):
             print("sem sessão Wayland utilizável: %s" % erro, file=sys.stderr)
             return 3
         for app_id, titulo in janelas:
-            print("%s\t%s" % (limpo(app_id), limpo(titulo)))
+            print("%s\t%s" % (limpo(app_id) or SEM_APP_ID, limpo(titulo)))
         return 0
 
     entradas = carregar_parque()
