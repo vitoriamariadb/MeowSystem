@@ -117,11 +117,6 @@ echo "bibliotecas=00000000000000000000000000000000" >> "$CASA/0.1~b/estado"
 igual "a impressão digital que não bate pede um build" "$(linhas '^compositor compilar')" 1
 rodar estado
 grep -qxE 'compositor_estado=(ok|desligado)' "$T/saida" && ok "e o build velho segue valendo até o novo" || falha "o estado deixou de ser ok: $(grep compositor_estado "$T/saida")"
-echo "-- o build retido (degrau 2) não se refaz e o estado diz retido"
-: > "$CASA/0.1~b/retido"
-: > "$T/log"; rodar estado
-grep -qx 'compositor_estado=retido' "$T/saida" && ok "o estado diz retido" || falha "o estado do retido: $(grep compositor_estado "$T/saida")"
-rm -f "$CASA/0.1~b/retido"
 versoes cosmic-comp=0.1~c cosmic-files=1.10~a
 
 echo "-- FILES_MENU=\"nao\": o menu não se compila"

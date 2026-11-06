@@ -139,9 +139,13 @@ GENTE="$T/home/.local/state/meowsystem/precisa-de-gente.tsv"
 : > "$T/journal"
 cat > "$T/bin/journalctl" <<FIM
 #!/bin/sh
-cat "$T/journal"
+case "\$*" in
+  *_TRANSPORT=kernel*) cat "$T/kernel" ;;
+  *) cat "$T/journal" ;;
+esac
 FIM
 chmod 755 "$T/bin/journalctl"
+: > "$T/kernel"
 EXE="$(readlink -f "$B/cosmic-comp")"
 jornal() {
   printf '{"_BOOT_ID":"b1","SYSLOG_IDENTIFIER":"cosmic-session","MESSAGE":"starting process '"'"' X=1 cosmic-comp '"'"'"}\n' >> "$T/journal"
@@ -184,7 +188,9 @@ CP cuidar >/dev/null; igual "o cuidar de novo, sem nada: 0" "$?" 0
 date -Is > "$B/ruim"
 CP cuidar >/dev/null
 igual "posto de lado de novo depois de devolvido: fica de lado (caiu)" "$(head -c 4 "$B/ruim")" caiu
-grep -q '^compositor-caiu	' "$GENTE" 2>/dev/null && ok "e entra no precisa de gente" || falha "não entrou no precisa de gente"
+grep -q 'compositor' "$GENTE" 2>/dev/null && falha "a queda entrou no precisa de gente" || ok "e a queda fica fora da tela"
+grep -q 'pôs de lado o build' "$T/home/.local/state/meowsystem/meow.log" 2>/dev/null \
+  && ok "a queda fica no log" || falha "a queda não foi para o log"
 saida="$(CP conferir)"; rc=$?
 igual "o conferir de um build que caiu: 3, sem conserto" "$rc" 3
 grep -q '!!' <<< "$saida" && ok "com aviso" || falha "sem aviso: $saida"
@@ -217,16 +223,18 @@ igual "sem registro legível, na dúvida: fica de lado" "$(head -c 4 "$B/ruim")"
 mv -f "$T/journalctl.guardado" "$T/bin/journalctl"
 fazer_build "$VER_INST"; rm -f "$B/ruim" "$B/perdoado"
 
-echo "== P154 5: o build de degrau 2 fica retido até o sim"
+echo "== P164 1: o build de degrau 2 entra sem clique"
 echo "cosmic-comp-raio-clampado.patch" > "$B/retido"
-igual "retido: fábrica" "$(rodar)" fabrica
+igual "a marca antiga não segura o build" "$(rodar)" build; rm -f "$B/quedas"
+printf '#!/usr/bin/env bash\n# MEOW-COSMIC-COMP-SHIM-1\nexec /usr/bin/cosmic-comp "$@"\n' > "$T/home/.local/bin/cosmic-comp"
+chmod 755 "$T/home/.local/bin/cosmic-comp"
 saida="$(CP conferir)"; rc=$?
-igual "o conferir do retido: 4, escolha" "$rc" 4
-grep -q 'degrau 2' <<< "$saida" && ok "e diz degrau 2" || falha "não disse degrau 2: $saida"
-CP liberar >/dev/null; igual "liberar escreve (1)" "$?" 1
-igual "liberado: build" "$(rodar)" build; rm -f "$B/quedas"
-igual "o liberado fica anotado" "$(cat "$B/liberado")" cosmic-comp-raio-clampado.patch
-CP liberar >/dev/null; igual "liberar de novo: 0" "$?" 0
+igual "o shim de antes: o conferir diverge" "$rc" 1
+grep -qE 'digite|rode |execute' <<< "$saida" && falha "a saída manda digitar: $saida" || ok "e não manda digitar"
+CP cuidar >/dev/null; igual "o cuidar renova o shim sozinho (1)" "$?" 1
+cmp -s "$SHIM" "$T/home/.local/bin/cosmic-comp" && ok "o shim do repositório está no lugar" || falha "o shim não foi renovado"
+[ ! -e "$B/retido" ] && ok "e a marca antiga sai" || falha "a marca antiga ficou"
+CP cuidar >/dev/null; igual "a segunda passada do cuidar: 0" "$?" 0
 
 echo "== P154: as bibliotecas mudaram desde o build"
 printf 'bibliotecas=00000000000000000000000000000000\n' >> "$B/estado"

@@ -11,7 +11,7 @@ dir="$casa/$ver"
 build="$dir/cosmic-comp"
 
 usar_build=0
-if [ -n "$ver" ] && [ -x "$build" ] && [ ! -e "$dir/ruim" ] && [ ! -e "$dir/retido" ] \
+if [ -n "$ver" ] && [ -x "$build" ] && [ ! -e "$dir/ruim" ] \
    && grep -q '^req [^ ]* [^ ]* presente$' "$dir/estado" 2>/dev/null \
    && ! grep -q '^req [^ ]* [^ ]* ausente$' "$dir/estado" 2>/dev/null \
    && (cd / && exec timeout 5 "$build" --version </dev/null >/dev/null 2>&1) 2>/dev/null; then

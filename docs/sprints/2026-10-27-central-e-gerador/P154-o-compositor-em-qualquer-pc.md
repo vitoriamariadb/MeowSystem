@@ -33,7 +33,7 @@ Lido no código:
 - Shim: se a escrita de `quedas` falha, usa a fábrica; exige que nenhum `req` esteja `ausente`.
 - Antes de instalar o build: teste de fumaça (`--version` e `ldd` sem `not found`), e a impressão digital das
   bibliotecas no `estado`, para o doctor recompilar quando ela muda.
-- Build de degrau 2 fica guardado, sem ir para o shim, até um sim; a queda conta também depois da janela
+- Build de degrau 2 entra sem clique, sob a guarda do shim (decisão 55); a queda conta também depois da janela
   (coredump do build ou fim de sessão anormal no journal).
 - `ruim`: o conserto do doctor apaga a marca e devolve o build depois do teste de fumaça.
 - `cmd_compilar` confere o espaço livre (`df`) e limpa o `target/` na falha; a falha de compilação entra na
@@ -43,7 +43,7 @@ Lido no código:
 ## Como se prova
 
 Um `tests/compositor-shim.sh` estendido com os quatro casos provados (binário que cai, pasta sem escrita, saída
-curta normal, `req` ausente) e o teste de fumaça; `tests/etapa-compositor.sh` com degrau 2 retido e falha de
+curta normal, `req` ausente) e o teste de fumaça; `tests/etapa-compositor.sh` com degrau 2 e falha de
 compilação na matriz; suíte inteira verde; na máquina, `meow compositor conferir` e um login.
 
 ## A fábrica alterada
@@ -58,11 +58,9 @@ fábrica foi devolvida pela ponte em 03/11.
 
 ## Decisões da implementação
 
-- Item 5, o «sim» do degrau 2: o build entra na casa com um arquivo `retido` (os patches de degrau 2 com base
-  real de contexto). O shim pula o retido, o estado diz `retido`, o cartão diz «Em observação» e o `conferir`
-  sai 4. O sim é o «Instalar» de Extensões, que chama `compositor_patches.sh liberar` (o gesto em fundo do
-  install e o «Refazer» não liberam). O `liberado` guarda a lista aprovada: o rebuild com o mesmo degrau 2 não
-  fica retido de novo.
+- Item 5, o degrau 2: revisto pela P164 (decisão 55, sim de 06/11: «Liberar sozinho»). O build entra no próximo
+  login sob a guarda do shim, e a linha `contexto=` do `estado` guarda os patches que entraram com o contexto
+  mudado.
 - A queda depois da janela vem do journal e do coredumpctl: `terminated with signal` (menos o 15) ou `exited
   with error` do cosmic-comp, atribuído ao último `_EXE` da mesma rodada; sem `_EXE` conhecido conta contra o
   build. Tela preta com o processo vivo não tem como ser vista daqui.

@@ -114,8 +114,8 @@ def montar():
         '#!/bin/sh\n[ "$1" = estado ] || exit 0\n'
         'if [ -f "$MEOW_TESTE_COMP" ]; then\n'
         '  if grep -qs MEOW-COSMIC-COMP-SHIM "$HOME/.local/bin/cosmic-comp"; then e=ok; else e=desligado; fi\n'
-        '  [ -f "${MEOW_TESTE_COMP%/*}/comp-retido" ] && e=retido\n'
         'else e=pendente; fi\n'
+        '[ -f "${MEOW_TESTE_COMP%/*}/comp-ruim" ] && e=falhou\n'
         'printf \'compositor_versao=0.1~t\\ncompositor_estado=%s\\nmenu_versao=1.0~t\\n'
         'menu_estado=pendente\\nconstruindo=nao\\n\' "$e"\n')
     compositor = os.path.join(TESTE, "compositor")
@@ -126,7 +126,6 @@ def montar():
         '  ativar) grep -qs MEOW-COSMIC-COMP-SHIM "$HOME/.local/bin/cosmic-comp" && exit 0\n'
         '    mkdir -p "$HOME/.local/bin"; printf \'#!/bin/sh\\nMEOW-COSMIC-COMP-SHIM-1\\n\' > "$HOME/.local/bin/cosmic-comp"; exit 1 ;;\n'
         '  desativar) [ -e "$HOME/.local/bin/cosmic-comp" ] || exit 0; rm -f "$HOME/.local/bin/cosmic-comp"; exit 1 ;;\n'
-        '  liberar) [ -f "${MEOW_TESTE_COMP%/*}/comp-retido" ] || exit 0; rm -f "${MEOW_TESTE_COMP%/*}/comp-retido"; exit 1 ;;\n'
         'esac\nexit 0\n')
     open(os.path.join(TESTE, "comp-pronto"), "w").close()
     falso = casa.FALSO
@@ -416,20 +415,14 @@ def main():
             checa(estado == "ok" and not os.path.exists(SHIM), f"«Remover» desliga o shim ({estado})")
             checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Pronto, desligado"),
                   f"e o build fica: «{pilula_de_build(pag, 'compositor')}»")
-            open(os.path.join(TESTE, "comp-retido"), "w").close()
+            open(os.path.join(TESTE, "comp-ruim"), "w").close()
             pag.evaluate("() => { EXT.quando = 0; render(); }")
-            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Em observação"),
-                  f"o build retido no degrau 2: «{pilula_de_build(pag, 'compositor')}»")
-            cartao_de_build(pag, "compositor").get_by_role("button", name="Instalar").click()
-            estado = fim_do_trabalho(pag)
-            with open(os.path.join(TESTE, "cargo.log"), encoding="utf-8") as fh:
-                pediu_liberar = "compositor liberar" in fh.read()
-            checa(estado == "ok" and pediu_liberar and not os.path.exists(os.path.join(TESTE, "comp-retido")) and os.path.isfile(SHIM),
-                  f"«Instalar» no retido é o sim: libera e liga ({estado}, liberar={pediu_liberar})")
-            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Em dia"), f"e o cartão diz «{pilula_de_build(pag, 'compositor')}»")
-            cartao_de_build(pag, "compositor").get_by_role("button", name="Remover Compositor").click()
-            confirmar(pag)
-            fim_do_trabalho(pag)
+            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Não instalada"),
+                  f"a queda não aparece na tela: «{pilula_de_build(pag, 'compositor')}»")
+            os.remove(os.path.join(TESTE, "comp-ruim"))
+            pag.evaluate("() => { EXT.quando = 0; render(); }")
+            checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Pronto, desligado"),
+                  f"sem a queda, o cartão volta: «{pilula_de_build(pag, 'compositor')}»")
             velho = os.path.join(casa.CASA, ".local", "libexec", "meow", "cosmic-comp", "0.0~velho")
             os.makedirs(velho)
             casa.escrever_exec(os.path.join(velho, "cosmic-comp"), "#!/bin/sh\n")

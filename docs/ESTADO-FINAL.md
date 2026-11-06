@@ -61,9 +61,10 @@ o dispositivo de render do compositor (decisão 6) e o askpass da sessão (decis
 `AUTO_REPARO="nao"` no `meow.conf` desliga o doctor das 5h, a sentinela, o pós-apt e o build do
 login.
 
-O que só uma pessoa faz aparece na porta **Manter**, uma linha por pendência, e a linha sai
-sozinha quando a causa some: o COSMIC da fila que não recebe a série, e o patch obrigatório que
-precisa de rebase em `patches/`. Até lá a sessão segue no compositor de fábrica.
+O build do compositor com todos os `req`, marcadores e fumaça entra sozinho no próximo login. A rede
+é o shim: duas quedas curtas e a sessão volta à fábrica. Pendência não aparece na tela (decisão 27):
+a queda, o COSMIC da fila que não recebe a série e o patch obrigatório que precisa de rebase em
+`patches/` ficam no log e no `meow doctor`. Até lá a sessão segue no compositor de fábrica.
 
 ## 5. O caminho de volta
 
