@@ -274,10 +274,7 @@ meow_desinstalar() {
     fi
   fi
 
-  meow_info "o estado e os backups ficam em $MEOW_ESTADO — apague à mão se quiser"
-  if [ -d "$MEOW_ESTADO/papeis-de-parede" ]; then
-    meow_info "  menos $MEOW_ESTADO/papeis-de-parede/ — é a sua curadoria de papel de parede"
-  fi
+  meow_desinstalar_espaco
   meow_info "os .desktop do sistema que o lançador escondia voltam com o «Tema de antes»"
   return 0
 }
@@ -295,4 +292,24 @@ meow_desinstalar_bases_de_icones() {
       meow_guardar_pasta "$dir"; rm -rf "$dir"; meow_ok "removido $dir/"
     fi
   done
+}
+
+meow_desinstalar_espaco() {
+  local medida liberou bonito
+  meow_tem python3 || { meow_aviso "sem python3 para tirar o estado, o cache e os builds"; return 0; }
+  medida="$(MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$MEOW_RAIZ" \
+              MEOW_DRY_RUN="$MEOW_SECO" python3 "$MEOW_RAIZ/scripts/espaco.py" desinstalar 2>/dev/null)" || return 0
+  liberou="${medida%%$'\t'*}"; bonito="${medida#*$'\t'}"
+  if meow_seco; then
+    meow_muda "removeria o estado, o cache e os builds do MeowSystem ($bonito)"
+  else
+    meow_ok "o estado, o cache e os builds do MeowSystem saíram: liberou $bonito"
+  fi
+  if [ "${MEOW_GUARDAR_BACKUPS:-0}" = "1" ]; then
+    meow_pula "backups GUARDADOS em $MEOW_ESTADO/backups (você pediu com --guardar-backups)"
+  fi
+  if [ -d "$MEOW_ESTADO/papeis-de-parede" ]; then
+    meow_pula "a sua curadoria de papel de parede ficou em $MEOW_ESTADO/papeis-de-parede"
+  fi
+  return 0
 }
