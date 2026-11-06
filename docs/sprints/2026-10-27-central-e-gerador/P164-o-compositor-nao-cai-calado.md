@@ -42,10 +42,10 @@ Reescrever o trecho da P154 e as entradas de `patches/LEIA-ME.txt` e `tests/etap
 | item | commit | o que ficou |
 |---|---|---|
 | 1, liberar sozinho | 1e6b201b | `retido`, `liberar` e «Em observação» saem. O shim só olha `ruim`, `req` e fumaça. O doctor renova o shim velho (`cuidar`) e apaga as marcas antigas `retido` e `liberado` |
-| 2, `-F1` no estado | 1e6b201b | linha `contexto=` no `estado`; o `conferir` diz quais patches entraram com o contexto mudado |
-| 3, queda fora do código | 8b9cc289 | avaliado e feito: queda a até 5 s de `ring … timeout` ou `GPU HANG` no kernel não consome o build. O shim não muda: duas partidas curtas e volta à fábrica |
+| 2, `-F1` no estado | 1e6b201b, 0d4ec455 | linha `contexto=` no `estado`; o `conferir` diz quais patches entraram com o contexto mudado. O rebuild sobre a árvore já remendada guarda a linha |
+| 3, queda fora do código | 8b9cc289, 0d4ec455 | avaliado e feito: queda a até 5 s de `ring … timeout` ou `GPU HANG` no kernel não consome o build. O shim não muda: duas partidas curtas e volta à fábrica. Provado nos dois canais, journal e coredump, com `coredumpctl` falso no teste |
 | 4, fora da tela | 1e6b201b | saem os cartões `compositor-caiu` e `patch-obrigatorio` e as pílulas «Falhou» e «Não encaixa» do cartão do compositor, que passa a dizer «Não instalada». Fica no `meow.log` e no `conferir`. `docs/ESTADO-FINAL.md` reescrito |
-| 5, `patches/versao` | 31f3e852 | ec674cd. O `tests/numeros.sh` compara com a matriz, e o gancho de commit corrige sozinho |
+| 5, `patches/versao` | 31f3e852, 0d4ec455 | ec674cd. O `tests/numeros.sh` compara com a matriz, e o gancho de commit corrige sozinho. Só para a frente: a casa com versão mais velha não puxa o arquivo para trás |
 | 6, decisão 55 | 1e6b201b | no mesmo commit do código, com prova em `tests/decisoes.sh` |
 
 Medido no journal real, só leitura, sobre o build 8cb1802 de 05/11:
