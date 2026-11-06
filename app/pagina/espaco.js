@@ -20,6 +20,7 @@ async function carregarEspaco() {
   ESP.quando = Date.now();
   const r = await api("/api/espaco");
   ESP.pedindo = false;
+  ESP.quando = Date.now();
   ESP.dados = r;
   clearTimeout(ESP.religar);
   if (r && r.ocupado) ESP.religar = setTimeout(() => { ESP.quando = 0; if (emEspaco()) render(); }, 2500);

@@ -130,7 +130,7 @@ def main():
             pag.wait_for_function("() => document.getElementById('resultado').open", timeout=30000)
             pag.wait_for_function("() => !TRABALHO || !TRABALHO.timer", timeout=60000)
             estado = pag.evaluate("() => document.getElementById('resultado-estado').dataset.estado")
-            checa(estado in ("ok", "ensaio") or estado == "", f"o trabalho termina bem ({estado!r})")
+            checa(estado == "ok", f"o trabalho termina bem ({estado!r})")
             saida = pag.locator("#saida").text_content()
             checa("liberou" in saida, "o registro diz quanto liberou")
             pag.locator("#resultado-ok").click()
@@ -159,6 +159,26 @@ def main():
             checa("build em curso" in pag.locator(".espaco-acao").get_attribute("data-dica"), "e a dica diz que há build em curso")
             fcntl.flock(fd, fcntl.LOCK_UN)
             os.close(fd)
+
+            print("5. medir devagar não vira laço de pedidos")
+            pag.evaluate("() => { ESP.quando = 0; carregarEspaco(); }")
+            pag.wait_for_function("() => ESP.dados && ESP.dados.ocupado === false", timeout=30000)
+            pag.evaluate("""() => {
+              const antes = api;
+              window.MEDIDAS = 0;
+              api = async (url, ...resto) => {
+                if (url === "/api/espaco") {
+                  MEDIDAS += 1;
+                  await new Promise((fim) => setTimeout(fim, 3300));
+                }
+                return antes(url, ...resto);
+              };
+              ESP.quando = 0;
+              carregarEspaco();
+            }""")
+            pag.wait_for_timeout(8000)
+            medidas = pag.evaluate("() => MEDIDAS")
+            checa(medidas == 1, f"uma medição de 3,3 s não dispara outra sozinha ({medidas})")
 
             checa(not pedidos, f"a página não pediu nada à internet ({pedidos[:2]})")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
