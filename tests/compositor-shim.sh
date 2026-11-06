@@ -223,6 +223,18 @@ igual "sem registro legível, na dúvida: fica de lado" "$(head -c 4 "$B/ruim")"
 mv -f "$T/journalctl.guardado" "$T/bin/journalctl"
 fazer_build "$VER_INST"; rm -f "$B/ruim" "$B/perdoado"
 
+echo "== P164 3: a queda colada a um reset da GPU não põe o build de lado"
+agora="$(date +%s)"
+jornal "$EXE" 6
+sed -i '$s/^{/{"__REALTIME_TIMESTAMP":"'"$agora"'000000",/' "$T/journal"
+printf '%s.000000 nitro-5 kernel: amdgpu 0000:75:00.0: ring gfx_0.1.0 timeout, signaled seq=1, emitted seq=2\n' "$((agora - 2))" > "$T/kernel"
+CP conferir > "$T/saida"
+grep -q 'caiu' "$T/saida" && falha "a queda do reset da GPU contou para o build" || ok "a queda no segundo do reset não conta"
+printf '%s.000000 nitro-5 kernel: amdgpu 0000:75:00.0: ring gfx_0.1.0 timeout, signaled seq=1, emitted seq=2\n' "$((agora - 60))" > "$T/kernel"
+CP conferir > "$T/saida"
+grep -q 'caiu 1 vez' "$T/saida" && ok "o reset de um minuto antes não desculpa a queda" || falha "o reset longe desculpou a queda: $(cat "$T/saida")"
+: > "$T/journal"; : > "$T/kernel"
+
 echo "== P164 1: o build de degrau 2 entra sem clique"
 echo "cosmic-comp-raio-clampado.patch" > "$B/retido"
 igual "a marca antiga não segura o build" "$(rodar)" build; rm -f "$B/quedas"

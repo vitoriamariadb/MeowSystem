@@ -144,12 +144,26 @@ _cp_dizer_espera() {
   meow_aviso "a compilação do cosmic-comp $1 falhou $(_cp_plural "${2#* }" vez vezes) nesta versão e série — a sessão segue no de fábrica, e a próxima tentativa é a partir de $(date -d "@${2%% *}" '+%d/%m %H:%M')"
 }
 
+_cp_resets_de_gpu() {
+  journalctl -q --no-pager --since="@$1" -o short-unix _TRANSPORT=kernel 2>/dev/null \
+    | awk '/ring [^ ]+ timeout|GPU HANG/ {print int($1)}' | sort -un | tr '\n' ' '
+}
+
 _cp_quedas_do_build() {
-  local alvo desde="$2" n=0 fonte=0 c
+  local alvo desde="$2" n=0 fonte=0 c resets
   alvo="$(readlink -f -- "$1" 2>/dev/null)" || alvo="$1"
-  if meow_tem coredumpctl; then
-    c="$(coredumpctl --no-pager --no-legend -q list --since="@$desde" "$alvo" 2>/dev/null | grep -c .)"
-    fonte=1; n=$((n + ${c:-0}))
+  resets="$(_cp_resets_de_gpu "$desde")"
+  if meow_tem coredumpctl && meow_tem python3; then
+    c="$(coredumpctl --no-pager -q --json=short list --since="@$desde" "$alvo" 2>/dev/null \
+         | python3 -c '
+import json, sys
+resets = [int(r) for r in sys.argv[1].split()]
+try:
+    itens = json.load(sys.stdin)
+except ValueError:
+    sys.exit()
+print(sum(1 for i in itens if not any(abs(i["time"] // 1000000 - r) <= 5 for r in resets)))' "$resets")"
+    [ -n "$c" ] && { fonte=1; n=$((n + c)); }
   fi
   if meow_tem journalctl && meow_tem python3; then
     if c="$(journalctl --user -q --no-pager --since="@$desde" -o json \
@@ -157,6 +171,7 @@ _cp_quedas_do_build() {
             | python3 -c '
 import json, re, sys
 alvo, ultimo, boot, n = sys.argv[1], "", "", 0
+resets = [int(r) for r in sys.argv[2].split()]
 queda = re.compile(r"(^|[\s\x27/])cosmic-comp\s*\x27?\s*(terminated with signal (\d+)|exited with error)")
 partida = re.compile(r"starting process .*(^|[\s\x27/])cosmic-comp\s*\x27?\s*$")
 for linha in sys.stdin:
@@ -178,10 +193,11 @@ for linha in sys.stdin:
     r = queda.search(m)
     if not r:
         continue
-    if r.group(3) != "15" and ultimo in ("", alvo):
+    momento = int(e.get("__REALTIME_TIMESTAMP") or 0) // 1000000
+    if r.group(3) != "15" and ultimo in ("", alvo) and not any(abs(momento - x) <= 5 for x in resets):
         n += 1
     ultimo = ""
-print(n)' "$alvo")"; then
+print(n)' "$alvo" "$resets")"; then
       fonte=1; n=$((n + c))
     fi
   fi
