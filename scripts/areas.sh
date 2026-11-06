@@ -10,6 +10,7 @@ AREAS_PENDENCIA=4
 AREAS_MODO="${AREAS_MODO:-juntas}"
 export AREAS_MODO
 AREAS_NOMES="${AREAS_NOMES:-}"
+export AREAS_NOMES
 AREAS_FOLGA="${AREAS_FOLGA:-}"
 AREAS_ENCAIXE="${AREAS_ENCAIXE:-}"
 JANELAS_TILING="${JANELAS_TILING:-}"
@@ -208,22 +209,25 @@ def saida_de(entrada):
     return achado.group(1) if achado else ""
 
 
-def tela_de_casa():
-    for saida in os.environ.get("AREAS_SAIDAS", "").split(","):
-        if re.match(r"(eDP|LVDS|DSI)-", saida):
-            return saida
-    return None
+def tela_de_casa(todas):
+    internas = [s for s in os.environ.get("AREAS_SAIDAS", "").split(",") if re.match(r"(eDP|LVDS|DSI)-", s)]
+    return next((saida_de(e) for e in todas if saida_de(e) in internas), internas[0] if internas else None)
 
 
-def tela_da_lista(achadas):
-    primeira = saida_de(achadas[0])
-    casa = tela_de_casa()
-    if not juntas() or casa is None or casa == primeira:
+def nomes_da_tela(todas, tela):
+    return {sem_folga(e[2]["nome"]) for e in todas if saida_de(e) == tela}
+
+
+def tela_da_lista(todas):
+    primeira = saida_de(todas[0])
+    casa = tela_de_casa(todas)
+    if not juntas() or not primeira or casa in (None, primeira):
         return primeira
-    da_primeira = {sem_folga(e[2]["nome"]) for e in achadas if saida_de(e) == primeira}
-    if any(sem_folga(e[2]["nome"]) not in da_primeira for e in achadas if saida_de(e) == casa):
-        return primeira
-    return casa
+    da_primeira, dela = nomes_da_tela(todas, primeira), nomes_da_tela(todas, casa)
+    pedidos = {n.strip() for n in os.environ.get("AREAS_NOMES", "").split(",")} - {""}
+    if dela <= da_primeira or len(dela & pedidos) > len(da_primeira & pedidos):
+        return casa
+    return primeira
 
 
 def da_primeira_tela(achadas):
@@ -234,22 +238,27 @@ def da_primeira_tela(achadas):
 
 
 def rehomar(texto):
-    if not juntas():
-        return texto
     todas = entradas(texto)[2]
-    casa = tela_de_casa()
-    if not todas or casa is None or tela_da_lista(todas) != casa:
+    if not todas or not juntas():
         return texto
-    if any(saida_de(e) == casa for e in todas):
+    casa, primeira = tela_de_casa(todas), saida_de(todas[0])
+    if casa == primeira or tela_da_lista(todas) != casa:
         return texto
-    primeira = saida_de(todas[0])
-    bloco = bloco_da_saida(casa)
-    for _, _, c in sorted((e for e in todas if saida_de(e) == primeira), key=lambda e: -e[0]):
-        if c["output_span"] is None:
+    if not nomes_da_tela(todas, casa) <= nomes_da_tela(todas, primeira):
+        return texto
+    da_casa = [e[2]["output"] for e in todas if saida_de(e) == casa]
+    bloco = da_casa[0] if da_casa else bloco_da_saida(casa)
+    crus = []
+    for a, b, c in todas:
+        if saida_de((a, b, c)) == casa:
             continue
-        a, b = c["output_span"]
-        texto = texto[:a] + bloco + texto[b:]
-    return texto
+        cru = texto[a : b + 1]
+        if saida_de((a, b, c)) == primeira:
+            x, y = c["output_span"]
+            cru = cru[: x - a] + bloco + cru[y - a :]
+        crus.append(cru)
+    emenda = texto[todas[0][1] + 1 : todas[1][0]] if len(todas) > 1 else ""
+    return texto[: todas[0][0]] + emenda.join(crus) + texto[todas[-1][1] + 1 :]
 
 
 def abrir(caminho):

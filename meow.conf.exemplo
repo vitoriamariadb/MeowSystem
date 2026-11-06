@@ -349,8 +349,9 @@ AREAS_MODO="juntas"               # juntas | independentes
 # lado do arquivo é HISTÓRIA e não modelo.
 #
 # Em `AREAS_MODO="independentes"` as áreas valem em cada tela ligada; em `juntas`
-# a lista é uma só. Um nome a mais nesta lista CRIA uma área nova. Um nome a
-# MENOS é recusado: faltar um nome aqui apagaria uma área.
+# a lista é uma só e mora no monitor interno, quando ele existe. Um nome a mais
+# nesta lista CRIA uma área nova. Um nome a MENOS é recusado: faltar um nome
+# aqui apagaria uma área.
 # Não cabem aspas, contrabarra, parênteses nem `#` — os três primeiros quebram o
 # formato do arquivo do COSMIC e o `#` corta a linha deste arquivo aqui.
 #

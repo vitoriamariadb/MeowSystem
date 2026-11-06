@@ -112,7 +112,7 @@ areas refazer-alfinetes >/dev/null
 MODO=independentes areas refazer-alfinetes >/dev/null
 confere "partida de quatro entradas, duas por tela" '[ "$(grep -c "output:" "$PW")" = 4 ]'
 saida="$(da_conf alfinetes)"; rc=$?
-confere "sem AREAS_MODO o padrão é juntas e o doctor acusa a repetida e o modo" '[ "$rc" = 1 ] && printf "%s" "$saida" | grep -q "repetidas na tela: HDMI-A-1" && printf "%s" "$saida" | grep -q "workspace_mode está OutputBound"' "rc=$rc $saida"
+confere "sem AREAS_MODO o padrão é juntas e o doctor acusa a lista fora de casa e o modo" '[ "$rc" = 1 ] && printf "%s" "$saida" | grep -q "lista das áreas fora da tela de casa: HDMI-A-1" && printf "%s" "$saida" | grep -q "workspace_mode está OutputBound"' "rc=$rc $saida"
 antes="$(md5sum < "$PW")"
 SECO=1 da_conf refazer-alfinetes >/dev/null
 confere "o ensaio não grava nem a lista nem o modo" '[ "$antes" = "$(md5sum < "$PW")" ] && [ ! -e "$WM" ]'
@@ -216,6 +216,45 @@ confere "a segunda passada não troca nem o inode" '[ "$antes" = "$(marca)" ]'
 semear
 da_conf refazer-alfinetes >/dev/null
 confere "refazer-alfinetes também leva a lista ao eDP-1" '[ "$(da_tela eDP-1 | paste -sd,)" = "Pop,OS" ] && [ -z "$(da_tela HDMI-A-1)" ]' "$(cat "$PW")"
+
+printf '\na lista em casa não depende da ordem do arquivo\n'
+gerar() { python3 -I - "$@" > "$PW" <<'PY2'
+import sys
+print("[")
+n = 0
+for grupo in sys.argv[1:]:
+    tela, nomes = grupo.split(":")
+    for nome in nomes.split(","):
+        n += 1
+        print('    (\n        output: (\n            name: "%s",\n            edid: None,\n        ),\n        tiling_enabled: %s,\n        id: Some("a%05d"),\n        name: Some("%s"),\n    ),' % (tela, "true" if nome.endswith("*") else "false", n, nome.rstrip("*")))
+print("]")
+PY2
+}
+gerar 'HDMI-A-1:Estudo' 'eDP-1:Pop*,OS'
+antes="$(md5sum < "$PW")"
+saida="$(da_conf alfinetes)"; rc=$?
+confere "área marcada à mão no monitor de fora, primeira no arquivo: o doctor fica quieto" '[ "$rc" = 0 ]' "rc=$rc $saida"
+da_conf aplicar >/dev/null; da_conf refazer-alfinetes >/dev/null
+confere "e nenhuma passada a apaga nem renomeia" '[ "$antes" = "$(md5sum < "$PW")" ]' "$(cat "$PW")"
+NOMES="Casa, OS" da_conf aplicar >/dev/null
+confere "renomear vale na lista de casa, a marcada à mão fica" '[ "$(da_tela eDP-1 | paste -sd,)" = "Casa,OS" ] && [ "$(da_tela HDMI-A-1)" = Estudo ]' "$(cat "$PW")"
+
+printf '\ncópia menor em casa não parte a lista\n'
+gerar 'HDMI-A-1:Pop,OS,Som*' 'eDP-1:Pop,OS'
+NOMES="Pop, OS, Som" da_conf aplicar >/dev/null
+confere "uma passada leva a lista inteira a casa" '[ "$(da_tela eDP-1 | paste -sd,)" = "Pop,OS,Som" ] && [ -z "$(da_tela HDMI-A-1)" ]' "$(cat "$PW")"
+confere "o id e o encaixe da que faltava seguem" 'grep -q "id: Some(\"a00003\")" "$PW" && [ "$(grep -c "tiling_enabled: true" "$PW")" = 1 ]' "$(cat "$PW")"
+saida="$(NOMES="Pop, OS, Som" da_conf alfinetes)"; rc=$?
+confere "e o doctor fica verde" '[ "$rc" = 0 ]' "rc=$rc $saida"
+
+printf '\nnotebook com dois monitores internos\n'
+printf '#!/bin/sh\nprintf "eDP-1 (enabled)\\n  Make: A\\neDP-2 (enabled)\\n  Make: B\\nHDMI-A-1 (enabled)\\n  Make: LG\\n"\n' > "$T/bin/cosmic-randr"
+gerar 'eDP-2:Pop*,OS'
+antes="$(md5sum < "$PW")"
+saida="$(da_conf alfinetes)"; rc=$?
+confere "a lista já num interno não é acusada" '[ "$rc" = 0 ]' "rc=$rc $saida"
+da_conf aplicar >/dev/null; da_conf refazer-alfinetes >/dev/null
+confere "e não troca de interno" '[ "$antes" = "$(md5sum < "$PW")" ]' "$(cat "$PW")"
 
 printf '\nsem monitor interno a lista segue a ordem do arquivo\n'
 printf '#!/bin/sh\nprintf "HDMI-A-1 (enabled)\\n  Make: LG\\nDP-2 (enabled)\\n  Make: Dell\\n"\n' > "$T/bin/cosmic-randr"
