@@ -69,6 +69,10 @@ meow_desinstalar() {
     "$MEOW_RAIZ/scripts/gpu_compositor.sh" reverter || true
   fi
 
+  if compgen -G "$MEOW_ESTADO/backups/*-sistema" >/dev/null; then
+    "$MEOW_RAIZ/bin/meow" desfazer --lancador || true
+  fi
+
   local regra_ponte=/etc/sudoers.d/49-meowsystem-ponte
   local braco_ponte=/usr/local/lib/meowsystem
   local reparo_ponte=/etc/systemd/system/meowsystem-ponte-reparo.service
@@ -119,6 +123,13 @@ meow_desinstalar() {
   fi
   if [ -x "$MEOW_RAIZ/scripts/extensoes_build.sh" ]; then
     EXTENSOES= "$MEOW_RAIZ/scripts/extensoes_build.sh" --todas --reverter || true
+  fi
+
+  if [ -x "$MEOW_RAIZ/scripts/compositor_patches.sh" ]; then
+    "$MEOW_RAIZ/scripts/compositor_patches.sh" desativar || true
+  fi
+  if [ -x "$MEOW_RAIZ/scripts/files_menu.sh" ]; then
+    "$MEOW_RAIZ/scripts/files_menu.sh" remover || true
   fi
 
   if [ -x "$MEOW_RAIZ/scripts/rust.sh" ]; then
@@ -275,7 +286,6 @@ meow_desinstalar() {
   fi
 
   meow_desinstalar_espaco
-  meow_info "os .desktop do sistema que o lançador escondia voltam com o «Tema de antes»"
   return 0
 }
 
