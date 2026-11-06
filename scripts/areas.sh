@@ -208,8 +208,58 @@ def saida_de(entrada):
     return achado.group(1) if achado else ""
 
 
+def tela_de_casa():
+    for saida in os.environ.get("AREAS_SAIDAS", "").split(","):
+        if re.match(r"(eDP|LVDS|DSI)-", saida):
+            return saida
+    return None
+
+
+def tela_da_lista(achadas):
+    primeira = saida_de(achadas[0])
+    casa = tela_de_casa()
+    if not juntas() or casa is None or casa == primeira:
+        return primeira
+    da_primeira = {sem_folga(e[2]["nome"]) for e in achadas if saida_de(e) == primeira}
+    if any(sem_folga(e[2]["nome"]) not in da_primeira for e in achadas if saida_de(e) == casa):
+        return primeira
+    return casa
+
+
 def da_primeira_tela(achadas):
-    return [e for e in achadas if saida_de(e) == saida_de(achadas[0])] if achadas else []
+    if not achadas:
+        return []
+    tela = tela_da_lista(achadas)
+    return [e for e in achadas if saida_de(e) == tela]
+
+
+def rehomar(texto):
+    if not juntas():
+        return texto
+    todas = entradas(texto)[2]
+    casa = tela_de_casa()
+    if not todas or casa is None or tela_da_lista(todas) != casa:
+        return texto
+    if any(saida_de(e) == casa for e in todas):
+        return texto
+    primeira = saida_de(todas[0])
+    bloco = bloco_da_saida(casa)
+    for _, _, c in sorted((e for e in todas if saida_de(e) == primeira), key=lambda e: -e[0]):
+        if c["output_span"] is None:
+            continue
+        a, b = c["output_span"]
+        texto = texto[:a] + bloco + texto[b:]
+    return texto
+
+
+def abrir(caminho):
+    return rehomar(open(caminho, encoding="utf-8").read())
+
+
+def fora_de_casa(texto):
+    if rehomar(texto) == texto:
+        return ""
+    return saida_de(entradas(texto)[2][0])
 
 
 def sem_folga(nome):
@@ -217,7 +267,7 @@ def sem_folga(nome):
 
 
 def ler(caminho):
-    texto = open(caminho, encoding="utf-8").read()
+    texto = abrir(caminho)
     achadas = da_primeira_tela(entradas(texto)[2])
     for i, (_, _, c) in enumerate(achadas):
         nome = c["nome"] if c["nome"] is not None else ""
@@ -332,7 +382,7 @@ def em_cada_tela(texto):
 
 def montar(caminho, encaixes, nomes):
     """O texto NOVO do arquivo, no stdout. Nada é escrito aqui."""
-    texto = open(caminho, encoding="utf-8").read()
+    texto = abrir(caminho)
     if juntas():
         texto = so_da_primeira_tela(texto)
     achadas = da_primeira_tela(entradas(texto)[2])
@@ -397,7 +447,7 @@ def montar(caminho, encaixes, nomes):
 
 def refazer(caminho, encaixes, nomes):
     """O texto com os alfinetes que caíram de volta; os de pé ficam como estão."""
-    texto = open(caminho, encoding="utf-8").read()
+    texto = abrir(caminho)
     achadas = da_primeira_tela(entradas(texto)[2])
     if not achadas:
         raise ValueError("nenhuma área alfinetada de onde herdar o monitor")
@@ -441,7 +491,7 @@ def refazer(caminho, encaixes, nomes):
 
 
 def tirar(caminho, indice):
-    texto = open(caminho, encoding="utf-8").read()
+    texto = abrir(caminho)
     _, _, todas = entradas(texto)
     achadas = da_primeira_tela(todas)
     if indice < 0 or indice >= len(achadas):
@@ -552,13 +602,15 @@ try:
             ligadas = [s for s in os.environ.get("AREAS_SAIDAS", "").split(",") if s]
             print(", ".join(s for s in ligadas if s not in telas))
     elif verbo == "telas-a-mais":
-        texto = open(sys.argv[2], encoding="utf-8").read()
+        texto = abrir(sys.argv[2])
         if juntas():
             telas = []
             for entrada in repetidas(entradas(texto)[2]):
                 if saida_de(entrada) not in telas:
                     telas.append(saida_de(entrada))
             print(", ".join(telas))
+    elif verbo == "lista-fora-de-casa":
+        print(fora_de_casa(open(sys.argv[2], encoding="utf-8").read()))
     elif verbo == "tirar":
         tirar(sys.argv[2], int(sys.argv[3]))
     else:
@@ -1053,6 +1105,8 @@ cmd_conferir() {
   [ -n "$telas" ] && { meow_muda "tela sem as áreas: $telas"; divergente=1; }
   local a_mais; a_mais="$(_areas_telas_a_mais)"
   [ -n "$a_mais" ] && { meow_muda "áreas repetidas na tela: $a_mais"; divergente=1; }
+  local fora; fora="$(_areas_lista_fora_de_casa)"
+  [ -n "$fora" ] && { meow_muda "lista das áreas fora da tela de casa: $fora"; divergente=1; }
 
   if [ "$divergente" = "0" ]; then
     [ "$rc_plano" = "$MEOW_OK" ] && meow_ok "as áreas de trabalho estão conformes"
@@ -1083,6 +1137,10 @@ _areas_telas_a_mais() {
   [ -f "$AREAS_ALVO" ] && _areas_motor telas-a-mais "$AREAS_ALVO" 2>/dev/null
 }
 
+_areas_lista_fora_de_casa() {
+  [ -f "$AREAS_ALVO" ] && _areas_motor lista-fora-de-casa "$AREAS_ALVO" 2>/dev/null
+}
+
 cmd_alfinetes() {
   if [ -z "$AREAS_NOMES" ]; then
     local rc_vazio
@@ -1093,15 +1151,16 @@ cmd_alfinetes() {
   _areas_dependencia || return $?
   _areas_ler || return $?
   _areas_caidos
-  local telas a_mais modo_div=0
-  telas="$(_areas_telas_sem_area)"; a_mais="$(_areas_telas_a_mais)"
+  local telas a_mais fora modo_div=0
+  telas="$(_areas_telas_sem_area)"; a_mais="$(_areas_telas_a_mais)"; fora="$(_areas_lista_fora_de_casa)"
   _areas_modo_conferir || modo_div=1
-  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && [ -z "$telas" ] && [ -z "$a_mais" ] && [ "$modo_div" = 0 ]; then
+  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && [ -z "$telas" ] && [ -z "$a_mais" ] && [ -z "$fora" ] && [ "$modo_div" = 0 ]; then
     meow_ok "os alfinetes das áreas estão de pé ($(_areas_juntar "${AREAS_NOME[@]}"))"
     return "$MEOW_OK"
   fi
   [ -n "$telas" ] && meow_muda "tela sem as áreas: $telas"
   [ -n "$a_mais" ] && meow_muda "áreas repetidas na tela: $a_mais"
+  [ -n "$fora" ] && meow_muda "lista das áreas fora da tela de casa: $fora"
   local n
   for n in "${AREAS_CAIDOS[@]}"; do meow_muda "o alfinete da área «$n» caiu"; done
   return "$MEOW_DIVERGENTE"
@@ -1125,9 +1184,9 @@ _areas_refazer_pinos() {
     _areas_ler || return $?
   fi
   _areas_caidos
-  local telas a_mais
-  telas="$(_areas_telas_sem_area)"; a_mais="$(_areas_telas_a_mais)"
-  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && [ -z "$telas" ] && [ -z "$a_mais" ]; then
+  local telas a_mais fora
+  telas="$(_areas_telas_sem_area)"; a_mais="$(_areas_telas_a_mais)"; fora="$(_areas_lista_fora_de_casa)"
+  if [ "${#AREAS_CAIDOS[@]}" -eq 0 ] && [ -z "$telas" ] && [ -z "$a_mais" ] && [ -z "$fora" ]; then
     meow_ok "os alfinetes das áreas estão de pé"
     return "$MEOW_OK"
   fi
@@ -1157,13 +1216,13 @@ _areas_refazer_pinos() {
   _areas_recusar_vazio "$novo" || return "$MEOW_ERRO"
 
   if meow_seco; then
-    meow_muda "refaria os alfinetes${telas:+ da tela $telas}${a_mais:+, sem as repetidas da tela $a_mais}"
+    meow_muda "refaria os alfinetes${telas:+ da tela $telas}${a_mais:+, sem as repetidas da tela $a_mais}${fora:+, a lista passa da tela $fora para a de casa}"
     return "$MEOW_DIVERGENTE"
   fi
   _areas_guardar || return "$MEOW_ERRO"
   meow_escrever "$AREAS_ALVO" "$novo" 644
   case $? in "$MEOW_ERRO") meow_erro "não consegui gravar $AREAS_ALVO"; return "$MEOW_ERRO" ;; esac
-  meow_muda "alfinetes refeitos${telas:+ na tela $telas}${a_mais:+, sem as repetidas da tela $a_mais}: $(_areas_juntar "${nomes[@]}")"
+  meow_muda "alfinetes refeitos${telas:+ na tela $telas}${a_mais:+, sem as repetidas da tela $a_mais}${fora:+, a lista passou da tela $fora para a de casa}: $(_areas_juntar "${nomes[@]}")"
   _areas_so_no_login
   meow_registrar "areas.sh refazer-alfinetes caidos=${#AREAS_CAIDOS[@]}"
   return "$MEOW_DIVERGENTE"
