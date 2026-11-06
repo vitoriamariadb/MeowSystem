@@ -14,21 +14,27 @@ Na sessão de 06/11, com o portal da P159 instalado às 11:01 e o `cosmic-comp` 
 | 11:02:54 | 11:02:57 | 3 s | ABRT |
 | 11:04:13 | 11:09:02 | 4 min 49 s | ABRT |
 | 11:11:52 | 11:32:52 | 21 min | SEGV |
+| 11:34:23 | 11:49:17 | 15 min | não anotado |
 
 - A vida conta desde a subida do portal, não desde o início de cada compartilhamento.
-- As cinco quedas têm `create_frame sent before the previous frame was destroyed` em
+- As seis quedas têm `create_frame sent before the previous frame was destroyed` em
   `ext_image_copy_capture_session_v1`. Na primeira e na segunda, o panic final é `Broken pipe`, mas o erro de
   protocolo vem antes.
 - Nenhum panic em `screencast_thread.rs:456` desde 11:00: o defeito da P159 não voltou.
 - Cada queda gera de 1.400 a 2.000 linhas repetidas no journal.
 - O serviço sobe de novo sozinho, mas o stream em andamento morre, e é isso que a pessoa vê como tela congelada.
 
-## O espelho que não aparece não é defeito
+## O que a pessoa vê no Teams
 
-Relato: «minha tela não aparecia como espelhada enquanto isso, mas nas prévias do navegador ela aparecia». Medido
-em 06/11, 11:48, numa call de teste no Teams web, com o celular entrando como participante: o celular recebeu a
-tela ao vivo. Na mesma hora, o PipeWire tinha `cosmic-screencast` e `chrome` em `running`, e o portal seguia de pé
-desde 11:34. O Teams só não mostra a própria tela para quem apresenta, que continua vendo a câmera no palco.
+Call de teste no Teams web, 06/11, com o celular como participante:
+
+- 11:48: o celular recebia a tela ao vivo, com `cosmic-screencast` e `chrome` em `running` no PipeWire.
+- 11:49:17: o portal caiu com o mesmo `create_frame sent before`, depois de 15 min de pé. Sexta queda da tabela.
+- Quando trava, congela só a imagem enviada: Chrome e Teams seguem respondendo.
+- No navegador, a própria tela não aparece na call: fica a câmera, às vezes parada na aba com o rosto da pessoa. Pelo
+  relato, no Windows e antes aqui no COSMIC a própria tela aparecia, então isso é defeito, não comportamento do Teams.
+
+Não se sabe se a falta da própria tela vem desta corrida ou de outra causa. A prova abaixo separa as duas.
 
 ## A causa
 
@@ -43,19 +49,23 @@ essa sobreposição em atualização de outubro, segundo a #384.
 
 Essa causa vem do PR, não foi medida aqui.
 
-## A cura proposta
+## A cura na máquina (nitro-5)
 
-Aplicar no toolkit o diff do [cosmic-protocols#95](https://github.com/pop-os/cosmic-protocols/pull/95): destruir o
-frame antes de notificar (`client-toolkit/src/screencopy/dispatch.rs`, +8 −2). No portal, entra por `[patch]` no
-`Cargo.toml`, sobre o fonte da P159. O PR está fechado sem merge; ver o motivo antes de aplicar.
+Instalada em 06/11/2026; **prova pendente**. É o diff do [cosmic-protocols#95](https://github.com/pop-os/cosmic-protocols/pull/95),
+fechado por ser duplicado do #92, ainda sem merge: destruir o frame antes de notificar
+(`client-toolkit/src/screencopy/dispatch.rs`, +8 −2). O PR registra de 10 quedas em 15 min para 0, em outro hardware.
 
-Vai junto com a P159: é o mesmo binário e o mesmo trilho.
+- Toolkit: `~/.local/src/cosmic-protocols`, branch `aurora-frame-destroy`, commit `aa98ca1f86`.
+- Portal: `[patch]` no `Cargo.toml`, na mesma branch da P159. Binário anterior guardado em
+  `~/.local/libexec/aurora/xdg-desktop-portal-cosmic.so-shm`.
+
+A feature segue a P159: é o mesmo binário e o mesmo trilho.
 
 ## Como se prova
 
-Depois do reboot, com o `cosmic-comp` ec674cd:
-
-1. Sem patch novo, medir se ainda cai: a versão nova do compositor pode mudar o quadro.
-2. Com o patch, compartilhar janela por 30 minutos no Chrome, cobrindo o caso em que a janela é o próprio navegador.
+1. Repetir depois do reboot, com o `cosmic-comp` ec674cd: a versão nova do compositor pode mudar o quadro.
+2. Compartilhar janela por 30 minutos no Chrome, cobrindo o caso em que a janela é o próprio navegador.
 3. `coredumpctl list --no-pager | grep portal-cosmic` sem entrada nova, e sem `create_frame sent before` no journal.
-4. Confirmar por um segundo participante, como o celular: no Teams, a tela de quem apresenta não prova nada.
+4. Confirmar por um segundo participante, como o celular.
+5. A própria tela aparece na call do Teams no navegador. Se a imagem não congelar mais e isto continuar falhando, a
+   causa é outra e vira sprint nova.

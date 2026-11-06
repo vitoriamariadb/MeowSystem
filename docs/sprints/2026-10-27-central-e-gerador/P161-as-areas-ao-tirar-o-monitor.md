@@ -25,18 +25,22 @@ Pela leitura do código, nada disso foi testado com o monitor reconectado.
 Pela leitura de `add_output` (`mod.rs:934`): o primeiro monitor recebe todas as fixadas, então a barra deve mostrar
 «Pop OS Pop OS», sem o «5». Religar o HDMI deve devolver as duas dele. Conferir de verdade.
 
-## A cura a decidir
+## A decisão
 
-O «5» se resolve com o compositor patchado. A duplicação pede decisão de produto, porque as áreas do HDMI podem ter
-janelas:
+Decisão de 06/11/2026: «no meowsystem a ideia é termos duas áreas. mas a solução aplicada foi duplicar no outro
+monitor também. só que duplicou lá porém o 5 não foi pinado pra evitar o bo dele aparecer. aí ou a solução é mesmas
+duas áreas pros dois monitores ou manter agora mas impedir o 5 e que as duplicatas apareçam. isso vira correção e
+chave de feature».
 
-1. Patch em `remove_output`: juntar a área do monitor que saiu com a de mesmo nome no que ficou. Precisa devolver
-   cada janela ao seu monitor quando ele voltar, e é a parte difícil.
-2. Patch só de exibição: não listar a área vazia cujo monitor preferido está ausente. Mais simples, mas área com
-   janela continua aparecendo.
+Vira correção e chave de feature. Os dois caminhos aceitos:
 
-Qualquer um entra em `patches/` como `req`, e esse binário também é a tela de login. Medir antes o que acontece com
-janelas abertas no HDMI ao desconectar e ao reconectar.
+1. **As mesmas duas áreas nos dois monitores**: Pop e OS valem como um par só, em vez de 4 entradas por monitor.
+2. **Manter as 4 entradas e impedir o «5» e as duplicatas**: nenhuma área vazia sobra, e as do monitor que saiu não
+   aparecem como áreas a mais no que ficou.
+
+A sprint começa escolhendo o caminho pelo que o compositor permite, e a chave do MeowSystem liga ou desliga o
+resultado. O ponto a medir antes: o que acontece com as janelas abertas no HDMI ao desconectar e ao reconectar.
+Qualquer patch entra em `patches/` como `req`, e esse binário também é a tela de login.
 
 ## Como se prova
 

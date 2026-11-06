@@ -20,9 +20,10 @@
   PRÓXIMO (achados, nenhum em voo):
   - P159 (06/11): compartilhar tela e janela no COSMIC vira feature no trilho do `meow compositor`; o portal aborta
     (pop-os/xdg-desktop-portal-cosmic#286). Curado à mão só no nitro-5;
-  - P160 (06/11): o compartilhamento ainda congela; corrida no toolkit (`create_frame`), medida, cura a aplicar;
-  - P161 (06/11): áreas fixadas do HDMI duplicam no note ao tirar o monitor; o «5» é a área vazia do compositor de
-    fábrica. Falta decidir a cura e medir janelas abertas;
+  - P160 (06/11): o compartilhamento congela e a própria tela não aparece no Teams; corrida no toolkit (`create_frame`);
+  - P161 (06/11): as áreas do HDMI duplicam no note e o «5» aparece; vira correção e chave de feature, com dois caminhos
+    aceitos na nota. Falta medir janelas abertas;
+  - P162 (06/11): a barra de compartilhar do Chrome tem `app_id` vazio, vira engrenagem na dock e a sonda não a vê;
   - a banida com emoji no nome (`Cyberpunk Neon Cat Wallpaper …`, com dois emojis): o `limpar_banidos` e o `banir` pulam nomes
     fora do ASCII;
   - num checkout o lixo põe no BANIDOS.txt.padrao até foto dela que o `semear` nunca baixa; cópias em
