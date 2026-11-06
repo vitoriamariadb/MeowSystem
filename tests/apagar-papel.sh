@@ -145,6 +145,81 @@ png "$B3/banidos/de-volta.png" volta
 wp3 >/dev/null; [ ! -e "$B3/banidos" ] && ok "com todas listadas, a pasta banidos/ some junto" \
   || falha "a banidos/ vazia ficou" "$(ls -la "$B3")"
 
+printf -- '--- 3b. nome com emoji, acento e espaço é só bytes: banir apaga, a pasta banidos/ limpa, a segunda passada fica seca ---\n'
+GATO=$'\xf0\x9f\x90\xb1'; BRILHO=$'\xe2\x9c\xa8'; CIDADE=$'\xf0\x9f\x8c\x86'
+EMOJI="Gato Neon $GATO$BRILHO ação.jpeg"
+R5="$T/raiz-emoji"; raiz_falsa "$R5"; mkdir -p "$R5/.git"
+C5="$T/casa5"; B5="$C5/.local/share/backgrounds/meowsystem"
+mkdir -p "$B5/ativos" "$B5/banidos" "$C5/cosmic"
+png "$B5/ativos/um.png" um; png "$B5/ativos/dois.png" dois; png "$B5/ativos/$EMOJI" emoji
+s5a="$(papel "$C5" "$R5/scripts/wallpaper.sh" banir "$B5/ativos/$EMOJI" 2>&1)"; rc5a=$?
+if [ "$rc5a" = 1 ] && [ ! -e "$B5/ativos/$EMOJI" ] \
+   && LC_ALL=C grep -qxF -- "$EMOJI" "$C5/estado/papeis-de-parede/BANIDOS.txt" \
+   && cmp -s "$R5/packs/meowsystem/wallpapers/BANIDOS.txt.padrao" "$RAIZ/packs/meowsystem/wallpapers/BANIDOS.txt.padrao" \
+   && cmp -s "$R5/packs/meowsystem/wallpapers/FONTES.tsv" "$RAIZ/packs/meowsystem/wallpapers/FONTES.tsv"; then
+  ok "banir apaga a imagem com emoji, anota no BANIDOS.txt e deixa o padrão do repositório intacto (ela não está no FONTES.tsv)"
+else
+  falha "banir com emoji no nome apagou de menos ou mexeu no padrão (rc=$rc5a)" "$s5a"
+fi
+mkdir -p "$B5/banidos"; png "$B5/banidos/$EMOJI" velha; png "$B5/banidos/só-cópia.png" copia
+SOCOPIA="Cyberpunk $CIDADE Neon $BRILHO Cat.jpeg"; png "$B5/banidos/$SOCOPIA" so-copia
+wp5() { papel "$C5" "$@" "$R5/scripts/wallpaper.sh" aplicar 2>&1; }
+s5b="$(wp5)"; rc5b=$?
+if [ "$rc5b" = 1 ] && [ ! -e "$B5/banidos" ] \
+   && LC_ALL=C grep -qxF -- "só-cópia.png" "$C5/estado/papeis-de-parede/BANIDOS.txt" \
+   && LC_ALL=C grep -qxF -- "$SOCOPIA" "$C5/estado/papeis-de-parede/BANIDOS.txt"; then
+  ok "as cópias só em banidos/, com emoji ou sem, entram no BANIDOS.txt e saem do disco"
+else
+  falha "a etapa das banidas deixou cópia em banidos/ (rc=$rc5b)" "$s5b
+$(find "$B5" | sort)"
+fi
+sha="$(sha256sum "$C5/estado/papeis-de-parede/BANIDOS.txt")"
+s5c="$(wp5 MEOW_DRY_RUN=1)"; rc5c=$?
+s5d="$(wp5)"; rc5d=$?
+[ "$rc5c" = 0 ] && [ "$rc5d" = 0 ] && [ "$sha" = "$(sha256sum "$C5/estado/papeis-de-parede/BANIDOS.txt")" ] \
+  && ok "a segunda passada não escreve nada (ensaio rc=$rc5c, de verdade rc=$rc5d)" \
+  || falha "a segunda passada mexeu de novo (rc=$rc5c $rc5d)" "$s5c
+$s5d"
+
+printf -- '--- 3c. o padrão do repositório só recebe nome que está no FONTES.tsv ---\n'
+R6="$T/raiz-padrao"; raiz_falsa "$R6"; mkdir -p "$R6/.git"
+C6="$T/casa6"; B6="$C6/.local/share/backgrounds/meowsystem"
+mkdir -p "$B6/ativos" "$C6/cosmic"
+png "$B6/ativos/foto-dela.png" dela; png "$B6/ativos/outra.png" outra; png "$B6/ativos/mais.png" mais
+papel "$C6" "$R6/scripts/wallpaper.sh" banir "$B6/ativos/foto-dela.png" >/dev/null 2>&1
+if [ ! -e "$B6/ativos/foto-dela.png" ] && grep -qxF foto-dela.png "$C6/estado/papeis-de-parede/BANIDOS.txt" \
+   && ! grep -qxF foto-dela.png "$R6/packs/meowsystem/wallpapers/BANIDOS.txt.padrao" \
+   && cmp -s "$R6/packs/meowsystem/wallpapers/BANIDOS.txt.padrao" "$RAIZ/packs/meowsystem/wallpapers/BANIDOS.txt.padrao"; then
+  ok "a foto dela some do disco e fica só no BANIDOS.txt dela, sem entrar no padrão que viaja no repositório"
+else
+  falha "a foto dela entrou no BANIDOS.txt.padrao ou não saiu do disco" \
+        "$(diff "$RAIZ/packs/meowsystem/wallpapers/BANIDOS.txt.padrao" "$R6/packs/meowsystem/wallpapers/BANIDOS.txt.padrao")"
+fi
+
+printf -- '--- 3d. o arquivo temporário do programa que some não vira banida ---\n'
+C7="$T/casa7"; B7="$C7/.local/share/backgrounds/meowsystem"
+mkdir -p "$B7/ativos" "$C7/cosmic"
+png "$B7/ativos/um.png" um; png "$B7/ativos/dois.png" dois; png "$B7/ativos/tres.png" tres
+wp7() { papel "$C7" "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
+wp7 >/dev/null
+png "$B7/ativos/.meow.AbC123" temporario
+wp7 >/dev/null
+rm -f "$B7/ativos/.meow.AbC123"
+wp7 >/dev/null
+! grep -qxF .meow.AbC123 "$C7/estado/papeis-de-parede/BANIDOS.txt" 2>/dev/null \
+  && ok "um .meow.XXXXXX que aparece e some em ativos/ não entra no BANIDOS.txt" \
+  || falha "o arquivo temporário virou banida"
+
+printf -- '--- 3e. o BANIDOS.txt.padrao do repositório está limpo e o FONTES.tsv não lista o que ele bane ---\n'
+PADRAO="$RAIZ/packs/meowsystem/wallpapers/BANIDOS.txt.padrao"
+FONTES="$RAIZ/packs/meowsystem/wallpapers/FONTES.tsv"
+lixo="$(grep -v '^#' "$PADRAO" | grep -cE '^$|^\.meow\.|^\.atomicwrite')"
+repetidas="$(grep -v '^#' "$PADRAO" | sort | uniq -d | wc -l)"
+cruzadas="$(awk -F'\t' 'NR == FNR {if ($0 !~ /^#/) b[$0] = 1; next} $1 in b {n++} END {print n + 0}' "$PADRAO" "$FONTES")"
+[ "$lixo" = 0 ] && [ "$repetidas" = 0 ] && [ "$cruzadas" = 0 ] \
+  && ok "o padrão não tem linha vazia, temporário nem repetida, e nenhuma fonte dele está banida" \
+  || falha "o padrão ou o FONTES.tsv sujos (lixo=$lixo repetidas=$repetidas cruzadas=$cruzadas)"
+
 printf -- '--- 4. favoritar e desbanir não existem mais ---\n'
 for v in favoritar desfavoritar desbanir; do
   papel "$C3" "$RAIZ/scripts/wallpaper.sh" "$v" x >/dev/null 2>&1; rc=$?

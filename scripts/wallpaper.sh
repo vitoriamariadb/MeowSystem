@@ -719,7 +719,7 @@ reconciliar_sumicos() {
   local -a agora=() sumidas=()
   local nome n_antes n_agora
 
-  mapfile -t agora < <(find "$ATIVOS" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | LC_ALL=C sort)
+  mapfile -t agora < <(find "$ATIVOS" -maxdepth 1 -type f ! -name '.meow.*' -printf '%f\n' 2>/dev/null | LC_ALL=C sort)
   n_agora="${#agora[@]}"
 
   if [ ! -f "$VISTAS" ]; then
@@ -746,7 +746,7 @@ reconciliar_sumicos() {
 
   local -a novas=()
   for nome in "${sumidas[@]}"; do
-    [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
+    [ -f "$BANIDOS_TXT" ] && LC_ALL=C grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
     novas+=("$nome")
   done
   [ "${#novas[@]}" = "0" ] && { meow_seco || _gravar_vistas ${agora[@]+"${agora[@]}"}; return 0; }
@@ -761,7 +761,7 @@ reconciliar_sumicos() {
     "# BANIDOS.txt — os papéis de parede que você recusou, por nome de arquivo." \
     "# O 'semear' não repõe nada que esteja aqui." > "$BANIDOS_TXT"
   for nome in "${novas[@]}"; do
-    grep -qxF -- "$nome" "$BANIDOS_TXT" || printf '%s\n' "$nome" >> "$BANIDOS_TXT"
+    LC_ALL=C grep -qxF -- "$nome" "$BANIDOS_TXT" || printf '%s\n' "$nome" >> "$BANIDOS_TXT"
   done
   meow_ok "${#novas[@]} imagem(ns) apagada(s) à mão entraram no BANIDOS.txt — o semear não as repõe"
   meow_info "  ${novas[*]}"
@@ -777,12 +777,8 @@ reconciliar_banidos_pasta() {
   local nome
   while IFS= read -r nome; do
     [ -n "$nome" ] || continue
-    [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
+    [ -f "$BANIDOS_TXT" ] && LC_ALL=C grep -qxF -- "$nome" "$BANIDOS_TXT" && continue
     [ -e "$ATIVOS/$nome" ] && continue
-    if printf '%s' "$nome" | grep -qP '[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{FE0F}]' 2>/dev/null; then
-      meow_debug "banidos: '$nome' tem emoji no nome e nao entra no BANIDOS.txt (ADR-011)"
-      continue
-    fi
     novas+=("$nome")
   done < <(find "$BASE/banidos" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | LC_ALL=C sort)
 
@@ -811,7 +807,7 @@ limpar_banidos() {
   local nome p
   if [ -d "$BASE/banidos" ] && [ -f "$BANIDOS_TXT" ]; then
     while IFS= read -r nome; do
-      [ -n "$nome" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && apagar+=("$nome")
+      [ -n "$nome" ] && LC_ALL=C grep -qxF -- "$nome" "$BANIDOS_TXT" && apagar+=("$nome")
     done < <(find "$BASE/banidos" -maxdepth 1 \( -type f -o -type l \) -printf '%f\n' 2>/dev/null | LC_ALL=C sort)
   fi
   [ -d "$BASE/favoritos" ] && [ -z "$(ls -A "$BASE/favoritos" 2>/dev/null)" ] && sair+=("$BASE/favoritos")
@@ -1069,9 +1065,13 @@ cmd_banir() {
   local padrao="$RAIZ/packs/meowsystem/wallpapers/BANIDOS.txt.padrao"
   local checkout=0
   [ -e "$RAIZ/.git" ] && checkout=1
+  local na_fonte=0
+  if [ "$checkout" = 1 ] && [ -f "$fontes" ] && N="$nome" awk -F'\t' '$1 == ENVIRON["N"] {a = 1} END {exit !a}' "$fontes"; then
+    na_fonte=1
+  fi
   if meow_seco; then
     meow_muda "apagaria $nome (${#onde[@]} arquivo(s)) e o poria em $(basename "$BANIDOS_TXT")"
-    [ "$checkout" = 1 ] && meow_muda "tiraria $nome do FONTES.tsv e o poria no BANIDOS.txt.padrao do repositório"
+    [ "$na_fonte" = 1 ] && meow_muda "tiraria $nome do FONTES.tsv e o poria no BANIDOS.txt.padrao do repositório"
     return "$MEOW_DIVERGENTE"
   fi
   for alvo in "${onde[@]}"; do rm -f -- "$alvo" || return "$MEOW_ERRO"; done
@@ -1081,20 +1081,20 @@ cmd_banir() {
       "# BANIDOS.txt — os papéis de parede que você recusou, por nome de arquivo." \
       "# O 'meow wallpaper banir' acrescenta aqui; o 'semear' não repõe o que está listado." \
       > "$BANIDOS_TXT"
-    grep -qxF -- "$nome" "$BANIDOS_TXT" || printf '%s\n' "$nome" >> "$BANIDOS_TXT"
+    LC_ALL=C grep -qxF -- "$nome" "$BANIDOS_TXT" || printf '%s\n' "$nome" >> "$BANIDOS_TXT"
   else
     meow_aviso "não achei $pasta_lista — a recusa de $nome vale só nesta máquina"
   fi
   if [ "$checkout" = 1 ]; then
-    if [ -f "$fontes" ] && N="$nome" awk -F'\t' '$1 == ENVIRON["N"] {a = 1} END {exit !a}' "$fontes"; then
+    if [ "$na_fonte" = 1 ]; then
       local tmp; tmp="$(mktemp -p "$(dirname "$fontes")" ".atomicwrite.meow.XXXXXX")" || return "$MEOW_ERRO"
       N="$nome" awk -F'\t' '$1 != ENVIRON["N"]' "$fontes" > "$tmp" && mv -f "$tmp" "$fontes" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
     fi
-    if [ -f "$padrao" ] && ! grep -qxF -- "$nome" "$padrao" && ! LC_ALL=C grep -q '[^ -~]' <<< "$nome"; then
+    if [ "$na_fonte" = 1 ] && [ -f "$padrao" ] && ! LC_ALL=C grep -qxF -- "$nome" "$padrao"; then
       [ -n "$(tail -c1 "$padrao")" ] && printf '\n' >> "$padrao"
       printf '%s\n' "$nome" >> "$padrao"
     fi
-    meow_info "  no repositório: fora do FONTES.tsv e no BANIDOS.txt.padrao, sem commit"
+    [ "$na_fonte" = 1 ] && meow_info "  no repositório: fora do FONTES.tsv e no BANIDOS.txt.padrao, sem commit"
   fi
   meow_ok "apagada: $nome"
   meow_registrar "wallpaper.sh banir: $nome"
@@ -1279,7 +1279,7 @@ BANIDOS_TXT="${WALLPAPER_BANIDOS:-$(meow_estado_com_padrao papeis-de-parede BANI
 esta_banida() {
   local nome="$1"
   [ -e "$BASE/banidos/$nome" ] && return 0
-  [ -f "$BANIDOS_TXT" ] && grep -qxF -- "$nome" "$BANIDOS_TXT" && return 0
+  [ -f "$BANIDOS_TXT" ] && LC_ALL=C grep -qxF -- "$nome" "$BANIDOS_TXT" && return 0
   return 1
 }
 

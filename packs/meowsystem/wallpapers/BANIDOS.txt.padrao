@@ -33,15 +33,12 @@
 #   O contrato inteiro esta em `meow_estado_com_padrao` (`lib/comum.sh`),
 #   inclusive o porque de ser semente e nao sobreposicao.
 #
-# SO NOMES ASCII ENTRAM NESTA LISTA, E ISSO E DE PROPOSITO
-#   O pre-commit dela (ADR-011) reprova emoji em arquivo versionado, e um
-#   nome de arquivo do mundo real pode ter qualquer coisa dentro -- uma das
-#   imagens da pasta pessoal dela tem dois emojis no nome. Brigar com o
-#   sanitizer por causa de DADO seria briga eterna.
-#   O que protege esses casos e a pasta `banidos/` no disco, que o
-#   `esta_banida` consulta antes desta lista. A lista existe para o que as
-#   RECEITAS podem repor (a colecao Catppuccin e o FONTES.tsv), e esses
-#   nomes sao todos ASCII.
+# SO ENTRA NESTA LISTA O QUE O FONTES.TSV PODE REPOR
+#   O `cmd_banir` acrescenta aqui apenas o nome que estava no FONTES.tsv (e o
+#   tira de la): e a receita que uma maquina nova baixaria de volta. Foto da
+#   pasta pessoal dela, com emoji, acento ou espaco no nome, fica so na lista
+#   VIVA e na pasta `banidos/`; a etapa das banidas trata o nome como bytes e
+#   apaga a copia.
 _ (1).jpeg
 _ (2).jpeg
 _ (3).jpeg
@@ -299,26 +296,15 @@ meow-lofi-lofi-nrdpkq.jpg
 meow-atmosfera-calma-5wel85.png
 meow-lofi-lofi-9djwv8.png
 meow-lofi-lofi-kxkw1m.jpg
-
-.meow.vVfrJ7
 drac-illustrations-cat-and-bats-dracula-cat-282a36.png
 drac-leaves-dracula-leaves-44475a.png
 drac-maps-portolans-dracula-portolans-ff79c6.png
-.meow.8CaeF1
 meow-atmosfera-calma-1ky673.png
 meow-atmosfera-calma-28zr39.jpg
-.meow.FudcRO
 meow-atmosfera-calma-5d1yy9.jpg
 meow-atmosfera-calma-odk3x9.jpg
-.meow.1izCOD
-.meow.CFe3q9
-.meow.DYlcEi
-.meow.4lzvtx
-.meow.2Tqyma
-.meow.7x7r8D
 drac-soft-waves-dracula-soft-waves-44475a.png
 drac-spooky-minimal-dracula-spooky-44475a.png
-.meow.6DwSfx
 drac-illustrations-cat-and-bats-dracula-cat-6272a4.png
 drac-leaves-dracula-leaves-6272a4-dark.png
 drac-soft-waves-dracula-soft-waves-6272a4.png
@@ -330,7 +316,6 @@ meow-atmosfera-pintada-21gj1y.png
 meow-atmosfera-pintada-21klpm.png
 meow-atmosfera-silh-nz61qv.png
 meow-atmosfera-silh-ode73l.jpg
-.meow.FsQ0Nt
 drac-illustrations-cat-and-bats-dracula-cat-bd93f9.png
 drac-leaves-dracula-leaves-6272a4.png
 drac-waves-dracula-waves-6272a4.png
