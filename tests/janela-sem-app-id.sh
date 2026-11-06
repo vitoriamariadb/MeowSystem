@@ -81,6 +81,9 @@ grep -qF 'janela sem app_id' <<< "$saida" && grep -qF 'compartilhando sua tela' 
   && ok "o --conferir aponta a barra" || falha "o doctor não apontou a barra: $saida"
 grep -F 'teams.cloud' <<< "$saida" | grep -qiE 'cole|rode|digite' && falha "a linha manda digitar: $saida" || ok "a linha só aponta"
 grep -q "app_id '-'" <<< "$saida" && falha "o traço virou app_id: $saida" || ok "o traço não vira app_id a casar"
+cabeca="$(ambiente bash -c 'RAIZ="$1"; eval "$(sed -n "/^chk_janeladock()/,/^}/p" "$RAIZ/bin/meow")"; chk_janeladock' _ "$RAIZ" 2>&1 | head -1)"
+grep -qE '^[[:space:]]*!![[:space:]]+janela sem app_id' <<< "$cabeca" \
+  && ok "o meow doctor mostra a janela: com rc 0, só o aviso na cabeça aparece" || falha "o aviso não está na cabeça do doctor: $cabeca"
 
 echo "== o patch"
 grep -qE '^req[[:space:]]+cosmic-comp-app-id-do-cliente\.patch[[:space:]]+AURORA-APP-ID-CLIENTE$' "$RAIZ/patches/series" \
@@ -90,14 +93,50 @@ grep -qF '"AURORA-APP-ID-CLIENTE-1"' "$PATCH" && grep -q '^+#\[used\]' "$PATCH" 
 grep -q '^+            WindowSurface::X11(_) => None,' "$PATCH" \
   && ok "X11 fica de fora: todas as janelas X11 são do mesmo cliente" || falha "X11 entrou na herança"
 grep -E '^\+' "$PATCH" | grep -qiE 'chrome|teams' && falha "o patch cita um app" || ok "o código do patch não cita app nenhum"
+grep -A2 '^+.*new_toplevel::<D>($' "$PATCH" | grep -q 'herdado' \
+  && ok "a janela nasce com o herdado: a dock a agrupa no Add" || falha "new_toplevel não anuncia o herdado"
+grep -qE '^[ +-][[:space:]]*pub fn refresh' "$PATCH" \
+  && falha "o patch mexe no refresh: mudar o app_id depois apaga da dock as janelas com ele" \
+  || ok "o app_id não muda depois do anúncio: o Update da dock não apaga as irmãs"
+[ "$(grep -c '^+.*app_id_herdado = ' "$PATCH")" = 1 ] && ok "a herança é gravada num ponto só" || falha "a herança é gravada em mais de um ponto"
 
 echo "== a herança, compilada do próprio patch"
 export RUSTUP_HOME="${RUSTUP_HOME:-${SUITE_CASA_REAL:-$HOME}/.rustup}"
 if ! rustc --version >/dev/null 2>&1; then
   pula "sem rustc nesta máquina: a herança não foi compilada"
 else
-  { sed -n '/^+fn app_id_do_irmao/,/^+}/p' "$PATCH" | sed 's/^+//'
+  { sed -n '/^+fn app_id_do_irmao/,/^+}/p;/^+fn app_id_herdado/,/^+}/p' "$PATCH" | sed 's/^+//'
     cat <<'RS'
+trait Window {
+    fn app_id(&self) -> String;
+    fn client_id(&self) -> Option<u32>;
+    fn alive(&self) -> bool;
+}
+struct J(&'static str, Option<u32>, bool);
+impl Window for J {
+    fn app_id(&self) -> String {
+        self.0.to_string()
+    }
+    fn client_id(&self) -> Option<u32> {
+        self.1
+    }
+    fn alive(&self) -> bool {
+        self.2
+    }
+}
+#[test]
+fn janela_nova_herda_da_irma_viva() {
+    let irmas = [J("morta", Some(1), false), J("google-chrome", Some(1), true)];
+    assert_eq!(app_id_herdado(&J("", Some(1), true), &irmas), Some("google-chrome".to_string()));
+}
+#[test]
+fn janela_com_app_id_proprio_nao_herda() {
+    assert_eq!(app_id_herdado(&J("outro", Some(1), true), &[J("google-chrome", Some(1), true)]), None);
+}
+#[test]
+fn janela_x11_nao_herda() {
+    assert_eq!(app_id_herdado(&J("", None, true), &[J("google-chrome", None, true)]), None);
+}
 fn irmas() -> Vec<(Option<u32>, String)> {
     vec![
         (Some(1), String::new()),

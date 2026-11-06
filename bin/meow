@@ -656,8 +656,9 @@ chk_ocultarcasa() {
 chk_janeladock() {
   local saida rc
   saida="$(MEOW_DRY_RUN=1 "$RAIZ/scripts/appid_dock.sh" --conferir 2>&1)"; rc=$?
+  printf '%s\n' "$saida" | grep -F 'janela sem app_id'
   printf '%s\n' "$saida" | tail -n 1
-  printf '%s\n' "$saida" | sed '$d'
+  printf '%s\n' "$saida" | sed '$d' | grep -vF 'janela sem app_id'
   return "$rc"
 }
 

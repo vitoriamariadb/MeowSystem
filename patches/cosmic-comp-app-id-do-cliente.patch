@@ -6,6 +6,11 @@
 # cliente, sem lista de nomes. A barra de compartilhar do Chrome é a medida de
 # 06/11/2026: app_id vazio, engrenagem na dock como app separado.
 #
+# A herança acontece uma vez, em new_toplevel, e não no refresh. A janela já nasce
+# com o app_id certo, e a dock a agrupa no Add. Mudar o app_id de uma janela já
+# anunciada dispararia o Update do cosmic-app-list (6f89bfa, app.rs), cujo retain
+# tira da dock toda janela com aquele app_id: as janelas do Chrome sumiriam dela.
+#
 # Só o anúncio em toplevel_info e ext_foreign_toplevel muda: as regras de janela
 # seguem lendo o app_id próprio. O herdado fica na janela, para ela não virar
 # órfã quando a última irmã com app_id fecha. X11 fica de fora, porque todas as
@@ -43,7 +48,7 @@
      }
 --- a/src/wayland/protocols/toplevel_info.rs
 +++ b/src/wayland/protocols/toplevel_info.rs
-@@ -32,9 +32,40 @@
+@@ -32,9 +32,37 @@
  };
  use tracing::error;
  
@@ -60,21 +65,18 @@
 +        .map(|(_, app_id)| app_id)
 +}
 +
-+fn herdar_app_ids<W: Window>(toplevels: &[W]) {
-+    let vivas = || toplevels.iter().filter(|janela| janela.alive());
-+    for janela in vivas().filter(|janela| janela.app_id().is_empty()) {
-+        let Some(cliente) = janela.client_id() else {
-+            continue;
-+        };
-+        let herdado = app_id_do_irmao(
-+            &cliente,
-+            vivas().map(|irma| (irma.client_id(), irma.app_id())),
-+        );
-+        if let (Some(herdado), Some(estado)) = (herdado, janela.user_data().get::<ToplevelState>())
-+        {
-+            estado.lock().unwrap().app_id_herdado = Some(herdado);
-+        }
++fn app_id_herdado<W: Window>(janela: &W, toplevels: &[W]) -> Option<String> {
++    if !janela.app_id().is_empty() {
++        return None;
 +    }
++    let cliente = janela.client_id()?;
++    app_id_do_irmao(
++        &cliente,
++        toplevels
++            .iter()
++            .filter(|irma| irma.alive())
++            .map(|irma| (irma.client_id(), irma.app_id())),
++    )
 +}
 +
  pub trait Window: IsAlive + Clone + PartialEq + Send {
@@ -84,7 +86,7 @@
      fn is_activated(&self) -> bool;
      fn is_maximized(&self) -> bool;
      fn is_fullscreen(&self) -> bool;
-@@ -74,6 +105,7 @@
+@@ -74,6 +102,7 @@
      outputs: Vec<Output>,
      workspaces: Vec<WorkspaceHandle>,
      pub(super) rectangles: Vec<(Weak<WlSurface>, Rectangle<i32, Logical>)>,
@@ -92,15 +94,31 @@
  }
  pub(super) type ToplevelState = Mutex<ToplevelStateInner>;
  
-@@ -384,6 +416,8 @@
-     pub fn refresh(&mut self, workspace_state: &WorkspaceState<D>) {
-         let mut dirty = std::mem::replace(&mut self.dirty, false);
+@@ -338,9 +367,11 @@
+     }
  
-+        herdar_app_ids(&self.toplevels);
-+
-         self.toplevels.retain(|window| {
-             let mut state = window
+     pub fn new_toplevel(&mut self, toplevel: &W, workspace_state: &WorkspaceState<D>) {
+-        let toplevel_handle = self
+-            .foreign_toplevel_list
+-            .new_toplevel::<D>(toplevel.title(), toplevel.app_id());
++        let herdado = app_id_herdado(toplevel, &self.toplevels);
++        let toplevel_handle = self.foreign_toplevel_list.new_toplevel::<D>(
++            toplevel.title(),
++            herdado.clone().unwrap_or_else(|| toplevel.app_id()),
++        );
+ 
+         if let Some(toplevel_state) = toplevel.user_data().get::<ToplevelState>() {
+             let mut toplevel_state = toplevel_state.lock().unwrap();
+@@ -350,6 +381,9 @@
                  .user_data()
+                 .insert_if_missing(move || ToplevelStateInner::from_foreign(toplevel_handle));
+         }
++        if let Some(toplevel_state) = toplevel.user_data().get::<ToplevelState>() {
++            toplevel_state.lock().unwrap().app_id_herdado = herdado;
++        }
+ 
+         for instance in &self.instances {
+             send_toplevel_to_client::<D, W>(&self.dh, workspace_state, instance, toplevel);
 @@ -504,7 +538,11 @@
      let mut changed = false;
  
