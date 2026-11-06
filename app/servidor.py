@@ -597,9 +597,19 @@ def _url_de_svg(texto):
     return "data:image/svg+xml;charset=utf-8," + quote(texto, safe="")
 
 
+def _cor_de_seis(hexa, *rgb):
+    if not hexa:
+        return "#%02x%02x%02x" % tuple(min(int(v), 255) for v in rgb)
+    hexa = hexa.lower()
+    return "#" + (hexa if len(hexa) == 6 else "".join(c * 2 for c in hexa))
+
+
 def _cores_do_traco(texto):
-    achadas = re.findall(r'(?:stroke|fill)="(#[0-9a-fA-F]{6})"', texto or "")
-    return sorted({c.lower() for c in achadas})[:16]
+    achadas = re.findall(
+        r'(?:stroke|fill|stop-color)\s*[=:]\s*["\']?\s*'
+        r'(?:#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![0-9a-fA-F])|rgb\((\d+),\s*(\d+),\s*(\d+)\))',
+        texto or "")
+    return sorted({_cor_de_seis(*c) for c in achadas})
 
 
 def _previa_para_a_tela(previa):
