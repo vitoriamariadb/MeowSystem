@@ -476,6 +476,23 @@ confere "o estado diz desligado" 'grep -qx estado=desligado "$T/saida"'
 GRAFICOS_T=nao graf pendente
 confere "desligado não entra na fila de build" '[ ! -s "$T/saida" ]'
 
+printf '\n18b. o meow graficos grava a escolha, para o doctor das 5h não desfazer\n'
+meow_g() { env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR HOME="$CASA" PATH="$FALSO:$PATH" NO_COLOR=1 LC_ALL=C MEOW_ESTADO="$ESTADO" \
+    MEOW_CONF="$CASA/.config/meow/meow.conf" MEOW_PONTE="$PONTE" GR_REPO="$T/patches" GR_SERIE="$T/patches/graficos.series" GR_VERSOES="$T/patches/graficos.versao" \
+    GR_POLICY="$POLICY" GR_PROC="$PROC" GR_ESPACO_KB=1 "$RAIZ/bin/meow" graficos "$@" > "$T/saida" 2>&1; }
+printf 'GRAFICOS="sim"\n' > "$CASA/.config/meow/meow.conf"
+meow_g aplicar; rc=$?
+confere "aplicar pela CLI liga tudo e mantém sim" '[ -e "$DROPIN" ] && [ -f "$POLICY" ] && grep -qx "GRAFICOS=\"sim\"" "$CASA/.config/meow/meow.conf"' "$(cat "$T/saida")"
+meow_g reverter; rc=$?
+confere "reverter pela CLI tira tudo e grava nao" '[ ! -e "$DROPIN" ] && [ ! -e "$POLICY" ] && grep -qx "GRAFICOS=\"nao\"" "$CASA/.config/meow/meow.conf"' "$(cat "$T/saida")"
+meow_g conferir; rc=$?
+confere "depois do reverter o conferir fica calmo (o doctor não reaplica)" '[ "$rc" = 0 ] && [ ! -e "$DROPIN" ]' "$(cat "$T/saida")"
+meow_g aplicar; rc=$?
+confere "aplicar pela CLI volta a sim e liga de novo" '[ -e "$DROPIN" ] && [ -f "$POLICY" ] && grep -qx "GRAFICOS=\"sim\"" "$CASA/.config/meow/meow.conf"' "$(cat "$T/saida")"
+meow_g compilar; rc=$?
+confere "a CLI não compila fora da trava dos builds" '[ "$rc" = 2 ]' "$(cat "$T/saida")"
+meow_g reverter; rm -f "$CASA/.config/meow/meow.conf"
+
 printf '\n19. sem o pacote do portal: nada a fazer, sem escrever\n'
 versoes "google-chrome-stable=146.0"
 rm -f "$DROPIN"; rm -rf "$ETC/opt"

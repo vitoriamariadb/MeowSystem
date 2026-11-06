@@ -1288,7 +1288,6 @@ fix_extensoestema() { FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/e
 fix_patches()    { "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1; local rc=$? r; "$RAIZ/scripts/compositor_patches.sh" cuidar 2>&1; r=$?; case "$r" in 1) [ "$rc" = 0 ] && rc=1 ;; 2) rc=2 ;; esac; _patches_shim_falta || return "$rc"; "$RAIZ/scripts/compositor_patches.sh" ativar 2>&1; }
 
 fix_graficos()  { GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1
-                  GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/graficos.sh" cuidar 2>&1
                   GR_COMPILAR=nao GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/graficos.sh" aplicar 2>&1; }
 
 fix_painel()    {
@@ -2974,7 +2973,7 @@ cmd_ajuda() {
 
   meow graficos [--seco]       confere o portal de compartilhar tela e a policy do Chrome
   meow graficos aplicar        compila o portal com os patches, liga o shim e a policy
-  meow graficos reverter       devolve o portal e a policy ao pacote
+  meow graficos reverter       devolve o portal e a policy ao pacote, e fica assim
 
   meow abrir                   abre o painel de configuração no navegador
                                (127.0.0.1, porta efêmera, token de sessão) — é a
@@ -3393,14 +3392,20 @@ despachar() {
       [ "${1:-}" = "--seco" ] && { seco_g=1; shift; }
       verbo_g="${1:-conferir}"
       case "$verbo_g" in
-        aplicar|reverter|compilar) [ "$seco_g" = 1 ] || meow_travar || exit "$MEOW_ERRO" ;;
+        aplicar|reverter)
+          if [ "$seco_g" != 1 ]; then
+            meow_travar || exit "$MEOW_ERRO"
+            if [ "$verbo_g" = aplicar ]; then GRAFICOS=sim; else GRAFICOS=nao; fi
+            meow_conf_definir GRAFICOS "$GRAFICOS"
+            [ "$?" != "$MEOW_ERRO" ] || exit "$MEOW_ERRO"
+          fi ;;
         conferir|validar|estado) ;;
         -h|--help|ajuda)
           meow_titulo "meow graficos"
           printf '  meow graficos [--seco]   confere o portal, o shim, o drop-in e a policy do Chrome\n'
           printf '  meow graficos aplicar    compila o portal da versão instalada com a série de patches/graficos.series,\n'
           printf '                           liga o shim e o drop-in e põe a policy do Chrome (se há Chrome)\n'
-          printf '  meow graficos reverter   tira o drop-in, o shim e a policy: o portal volta ao do pacote\n'
+          printf '  meow graficos reverter   tira o drop-in, o shim e a policy e grava GRAFICOS="nao": o portal volta ao do pacote\n'
           printf '  meow graficos validar    baixa o fonte e só roda o dry-run da série nele\n'
           exit 0 ;;
         *) meow_erro "verbo desconhecido: $verbo_g"; meow_info "veja: meow graficos --help"; exit "$MEOW_ERRO" ;;
