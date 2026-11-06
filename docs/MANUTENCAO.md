@@ -65,14 +65,16 @@ campos separados por tabulação: id, categoria, caminho (com `$MEOW_ESTADO`, `$
 `$MEOW_RAIZ`, alternativas separadas por `|`), nome curto, minutos para refazer, teto em MB, corte,
 o que o desinstalar faz (`sim`, `nao`, `passo` ou `backups`) e a dica da tela. A categoria é
 `reconstruível`, `backup` ou `de quem usa`. O corte é `unidades` (artefatos do cargo por idade e por
-teto), `versoes:N` (o cache do build em uso e dos mais novos), `guardados:N` (o que já está pronto ou baixado, por versão do pacote), `ocioso`, `orfao`, `rotacao:dias:quantas` ou `nunca`.
+teto), `versoes:N` (o cache do build em uso e dos mais novos), `guardados:N` (o que já está pronto ou baixado, por versão do pacote), `recentes:N` (as N revisões usadas por último, sem versão de pacote para comparar), `ocioso` (parada há dias e, com teto, o mais antigo sai primeiro), `orfao`, `rotacao:dias:quantas` ou `nunca`.
 `tests/espaco.sh` cobra que todo caminho que o código escreve tenha dono nesse arquivo.
 
-- **No fim de cada build** de applet, o que não serve ao build atual sai do `.target`.
+- **No fim de cada build** de applet, o que não serve ao build atual sai do `.target`; o fim do build do
+  compositor e do menu do Arquivos passa pelos mesmos tetos, sem esperar o doctor.
 - **No doctor**, a linha `disco` mede o Meow; acima do teto o conserto corta, e com o disco em 85% ou mais os
   tetos caem pela metade.
 - **Nunca** se corta o que é de quem usa, o build em uso, nem durante um build (a `builds.lock` e a trava
-  `.cargo-lock` do cargo).
+  `.cargo-lock` do cargo). Quem corta segura a `builds.lock` do primeiro corte ao último; o build que já a
+  segura entrega o fd em `ESPACO_TRAVA_FD`.
 - **`meow espaco`** mostra o peso por categoria; **`meow espaco liberar`** (o botão Liberar da aba Espaço,
   em Extensões) tira tudo o que se reconstrói, e o próximo build compila de novo.
 - **Desinstalar** apaga o estado, o cache, os builds e os backups e diz quanto liberou. Os temas, as
