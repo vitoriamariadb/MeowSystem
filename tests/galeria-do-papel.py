@@ -98,6 +98,26 @@ def main():
             base = os.path.dirname(ativos)
             checa(not os.path.exists(os.path.join(ativos, alvo)) and anotada and not os.path.isdir(os.path.join(base, "banidos")),
                   f"o «Apagar» tira {alvo} do disco, sem banidos/, e o nome vai para o BANIDOS.txt")
+            sem_previa = []
+            pag.on("response", lambda r: sem_previa.append(r.url) if r.status == 404 and "/previa" in r.url else None)
+            outra = os.path.join(casa.BRINQUEDO, "sem-papel")
+            pag.evaluate("(base) => gravarAgora({ WALLPAPER_BASE: base })", outra)
+            pag.wait_for_function("() => !EM_VOO", timeout=60000)
+            for _vez in range(3):
+                pag.evaluate("() => render()")
+                pag.wait_for_timeout(400)
+            checa(pag.evaluate("() => document.querySelectorAll('.galeria figure').length") == 0,
+                  "mudar a pasta dos papéis refaz a galeria, e a pasta vazia não deixa imagem velha")
+            velhas = pag.evaluate("""async () => { const l = previasDe('parede', 'ativos');
+                const urls = ((l && l.itens) || []).map((i) => i.url);
+                return Promise.all(urls.map((u) => fetch(u).then((r) => r.status))); }""")
+            checa(404 not in velhas and not sem_previa,
+                  f"nenhuma prévia da pasta antiga fica pedindo 404 (lista: {velhas}; respostas: {len(sem_previa)})")
+            pag.evaluate("() => desfazerTudo()")
+            pag.wait_for_function("(n) => document.querySelectorAll('.galeria figure img').length === n",
+                                  arg=casa.PAREDES - 1, timeout=60000)
+            pag.wait_for_timeout(600)
+            checa(not sem_previa, f"o Desfazer traz a pasta de volta sem 404 ({len(sem_previa)} respostas)")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:

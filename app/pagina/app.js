@@ -340,6 +340,7 @@ async function enviarLote(lote, antes, chaves, opc, numero) {
     render();
     return false;
   }
+  if (certas.includes("WALLPAPER_BASE")) for (const k of [...PREVIAS.keys()]) if (k.startsWith("parede/")) PREVIAS.delete(k);
   const itens = chaves.filter((c) => String(antes[c]) !== String(lote[c]))
     .map((c) => ({ chave: c, antes: antes[c], depois: String(lote[c]) }));
   if (opc.historico !== false && itens.length) {
