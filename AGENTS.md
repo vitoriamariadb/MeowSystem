@@ -48,7 +48,8 @@ Pulado não é verde. Toda afirmação precisa de prova rodada.
   sobre o tema.
 - O doctor corrige; nenhuma saída manda digitar. Interface mostra, não explica.
 - Pack é dado. A arte mora no pack.
-- Não rode `install.sh`, `meow compositor` nem `meow doctor --consertar` com o HOME real.
+- Agente não roda `install.sh`, `meow compositor` nem `meow doctor --consertar` com o HOME real; quem coordena a
+  sessão (o orquestrador) pode.
 - Senha nunca vai para arquivo, commit ou documento.
 - Commit pequeno, por caminho (nunca `git add -A`), em português.
 
