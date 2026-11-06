@@ -61,3 +61,56 @@ Avaliar antes se o `cosmic-comp` guarda o cliente da janela no ponto em que anun
 1. Compartilhar tela: a dock mostra só o Chrome, sem engrenagem.
 2. `appid_sonda.py --janelas` lista a barra.
 3. Fechar a última janela normal do Chrome com a barra aberta não deixa ícone órfão.
+
+## Execução
+
+Avaliado antes de codar: o compositor guarda o cliente nesse ponto. `toplevel.wl_surface().client()` dá o cliente, e `ToplevelInfoState.toplevels` tem todas as janelas. A opção 1 entrou.
+
+Commit 4340c21c:
+
+- `patches/cosmic-comp-app-id-do-cliente.patch`, marcador `AURORA-APP-ID-CLIENTE-1`. Janela Wayland sem `app_id` anuncia o de outra janela viva do mesmo cliente, sem lista de nomes. O herdado fica na janela, então fechar a última irmã com `app_id` não deixa ícone órfão.
+- Só o anúncio muda (`toplevel_info` e `ext_foreign_toplevel`). As regras de janela e os ícones de aba seguem no `app_id` próprio.
+- X11 fica de fora: todas as janelas X11 são do mesmo cliente, o Xwayland.
+- `appid_sonda.py --janelas` lista a janela sem `app_id` com `-` no campo, porque `read` com tab como IFS engoliria o campo vazio e o título viraria `app_id`.
+- `appid_dock.sh` aponta a janela no doctor, sem mandar digitar.
+- `_gb_comp_velho` conta como velho o build que não tem linha de um patch da série. Sem isso, o patch novo só entraria no próximo apt.
+
+Provas:
+
+```
+sem-workspace-vazio F0
+raio-clampado F0
+menu-clique-curto F0
+modo-leitura F0
+blur-cache-textura F0
+checking file src/wayland/handlers/toplevel_info.rs
+checking file src/wayland/protocols/toplevel_info.rs
+rc=0
+```
+
+Esse é o dry-run `-F0` sobre o fonte de fábrica do ec674cd, com a série aplicada antes.
+
+```
+Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 31s
+Finished `release` profile [optimized] target(s) in 10m 24s
+AURORA-APP-ID-CLIENTE-1
+AURORA-BLUR-CACHE-1
+AURORA-COSMIC-MENU-PATCH-2
+AURORA-COSMIC-RADIUS-PATCH-2
+AURORA-COSMIC-WS-PATCH-3.67
+AURORA-READING-MODE-2
+cosmic-comp 1.0.0 (git commit 51757d66f67a0cf7aee0167afe18a6bb77029c8d)
+fumaca=0
+```
+
+`tests/janela-sem-app-id.sh` (compositor falso no socket, HOME temporário), `rc=0`: a sonda lista a barra, o doctor a aponta, e a função `app_id_do_irmao` é extraída do patch e compilada com `rustc --test`.
+
+O patch entrou como `req`, e isso não cumpre sozinho o «não pode barrar a sessão» pedido ao bloco. Se ele deixar de aplicar num apt futuro, é degrau 4: sem build, e a sessão fica na fábrica. `opt` desfaria a decisão dela de 28/09, «tudo tem que ser obrigatório», guardada em `tests/decisoes.sh`, e só com sim explícito. Sem esse sim, a decisão anterior vale (GSD 1). Para virar `opt` depois: a linha da `series`, a guarda da P100, a seção 7 do `LEIA-ME` e o `conferir`, que hoje trata `opt` ausente como divergência sem conserto.
+
+Da mão de quem usa, depois do install e do reboot:
+
+1. Compartilhar tela: a dock mostra só o Chrome, sem engrenagem.
+2. `appid_sonda.py --janelas` lista a barra com o `app_id` do Chrome.
+3. Fechar a última janela normal do Chrome com a barra aberta não deixa ícone órfão.
+
+A confirmação com `WAYLAND_DEBUG=client` num Chrome à parte não foi feita: o patch não depende dela.

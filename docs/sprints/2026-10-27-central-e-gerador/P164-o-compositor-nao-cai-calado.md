@@ -36,3 +36,49 @@ Reescrever o trecho da P154 e as entradas de `patches/LEIA-ME.txt` e `tests/etap
 1. Simular apt com degrau 2 em HOME temporário: o build entra sem `liberar`, e o shim o escolhe.
 2. Build que cai duas vezes no início volta à fábrica.
 3. `meow doctor` conserta sozinho quando a sessão está em binário diferente do esperado, sem mandar digitar.
+
+## Execução
+
+| item | commit | o que ficou |
+|---|---|---|
+| 1, liberar sozinho | 1e6b201b | `retido`, `liberar` e «Em observação» saem. O shim só olha `ruim`, `req` e fumaça. O doctor renova o shim velho (`cuidar`) e apaga as marcas antigas `retido` e `liberado` |
+| 2, `-F1` no estado | 1e6b201b | linha `contexto=` no `estado`; o `conferir` diz quais patches entraram com o contexto mudado |
+| 3, queda fora do código | 8b9cc289 | avaliado e feito: queda a até 5 s de `ring … timeout` ou `GPU HANG` no kernel não consome o build. O shim não muda: duas partidas curtas e volta à fábrica |
+| 4, fora da tela | 1e6b201b | saem os cartões `compositor-caiu` e `patch-obrigatorio` e as pílulas «Falhou» e «Não encaixa» do cartão do compositor, que passa a dizer «Não instalada». Fica no `meow.log` e no `conferir`. `docs/ESTADO-FINAL.md` reescrito |
+| 5, `patches/versao` | 31f3e852 | ec674cd. O `tests/numeros.sh` compara com a matriz, e o gancho de commit corrige sozinho |
+| 6, decisão 55 | 1e6b201b | no mesmo commit do código, com prova em `tests/decisoes.sh` |
+
+Medido no journal real, só leitura, sobre o build 8cb1802 de 05/11:
+
+```
+resets: 1793848697 1793850193
+quedas com o filtro: 0
+quedas sem o filtro: 6
+```
+
+O `coredumpctl` sem resposta deixou de contar como registro lido. Era isso que deixava vermelho, na base, o caso «sem registro legível» do `tests/compositor-shim.sh`.
+
+Provas, no molde do `tests/todos.sh`, HOME temporário e `sudo registrado: 0`:
+
+```
+compositor-shim.sh rc=0  compositor-shim: tudo certo
+garantir-builds.sh rc=0  garantir-builds: tudo certo
+etapa-compositor.sh rc=0  etapa-compositor: tudo verde
+patch-que-sobe.sh rc=0  patch-que-sobe: tudo certo
+precisa-de-gente.sh rc=0  precisa-de-gente: tudo certo
+extensoes.sh rc=0  extensoes.sh: tudo verde
+extensoes-pagina.py rc=0  103 conferências
+manter-sem-pendencias.py rc=0
+doctor-veredito.sh rc=0  passou: o doctor corrige, e o veredito é o pior estado
+nada-manda-digitar.sh rc=0  passou: nada manda digitar
+```
+
+- Prova 1: `tests/etapa-compositor.sh`, seção 6: degrau 2 no compilar, sem `liberar`, e o shim escolhe o build.
+- Prova 2: `tests/compositor-shim.sh`, «a guarda de queda»: o 3º início volta à fábrica.
+- Prova 3: `tests/compositor-shim.sh`, «P164 1»: shim velho, `conferir` sai 1, `cuidar` renova sem mandar digitar, a segunda passada sai 0.
+
+`tests/decisoes.sh` sai 1 aqui por dois motivos, nenhum do bloco: `.gitignore` com comentário, vermelho na base, e «o registro pulou ou repetiu número», porque a 54 é de outro bloco e só fecha na integração.
+
+Sessão em binário de fábrica com build bom, sem shim velho, não tem conserto sem novo login: o `conferir` diz «vale no próximo login» e sai 0.
+
+Da mão de quem usa, depois do install e do reboot: `meow compositor qual` aponta o build, e a sessão tem os marcadores.
