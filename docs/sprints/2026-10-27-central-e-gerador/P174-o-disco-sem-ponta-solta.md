@@ -40,6 +40,16 @@ Provas literais:
 - `etapa-compositor.sh`, `compositor-shim.sh`, `garantir-builds.sh`, `orfaos.sh`, `portabilidade.sh`, `higiene.sh`, `seco.sh`, `arvore.sh`, `acento.sh`, `estilo.sh` e `sem-receita-no-log.sh` terminam verdes.
 - `decisoes.sh` tem 1 falha, `o registro pulou ou repetiu número`, igual com e sem este diff: o registro pula a 54.
 
+Conferência, com o que mudou:
+
+- O teste do fim de build só procurava o nome da função nos scripts. Trocado pelo build de brinquedo de verdade, em `tests/espaco.sh` seção 7b2: `compositor_patches.sh compilar` e `files_menu.sh build`, filhos de um processo com a trava no fd 9, cortam e não esperam por si mesmos; o menu segue instalado depois da limpeza.
+- `cmd_compilar` saía sem limpar quando o binário compilado era igual ao guardado (`nada a instalar`). Agora limpa nesse caminho também.
+- Cortar revisão antiga do oráculo prometia `refaz em ~3 min` sem nada a refazer: `recentes` entra junto de `guardados` no relatório.
+- O Liberar dizia `há build em curso` e `nada a liberar` na mesma saída: com corte adiado, a segunda linha some.
+- `tests/espaco.sh` ganhou o oráculo velho que acabou de rodar (fica) e o teto da prévia pela metade com o disco apertado.
+- `docs/MANUTENCAO.md` passa a citar `recentes:N`, o teto do `ocioso`, o fim de build do compositor e do menu, e a trava presa do primeiro corte ao último.
+- Medido: `meow espaco liberar` sai com `outro meow está rodando` enquanto o `lock` do meow está preso, e `meow compositor compilar` o segura. O build do compositor pelo `meow` já não cai no Liberar, sem `builds.lock`. Chamar `compositor_patches.sh compilar` à mão, sem nenhuma das duas travas, com o Liberar por `espaco.py` direto, derruba o build na fase antes do cargo; nenhum caminho do produto faz isso.
+
 Falta da mão de quem usa:
 
 - Depois do install e do reboot, abrir Ajustes > Disco e conferir que o Liberar corta o que se reconstrói e que, com um build do compositor correndo, diz que fica para depois.
