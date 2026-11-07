@@ -483,6 +483,9 @@ _gr_baixar() {
     elif grep -qiE "deb-src|'source'" "$log" 2>/dev/null; then
       meow_erro "as fontes do apt desta máquina não servem código-fonte (sem deb-src): o portal do pacote segue valendo"
       _gr_gravar_falha "$ver" baixar
+    elif meow_apt_fonte_saiu_do_repositorio "$log"; then
+      meow_erro "o repositório já não serve o fonte do portal $fonte_ver: o portal do pacote segue valendo, e o próximo apt traz a versão nova"
+      _gr_gravar_falha "$ver" baixar
     else
       meow_erro "o apt-get source do portal $ver falhou (sem rede?): a próxima passada tenta de novo"
     fi

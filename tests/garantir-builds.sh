@@ -359,6 +359,18 @@ volta aplicar
 volta --conferir; igual "e a conferência seguinte fica em 0" "$?" 0
 
 echo
+echo "== 3b. o menu cuja versão saiu do repositório não culpa a rede"
+F="$T/fonte-saiu"; mkdir -p "$F/bin" "$F/casa"
+printf '#!/bin/sh\necho "E: Não é possível encontrar a versão \047$2\047 do pacote \047cosmic-files\047"\necho "E: Impossível encontrar um pacote fonte para cosmic-files"\nexit 100\n' > "$F/bin/apt-get"
+printf '#!/bin/sh\nexit 0\n' > "$F/bin/cargo"; chmod 755 "$F/bin/"*
+versoes cosmic-files=1.10~saiu
+saida="$(env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY HOME="$F/casa" PATH="$F/bin:$T/bin:$PATH" NO_COLOR=1 \
+  MEOW_ESTADO="$F/casa/estado" MEOW_CACHE="$F/casa/cache" FILES_MENU=sim "$RAIZ/scripts/files_menu.sh" build 2>&1)"; rc=$?
+igual "o build não sai (rc 2)" "$rc" 2
+grep -q "já não serve o fonte do cosmic-files" <<< "$saida" && ! grep -q "sem rede" <<< "$saida" \
+  && ok "diz que a versão saiu do repositório, sem culpar a rede" || falha "mensagem: $saida"
+
+echo
 echo "== 4. o doctor: build da casa pronto e shim desligado, com COMPOSITOR=sim, diverge e o conserto liga"
 doutor() {
   env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY \

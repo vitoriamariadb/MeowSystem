@@ -333,6 +333,10 @@ for n in sorted(validos):
 PYFIM
 }
 
+meow_apt_fonte_saiu_do_repositorio() {
+  grep -qiE "Não é possível encontrar a versão|Impossível encontrar um pacote fonte|Can.t find version|Can not find version|Unable to find a source package" "$1" 2>/dev/null
+}
+
 meow_cargo_sem_rede() {
   grep -qE 'Could not resolve host|failed to download from|spurious network error|Couldn.t connect to server|Network is unreachable|Connection timed out|Operation timed out' "$1" 2>/dev/null
 }

@@ -128,6 +128,8 @@ cmd_build() {
   if ! ( cd "$tmpdir" && apt-get source "cosmic-files=$ver" ) >"$tmpdir/baixar.log" 2>&1; then
     if grep -qiE "deb-src|'source'" "$tmpdir/baixar.log" 2>/dev/null; then
       meow_erro "as fontes do apt desta máquina não servem código-fonte (sem deb-src): o Arquivos segue o de fábrica"
+    elif meow_apt_fonte_saiu_do_repositorio "$tmpdir/baixar.log"; then
+      meow_erro "o repositório já não serve o fonte do cosmic-files $ver: o Arquivos segue o de fábrica, e o próximo apt traz a versão nova"
     else
       meow_erro "o apt-get source do cosmic-files $ver falhou (sem rede?) — a próxima passada tenta de novo"
     fi
