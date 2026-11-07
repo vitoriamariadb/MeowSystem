@@ -92,4 +92,27 @@ case "$(servir)" in
   *) falha "o traço cru perdeu o currentColor que a oficina pinta" ;;
 esac
 
+saida="$(env -i PATH="$FALSO:$PATH" HOME="$H" python3 -I - "$RAIZ/app" "$T" <<'PY' 2>&1
+import importlib.util, os, sys
+spec = importlib.util.spec_from_file_location("servidor", os.path.join(sys.argv[1], "servidor.py"))
+sv = importlib.util.module_from_spec(spec)
+sys.argv = [sys.argv[0]]
+spec.loader.exec_module(sv)
+tmp = os.environ["HOME"]
+viva = os.path.join(tmp, "viva.png")
+open(viva, "wb").write(b"x")
+sv.PREVIA_FONTES["teste"] = lambda: [
+    {"id": "viva", "origem": viva},
+    {"id": "sumida", "origem": os.path.join(tmp, "sumida.png")},
+]
+for ident in ("viva", "sumida", "nunca-existiu"):
+    print("%s=%s" % (ident, sv.previa_recusa("teste", ident)))
+print("tipo=%s" % sv.previa_recusa("sem-tipo", "x"))
+PY
+)"
+{ grep -qx 'viva=prévia ainda não gerada' <<< "$saida" && grep -qx 'sumida=essa imagem não existe mais' <<< "$saida" \
+  && grep -qx 'nunca-existiu=essa imagem não existe mais' <<< "$saida" && grep -qx 'tipo=essa imagem não existe mais' <<< "$saida"; } \
+  && ok "a prévia diz «ainda não gerada» só quando a imagem existe, e «não existe mais» quando sumiu" \
+  || falha "a recusa da prévia não distingue a imagem que sumiu da que ainda será gerada: $saida"
+
 exit "$falhas"

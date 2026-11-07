@@ -4617,6 +4617,14 @@ def previa_bytes(tipo, ident):
         return None
 
 
+def previa_recusa(tipo, ident):
+    fonte = PREVIA_FONTES.get(tipo)
+    item = next((i for i in fonte() if i["id"] == ident), None) if fonte else None
+    if item is None or not os.path.isfile(item["origem"]):
+        return "essa imagem não existe mais"
+    return "prévia ainda não gerada"
+
+
 def _carimbo():
     return time.strftime("%Y%m%d-%H%M")
 
@@ -5913,10 +5921,11 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/previa":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
-            achado = previa_bytes(consulta.get("tipo", [""])[0],
-                                  consulta.get("id", [""])[0])
+            tipo_previa = consulta.get("tipo", [""])[0]
+            id_previa = consulta.get("id", [""])[0]
+            achado = previa_bytes(tipo_previa, id_previa)
             if achado is None:
-                return self._recusar(404, "prévia ainda não gerada")
+                return self._recusar(404, previa_recusa(tipo_previa, id_previa))
             corpo, tipo_mime = achado
             return self._responder(corpo, tipo=tipo_mime)
 
