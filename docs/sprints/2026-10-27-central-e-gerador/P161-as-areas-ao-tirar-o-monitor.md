@@ -152,7 +152,8 @@ vermelho antes e verde depois:
 ### O que falta, e por quê
 
 - A prova 2 (janelas nas duas telas, desconectar e reconectar) e a leitura de «a barra mostra só as áreas» só existem com dois
-  monitores e o compositor vivo: está em «da mão de quem usa».
+  monitores e o compositor vivo: está em «da mão de quem usa». A prova 2 vale inteira: a P177 fundia as janelas da área copiada
+  sem volta, e a P179, com o sim de 07/11 («Devolver ao religar»), as devolve ao monitor delas, na área de mesmo índice.
 - A área vazia do fim em `juntas` saiu com o sim de 06/11: o ramo Global do `refresh`, no `cosmic-comp-sem-workspace-vazio.patch`, só cria área quando falta alguma. A sugestão de trocar `!w.is_empty() || w.pinned` por `!w.is_empty()` não bastava: a área vazia voltaria com janela na última. A série inteira compilou com `cargo check` (rc=0) no fonte de ec674cd; a tela real é da mão de quem usa.
 - O modo vale mesmo com `AREAS_NOMES` vazio, com o sim de 06/11, no `aplicar`, no `alfinetes` e no `refazer-alfinetes`; o controle do painel fica livre.
 - Em `juntas`, os nomes aparecem numa tela só (a da primeira entrada do arquivo); na outra, as áreas têm o número. Sem patch não

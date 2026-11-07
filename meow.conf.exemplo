@@ -319,7 +319,8 @@ CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
 #                  as duas telas. O `cosmic-comp-nomes-nas-duas-telas.patch`
 #                  repete os nomes na outra tela, sem repetir no arquivo. Tirar
 #                  o monitor não duplica nada: as janelas dele entram na área
-#                  de mesmo nome. Vale mesmo com `AREAS_NOMES` vazio.
+#                  de mesmo nome e voltam quando ele volta. Vale mesmo com
+#                  `AREAS_NOMES` vazio.
 #   independentes  cada tela tem a sua lista, repetida pelo doctor com os mesmos
 #                  nomes. Ao tirar o monitor as áreas dele vêm para a tela que
 #                  ficou, e a barra mostra as duplicadas mais a vazia do fim.

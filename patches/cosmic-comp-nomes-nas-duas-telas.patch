@@ -1,6 +1,6 @@
 # cosmic-comp-nomes-nas-duas-telas.patch
 #
-# MARCADOR: AURORA-AREAS-NOMES-1   (base: AURORA-AREAS-NOMES)
+# MARCADOR: AURORA-AREAS-NOMES-2   (base: AURORA-AREAS-NOMES)
 #
 # Em Global, add_output dá as áreas fixadas à primeira saída; as outras completam
 # a lista com add_empty_workspace, e workspace_set_idx escreve o número no lugar
@@ -15,20 +15,28 @@
 # Ao tirar a saída, em Global, a área copiada não vai para o fim da lista: as
 # janelas dela entram na irmã de mesmo índice, e ela some. Se quem sai é o dono,
 # ele toma o lugar da cópia. Assim tirar o monitor não cria área a mais nem nome
-# repetido, com janela ou sem janela. As janelas fundidas não voltam sozinhas ao
-# monitor: quem guardava a volta era a área a mais.
+# repetido, com janela ou sem janela.
 #
 # A pilha de foco da área que some vai para baixo da pilha da tela que fica, e
 # quem digita na tela que fica não perde o foco quando a outra sai.
 #
+# Cada janela fundida lembra, só em memória, a saída dela e o índice da área. Sim
+# de 07/11/2026: «Devolver ao religar». Quando uma saída entra, add_output põe de
+# volta a janela cuja saída está presente, pelo mesmo casamento de EDID e conector
+# das áreas, sem área a mais, sem trocar a área ativa e por baixo da pilha de foco.
+# A checagem vale depois de add_output mover os donos: abrir a tampa leva o dono
+# ao interno, e a janela da tela de fora que estava nele volta para lá. Janela
+# fechada ou levada a outra tela sai da lembrança: `conferir_fundidas` olha a tela
+# em que ela está, e o dono que muda de tela não conta porque a área é a mesma.
+#
 --- a/src/shell/mod.rs
 +++ b/src/shell/mod.rs
-@@ -507,6 +507,111 @@
+@@ -507,6 +507,243 @@
  }
  */
  
 +#[used]
-+static AURORA_AREAS_NOMES: &str = "AURORA-AREAS-NOMES-1";
++static AURORA_AREAS_NOMES: &str = "AURORA-AREAS-NOMES-2";
 +
 +fn nome_da_area<'a>(irmas: impl Iterator<Item = (Option<&'a str>, bool)>) -> Option<&'a str> {
 +    irmas
@@ -59,83 +67,215 @@
 +    }
 +}
 +
++#[derive(Debug)]
++struct JanelaFundida {
++    janela: CosmicSurface,
++    saida: cosmic_comp_config::workspace::OutputMatch,
++    indice: usize,
++    flutuante: Option<FloatingRestoreData>,
++    tela: Output,
++    area: WorkspaceHandle,
++}
++
++enum JanelaTirada {
++    Mapeada {
++        mapped: CosmicMapped,
++        flutuante: Option<FloatingRestoreData>,
++    },
++    Cheia {
++        janela: CosmicSurface,
++        previous: Option<FullscreenRestoreState>,
++        geometria: Option<Rectangle<i32, Local>>,
++    },
++    Minimizada(MinimizedWindow),
++}
++
++impl JanelaTirada {
++    fn janelas(&self) -> Vec<CosmicSurface> {
++        match self {
++            JanelaTirada::Mapeada { mapped, .. } => {
++                mapped.windows().map(|(janela, _)| janela).collect()
++            }
++            JanelaTirada::Cheia { janela, .. } => vec![janela.clone()],
++            JanelaTirada::Minimizada(minimizada) => minimizada.windows().collect(),
++        }
++    }
++}
++
++fn janelas_da_area(area: &Workspace) -> impl Iterator<Item = CosmicSurface> + '_ {
++    area.mapped()
++        .flat_map(|mapped| mapped.windows().map(|(janela, _)| janela))
++        .chain(area.get_fullscreen_surfaces().map(|f| f.surface.clone()))
++        .chain(area.minimized_windows.iter().flat_map(|m| m.windows()))
++}
++
++fn tirar_janela(area: &mut Workspace, janela: &CosmicSurface) -> Option<JanelaTirada> {
++    let tirada = if let Some((janela, previous, geometria)) = area.take_fullscreen(janela) {
++        janela.output_leave(&area.output);
++        JanelaTirada::Cheia {
++            janela,
++            previous,
++            geometria,
++        }
++    } else if let Some(posicao) = area
++        .minimized_windows
++        .iter()
++        .position(|m| m.windows().any(|s| &s == janela))
++    {
++        JanelaTirada::Minimizada(area.minimized_windows.remove(posicao))
++    } else {
++        let mapped = area.element_for_surface(janela)?.clone();
++        let flutuante = match area.unmap_element(&mapped)? {
++            WorkspaceRestoreData::Floating(dados) => Some(dados),
++            _ => None,
++        };
++        JanelaTirada::Mapeada { mapped, flutuante }
++    };
++    for janela in tirada.janelas() {
++        toplevel_leave_workspace(&janela, &area.handle);
++        toplevel_leave_output(&janela, &area.output);
++    }
++    Some(tirada)
++}
++
++fn por_janela(
++    tirada: JanelaTirada,
++    destino: &mut Workspace,
++    flutuante: Option<&FloatingRestoreData>,
++) {
++    for janela in tirada.janelas() {
++        toplevel_enter_workspace(&janela, &destino.handle);
++        toplevel_enter_output(&janela, &destino.output);
++    }
++    match tirada {
++        JanelaTirada::Mapeada { mapped, .. } => {
++            if let Some(dados) = flutuante {
++                let posicao = dados.position_relative(destino.output.geometry().size.as_logical());
++                destino.floating_layer.map(mapped, posicao);
++            } else if destino.tiling_enabled {
++                for maximizada in destino
++                    .mapped()
++                    .filter(|m| m.maximized_state.lock().unwrap().is_some())
++                    .cloned()
++                    .collect::<Vec<_>>()
++                {
++                    destino.unmaximize_request(&maximizada);
++                }
++                destino
++                    .tiling_layer
++                    .map(mapped, None::<std::iter::Empty<_>>, None);
++            } else {
++                destino.floating_layer.map(mapped, None);
++            }
++        }
++        JanelaTirada::Cheia {
++            janela,
++            mut previous,
++            geometria,
++        } => {
++            if let Some(previous) = &mut previous {
++                repor_area_da_tela_cheia(previous, destino.handle);
++            }
++            destino.map_fullscreen(&janela, None, previous, geometria);
++        }
++        JanelaTirada::Minimizada(mut minimizada) => {
++            match &mut minimizada {
++                MinimizedWindow::Tiling { previous, .. } => {
++                    previous.state.take();
++                }
++                MinimizedWindow::Fullscreen {
++                    previous: Some(dados),
++                    ..
++                } => repor_area_da_tela_cheia(&mut dados.previous_state, destino.handle),
++                _ => {}
++            }
++            destino.minimized_windows.push(minimizada);
++        }
++    }
++}
++
++fn lembrar_janelas(
++    fundidas: &mut Vec<JanelaFundida>,
++    tirada: &JanelaTirada,
++    saida: &cosmic_comp_config::workspace::OutputMatch,
++    indice: usize,
++    destino: &Workspace,
++) {
++    let flutuante = match tirada {
++        JanelaTirada::Mapeada { flutuante, .. } => flutuante.clone(),
++        _ => None,
++    };
++    for janela in tirada.janelas() {
++        if let Some(lembrada) = fundidas.iter_mut().find(|f| f.janela == janela) {
++            lembrada.tela = destino.output.clone();
++            lembrada.area = destino.handle;
++        } else {
++            fundidas.push(JanelaFundida {
++                janela,
++                saida: saida.clone(),
++                indice,
++                flutuante: flutuante.clone(),
++                tela: destino.output.clone(),
++                area: destino.handle,
++            });
++        }
++    }
++}
++
 +fn fundir_area(
 +    mut area: Workspace,
 +    destino: &mut Workspace,
++    saida: cosmic_comp_config::workspace::OutputMatch,
++    indice: usize,
++    fundidas: &mut Vec<JanelaFundida>,
 +    workspace_state: &mut WorkspaceUpdateGuard<'_, State>,
 +) {
-+    let de = area.handle;
-+    let para = destino.handle;
 +    let foco = std::mem::take(&mut area.focus_stack);
 +
-+    for mapped in area.mapped().cloned().collect::<Vec<_>>() {
-+        if area.unmap_element(&mapped).is_none() {
-+            continue;
-+        }
-+        for (janela, _) in mapped.windows() {
-+            toplevel_leave_workspace(&janela, &de);
-+            toplevel_enter_workspace(&janela, &para);
-+        }
-+        if destino.tiling_enabled {
-+            for maximizada in destino
-+                .mapped()
-+                .filter(|m| m.maximized_state.lock().unwrap().is_some())
-+                .cloned()
-+                .collect::<Vec<_>>()
-+            {
-+                destino.unmaximize_request(&maximizada);
-+            }
-+            destino
-+                .tiling_layer
-+                .map(mapped, None::<std::iter::Empty<_>>, None);
-+        } else {
-+            destino.floating_layer.map(mapped, None);
-+        }
-+    }
-+
-+    let cheias = area
-+        .get_fullscreen_surfaces()
-+        .map(|f| f.surface.clone())
-+        .collect::<Vec<_>>();
-+    for janela in cheias {
-+        let Some((janela, mut previous_state, previous_geometry)) = area.take_fullscreen(&janela)
-+        else {
++    for janela in janelas_da_area(&area).collect::<Vec<_>>() {
++        let Some(tirada) = tirar_janela(&mut area, &janela) else {
 +            continue;
 +        };
-+        toplevel_leave_workspace(&janela, &de);
-+        toplevel_enter_workspace(&janela, &para);
-+        if let Some(previous) = &mut previous_state {
-+            repor_area_da_tela_cheia(previous, para);
-+        }
-+        destino.map_fullscreen(&janela, None, previous_state, previous_geometry);
-+    }
-+
-+    for mut minimizada in area.minimized_windows.drain(..) {
-+        for janela in minimizada.windows() {
-+            toplevel_leave_workspace(&janela, &de);
-+            toplevel_enter_workspace(&janela, &para);
-+        }
-+        match &mut minimizada {
-+            MinimizedWindow::Tiling { previous, .. } => {
-+                previous.state.take();
-+            }
-+            MinimizedWindow::Fullscreen {
-+                previous: Some(dados),
-+                ..
-+            } => repor_area_da_tela_cheia(&mut dados.previous_state, para),
-+            _ => {}
-+        }
-+        destino.minimized_windows.push(minimizada);
++        lembrar_janelas(fundidas, &tirada, &saida, indice, destino);
++        por_janela(tirada, destino, None);
 +    }
 +
 +    destino.focus_stack.por_baixo(foco);
-+    workspace_state.remove_workspace(de);
++    workspace_state.remove_workspace(area.handle);
++}
++
++fn alvo_da_janela(alvo: &FocusTarget, janela: &CosmicSurface) -> bool {
++    match alvo {
++        FocusTarget::Window(mapped) => mapped.windows().any(|(s, _)| &s == janela),
++        FocusTarget::Fullscreen(s) => s == janela,
++    }
++}
++
++fn lembranca_segue(mesma_area: bool, mesma_tela: bool) -> bool {
++    mesma_area || mesma_tela
++}
++
++fn indice_da_volta(indice: usize, areas: usize) -> usize {
++    indice.min(areas.saturating_sub(1))
++}
++
++fn saida_da_volta<T: PartialEq>(
++    saidas: &[&T],
++    nova: &T,
++    casa: impl Fn(&T, bool) -> bool,
++) -> Option<usize> {
++    let exata = saidas.iter().position(|saida| casa(saida, true));
++    exata.or_else(|| {
++        casa(nova, false)
++            .then(|| saidas.iter().position(|saida| *saida == nova))
++            .flatten()
++    })
 +}
 +
  impl WorkspaceSet {
      fn new(
          state: &mut WorkspaceUpdateGuard<'_, State>,
-@@ -730,6 +835,14 @@
+@@ -730,6 +967,14 @@
          }
      }
  
@@ -150,7 +290,31 @@
      fn post_remove_workspace(
          &mut self,
          workspace_state: &mut WorkspaceUpdateGuard<'_, State>,
-@@ -986,7 +1099,30 @@
+@@ -863,6 +1108,7 @@
+     appearance: AppearanceConfig,
+     // Persisted workspace to add on first `output_add`
+     persisted_workspaces: Vec<PinnedWorkspace>,
++    fundidas: Vec<JanelaFundida>,
+ }
+ 
+ impl Workspaces {
+@@ -877,6 +1123,7 @@
+             theme,
+             appearance: config.cosmic_conf.appearance_settings,
+             persisted_workspaces: config.cosmic_conf.pinned_workspaces.clone(),
++            fundidas: Vec::new(),
+         }
+     }
+ 
+@@ -948,6 +1195,7 @@
+             }
+         }
+         self.sets.insert(output.clone(), set);
++        self.devolver_janelas(output, workspace_state);
+     }
+ 
+     pub fn remove_output<'a>(
+@@ -986,7 +1234,44 @@
                  let new_set = self.sets.get_mut(&new_output).unwrap();
                  let workspace_group = new_set.group;
                  for (i, mut workspace) in set.workspaces.into_iter().enumerate() {
@@ -162,7 +326,14 @@
 +                    );
 +                    if saida == AreaNaSaida::Funde {
 +                        workspace.set_output(&new_output, false);
-+                        fundir_area(workspace, &mut new_set.workspaces[i], workspace_state);
++                        fundir_area(
++                            workspace,
++                            &mut new_set.workspaces[i],
++                            output_match_for_output(output),
++                            i,
++                            &mut self.fundidas,
++                            workspace_state,
++                        );
 +                    } else if saida == AreaNaSaida::Substitui {
 +                        workspace_state.remove_workspace_state(&workspace.handle, WState::Active);
 +                        workspace_state.move_workspace_to_group(workspace_group, workspace.handle);
@@ -173,7 +344,14 @@
 +                            &mut copia.focus_stack,
 +                            &mut new_set.workspaces[i].focus_stack,
 +                        );
-+                        fundir_area(copia, &mut new_set.workspaces[i], workspace_state);
++                        fundir_area(
++                            copia,
++                            &mut new_set.workspaces[i],
++                            output_match_for_output(&new_output),
++                            i,
++                            &mut self.fundidas,
++                            workspace_state,
++                        );
 +                        if i == new_set.active {
 +                            workspace_state
 +                                .add_workspace_state(&new_set.workspaces[i].handle, WState::Active);
@@ -182,7 +360,7 @@
                          workspace_state.remove_workspace(workspace.handle);
                      } else {
                          // update workspace protocol state
-@@ -1211,7 +1347,9 @@
+@@ -1211,7 +1496,10 @@
  
          match (old_mode, self.mode) {
              (WorkspaceMode::Global, WorkspaceMode::OutputBound) => {
@@ -190,10 +368,19 @@
 +                for set in self.sets.values_mut() {
 +                    set.soltar_nomes_copiados(workspace_state);
 +                }
++                self.fundidas.clear();
              }
              (WorkspaceMode::OutputBound, WorkspaceMode::Global) => {
                  // lets construct an iterator of all the pairs of workspaces we have to "merge"
-@@ -1338,6 +1476,8 @@
+@@ -1276,6 +1564,7 @@
+         workspace_state: &mut WorkspaceUpdateGuard<'_, State>,
+         xdg_activation_state: &XdgActivationState,
+     ) {
++        self.conferir_fundidas();
+         match self.mode {
+             WorkspaceMode::Global => {
+                 let Some(max) = self.sets.values().map(|set| set.workspaces.len()).max() else {
+@@ -1338,6 +1627,8 @@
                          set.update_workspace_idxs(workspace_state);
                      }
                  }
@@ -202,10 +389,90 @@
              }
              WorkspaceMode::OutputBound => {
                  for set in self.sets.values_mut() {
-@@ -1351,6 +1491,30 @@
+@@ -1351,6 +1642,110 @@
          }
      }
  
++    fn lugar_da_janela(&self, janela: &CosmicSurface) -> Option<(usize, usize)> {
++        self.sets.values().enumerate().find_map(|(s, set)| {
++            set.workspaces
++                .iter()
++                .position(|area| janelas_da_area(area).any(|j| &j == janela))
++                .map(|i| (s, i))
++        })
++    }
++
++    fn conferir_fundidas(&mut self) {
++        let mut fundidas = std::mem::take(&mut self.fundidas);
++        fundidas.retain_mut(|fundida| {
++            if !fundida.janela.alive() {
++                return false;
++            }
++            let Some((s, i)) = self.lugar_da_janela(&fundida.janela) else {
++                return true;
++            };
++            let (tela, set) = self.sets.get_index(s).unwrap();
++            let area = set.workspaces[i].handle;
++            let segue = lembranca_segue(area == fundida.area, *tela == fundida.tela);
++            fundida.tela = tela.clone();
++            fundida.area = area;
++            segue
++        });
++        self.fundidas = fundidas;
++    }
++
++    fn devolver_janelas(
++        &mut self,
++        nova: &Output,
++        workspace_state: &mut WorkspaceUpdateGuard<'_, State>,
++    ) {
++        self.conferir_fundidas();
++        if self.fundidas.is_empty() {
++            return;
++        }
++
++        let max = self.sets.values().map(|set| set.workspaces.len()).max();
++        for set in self.sets.values_mut() {
++            while set.workspaces.len() < max.unwrap_or(0) {
++                set.add_empty_workspace(workspace_state);
++            }
++        }
++
++        let fundidas = std::mem::take(&mut self.fundidas);
++        let mut devolvidas = Vec::new();
++        for fundida in &fundidas {
++            let saidas = self.sets.keys().collect::<Vec<_>>();
++            let Some(alvo) = saida_da_volta(&saidas, nova, |saida, exata| {
++                output_matches(&fundida.saida, saida, exata)
++            }) else {
++                continue;
++            };
++            let Some((s, i)) = self.lugar_da_janela(&fundida.janela) else {
++                continue;
++            };
++            if s == alvo {
++                continue;
++            }
++
++            let origem = &mut self.sets[s].workspaces[i];
++            let foco = origem
++                .focus_stack
++                .separar(|foco| alvo_da_janela(foco, &fundida.janela));
++            let Some(tirada) = tirar_janela(origem, &fundida.janela) else {
++                continue;
++            };
++            devolvidas.extend(tirada.janelas());
++
++            let areas = &mut self.sets[alvo].workspaces;
++            let destino = indice_da_volta(fundida.indice, areas.len());
++            por_janela(tirada, &mut areas[destino], fundida.flutuante.as_ref());
++            areas[destino].focus_stack.por_baixo(foco);
++        }
++
++        self.fundidas = fundidas;
++        self.fundidas.retain(|f| !devolvidas.contains(&f.janela));
++    }
++
 +    fn copiar_nomes(&mut self, workspace_state: &mut WorkspaceUpdateGuard<'_, State>) {
 +        let len = self.sets[0].workspaces.len();
 +        for i in 0..len {
@@ -235,7 +502,29 @@
              .get(output)
 --- a/src/shell/workspace.rs
 +++ b/src/shell/workspace.rs
-@@ -111,6 +111,7 @@
+@@ -81,7 +81,7 @@
+     format!("{:x}", id)
+ }
+ 
+-fn output_match_for_output(output: &Output) -> OutputMatch {
++pub(super) fn output_match_for_output(output: &Output) -> OutputMatch {
+     OutputMatch {
+         name: output.name(),
+         edid: output.edid().cloned(),
+@@ -90,7 +90,11 @@
+ 
+ // If `disambguate` is true, check that edid *and* connector name match.
+ // Otherwise, match only edid (if it exists)
+-fn output_matches(output_match: &OutputMatch, output: &Output, disambiguate: bool) -> bool {
++pub(super) fn output_matches(
++    output_match: &OutputMatch,
++    output: &Output,
++    disambiguate: bool,
++) -> bool {
+     if output_match.edid.as_ref() != output.edid() {
+         false
+     } else if disambiguate || output_match.edid.is_none() {
+@@ -111,6 +115,7 @@
      pub pinned: bool,
      pub id: Option<String>,
      pub name: Option<String>,
@@ -243,7 +532,7 @@
  
      pub handle: WorkspaceHandle,
      pub focus_stack: FocusStacks,
-@@ -402,6 +403,7 @@
+@@ -402,6 +407,7 @@
              pinned: false,
              id: None,
              name: None,
@@ -251,7 +540,7 @@
              handle,
              focus_stack: FocusStacks::default(),
              image_copy: ImageCopySessions::default(),
-@@ -436,6 +438,7 @@
+@@ -436,6 +442,7 @@
              pinned: true,
              id: pinned.id.clone(),
              name: pinned.name.clone(),
@@ -259,7 +548,7 @@
              handle,
              focus_stack: FocusStacks::default(),
              image_copy: ImageCopySessions::default(),
-@@ -454,7 +457,7 @@
+@@ -454,7 +461,7 @@
  
      pub fn to_pinned(&self) -> Option<PinnedWorkspace> {
          let output = self.explicit_output().clone();
@@ -268,7 +557,7 @@
              debug_assert!(self.id.is_some());
              Some(PinnedWorkspace {
                  output: cosmic_comp_config::workspace::OutputMatch {
-@@ -1986,6 +1989,14 @@
+@@ -1986,6 +1993,27 @@
      pub fn get_mut<'a>(&'a mut self, seat: &Seat<State>) -> FocusStackMut<'a> {
          FocusStackMut(self.0.entry(seat.clone()).or_default())
      }
@@ -279,6 +568,19 @@
 +            pilha.extend(de_cima.drain(..));
 +            *de_cima = pilha;
 +        }
++    }
++
++    pub fn separar(&mut self, quer: impl Fn(&FocusTarget) -> bool) -> FocusStacks {
++        FocusStacks(
++            self.0
++                .iter_mut()
++                .map(|(seat, pilha)| {
++                    let separada = pilha.iter().filter(|alvo| quer(alvo)).cloned().collect();
++                    pilha.retain(|alvo| !quer(alvo));
++                    (seat.clone(), separada)
++                })
++                .collect(),
++        )
 +    }
  }
  
