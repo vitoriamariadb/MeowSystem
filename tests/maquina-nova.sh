@@ -7,7 +7,11 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 
 T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
-mkdir -p "$T/bin" "$T/sistema"
+mkdir -p "$T/bin" "$T/sistema" "$T/icones-sistema/Papirus-Dark"
+
+for c in rsvg-convert convert gtk-update-icon-cache btop batcat fastfetch unzip xz; do
+  printf '#!/bin/sh\nexit 0\n' > "$T/sistema/$c"; chmod 755 "$T/sistema/$c"
+done
 
 for c in pkexec su apt systemctl systemd-run pkill killall notify-send loginctl xdg-open just make wget; do
   printf '#!/bin/sh\necho "%s $*" >> "%s/recusas.log"\nexit 1\n' "$c" "$T" > "$T/bin/$c"
@@ -98,7 +102,7 @@ rodar() {
     FALSO_LOG="$T" MEOW_RUSTUP_PINO="${PINO:-$T/pino-certo}" MEOW_PONTE="$T/sem-ponte" \
     ${MEOW_BACKUPS:+MEOW_BACKUPS="$MEOW_BACKUPS"} RUST_PRECISA="${RUST_PRECISA:-sim}" \
     ${COMPOSITOR:+COMPOSITOR="$COMPOSITOR"} ${FILES_MENU:+FILES_MENU="$FILES_MENU"} EXTENSOES="${EXTENSOES:-}" \
-    FASTFETCH_LOGO=nao MEOW_IGNORA_DESKTOP=1 "$@"
+    FASTFETCH_LOGO=nao MEOW_IGNORA_DESKTOP=1 MEOW_ICONES_SISTEMA="$T/icones-sistema" "$@"
 }
 
 retrato() { (cd "$T/casa" && find . -printf '%p %s %T@\n' 2>/dev/null | LC_ALL=C sort); }
