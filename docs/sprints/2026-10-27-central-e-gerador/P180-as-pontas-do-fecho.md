@@ -24,3 +24,28 @@ Fica de fora, sem COSMIC v3 para medir: a pasta produto `CosmicTheme.<Árvore>/v
 ## Como se prova
 
 `tests/graficos.sh`, `tests/garantir-builds.sh`, `tests/nada-manda-digitar.sh`, `tests/decisoes.sh` e `tests/oraculo-tema.sh` verdes, com caso novo vermelho antes da cura.
+
+## Execução
+
+Bloco `bloco/fecho`, 5 commits sobre `9bf03bd4`.
+
+- **`scripts/graficos.sh`.** Seguiu o que o compositor faz hoje (`_cp_marcar_caiu`): `meow_registrar` no log e a frase na saída do doctor, sem pendência e sem receita. A queda do portal registra em `_gr_marcar_caiu`; a recusa do patch registra uma vez, em `cmd_compilar`. A repetição em `cmd_aplicar` e as seis chamadas de «resolvida» saíram, junto com a prova do `tests/graficos.sh` que olhava o `precisa-de-gente.tsv` (que não podia mais falhar). Casos novos: o log tem a frase, o arquivo e a pendência não existem, e a saída do aplicar e do cuidar não tem `command not found`. Antes da cura, 3 FALHA nesses casos.
+- **Frases do status e filtro do `garantir-builds`.** Já estavam curados na base: `73fdb3e6` (P178) trocou as duas frases do `bin/meow` por «o conserto regenera» e «o conserto deriva e aplica» e fez o teste pegar `'meow doctor --consertar'`; `0ca641b8` (P178) tirou o filtro `recusado: sudo -n -l`. A medida da sprint foi feita sobre uma árvore sem esses dois commits. Nada a mudar; `nada-manda-digitar.sh` e `garantir-builds.sh` verdes confirmam.
+- **`scripts/oraculo_tema.py`.** Lê a receita por `da.receita_da_captura`. Caso novo em `tests/oraculo-tema.sh`: a captura com `Builder/v3`, Dark e Light. Antes: `rc 2: erro: a captura não tem a receita Dark.Builder/v2`.
+- **`receita_diverge` (`scripts/aplicar_tema.sh`).** Compara `v1` e, para a receita, a versão da captura (`receita_da_captura`) contra a do sistema (`versao_do_builder`). Caso novo em `tests/acento.sh` (captura v3 com sistema v3, captura v2 com sistema v3, sem pasta do sistema, e o sistema v3 sem receita v3). Antes: `FALHOU: receita_diverge não segue a versão do sistema (v3/v3=1 v3/v2cap=1 v2=0 v3 sem receita v3=0)`. A guarda «nenhum escritor crava Builder/v2» passou a olhar também o `oraculo_tema.py`.
+- **GSD.md.** A armadilha do sudo: «`sudo` escreve no sistema real, com ou sem regra aberta no sudoers. Teste nunca chama `sudo` de verdade.» `tests/decisoes.sh` exige a frase nova e falha se `NOPASSWD` voltar ao GSD. A prova de que o teste não chama sudo segue: os falsos no PATH do próprio `decisoes.sh`.
+
+### Provas
+
+- `bash tests/graficos.sh`: sem FALHA, última linha `ok: o portal e a policy entram idempotentes, o shim existe sempre e a série recusa quando não entra`.
+- `bash tests/garantir-builds.sh`: `garantir-builds: tudo certo`.
+- `bash tests/nada-manda-digitar.sh`: `passou: nada manda digitar`.
+- `bash tests/decisoes.sh`: `decisoes: tudo certo`, com `ok    a armadilha do sudo vale sem a regra NOPASSWD`.
+- `bash tests/oraculo-tema.sh`: `oraculo-tema: tudo certo`, com `ok    captura em v3, Dark: a receita é lida onde está` (e Light).
+- `bash tests/acento.sh`: `acento: tudo certo`. `bash tests/vidro-do-cosmic.sh` (usa `receita_diverge`): `vidro-do-cosmic: tudo certo`.
+
+### Falta, da mão de quem usa
+
+- Tirar o `NOPASSWD: ALL` do sudoers depois do install, com `visudo -c` e a prova do `sudo -A` antes (do coordenador, como na P178).
+- A pasta produto `CosmicTheme.<Árvore>/v2` segue de fora: sem COSMIC v3 para medir.
+- Um build de portal que caiu agora só aparece no log e na saída do `meow doctor`; se quem usa quiser um cartão no painel, é decisão nova.
