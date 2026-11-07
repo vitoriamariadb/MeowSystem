@@ -254,8 +254,11 @@ fi
 rm -f "$TMP/tar/com.system76.CosmicTheme.Dark/v1/cano"
 
 printf '\n--- 7. o instalar_fontes.sh pede a ferramenta que falta pela ponte (P82, item 16) ---\n'
-SEM_CURL="$TMP/sem-curl"; INST="$TMP/instalado"; PONTE2="$TMP/ponte2"
-mkdir -p "$SEM_CURL" "$INST" "$PONTE2" "$TMP/sudo-ponte2" "$TMP/casa-fontes/.config"
+SEM_CURL="$TMP/sem-curl"; INST="$TMP/instalado"; PONTE2="$TMP/ponte2"; FONTES="$TMP/fontes-falsas"
+mkdir -p "$SEM_CURL" "$INST" "$PONTE2" "$FONTES" "$TMP/sudo-ponte2" "$TMP/casa-fontes/.config"
+printf '#!/bin/sh\nprintf "/falsa/FiraSans.otf\\tFira Sans\\n"\n' > "$FONTES/fc-list"
+printf '#!/bin/sh\nexit 0\n' | tee "$FONTES/fc-cache" > "$FONTES/fc-match"
+chmod 755 "$FONTES/fc-list" "$FONTES/fc-cache" "$FONTES/fc-match"
 for b in /usr/bin/*; do
   [ "${b##*/}" = curl ] || ln -s "$b" "$SEM_CURL/${b##*/}" 2>/dev/null
 done
@@ -274,7 +277,7 @@ cat > "$TMP/sudo-ponte2/sudo" <<FIM
 echo "sudo \$*" >> "\$DOCTOR_REGISTRO"; exit 1
 FIM
 chmod 755 "$TMP/sudo-ponte2/sudo"
-saida="$(env -i PATH="$TMP/sudo-ponte2:$FALSO:$INST:$SEM_CURL" HOME="$TMP/casa-fontes" NO_COLOR=1 \
+saida="$(env -i PATH="$TMP/sudo-ponte2:$FALSO:$INST:$FONTES:$SEM_CURL" HOME="$TMP/casa-fontes" NO_COLOR=1 \
            DOCTOR_REGISTRO="$DOCTOR_REGISTRO" MEOW_PONTE="$PONTE2/ponte_root.sh" \
            bash "$RAIZ/scripts/instalar_fontes.sh" 2>&1)"
 if [ "$(cat "$PONTE2/recebido" 2>/dev/null)" = "curl" ] && ! grep -q 'faltam ferramentas' <<< "$saida"; then
