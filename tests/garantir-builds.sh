@@ -292,9 +292,10 @@ exit 1
 FIM
 chmod 755 "$T/compositor-doc"
 printf 'VERIFICAVEIS=(patches)\n' > "$T/so-patches"
+printf '#!/bin/sh\n' > "$T/fabrica"; chmod 755 "$T/fabrica"
 doctor() {
   env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY \
-    PATH="$T/bin:$PATH" HOME="$D" MEOW_RAIZ="$RAIZ" NO_COLOR=1 \
+    PATH="$T/bin:$PATH" HOME="$D" MEOW_RAIZ="$RAIZ" NO_COLOR=1 CP_BIN="${CP_BIN:-$T/fabrica}" \
     XDG_CONFIG_HOME="$D/.config" XDG_STATE_HOME="$D/.local/state" \
     GB_COMPOSITOR="$T/compositor-doc" GB_FILES="$T/files" GB_FILES_GUARDA="$ESTADO/cosmic-files" \
     GB_ESPERA=1 DBUS_SESSION_BUS_ADDRESS="${DOC_BUS:-}" PATH="${DOC_PATH:-}$T/bin:$PATH" \
@@ -338,7 +339,6 @@ igual "e não compila de novo" "$(grep -c . "$T/log")" 0
 
 echo "-- o shim desligado (meow compositor desativar) com o .estado antigo de /var/lib"
 rm -f "$D/.local/bin/cosmic-comp"
-printf '#!/bin/sh\n' > "$T/fabrica"; chmod 755 "$T/fabrica"
 printf 'versao=0.1~velha\ngravado=2026-09-24T04:07:05-03:00\nreq AURORA-X t.patch presente\n' > "$T/estado-velho"
 versoes cosmic-comp=0.1~h cosmic-files=1.10~b
 : > "$T/log"; CP_ESTADO="$T/estado-velho" CP_BIN="$T/fabrica" doctor; rc=$?
