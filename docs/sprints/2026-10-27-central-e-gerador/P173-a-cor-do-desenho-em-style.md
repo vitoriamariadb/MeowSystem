@@ -18,11 +18,12 @@ Teste com SVG de cor só em `style` e com `#abc`; os cartões do Alucard saem le
 
 ## Execução
 
-Commit `7f3ca965`.
+Commits `7f3ca965` e `a7a530ea`.
 
 - `_cores_do_traco` lê `fill`, `stroke` e `stop-color` em atributo, em `style` e em bloco `<style>`, a cor curta `#abc` e `rgb(...)`, e devolve sempre `#rrggbb`. O `stop-color` e o `rgb()` foram além da letra: sem eles, 1 desenho de degradê do pack Dracula e 2 em `rgb()` da biblioteca seguiriam sem cor lida.
 - O corte em 16 cores saiu: era por ordem de hexa, então guardava as escuras e jogava fora as claras. A biblioteca do Dracula soma 4.264 cores, cerca de 47 kB de JSON na ficha.
 - `tests/sistema-latte-e-rotulos.py` mede com `i.cores`, o que o servidor entrega, e não tem mais regex próprio. O Alucard entrou na medida. A guarda do teste passou de `total > 20` para `lidos > 20`, porque no Alucard só 15 desenhos da biblioteca têm o traço na cor do texto: o resto tem cor própria e é medido do mesmo jeito.
+- `h_biblioteca_legivel`, em `tests/app-completo.py`, tinha um terceiro regex só de atributo. Agora mede com `i.cores`, e sobra uma leitura só.
 - Nenhuma arte de pack mudou.
 
 Provas:

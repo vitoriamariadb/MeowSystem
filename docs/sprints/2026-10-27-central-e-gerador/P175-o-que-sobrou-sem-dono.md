@@ -20,16 +20,16 @@ Achados da P161, da P164 e da P165.
 
 ## Execução
 
-Commits `c7cb767b` e `1dcb10ae`.
+Commits `c7cb767b`, `1dcb10ae`, `77287176` e `d28c826a`.
 
 - **O arquivo sem leitor.** Saíram a rota `/api/precisa-de-gente`, `precisa_de_gente()` no servidor e os dois verbos em `lib/comum.sh`. A sentinela guarda o vermelho no `meow.log` e no `sentinela.tsv`, que `meow cosmic sentinela ler` mostra. O arquivo velho, com as linhas `compositor-caiu` e `patch-obrigatorio`, sai pelo `estadovelho` do doctor, só no conserto. Decisão 55 intacta: nada voltou à tela.
-- **`NA_MAQUINA`.** `_cosmic_pasta` resolve a versão como `meow_cosmic_v`, olhando `MEOW_COSMIC_SISTEMA`. Vale para o `CosmicComp`, para as barras e para o relógio, e também para os leitores do `CosmicComp` fora da tabela: a noite do applet, a leitura e as áreas fixas.
-- **O doctor só lendo.** O `meow doctor` sem `--consertar` exporta `MEOW_SO_LE=1`. Com ele, `chk_ponte` confere arquivo, soma e o `raiz=` do perfil sem sudo; `meow_ponte_viva` olha a regra no disco; `meow_ponte` devolve 127; e o greeter fica em `--`. A medida com a ponte de brinquedo achou mais do que a sprint: 6 chamadas, incluindo `greeter-ver`, e uma delas no carregamento de todo `meow`, por causa do `SEM_CONSERTO`. Esse teste agora roda só antes do conserto.
+- **`NA_MAQUINA`.** `_cosmic_pasta` resolve a versão como `meow_cosmic_v`, olhando `MEOW_COSMIC_SISTEMA`. Vale para o `CosmicComp`, para as barras e para o relógio, e também para os leitores do `CosmicComp` fora da tabela: a noite do applet, a leitura e as áreas fixas. O teto do raio, em `teto_do_raio`, lê a barra por `meow_cosmic_v`: sem isso, com o esquema `v2`, as barras vinham do `v2` e o teto sumia.
+- **O doctor só lendo.** O `meow doctor` sem `--consertar` exporta `MEOW_SO_LE=1`. Com ele, `chk_ponte` confere arquivo, soma e o `raiz=` do perfil sem sudo; `meow_ponte_viva` olha a regra no disco; `meow_ponte` devolve 127; e o greeter fica em `--`. Só lendo, `chk_ponte` diz «ponte root no lugar», porque «não pede senha» é o que ele deixou de medir. A medida com a ponte de brinquedo achou mais do que a sprint: 6 chamadas, incluindo `greeter-ver`, e uma delas no carregamento de todo `meow`, por causa do `SEM_CONSERTO`. Esse teste agora roda só antes do conserto.
 
 Provas:
 
-- `tests/doctor-so-le.sh` no código antigo: `1 sudo -n -l`, `3 sudo -n …/ponte_root.sh estado`, `1 sudo -n …/ponte_root.sh greeter-ver`, `1 sudo -n /usr/local/lib/meowsystem/ponte_root.sh estado`. No novo: `ok   nenhum sudo, pkill/kill/killall, e nenhum systemctl/gsettings/dconf que escreva`, `ok   fora do modo só leitura, a ponte viva continua sendo perguntada`, `passou: o doctor só lê, e o sinal não sai de casa`.
-- `tests/contrato-cosmic.sh` no código antigo: `FALHA painel: esperava JANELAS_TILING=sim, veio: JANELAS_TILING=nao`. No novo: `ok    painel: JANELAS_TILING=sim, lido do v2`, `ok    painel: as áreas fixas vêm do v2`, `contrato-cosmic: tudo certo`.
+- `tests/doctor-so-le.sh` no código antigo: `1 sudo -n -l`, `3 sudo -n …/ponte_root.sh estado`, `1 sudo -n …/ponte_root.sh greeter-ver`, `1 sudo -n /usr/local/lib/meowsystem/ponte_root.sh estado`. No novo: `ok   nenhum sudo, pkill/kill/killall, e nenhum systemctl/gsettings/dconf que escreva`, `ok   só lendo, o doctor não afirma que o sudo da ponte responde`, `ok   fora do modo só leitura, a ponte viva continua sendo perguntada`, `passou: o doctor só lê, e o sinal não sai de casa`.
+- `tests/contrato-cosmic.sh` no código antigo: `FALHA painel: esperava JANELAS_TILING=sim, veio: JANELAS_TILING=nao`. No novo: `ok    painel: JANELAS_TILING=sim, lido do v2`, `ok    painel: as áreas fixas vêm do v2`, `ok    painel: o teto do raio vem do v2`, `contrato-cosmic: tudo certo`. Sem o conserto do teto: `FALHA painel: o teto não veio do v2`.
 - `tests/precisa-de-gente.sh`: `ok    as linhas antigas sumiram com o arquivo`, `ok    a passada seguinte não acha nada`, `precisa-de-gente: tudo certo`.
 - Também verdes: `sentinela.sh`, `ponte-reparo.sh`, `ponte-so-reserva.sh`, `doctor-veredito.sh`, `compositor-shim.sh`, `wallpaper-base.sh`, `app.sh`, `areas-em-cada-tela.sh`, `leitura-fonte-unica.sh`, `manter-sem-pendencias.py`.
 
