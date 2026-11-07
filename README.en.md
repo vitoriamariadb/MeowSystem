@@ -9,8 +9,8 @@
 [![license](https://img.shields.io/badge/license-GPL--3.0-CBA6F7?style=for-the-badge&labelColor=1E1E2E)](LICENSE)
 [![platform](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
 ![version](https://img.shields.io/badge/version-v2.3.1-FAB387?style=for-the-badge&labelColor=1E1E2E)
-[![installer](https://img.shields.io/badge/installer-72%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-82%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![installer](https://img.shields.io/badge/installer-73%20steps-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-84%20checks-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 
 <img src="docs/capturas/desktop.jpg" width="920" alt="The desktop dressed by MeowSystem">
 
@@ -38,7 +38,7 @@ Without `git`, from the GitHub archive:
 curl -L https://github.com/vitoriamariadb/MeowSystem/archive/refs/heads/master.tar.gz | tar xz && cd MeowSystem-master && ./install.sh
 ```
 
-72 steps. None needs a flag. The sudo password is asked **once**, to register the root bridge;
+73 steps. None needs a flag. The sudo password is asked **once**, to register the root bridge;
 after that, no screen asks for a password. The installer downloads what Pop!_OS does not ship: the
 compiler and libraries for the applets, the compositor and the Files menu, Rust (through `rustup`,
 in `~/.cargo`), `fastfetch` and `starship`. The compositor builds in the background and takes
@@ -63,7 +63,7 @@ installs; `meow aplicar` installs without asking. To remove it:
 
 ## The panel
 
-`meow abrir`, or the MeowSystem icon in the launcher. 130 settings and 67 actions behind six doors (the panel speaks Portuguese):
+`meow abrir`, or the MeowSystem icon in the launcher. 132 settings and 69 actions behind six doors (the panel speaks Portuguese):
 
 <table>
 <tr>
@@ -91,7 +91,7 @@ The format is in [`docs/PACKS.md`](docs/PACKS.md) (Portuguese).
 
 ## Keeping it right
 
-`meow doctor` runs 82 checks without writing anything; `meow doctor --consertar` fixes what is out
+`meow doctor` runs 84 checks without writing anything; `meow doctor --consertar` fixes what is out
 of place, without asking anyone to type. It runs on its own at 5 a.m., and the **Consertar** button
 in the Cuidar door is the same gesture.
 
