@@ -14,8 +14,8 @@ mkdir -p "$T/estado"
 
 lido() {
   env -i PATH="/usr/bin:/bin" HOME="$T/casa" MEOW_COSMIC_DIR="$T/casa/.config/cosmic" MEOW_COSMIC_SISTEMA="$T/sistema" \
-    MEOW_ESTADO="$T/estado" MEOW_RAIZ="$RAIZ" MEOW_PALETA="$T/paleta.json" PYTHONDONTWRITEBYTECODE=1 \
-    python3 -I - "$RAIZ/app" <<'PY' 2>&1
+    MEOW_ESTADO="$T/estado" MEOW_RAIZ="$RAIZ" MEOW_PALETA="$T/paleta.json" \
+    python3 -IB - "$RAIZ/app" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])
 import servidor
