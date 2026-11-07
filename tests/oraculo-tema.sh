@@ -25,6 +25,13 @@ sed 's/"pressed":"#6F707FE1"/"pressed":"#000000FF"/' "$O/dracula-mauve-Dark-d77e
 s="$(comparar Dark "$T/trocado.json")"; rc=$?
 [ "$rc" = 1 ] && [[ "$s" == *background.component.pressed* ]] && ok "uma cor trocada no JSON aparece" || falha "o comparador não viu a cor trocada (rc $rc)"
 
+mkdir -p "$T/cap-v3"; cp -a "$CAP/." "$T/cap-v3/"
+for a in Dark Light; do mv "$T/cap-v3/com.system76.CosmicTheme.$a.Builder/v2" "$T/cap-v3/com.system76.CosmicTheme.$a.Builder/v3"; done
+for a in Dark Light; do
+  s="$(python3 "$RAIZ/scripts/oraculo_tema.py" comparar "$T/cap-v3" "$a" "$O/dracula-mauve-$a-5a8bd94.json" 2>&1)"; rc=$?
+  [ "$rc" = 0 ] && ok "captura em v3, $a: a receita é lida onde está" || falha "captura em v3, $a: rc $rc: $s"
+done
+
 echo
 if [ "$falhas" = 0 ]; then echo "oraculo-tema: tudo certo"; exit 0; fi
 echo "oraculo-tema: $falhas falha(s)"; exit 1

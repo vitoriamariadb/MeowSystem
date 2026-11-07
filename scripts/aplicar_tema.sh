@@ -30,12 +30,16 @@ e_produto() {
 }
 
 receita_diverge() {
-  local arv v a b chave k slider=0
+  local arv par va vb a b chave k slider=0 versoes
   for arv in Dark Light; do
-    for v in v1 v2; do
-      for a in "$ORIGEM/com.system76.CosmicTheme.$arv.Builder/$v"/*; do
+    versoes="$(python3 -I -c 'import sys; from pathlib import Path; sys.path.insert(0, sys.argv[1]); import derivar_acento as da
+print(da.receita_da_captura(Path(sys.argv[2]), sys.argv[3]).name, da.versao_do_builder(sys.argv[3]))' \
+      "$RAIZ/scripts" "$ORIGEM" "$arv" 2>/dev/null)" || versoes="v2 v2"
+    for par in "v1 v1" "$versoes"; do
+      read -r va vb <<< "$par"
+      for a in "$ORIGEM/com.system76.CosmicTheme.$arv.Builder/$va"/*; do
         chave="$(basename "$a")"
-        b="$COSMIC/com.system76.CosmicTheme.$arv.Builder/$v/$chave"
+        b="$COSMIC/com.system76.CosmicTheme.$arv.Builder/$vb/$chave"
         [ -f "$a" ] && [ -f "$b" ] || continue
         cmp -s "$a" "$b" && continue
         [ "$chave" = "frosted_maximized_apps" ] && continue

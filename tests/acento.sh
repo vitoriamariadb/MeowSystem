@@ -285,7 +285,20 @@ confere_builder "sistema só em v1: a captura segue lida na receita inteira e o 
   "$(do_builder "$BV/sistema-v1" "$cap_v2" "$BV/cosmic-v1")"
 confere_builder "sem a pasta do sistema, o Builder cai em v2, como o painel" v2 v2 \
   "$(do_builder "$BV/sem-nada" "$cap_v2" "$BV/cosmic-v2")"
-achados="$(cd "$RAIZ" && grep -nE 'Builder("? / "|/)v2' scripts/derivar_acento.py scripts/derivar_flavor.py scripts/derivar_vidro.py scripts/vidro.sh)"
+diverge_da_gui() {
+  env -i PATH="$PATH" RAIZ="$RAIZ" MEOW_COSMIC_SISTEMA="$1" ORIGEM="$2" COSMIC="$3" bash -c '
+    declare -a CHAVES_DELA=(frosted alpha_map frosted_maximized_apps)
+    eval "$(sed -n "/^receita_diverge() {\$/,/^}\$/p" "$RAIZ/scripts/aplicar_tema.sh")"
+    receita_diverge'
+}
+diverge_da_gui "$BV/sistema-v3" "$BV/cap-v3" "$BV/cosmic-v3"; d1=$?
+diverge_da_gui "$BV/sistema-v3" "$cap_v2" "$BV/cosmic-v3"; d2=$?
+diverge_da_gui "$BV/sem-nada" "$cap_v2" "$BV/cosmic-v2"; d3=$?
+diverge_da_gui "$BV/sistema-v3" "$cap_v2" "$BV/cosmic-v2"; d4=$?
+[ "$d1" = 0 ] && [ "$d2" = 0 ] && [ "$d3" = 0 ] && [ "$d4" = 1 ] \
+  && ok "o slider da GUI é visto na receita da versão do sistema (v3 com captura v3 ou v2, v2 sem pasta), e não na que o sistema não lê" \
+  || falha "receita_diverge não segue a versão do sistema (v3/v3=$d1 v3/v2cap=$d2 v2=$d3 v3 sem receita v3=$d4)"
+achados="$(cd "$RAIZ" && grep -nE 'Builder("? / "|/)v2' scripts/derivar_acento.py scripts/derivar_flavor.py scripts/derivar_vidro.py scripts/vidro.sh scripts/oraculo_tema.py)"
 [ -z "$achados" ] && ok "nenhum escritor crava Builder/v2" || falha "escritor que crava Builder/v2" "$achados"
 
 [ "$(git -C "$RAIZ" status --porcelain 2>/dev/null)" = "$git_antes" ] \
