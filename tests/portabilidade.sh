@@ -102,6 +102,11 @@ for arq in "${ARQUIVOS[@]}"; do
     esac
 
     case "$linha" in
+      *"/tmp/claude-"*)
+        acusa "$arq" "$num" "$linha" "caminho de sessão de agente: some com a sessão e não existe em outra máquina" ;;
+    esac
+
+    case "$linha" in
       *"[REDACTED]"*)
         acusa "$arq" "$num" "$linha" "identidade redigida numa instrução: o comando não roda" ;;
     esac
