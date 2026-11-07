@@ -1144,9 +1144,9 @@ cmd_lado() {
   if [ ! -f "$ATIVOS/$nome" ]; then
     meow_erro "não achei $nome em ativos/"
     if [ -f "$BASE/banidos/$nome" ]; then
-      meow_info "  ela está em banidos/ — o «Devolver» do grupo «Fora», em Personalizar › Papel de parede, a traz de volta"
+      meow_info "  ela foi recusada e saiu do acervo; a cópia em banidos/ o doctor apaga"
     else
-      meow_info "  o lado se escolhe para imagem do acervo — veja: ls \"$ATIVOS\""
+      meow_info "  o lado vale só para imagem do acervo"
     fi
     return "$MEOW_ERRO"
   fi

@@ -103,6 +103,10 @@ fase_avatar; [ $? = 1 ] && mudou_avatar=1
 
 declare -A GREETER_MD5=()
 GREETER_VISTO=0
+if [ "${MEOW_SO_LE:-0}" = 1 ] && meow_ponte_viva; then
+  meow_pula "$DESTINO só se olha pela ponte — o conserto do doctor confere"
+  exit "$([ "$mudou_avatar" = 1 ] && echo "$MEOW_DIVERGENTE" || echo "$MEOW_SEM_DEPENDENCIA")"
+fi
 if meow_ponte_viva; then
   _saida="$(meow_ponte greeter-ver 2>/dev/null)"; _rc=$?
   if [ "$_rc" = 0 ]; then

@@ -12,39 +12,28 @@ E="$T/home/.local/state/meowsystem"; ARQ="$E/precisa-de-gente.tsv"
 for c in sudo pkexec apt apt-get systemctl systemd-run pkill killall notify-send cargo make; do
   printf '#!/bin/sh\nexit 1\n' > "$T/bin/$c"; chmod 755 "$T/bin/$c"
 done
-gente() {
+doutor() {
   env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY HOME="$T/home" PATH="$T/bin:$PATH" \
       MEOW_ESTADO="$E" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_CONF="$T/nao-existe.conf" \
-      bash -c '. "$MEOW_RAIZ/lib/comum.sh"; "$@"' _ "$@"
+      bash -c 'source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow"); "$@"' _ "$@" 2>&1
 }
 linhas() { [ -f "$ARQ" ] && wc -l < "$ARQ" || echo 0; }
 foto() { printf '%s %s' "$(stat -c %Y.%s "$ARQ" 2>/dev/null)" "$(cat "$ARQ" 2>/dev/null)"; }
 
-echo "== 1. os verbos"
-gente meow_precisa_de_gente_resolvida inexistente
-[ ! -e "$ARQ" ] && ok "resolver o que não existe não cria arquivo" || falha "resolver sem linha criou o arquivo"
-gente meow_precisa_de_gente um "Primeiro" "porque sim"
-gente meow_precisa_de_gente dois "Segundo" "porque também"
-igual "duas linhas" "$(linhas)" 2
-d1="$(awk -F'\t' '$1=="um" {print $3}' "$ARQ")"
-printf '%s' "$d1" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' && ok "o desde quando é uma data" || falha "sem data: $d1"
-antes="$(foto)"; sleep 1
-gente meow_precisa_de_gente um "Primeiro" "porque sim"
-igual "o mesmo registro não escreve nada" "$(foto)" "$antes"
-gente meow_precisa_de_gente um "Primeiro" "agora por outro motivo"
-igual "o porquê novo entra" "$(awk -F'\t' '$1=="um" {print $4}' "$ARQ")" "agora por outro motivo"
-igual "e o desde quando é o do primeiro registro" "$(awk -F'\t' '$1=="um" {print $3}' "$ARQ")" "$d1"
-igual "ainda uma linha por id" "$(linhas)" 2
-gente meow_precisa_de_gente tab $'com\ttab' $'com\nquebra'
-igual "tabulação e quebra não racham a linha" "$(awk -F'\t' '$1=="tab" {print NF}' "$ARQ")" 4
-gente meow_precisa_de_gente_resolvida tab
-gente meow_precisa_de_gente_resolvida um
-igual "resolvida, a linha sai e a outra fica" "$(cut -f1 "$ARQ")" dois
-antes="$(foto)"; MEOW_DRY_RUN=1 gente meow_precisa_de_gente tres "Terceiro" "no seco"
-MEOW_DRY_RUN=1 gente meow_precisa_de_gente_resolvida dois
-igual "o seco não escreve" "$(foto)" "$antes"
-gente meow_precisa_de_gente_resolvida dois
-igual "esvaziado" "$(linhas)" 0
+echo "== 1. o arquivo sem leitor sai na passada do doctor"
+printf 'compositor-caiu\tO compositor caiu\t2026-10-20T10:00:00-03:00\tqueda\npatch-obrigatorio\tO patch não entra\t2026-10-20T10:00:00-03:00\tserie\nsentinela-cosmic\tO COSMIC da fila não entra\t2026-10-20T10:00:00-03:00\tserie\n' > "$ARQ"
+antes="$(foto)"
+saida="$(doutor chk_estadovelho)"; rc=$?
+igual "a conferência acusa o arquivo velho" "$rc" 1
+[[ "$saida" == *"precisa-de-gente.tsv não tem mais leitor"* ]] && ok "e diz o que sai" || falha "a conferência não citou o arquivo: $saida"
+igual "conferir não escreve" "$(foto)" "$antes"
+MEOW_DRY_RUN=1 doutor fix_estadovelho >/dev/null
+igual "o conserto no ensaio não escreve" "$(foto)" "$antes"
+doutor fix_estadovelho >/dev/null; rc=$?
+igual "o conserto diz que mexeu" "$rc" 1
+[ ! -e "$ARQ" ] && ok "as linhas antigas sumiram com o arquivo" || falha "o arquivo ficou: $(cat "$ARQ")"
+saida="$(doutor chk_estadovelho)"; rc=$?
+igual "a passada seguinte não acha nada" "$rc" 0
 
 echo "== 2. o patch obrigatório que não entra (degrau 4)"
 echo 'req t.patch MEOW-T' > "$T/patches/series"
@@ -92,27 +81,11 @@ touch "$T/req-falha"
 builds
 igual "o req que não entra fica fora do cartão: log e doctor" "$(linhas)" 0
 
-echo "== 3. o servidor lê a lista"
-gente meow_precisa_de_gente sentinela-cosmic "O COSMIC da fila não entra" "serie: brinquedo.patch é obrigatório"
-gente meow_precisa_de_gente outra-coisa "Outra coisa" "motivo"
-r="$(env -i PATH="$PATH" HOME="$T/home" MEOW_ESTADO="$E" python3 - "$RAIZ/app" <<'PY' 2>&1
-import sys
-sys.path.insert(0, sys.argv[1])
-import servidor
-l = servidor.precisa_de_gente()
-print("n=%d" % len(l))
-print("campos=%s" % ",".join(sorted(l[0])))
-print("ids=%s" % ",".join(i["id"] for i in l))
-PY
-)"
-{ grep -qx 'n=2' <<< "$r" && grep -qx 'campos=desde,id,nome,porque' <<< "$r" \
-  && grep -qx 'ids=sentinela-cosmic,outra-coisa' <<< "$r"; } \
-  && ok "precisa_de_gente() devolve id, nome, desde e porquê, na ordem" || falha "o servidor leu errado: $r"
-grep -q '"/api/precisa-de-gente"' "$RAIZ/app/servidor.py" && ok "a rota /api/precisa-de-gente existe" || falha "falta a rota /api/precisa-de-gente"
+echo "== 3. a rota sem leitor saiu"
+grep -q 'precisa-de-gente\|precisa_de_gente' "$RAIZ/app/servidor.py" && falha "o servidor ainda serve a rota morta" || ok "o servidor não tem a rota nem o leitor"
+grep -q 'meow_precisa_de_gente' "$RAIZ/lib/comum.sh" "$RAIZ/scripts/sentinela.sh" && falha "ainda há quem escreva o arquivo" || ok "ninguém escreve o arquivo"
 
-echo "== 4. quem precisa de gente vai para o registro, e o Manter não tem cartão de pendências"
-igual "o registro ganha a linha uma vez por mudança do porquê" \
-  "$(grep -c 'precisa de gente: Primeiro (' "$E/meow.log" 2>/dev/null)" 2
+echo "== 4. o Manter não tem cartão de pendências"
 if grep -q 'PRECISA_DE_GENTE\|linhaDeGente\|bloco("Pendências"' "$RAIZ/app/pagina/paginas.js" "$RAIZ/app/pagina/app.js"; then
   falha "o Manter ainda desenha o cartão de pendências"
 else

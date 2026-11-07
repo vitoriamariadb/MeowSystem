@@ -14,7 +14,6 @@ esac
 SN_SAIDA="${SN_SAIDA:-$MEOW_ESTADO/sentinela.tsv}"
 SN_PREVER="${SN_PREVER:-$MEOW_RAIZ/scripts/cosmic_prever.sh}"
 SN_VEREDITO="${CV_SAIDA:-$MEOW_ESTADO/cosmic-candidato.tsv}"
-SN_ID="sentinela-cosmic"
 SN_NOME="O COSMIC da fila não entra"
 SN_VIGIAS="${SN_VIGIAS:-$MEOW_RAIZ/assets/contratos/vigias.tsv}"
 SN_API="${SN_API:-https://api.github.com/repos}"
@@ -93,7 +92,6 @@ cmd_rodar() {
 
   if [ "$sig" = "nada" ]; then
     _sn_gravar nada "" nada "" || return "$MEOW_ERRO"
-    meow_precisa_de_gente_resolvida "$SN_ID"
     meow_ok "nenhum pacote do COSMIC na fila do apt"
     return "$MEOW_OK"
   fi
@@ -116,11 +114,10 @@ cmd_rodar() {
 
   if [ "$cor" = "vermelho" ]; then
     motivo="$(awk -F'\t' '$2 == "vermelho" {printf "%s%s: %s", (n++ ? " · " : ""), $1, $3}' "$SN_VEREDITO")"
-    meow_precisa_de_gente "$SN_ID" "$SN_NOME" "$motivo"
+    meow_registrar "$SN_NOME: $motivo"
     meow_muda "o COSMIC da fila não entra inteiro: $motivo"
     return "$MEOW_DIVERGENTE"
   fi
-  meow_precisa_de_gente_resolvida "$SN_ID"
   meow_ok "o COSMIC da fila entra ($cor)"
   return "$MEOW_OK"
 }

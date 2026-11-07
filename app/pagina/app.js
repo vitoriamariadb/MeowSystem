@@ -225,10 +225,12 @@ function previasDe(tipo, grupo = "") {
 }
 async function carregarPrevias(tipo, grupo = "", tentativa = 0) {
   const k = tipo + "/" + grupo;
+  const pasta = CHAVE.get("WALLPAPER_BASE")?.valor;
   PREVIAS_PEDIDAS.set(k, true);
   const r = await api(`/api/previas?tipo=${encodeURIComponent(tipo)}&grupo=${encodeURIComponent(grupo)}`);
-  PREVIAS.set(k, r.erro ? { itens: [], contagens: {}, total: 0 } : r);
   PREVIAS_PEDIDAS.delete(k);
+  if (tipo === "parede" && pasta !== CHAVE.get("WALLPAPER_BASE")?.valor) return render();
+  PREVIAS.set(k, r.erro ? { itens: [], contagens: {}, total: 0 } : r);
   render();
   if (r.faltam && tentativa < 12) setTimeout(() => carregarPrevias(tipo, grupo, tentativa + 1), 1500);
 }
@@ -331,6 +333,7 @@ async function enviarLote(lote, antes, chaves, opc, numero) {
   const certas = so ? (r.erro || r.rc === 2 ? [] : chaves)
     : [...(r.gravadas || []), ...(r.iguais || [])].filter((c) => chaves.includes(c));
   for (const c of certas) CHAVE.get(c).valor = String(lote[c]);
+  if (certas.includes("WALLPAPER_BASE")) for (const k of [...PREVIAS.keys()]) if (k.startsWith("parede/")) PREVIAS.delete(k);
   const queixas = [];
   for (const rec of [...(r.recusadas || []), ...(r.falhas || [])]) queixas.push(`${nomeDeChave(rec.chave)}: ${rec.erro}`);
   if (!queixas.length && (r.erro || r.rc === 2)) queixas.push(r.erro || r.saida || "Não gravou");

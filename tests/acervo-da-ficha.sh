@@ -248,6 +248,25 @@ for rel, rotulo in (("packs/meowsystem/icones/apps/com.obsproject.Studio.svg", "
     it = por_arquivo.get(rel) or {}
     checa(it.get("rotulo") == rotulo, "%s ganha o rótulo «%s»" % (os.path.basename(rel), rotulo),
           "veio %r" % it.get("rotulo"))
+cores = servidor._cores_do_traco
+for svg, esperado, frase in (
+        ('<path style="fill:#AABBCC;stroke:#112233"/>', ["#112233", "#aabbcc"], "a cor só em style"),
+        ('<path style="stroke: #abc"/><path fill="#def"/>', ["#aabbcc", "#ddeeff"], "a cor curta, em style e em atributo"),
+        ('<stop style="stop-color:#102030"/><stop stop-color="#405060"/>', ["#102030", "#405060"], "a cor do degradê"),
+        ('<path fill="rgb(16, 32,48)"/>', ["#102030"], "a cor em rgb()"),
+        ('<path fill="currentColor" stroke-width="2" fill-opacity="0.5"/>', [], "sem cor escrita, nada")):
+    checa(cores(svg) == esperado, "_cores_do_traco lê %s" % frase, "veio %r" % cores(svg))
+muitas = "".join('<path fill="#%06x"/>' % i for i in range(40))
+checa(len(cores(muitas)) == 40, "o desenho de 40 cores chega inteiro", "vieram %d" % len(cores(muitas)))
+sem_cor = []
+for nome in sorted(os.listdir(bib)):
+    if nome.endswith(".svg"):
+        with open(os.path.join(bib, nome), encoding="utf-8", errors="replace") as fh:
+            texto = fh.read(300000)
+        if not cores(texto) and "currentColor" not in texto:
+            sem_cor.append(nome)
+checa(not sem_cor, "todo desenho da biblioteca do Dracula tem a cor lida, ou só o currentColor",
+      "%d sem cor lida: %s" % (len(sem_cor), sem_cor[:6]))
 origens = [o for _d, o in DIRS_DE_FABRICA]
 checa("pessoal" in origens and "usuária" not in origens,
       "a origem do .desktop da casa se chama «pessoal»", repr(origens))

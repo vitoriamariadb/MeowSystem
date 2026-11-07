@@ -344,10 +344,23 @@ def _valor_vivo(chave):
 
 
 COSMIC_DIR = os.environ.get("MEOW_COSMIC_DIR") or os.path.expanduser("~/.config/cosmic")
-CONF_COMP = os.path.join(COSMIC_DIR, "com.system76.CosmicComp", "v1")
+COSMIC_SISTEMA = os.environ.get("MEOW_COSMIC_SISTEMA") or "/usr/share/cosmic"
 
-_BARRAS = (("PAINEL", "com.system76.CosmicPanel.Panel/v1/"),
-           ("DOCK", "com.system76.CosmicPanel.Dock/v1/"))
+
+def _cosmic_pasta(ident):
+    try:
+        nomes = os.listdir(os.path.join(COSMIC_SISTEMA, ident))
+    except OSError:
+        nomes = []
+    versoes = [int(n[1:]) for n in nomes if re.fullmatch(r"v\d+", n)]
+    return "%s/v%d/" % (ident, max(versoes, default=1))
+
+
+PASTA_COMP = _cosmic_pasta("com.system76.CosmicComp")
+CONF_COMP = os.path.join(COSMIC_DIR, PASTA_COMP)
+
+_BARRAS = (("PAINEL", _cosmic_pasta("com.system76.CosmicPanel.Panel")),
+           ("DOCK", _cosmic_pasta("com.system76.CosmicPanel.Dock")))
 _DEGRAU = r"(XS|S|M|L|XL)"
 
 
@@ -391,11 +404,11 @@ def _modo_das_areas(bruto):
 
 
 NA_MAQUINA = {
-    "RELOGIO_SEGUNDOS": ("com.system76.CosmicAppletTime/v1/show_seconds", _sim_nao),
-    "JANELAS_TILING": ("com.system76.CosmicComp/v1/autotile", _sim_nao),
-    "JANELAS_TILING_ESCOPO": ("com.system76.CosmicComp/v1/autotile_behavior",
+    "RELOGIO_SEGUNDOS": (_cosmic_pasta("com.system76.CosmicAppletTime") + "show_seconds", _sim_nao),
+    "JANELAS_TILING": (PASTA_COMP + "autotile", _sim_nao),
+    "JANELAS_TILING_ESCOPO": (PASTA_COMP + "autotile_behavior",
                               {"Global": "global", "PerWorkspace": "workspace"}.get),
-    "AREAS_MODO": ("com.system76.CosmicComp/v1/workspaces", _modo_das_areas),
+    "AREAS_MODO": (PASTA_COMP + "workspaces", _modo_das_areas),
 }
 for _suf, _pasta in _BARRAS:
     NA_MAQUINA.update({
@@ -428,9 +441,9 @@ def _leitura_desligada(chave, valor):
 _LEITURA_NO_APPLET = {
     "LEITURA_TEMPERATURA": ("estado", "ultima_temperatura"),
     "LEITURA_TEXTURA": ("estado", "ultima_textura"),
-    "LEITURA_AGENDA": ("cosmic", "com.system76.CosmicComp/v1/leitura_agenda"),
-    "LEITURA_HORARIO_INICIO": ("cosmic", "com.system76.CosmicComp/v1/leitura_hora_inicio"),
-    "LEITURA_HORARIO_FIM": ("cosmic", "com.system76.CosmicComp/v1/leitura_hora_fim"),
+    "LEITURA_AGENDA": ("cosmic", PASTA_COMP + "leitura_agenda"),
+    "LEITURA_HORARIO_INICIO": ("cosmic", PASTA_COMP + "leitura_hora_inicio"),
+    "LEITURA_HORARIO_FIM": ("cosmic", PASTA_COMP + "leitura_hora_fim"),
 }
 
 
@@ -488,7 +501,7 @@ def _valendo_agora(chave):
 def _noite_do_applet():
     pontas = []
     for chave in ("leitura_hora_inicio", "leitura_hora_fim"):
-        bruto = (_cosmic_ler("com.system76.CosmicComp/v1/" + chave) or "").strip().strip('"')
+        bruto = (_cosmic_ler(PASTA_COMP + chave) or "").strip().strip('"')
         if not re.fullmatch(r"([01]?\d|2[0-3]):[0-5]\d", bruto):
             return None
         h, m = bruto.split(":")
@@ -597,9 +610,19 @@ def _url_de_svg(texto):
     return "data:image/svg+xml;charset=utf-8," + quote(texto, safe="")
 
 
+def _cor_de_seis(hexa, *rgb):
+    if not hexa:
+        return "#%02x%02x%02x" % tuple(min(int(v), 255) for v in rgb)
+    hexa = hexa.lower()
+    return "#" + (hexa if len(hexa) == 6 else "".join(c * 2 for c in hexa))
+
+
 def _cores_do_traco(texto):
-    achadas = re.findall(r'(?:stroke|fill)="(#[0-9a-fA-F]{6})"', texto or "")
-    return sorted({c.lower() for c in achadas})[:16]
+    achadas = re.findall(
+        r'(?:stroke|fill|stop-color)\s*[=:]\s*["\']?\s*'
+        r'(?:#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![0-9a-fA-F])|rgb\((\d+),\s*(\d+),\s*(\d+)\))',
+        texto or "")
+    return sorted({_cor_de_seis(*c) for c in achadas})
 
 
 def _previa_para_a_tela(previa):
@@ -1370,7 +1393,7 @@ def ler_esquema():
             "vestigio_de_pack": _vestigio_de_pack(chave),
             "valendo_agora": _valendo_agora(chave),
             "desligado_agora": chave in _LEITURA_ZERO_DESLIGA and _leitura_desligada(
-                chave, (_cosmic_ler("com.system76.CosmicComp/v1/" + chave.lower())
+                chave, (_cosmic_ler(PASTA_COMP + chave.lower())
                         or "").strip('"')),
             "ajuda_herdada": herdada,
             "ajuda_de": ajuda_de,
@@ -1824,7 +1847,7 @@ def teto_do_raio():
         '. "$1/lib/comum.sh"; . "$1/lib/painel.sh"\n'
         'printf "experimental\\t%s\\n" "${FORMA_RAIO_EXPERIMENTAL-}"\n'
         'for b in Panel Dock; do\n'
-        '  d="$MEOW_PAINEL_BASE/com.system76.CosmicPanel.$b/v1"\n'
+        '  d="$MEOW_PAINEL_BASE/com.system76.CosmicPanel.$b/$(meow_cosmic_v "com.system76.CosmicPanel.$b")"\n'
         '  [ -d "$d" ] || continue\n'
         '  t="$(meow_painel_teto "$d" 2>/dev/null)" || continue\n'
         '  printf "%s\\t%s\\n" "$b" "$t"\n'
@@ -2712,8 +2735,7 @@ def gravar_logo_do_pack_pessoal(corpo):
 
 
 def _areas_alfinetadas():
-    caminho = os.path.expanduser(
-        "~/.config/cosmic/com.system76.CosmicComp/v1/pinned_workspaces")
+    caminho = os.path.join(os.path.expanduser("~/.config/cosmic"), PASTA_COMP, "pinned_workspaces")
     try:
         with open(caminho, "r", encoding="utf-8", errors="replace") as fh:
             bruto = fh.read()
@@ -5294,22 +5316,6 @@ def pendencias():
                     "acao": acao,
                     "nome": nome,
                 })
-    except OSError:
-        return []
-    return fora
-
-PRECISA_DE_GENTE = os.path.join(ESTADO, "precisa-de-gente.tsv")
-
-
-def precisa_de_gente():
-    fora = []
-    try:
-        with open(PRECISA_DE_GENTE, "r", encoding="utf-8") as fh:
-            for linha in fh:
-                campos = linha.rstrip("\n").split("\t")
-                if len(campos) != 4 or not campos[0] or not campos[1]:
-                    continue
-                fora.append(dict(zip(("id", "nome", "desde", "porque"), campos)))
     except OSError:
         return []
     return fora
@@ -8092,9 +8098,6 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/pendencias":
             return self._json({"pendencias": pendencias()})
-
-        if caminho == "/api/precisa-de-gente":
-            return self._json({"itens": precisa_de_gente()})
 
         if caminho == "/api/packs":
             return self._json({"packs": packs_com_vitrine()})

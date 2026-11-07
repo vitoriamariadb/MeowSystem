@@ -242,6 +242,8 @@ fix_basefundo() {
 
 _ESTADO_ANTIGO=(midia leitura)
 
+_ESTADO_SEM_LEITOR=(precisa-de-gente.tsv)
+
 _estado_antigo_sobra() {
   local d
   for d in "${_ESTADO_ANTIGO[@]}"; do
@@ -250,12 +252,24 @@ _estado_antigo_sobra() {
   return 0
 }
 
+_estado_sem_leitor_sobra() {
+  local a
+  for a in "${_ESTADO_SEM_LEITOR[@]}"; do
+    [ -f "$MEOW_ESTADO/$a" ] && printf '%s\n' "$MEOW_ESTADO/$a"
+  done
+  return 0
+}
+
 chk_estadovelho() {
-  local sobra
+  local sobra solto
   sobra="$(_estado_antigo_sobra)"
-  if [ -n "$sobra" ]; then
-    printf '%s\n' "$sobra" | while IFS= read -r d; do
+  solto="$(_estado_sem_leitor_sobra)"
+  if [ -n "$sobra" ] || [ -n "$solto" ]; then
+    [ -z "$sobra" ] || printf '%s\n' "$sobra" | while IFS= read -r d; do
       meow_muda "$d é árvore de build da era em que o applet morava aqui ($(du -sh -- "$d" 2>/dev/null | cut -f1)) — sai"
+    done
+    [ -z "$solto" ] || printf '%s\n' "$solto" | while IFS= read -r a; do
+      meow_muda "$a não tem mais leitor — sai"
     done
     return "$MEOW_DIVERGENTE"
   fi
@@ -271,6 +285,12 @@ fix_estadovelho() {
     rm -rf -- "$d" || { meow_erro "não consegui remover $d"; return "$MEOW_ERRO"; }
     meow_ok "removido $d/"
   done < <(_estado_antigo_sobra)
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    if meow_seco; then meow_muda "removeria $d"; continue; fi
+    rm -f -- "$d" || { meow_erro "não consegui remover $d"; return "$MEOW_ERRO"; }
+    meow_ok "removido $d"
+  done < <(_estado_sem_leitor_sobra)
   return "$MEOW_DIVERGENTE"
 }
 
@@ -729,7 +749,9 @@ chk_ponte() {
   fi
 
   local estado
-  if ! estado="$(sudo -n "$ponte" estado 2>/dev/null)"; then
+  if [ "${MEOW_SO_LE:-0}" = 1 ]; then
+    estado="$(grep '^raiz=' "${ponte%/*}/perfil" 2>/dev/null)"
+  elif ! estado="$(sudo -n "$ponte" estado 2>/dev/null)"; then
     meow_muda "a regra existe e o sudo ainda pede senha para a ponte$(_ponte_reparo_motivo)"
     return "$MEOW_DIVERGENTE"
   fi
@@ -766,6 +788,10 @@ chk_ponte() {
     return "$MEOW_DIVERGENTE"
   fi
 
+  if [ "${MEOW_SO_LE:-0}" = 1 ]; then
+    meow_ok "ponte root no lugar — a senha e as regras dela se conferem no conserto"
+    return 0
+  fi
   meow_ok "ponte root no ar — o conserto de sistema não pede senha"
   return 0
 }
@@ -1517,9 +1543,6 @@ fix_autoreparo() {
 
 VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
 SEM_CONSERTO=" convertidos heroictema "
-if ! meow_ponte_viva; then
-  SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal gpu libreoffice "
-fi
 
 declare -A SEM_CONSERTO_RAZAO=(
   [ocultar]="o conserto usa sudo, e o doctor não usa — entra no «Instalar tudo»"
@@ -1742,6 +1765,7 @@ cmd_doctor() {
     esac
     shift
   done
+  [ "$consertar" = 1 ] || export MEOW_SO_LE=1
   carregar_conf --ponte-opcional || return "$MEOW_ERRO"
 
   meow_titulo "MeowSystem — doctor"
@@ -1751,7 +1775,7 @@ cmd_doctor() {
   local i
   for i in "${!CHK_NOME[@]}"; do imprimir_check "$i" 1; done
 
-  if sudo -n -l 2>/dev/null | grep -Eq 'NOPASSWD:[[:space:]]*ALL[[:space:]]*$'; then
+  if [ "$consertar" = 1 ] && sudo -n -l 2>/dev/null | grep -Eq 'NOPASSWD:[[:space:]]*ALL[[:space:]]*$'; then
     meow_aviso "o sudo desta máquina libera TUDO sem senha para você (NOPASSWD: ALL)"
     meow_info "  enquanto essa regra existir, a ponte root não restringe nada —"
     meow_info "  ela é que permitirá tirá-la, e não o contrário"
@@ -1772,6 +1796,9 @@ cmd_doctor() {
   fi
 
   meow_travar || return "$MEOW_ERRO"
+  if ! meow_ponte_viva; then
+    SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal gpu libreoffice "
+  fi
   meow_passo "Consertando o que falhou"
   local nome rc saida mexeu=0 falhou=0
   if ! meow_seco; then
