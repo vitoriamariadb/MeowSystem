@@ -1686,6 +1686,7 @@ pior_de() {
 campo() { printf '    %s%s%s %s\n' "$C_DIM" "$(pad "$1" 12)" "$C_ZERO" "$2"; }
 
 cmd_status() {
+  export MEOW_SO_LE=1
   carregar_conf --ponte-opcional || return "$MEOW_ERRO"
   meow_titulo "MeowSystem — estado"
 
