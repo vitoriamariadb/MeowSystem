@@ -122,6 +122,7 @@ _gr_gravar_falha() {
   { awk -F'\t' -v v="$ver" -v d="$digital" '!($1 == v && $2 == d)' "$GR_FALHAS" 2>/dev/null
     printf '%s\t%s\t%s\t%s\t%s\n' "$ver" "$digital" "$tipo" "$n" "$(date +%s)"; } > "$GR_FALHAS.novo" \
     && mv -f "$GR_FALHAS.novo" "$GR_FALHAS"
+  [ "$tipo" = recusa ] && meow_registrar "graficos.sh: o patch do portal não entra no $ver, e o portal do pacote segue valendo"
   return 0
 }
 
@@ -562,7 +563,7 @@ _gr_falta_ferramenta() {
 }
 
 cmd_compilar() {
-  local ver fonte log bin livre destino alvo arquivo marca arvore tmp m recusa_rc d
+  local ver fonte log bin livre destino alvo arquivo marca arvore tmp m d
   ver="$(_gr_versao)" || ver=""
   [ -n "$ver" ] || { meow_pula "o portal não está instalado por pacote — nada a compilar"; return "$MEOW_SEM_DEPENDENCIA"; }
   if _gr_oficial "$ver"; then
@@ -588,10 +589,8 @@ cmd_compilar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   fonte="$GR_CACHE/fonte"; log="$GR_CACHE/compilar-$ver.log"; : > "$log"
-  _gr_preparar "$ver" "$fonte" "$log"; recusa_rc=$?
-  if [ "$recusa_rc" != 0 ]; then
+  if ! _gr_preparar "$ver" "$fonte" "$log"; then
     rm -rf "$fonte"
-    [ "$recusa_rc" = 4 ] && meow_registrar "graficos.sh: o patch do portal não entra no $ver, e o portal do pacote segue valendo"
     return "$MEOW_ERRO"
   fi
   while IFS=$'\t' read -r alvo arquivo marca; do

@@ -317,12 +317,15 @@ graf aplicar; rc=$?
 confere "aplicar não compila, sai 0 e diz que o patch não entra" '[ "$rc" = 0 ] && grep -q "não entra" "$T/saida" && ! grep -qiE "command not found|comando não encontrado" "$T/saida" && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ]' "$(cat "$T/saida")"
 graf estado
 confere "o estado vira nao-encaixa" 'grep -qx estado=nao-encaixa "$T/saida"' "$(cat "$T/saida")"
-confere "a recusa vai para o log e para o doctor, sem tela e sem receita" 'grep -q "o patch do portal não entra" "$ESTADO/meow.log" && ! grep -qiE "digite|rode |execute" "$ESTADO/meow.log" && [ ! -e "$ESTADO/precisa-de-gente.tsv" ] && ! grep -q "^graficos-" "$ESTADO/pendencias.tsv" 2>/dev/null' "$(cat "$ESTADO/meow.log" 2>&1)"
+confere "a recusa vai para o log, sem tela e sem receita" 'grep -q "o patch do portal não entra" "$ESTADO/meow.log" && ! grep -qiE "digite|rode |execute" "$ESTADO/meow.log" && [ ! -e "$ESTADO/precisa-de-gente.tsv" ] && ! grep -q "^graficos-" "$ESTADO/pendencias.tsv" 2>/dev/null' "$(cat "$ESTADO/meow.log" 2>&1)"
+graf conferir
+confere "a primeira linha do conferir, a que o doctor mostra, diz que o patch não entra" 'head -1 "$T/saida" | grep -q "o patch não entra"' "$(cat "$T/saida")"
 confere "o shim fica no pacote" '[ "$(MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$LIBEXEC" PATH="$FALSO:$PATH" bash "$LIBEXEC/portal-shim")" = /usr/libexec/xdg-desktop-portal-cosmic ]'
 ext env EXTENSOES_FUNDO=1 EXTENSOES_COMPILAR=1 "$RAIZ/scripts/extensoes_build.sh" graficos --aplicar; rc=$?
 confere "com a recusa, a etapa do install não conta como escrita (o laço não acusa idempotência)" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
 graf pendente
 confere "a recusa não volta a ser pendente (o garantir_builds não repete)" '[ ! -s "$T/saida" ]' "$(cat "$T/saida")"
+confere "a segunda passada não registra a recusa de novo" '[ "$(linhas "o patch do portal não entra" "$ESTADO/meow.log")" = 1 ]' "$(cat "$ESTADO/meow.log")"
 printf 'um\ndois\ntres\nquatro\ncinco\n' > "$T/fix/a/src/a.rs"
 ext "$RAIZ/scripts/garantir_builds.sh"; rc=$?
 confere "a recusa já gravada não é falha do garantir_builds" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
@@ -336,6 +339,17 @@ sed -i 's/^ZZ$/um/' "$T/fix/a/src/a.rs"
 printf 'portal p-portal.patch MEOW-PORTAL-PATCH-1\nportal p-wiring.patch -\ntoolkit p-toolkit.patch MEOW-TOOLKIT-PATCH-1\n\n\n' > "$T/patches/graficos.series"
 graf pendente
 confere "mexer na série devolve a versão à fila" '[ "$(cat "$T/saida")" = "1.13.0~1~24.04~bbbbbbb" ]' "$(cat "$T/saida")"
+printf 'um\nMUDOU\ntres\nquatro\ncinco\nseis\n' > "$T/fix/a/src/a.rs"
+: > "$ESTADO/meow.log"
+graf validar; rc=$?
+confere "a recusa vista pelo validar também vai para o log" '[ "$rc" = 2 ] && grep -q "o patch do portal não entra" "$ESTADO/meow.log"' "$(cat "$T/saida" "$ESTADO/meow.log")"
+printf 'um\ndois\ntres\nquatro\ncinco\n' > "$T/fix/a/src/a.rs"
+printf 'portal p-portal.patch MEOW-PORTAL-PATCH-1\nportal p-wiring.patch -\ntoolkit p-toolkit.patch MEOW-TOOLKIT-PATCH-1\n\n\n\n' > "$T/patches/graficos.series"
+printf '#!/bin/sh\ncase " $* " in *" --dry-run "*) exec %s "$@" ;; esac\nexit 1\n' "$(command -v patch)" > "$FALSO/patch"; chmod +x "$FALSO/patch"
+: > "$ESTADO/meow.log"
+graf compilar; rc=$?
+rm -f "$FALSO/patch"
+confere "o patch que passa no dry-run e não entra na hora também vai para o log" '[ "$rc" = 2 ] && grep -q "não entrou na hora de aplicar" "$T/saida" && grep -q "o patch do portal não entra" "$ESTADO/meow.log"' "$(cat "$T/saida" "$ESTADO/meow.log")"
 
 printf '\n12. o patch que compila mas some do binário não instala\n'
 versoes "xdg-desktop-portal-cosmic=1.14.0~1~24.04~ccccccc" "google-chrome-stable=146.0"
