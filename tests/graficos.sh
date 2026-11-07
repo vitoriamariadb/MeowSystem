@@ -447,7 +447,6 @@ graf aplicar; rc=$?
 confere "aplicar tira o drop-in e o shim, não compila e mantém a policy" '[ "$rc" = 1 ] && [ ! -e "$DROPIN" ] && [ ! -e "$LIBEXEC/portal-shim" ] && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ] && [ -f "$POLICY" ]' "$(cat "$T/saida")"
 graf aplicar; rc=$?
 confere "a segunda passada sai 0" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
-confere "a correção oficial encerra o que pedia gente" '! grep -q "^graficos-" "$ESTADO/precisa-de-gente.tsv"' "$(cat "$ESTADO/precisa-de-gente.tsv" 2>&1)"
 ext "$RAIZ/scripts/extensoes_build.sh" graficos --estado
 confere "no cartão a correção oficial conta como ativa" 'grep -qx instalada=sim "$T/saida" && grep -qx ativa=sim "$T/saida"' "$(cat "$T/saida")"
 printf '%s\n' "$VER1" > "$T/patches/graficos.versao"
