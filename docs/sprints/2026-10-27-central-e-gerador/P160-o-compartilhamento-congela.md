@@ -98,5 +98,6 @@ cada um está explicado. Nenhum vem do toolkit: `graficos.sh` e `graficos-fonte-
 
 Falta da mão de quem usa, com a build instalada: depois do reboot, 30 minutos de janela no Chrome, inclusive o próprio
 navegador; `coredumpctl` sem entrada nova e o journal sem `create_frame sent before`; um segundo participante
-confirmando; e a própria tela na call do Teams. A prova de 30 minutos de 06/11 foi feita com o binário só SHM da máquina,
-não com esta build: o `-F0` e o marcador provam que o patch entrou, não que a corrida acabou nela.
+confirmando; e a própria tela na call do Teams. A prova de 30 minutos de 06/11 foi feita com o binário da máquina, com
+este toolkit e o SHM forçado, não com esta build: o `-F0` e o marcador provam que o patch entrou, não que a corrida acabou
+sem o SHM forçado.
