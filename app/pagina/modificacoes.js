@@ -112,14 +112,10 @@ function escolherTema(t, nome) {
   fecharMenus();
   TRABALHOS_A_CAMINHO++;
   api("/api/modificacao-tema-padrao", { method: "POST", body: JSON.stringify({ app: t.pasta, nome }) }).then((r) => {
-    try {
-      if (r.erro) { torrada(r.erro, "erro"); return; }
-      if (temaLigado(t)) rodar(ACAO.get("modificacao_aplicar"), t.pasta, { semPerguntar: true, depois: releModificacoes });
-      else releModificacoes();
-    } finally {
-      TRABALHOS_A_CAMINHO--;
-    }
-  });
+    if (r.erro) { torrada(r.erro, "erro"); return; }
+    if (temaLigado(t)) rodar(ACAO.get("modificacao_aplicar"), t.pasta, { semPerguntar: true, depois: releModificacoes });
+    else releModificacoes();
+  }).finally(() => { TRABALHOS_A_CAMINHO--; });
 }
 
 function itensDeTema(t, sozinho) {
