@@ -182,7 +182,7 @@ if [ -z "$_versao_boa" ]; then
   printf 'sem matriz de builds nesta casa: patches/versao não foi comparado\n'
 elif [ "$(printf '%s\n%s\n' "$_versao_boa" "$_versao_escrita" | sort -V | tail -1)" = "$_versao_escrita" ]; then
   passou "patches/versao tem a última versão boa da matriz desta casa, ou uma mais nova: $_versao_escrita"
-elif [ "${MEOW_NUMEROS_CORRIGIR:-0}" = "1" ]; then
+elif [ "${MEOW_NUMEROS_CORRIGIR:-0}" = "1" ] || [ "${MEOW_NUMEROS_CORRIGIR:-0}" = "versao" ]; then
   sed -i "s/^[0-9].*/$_versao_boa/" "$VERSAO_ARQ"
   passou "patches/versao corrigido para $_versao_boa"
 else
