@@ -92,6 +92,11 @@ case "$(servir)" in
   *) falha "o traço cru perdeu o currentColor que a oficina pinta" ;;
 esac
 
+case "$(curl -s -H "X-Meow-Token: $TOK" --get --data-urlencode "tipo=parede" --data-urlencode "id=nunca-existiu" "$BASE/previa")" in
+  *"essa imagem não existe mais"*) ok "a rota /previa responde a verdade sobre a imagem que sumiu" ;;
+  *) falha "a rota /previa não diz que a imagem sumiu" ;;
+esac
+
 saida="$(env -i PATH="$FALSO:$PATH" HOME="$H" python3 -I - "$RAIZ/app" "$T" <<'PY' 2>&1
 import importlib.util, os, sys
 spec = importlib.util.spec_from_file_location("servidor", os.path.join(sys.argv[1], "servidor.py"))
