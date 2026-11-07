@@ -40,3 +40,7 @@ req       cosmic-comp-blur-cache-textura.patch   AURORA-BLUR-CACHE
 # A barra de compartilhar do Chrome vem sem app_id: a janela herda o de outra
 # janela do mesmo cliente, e a dock mostra um ícone só.
 req       cosmic-comp-app-id-do-cliente.patch    AURORA-APP-ID-CLIENTE
+
+# Em Global, as outras telas mostravam números: cada área copia o nome da área
+# de mesmo índice, e tirar o monitor não cria área a mais.
+req       cosmic-comp-nomes-nas-duas-telas.patch AURORA-AREAS-NOMES
