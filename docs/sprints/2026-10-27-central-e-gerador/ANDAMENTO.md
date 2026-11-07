@@ -368,3 +368,7 @@ Ordem: push do bloco 0; merge de A, B, C, D e E na integração; aplicar a tabel
 Instrução de quem usa: «Só instala nas três máquinas quando tiver concluído todos os Merges, push e afins, além dos portões e tal. Só aí pós integrado tudo. Incluindo outro pedido que é sempre fazer as Sprints que surgirem durante o caminho. Aí na conclusão dessas é que rola o install.»
 
 Sprints que surgiram no caminho e entram antes do install: P171, P172, P173, P174, P175. Depois do bloco A vêm essas, em blocos; achado novo vira sprint e entra na fila. O install fecha a lista.
+
+## 06/11, a última leva antes do install
+
+Bloco A, P171 a P176 integrados. Falta: P177 (nomes nas duas telas, patch `req` novo, com o sim de quem usa), P178 (aviso do sudo e restos), README, suíte inteira, push, CI, install nas três máquinas. Depois do install no nitro-5, o coordenador tira a regra `NOPASSWD: ALL`, com `visudo -c` e prova do `sudo -A` antes, e nunca antes do install, que usa `sudo` sem senha. `~/.config/aurora/sanitizer-nome-publico.conf` lista o MeowSystem nesta máquina, para o README não perder os créditos no commit.
