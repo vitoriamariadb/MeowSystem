@@ -31,7 +31,7 @@ Os testes de cada item, cada um vermelho antes e verde depois quando couber; `te
 
 ## Execução
 
-Bloco `bloco/restos`, 11 commits sobre `6e544a68`. A regra `NOPASSWD: ALL` no sudoers não foi tocada: é do coordenador, depois do install.
+Bloco `bloco/restos`, 11 commits de código e esta nota sobre `6e544a68`. A regra `NOPASSWD: ALL` no sudoers não foi tocada: é do coordenador, depois do install.
 
 O que foi feito:
 
