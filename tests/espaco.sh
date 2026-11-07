@@ -704,7 +704,7 @@ inchar() {
 }
 sob_a_trava() {
   env -i PATH="$M/falso:$T/bin:/usr/bin:/bin" HOME="$CASA" NO_COLOR=1 MEOW_ESTADO="$E" MEOW_CACHE="$C" ESPACO_REGISTRO="$REG" ESPACO_DISCO_USO_PCT=10 \
-    CP_SERIE="$M/serie-vazia" FILES_MENU=sim \
+    CP_SERIE="$M/serie-vazia" CP_ESPACO_KB=1 FILES_MENU=sim \
     bash -c 'exec 9>>"$MEOW_ESTADO/builds.lock"; flock 9; bash "$@"' _ "$@" 2>&1
 }
 inchar
