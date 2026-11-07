@@ -27,9 +27,12 @@ Dry-run `-F0` e `cargo check` com a série inteira sobre o fonte de ec674cd; fun
 - `add_output` chama `devolver_janelas` depois de mover os donos. A saída vale por porta e EDID em qualquer tela presente; só EDID vale apenas para a saída que acabou de entrar, para o monitor em outra porta contar sem mandar a janela ao gêmeo que já estava ligado.
 - A volta completa as telas só até o tamanho da lista, como o `refresh` faria, e leva a janela à área de mesmo índice, ou à última, se a área sumiu. Não toca em `set_active_output`, em `activate` nem no estado `Active`; a janela entra por baixo da pilha de foco da área (`FocusStacks::separar` e `por_baixo`).
 - Janela solta volta solta e na posição dela (`position_relative`), mesmo tendo virado ladrilho na fusão.
+- Janela maximizada volta maximizada, de ladrilho ou solta, e a encaixada no canto volta encaixada, com a mesma receita do `move_element` e do `unminimize`. O `unmaximize_request` da área de destino fica só na fusão: na volta, a janela que chega depois não desfaz a maximizada que chegou antes.
 - `conferir_fundidas`, no início do `refresh`: janela morta sai; janela noutra área e noutra tela foi levada à mão e sai; o dono que muda de tela leva a janela e não conta, porque a área é a mesma; trocar de área na mesma tela guarda a lembrança. Vale para todo caminho de mover (atalho, arraste, troca de ladrilhos, protocolo) sem gancho em cada um. Janela fora das áreas, no meio de um arraste, fica lembrada.
-- Passar a independentes apaga as lembranças.
+- Passar a independentes apaga as lembranças e solta as cópias, mesmo com uma tela só: isso roda antes do `return` de `update_config` para menos de duas telas. Com o monitor fora, a lembrança ficaria, e religar em independentes devolveria a janela e completaria as áreas da tela nova.
 - Decisão 53 reescrita no mesmo commit, com o sim de 07/11: «Devolver ao religar». A prova 2 da P161 volta a valer, e o que a P177 dizia como custo foi sobrescrito.
+
+Nada do que volta rodou: `tirar_janela`, `por_janela`, `devolver_janelas` e a volta da maximizada têm só compilação e checagem no texto do patch, sem execução automática.
 
 ### A tampa
 
@@ -45,25 +48,28 @@ Dry-run `-F0` e `cargo check` com a série inteira sobre o fonte de ec674cd; fun
 - `nice -n 19 cargo check --frozen --offline` na árvore da série (`cmp` igual ao fonte limpo com os 7): `Finished dev profile`, `cargo rc=0 warnings=0`.
 - `rustfmt --check`: 0 diferenças em `src/shell/mod.rs`.
 - `bash tests/nomes-nas-duas-telas.sh`: `test result: ok. 22 passed; 0 failed`, `nomes-nas-duas-telas: tudo certo`.
-- Mutação em cópia do repositório, uma por vez, 22 de 22 mortas pelo teste: `add_output` sem devolver, saída errada na fusão e no dono, `lembranca_segue` nas 3 formas, `indice_da_volta` nas 2, gêmeo, sem casamento exato, outra porta, `alive` desligado, solta virando ladrilho, foco por cima, área ativada, `separar` nas 2, devolvida ainda lembrada, independentes com lembrança, área a mais, segunda fusão trocando a saída e marcador velho.
+- Mutação em cópia do repositório, uma por vez, 22 de 22 mortas pelo teste na execução: `add_output` sem devolver, saída errada na fusão e no dono, `lembranca_segue` nas 3 formas, `indice_da_volta` nas 2, gêmeo, sem casamento exato, outra porta, `alive` desligado, solta virando ladrilho, foco por cima, área ativada, `separar` nas 2, devolvida ainda lembrada, independentes com lembrança, área a mais, segunda fusão trocando a saída e marcador velho.
+- Mutação na conferência, sobre o que ela mudou, 13 de 13 mortas e `rc=0` sem mutação: independentes depois do `return`, lembrança não limpa, maximizada esquecida na solta, no ladrilho, em `lembrar_janelas` e em `por_janela`, sem `map_maximized`, canto perdido nas 2 formas, volta desfazendo a maximizada, volta sem a lembrança e solta ignorada. Exemplos: `FALHA passar a independentes com o monitor fora guarda as lembranças`, `FALHA a janela maximizada volta sem maximizar`, `FALHA a janela que volta desfaz a maximizada da área`.
 - `rc=0`: `decisoes`, `compositor-shim`, `garantir-builds`, `janela-sem-app-id`, `areas-em-cada-tela`, `notas-de-funcao`, `patch-que-sobe`, `estilo`, `orfaos`, `seco`, `frases-velhas`, `nada-manda-digitar`, `achados-tecnicos`, `higiene`.
 
 ### Custo aceito
 
-- Janela maximizada ao fundir volta sem maximizar, e a árvore de ladrilhos não volta: as janelas entram na ordem, como no `move_element`.
+- A árvore de ladrilhos não volta: as janelas entram na ordem, como no `move_element`.
+- Janela solta maximizada guarda a posição de antes na escala da tela que saiu: se as telas têm tamanhos diferentes, ao tirar o maximizado ela pode aparecer deslocada.
 - Janela de fora empilhada à mão numa pilha fundida vai junto com a pilha.
 
 ### Achados, por leitura do fonte
 
 - Fábrica: ao abrir a tampa com a área ativa fora da primeira, `post_remove_workspace` põe a ativa no fim da tela de fora, que ficou vazia, e o `refresh` iguala todas por `sets[0]`. A área ativa pula para a primeira, e a janela devolvida a outro índice fica escondida até trocar de área.
 - Fábrica: janela grudada (`sticky_layer`) e minimizada dela vão para a tela que fica em `remove_output` e não têm volta. A lembrança cobre só as áreas.
+- Fábrica: janela aberta na tela de fora com a tampa fechada entra no dono e não é fundida, então não tem lembrança: abrir a tampa a leva ao interno com o dono.
 
 ### O que falta da mão de quem usa
 
 Nada disso rodou no `cosmic-comp` de verdade. Depois do install e do login, com `AREAS_MODO="juntas"`:
 
 1. Janela na tela de fora, em cada área: tirar o HDMI e religar. Cada uma volta à mesma área da mesma tela, sem área a mais.
-2. Janela solta, em tela cheia e minimizada na tela que sai: as três voltam assim, e a minimizada restaura.
+2. Janela solta, maximizada, encaixada no canto, em tela cheia e minimizada na tela que sai: todas voltam assim, e a minimizada restaura.
 3. Fechar e abrir a tampa com janelas nas duas telas: cada uma volta à sua tela, sem duplicar.
 4. Digitando na tela que fica ao religar: o foco não sai da janela em uso.
 5. Com o HDMI fora: fechar uma janela fundida e religar, nada acontece; suspender e acordar com o HDMI ligado, as janelas voltam.
