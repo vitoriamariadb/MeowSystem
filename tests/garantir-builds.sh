@@ -459,7 +459,7 @@ grep -q 'a entrada na sessão não constrói (AUTO_REPARO="nao"): cosmic-comp 0.
 igual "e nada compila no primeiro plano" "$(linhas '^compositor compilar')" 0
 rm -f "$CONF5" "$UNI5/meow-builds-login.service"
 
-grep -v "^recusado: sudo -n -l$" "$T/recusados" 2>/dev/null | grep -q . && { falha "algo chamou um comando recusado:"; sed "s/^/        /" "$T/recusados"; }
+grep -q . "$T/recusados" 2>/dev/null && { falha "algo chamou um comando recusado:"; sed "s/^/        /" "$T/recusados"; }
 
 echo
 if [ "$falhas" = 0 ]; then echo "garantir-builds: tudo certo"; exit 0; fi

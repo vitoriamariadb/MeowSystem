@@ -555,7 +555,7 @@ def _ler_arvore(dir_: Path) -> dict:
 
 def derivar_lado(base: Path, arvore: str, de: dict, acento_de: str, para: dict, acento_para: str,
                  nome: str) -> dict:
-    rec_d = base / f"com.system76.CosmicTheme.{arvore}.Builder" / "v2"
+    rec_d = da.receita_da_captura(base, arvore)
     prod_d = base / f"com.system76.CosmicTheme.{arvore}" / "v2"
     receita, produto = _ler_arvore(rec_d), _ler_arvore(prod_d)
     faltam = [n for n in ("palette", "alpha_map", "frosted") if n not in receita]
@@ -566,7 +566,7 @@ def derivar_lado(base: Path, arvore: str, de: dict, acento_de: str, para: dict, 
     trocas = trocar_receita(receita, de, acento_de, para, acento_para, nome)
     receita_nova = dict(receita, **trocas)
     novo = escrever_produto(produto, receita_nova, build(ler_receita(receita_nova)))
-    saida = {f"com.system76.CosmicTheme.{arvore}.Builder/v2/{k}": v for k, v in trocas.items()}
+    saida = {f"com.system76.CosmicTheme.{arvore}.Builder/{da.versao_do_builder(arvore)}/{k}": v for k, v in trocas.items()}
     saida.update({f"com.system76.CosmicTheme.{arvore}/v2/{k}": v for k, v in novo.items()})
     v1_d = base / f"com.system76.CosmicTheme.{arvore}" / "v1"
     for chave in v1.CONJUNTO:

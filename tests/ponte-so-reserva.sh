@@ -319,6 +319,9 @@ rm -f "$SIS_Z/_meow"; : > "$T/alarme.log"
 PONTE_RESPONDE=0 completion_com_ponte; rc=$?
 confere "com a reserva em dia e a ponte falhando, o alarme continua" '[ "$rc" = 3 ] && [ -s "$T/alarme.log" ]' "rc=$rc"
 
+ultima="$(env -i PATH=/usr/bin:/bin bash "$RAIZ/scripts/ponte_root.sh" ajuda 2>&1 | awk '/^verbos:/ { print anterior; exit } NF { anterior = $0 }')"
+confere "o cabeçalho que a ponte imprime de si termina a frase" '[[ "$ultima" == *. ]]' "$ultima"
+
 printf '\n'
 if [ "$falhas" -gt 0 ]; then printf 'FALHOU: %d\n' "$falhas"; exit 1; fi
 printf 'tudo ok\n'

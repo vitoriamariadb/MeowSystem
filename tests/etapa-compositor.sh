@@ -3,7 +3,7 @@ set -uo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 T="$(mktemp -d)" || exit 2
-trap "cp -r $T/saida /tmp/claude-1000/-home-vitoriamaria-Desenvolvimento-MeowSystem/a7736095-6179-4e12-b0ee-1944c28bfa25/scratchpad/etapa5-saida.txt 2>/dev/null; rm -rf $T" EXIT
+trap 'rm -rf "$T"' EXIT
 falhas=0
 confere() {
   if eval "$2"; then printf 'ok: %s\n' "$1"

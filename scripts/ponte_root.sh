@@ -56,8 +56,8 @@
 #     09/10/2026) instala só nomes de uma lista LITERAL aqui dentro — ver o
 #     bloco dele;
 #   · não apaga nada fora dos dois caminhos do hook de apt e do da completion
-#     do zsh (este desde a P47, 24/09/2026), das três chaves de tema do
-#     override global do Flatpak que apontam para tema que não existe, e dos
+#     do zsh, das três chaves de tema do override global do Flatpak que
+#     apontam para tema que não existe, e dos pacotes `libreoffice*` do dpkg.
 set -euo pipefail
 umask 022
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

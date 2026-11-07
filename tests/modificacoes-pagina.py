@@ -100,7 +100,7 @@ def esperar(pag, ms=400):
 
 
 def quieto(pag):
-    pag.wait_for_function("() => !EM_VOO && !ACOMPANHANDO && (!TRABALHO || !TRABALHO.timer) && !MOD.pedindo",
+    pag.wait_for_function("() => !EM_VOO && !ACOMPANHANDO && !TRABALHOS_A_CAMINHO && (!TRABALHO || !TRABALHO.timer) && !MOD.pedindo",
                           timeout=180000)
     pag.wait_for_timeout(400)
     if pag.evaluate("() => document.getElementById('resultado').open"):

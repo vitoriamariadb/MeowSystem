@@ -28,3 +28,46 @@ Decisão de quem usa em 06/11 e achados da P159, P165, P176.
 ## Como se prova
 
 Os testes de cada item, cada um vermelho antes e verde depois quando couber; `tests/modificacoes-pagina.py` verde em 5 rodadas seguidas; `tests/restaurar.sh` verde.
+
+## Execução
+
+Bloco `bloco/restos`, 17 commits de código e de teste e esta nota sobre `6e544a68`. A regra `NOPASSWD: ALL` no sudoers não foi tocada: é do coordenador, depois do install.
+
+O que foi feito:
+
+- **Aviso do sudo.** O bloco do `NOPASSWD: ALL` e o `sudo -n -l` saíram do `cmd_doctor`. A decisão 43 foi reescrita no mesmo commit, com o sim de 06/11, «Tirar a regra e o aviso». A prova em `tests/decisoes.sh` passou a cobrar que `bin/meow` não cite `NOPASSWD` nem chame `sudo -l`. A linha diz «nem lista as regras do sudo»: fora do modo só leitura, o doctor segue perguntando à ponte com `sudo -n`. O filtro de `recusado: sudo -n -l` saiu de `tests/garantir-builds.sh`, que ninguém mais dispara.
+- **`meow status`.** O fim dizia «detalhes e conserto: meow doctor --consertar». Agora diz onde está o conserto, no painel, em «Consertar». As duas outras saídas do `meow status` com a mesma receita, em `chk_tema` e `chk_temas`, dizem «o conserto deriva e aplica» e «o conserto regenera». O `tests/nada-manda-digitar.sh` ganhou o jeito «conserto: meow doctor» e pega `'meow doctor --consertar'` em qualquer frase, não só em «os escreve».
+- **`tests/restaurar.sh`.** O `desinstalar` entra numa lista de ações que apagam o próprio «Restaurar» (decisão da P165). O teste agora cobra que ele não deixe «Restaurar»; as outras ações seguem sem afrouxo.
+- **`tests/etapa-compositor.sh`.** O `trap` voltou a só apagar a casa de brinquedo. Uma regra nova em `tests/portabilidade.sh` pega `/tmp/claude-` dentro de código.
+- **`scripts/ponte_root.sh`.** O cabeçalho que a ponte imprime de si (`sed -n '2,60p'`) acabava em «e dos». A frase se completou no lugar, nas mesmas três linhas. O teste está em `tests/ponte-so-reserva.sh`.
+- **Intermitência de `tests/modificacoes-pagina.py`.** Medida: o clique no «⋮» do enfeite caía em `#resultado` (`<dialog>` modal) que abria depois. O `quieto` via a página livre em dois vãos: entre o clique e a resposta do `/api/rodar`, e entre o fim de um trabalho e o `depois` que encadeia o próximo; o «Voltar ao do pack» tinha um terceiro, entre o POST do tema padrão e o `rodar`. A cura é um contador, `TRABALHOS_A_CAMINHO`, em `app/pagina/app.js` e `modificacoes.js`, que o `quieto` lê, e que desce mesmo quando a resposta rejeita.
+- **Portal sem `deb-src`.** O 404 e o «sem deb-src» do `apt-get source` passaram a gravar a falha `baixar`, e o portal entra na espera crescente (1 h, 2 h, 4 h, até 7 dias). Falha de rede continua tentando na próxima passada, como a mensagem promete.
+- **Inventário da P165.** Medido: `espaco.py cobre` acusava três caminhos sem dono, `~/.local/libexec/meow/graficos` (o build de 64 MB, que fica depois do `reverter` de propósito, para o próximo aplicar não compilar de novo), `$MEOW_CACHE/graficos` e `$MEOW_ESTADO/graficos`. Entraram em `assets/contratos/espaco.tsv`, e `tests/espaco.sh`, que estava vermelho por isso, voltou a verde.
+- **`Builder` pela versão do sistema.** O que se grava em `Builder/vN` e o que se lê do COSMIC vivo resolvem `vN` como o painel: a maior `vN` de `/usr/share/cosmic/com.system76.CosmicTheme.<Árvore>.Builder`, com padrão v2. A receita da captura se lê na versão da própria captura, a maior `vN` dela com `alpha_map`: as capturas dos packs são v2, e lê-las pela versão do sistema recusava toda captura num COSMIC v3 (`FileNotFoundError`, «nenhuma captura se reproduz»). O `meow_cosmic_v` ganhou um segundo argumento opcional, o padrão.
+- **`/previa`.** Responde «essa imagem não existe mais» quando o item sumiu da fonte ou o arquivo de origem não existe, e «prévia ainda não gerada» só quando a imagem existe e vai ser gerada. A prova cobre a função e a rota.
+
+Provas, literais:
+
+- `tests/modificacoes-pagina.py`, 6 rodadas em paralelo, antes da cura: `rc=1` nas 6, `<dialog open="" id="resultado" ...> intercepts pointer events`. Depois: `54 conferências rc=0` nas 6.
+- `tests/modificacoes-pagina.py`, sobre o código final: 5 rodadas seguidas, `rc=0 54 conferências` nas 5; 6 em paralelo, `rc=0 54 conferências` nas 6.
+- `tests/restaurar.sh` inteiro: `ok desinstalar: apagou os backups e o próprio «Restaurar»`, `ok: 51 ações rodadas; toda que mudou a casa volta byte a byte com o «Restaurar».`, `rc=0`. Antes: `FALHOU: 1 ação(ões) - desinstalar: mudou 2 arquivo(s) e não deixou «Restaurar»`.
+- `tests/decisoes.sh`: `ok    43: o doctor não avisa do NOPASSWD nem lista as regras do sudo`, `decisoes: tudo certo`. Antes, com a prova nova sobre o código velho, a linha `FALHA 43`.
+- `tests/nada-manda-digitar.sh`: `passou: nada manda digitar`. Antes, com a regra nova: `bin/meow:1760: meow_info "detalhes e conserto: meow doctor --consertar"` e, com a forma inteira sobre `chk_tema` e `chk_temas`, `FALHOU: 1 achado(s)`.
+- `tests/ponte-so-reserva.sh`: `ok    o cabeçalho que a ponte imprime de si termina a frase`, `tudo ok`. Antes: `FALHA ... override global do Flatpak que apontam para tema que não existe, e dos`.
+- `tests/etapa-compositor.sh`: `etapa-compositor: tudo verde`. `tests/portabilidade.sh` com o trap velho: `FALHOU: 1 achado(s) de portabilidade`; com o trap novo: `ok: portabilidade: nenhuma receita presa à máquina de quem a escreveu (3 isenções)`.
+- `tests/graficos.sh`, seção 13b nova, para `sem-deb-src` e `sem-fonte`: `ok    ...: o portal espera, não é pendente de imediato`, `...: a falha gravada é a do download`, `...: a segunda tentativa soma, e a espera dobra`. Antes da cura, as três vermelhas nas duas variantes.
+- `tests/espaco.sh`: `espaco: tudo certo`. Antes: `FALHA todo caminho que o código escreve em estado e cache tem dono no registro`, `sem dono: .../.local/state/meowsystem/graficos`.
+- `tests/acento.sh`: `acento: tudo certo`, com seis provas: captura v2 com sistema v3, captura v3 com sistema v3, derivada só com o `accent` em v3, sistema só em v1, sem a pasta do sistema, e nenhum escritor crava `Builder/v2`. Cada caso confere a versão, a chave `Builder/vN/accent`, que ela é a única chave de `Builder`, e que o vidro deriva. Antes, sobre a leitura pela versão do sistema: `erro=[Errno 2] No such file or directory: .../dracula-mauve/com.system76.CosmicTheme.Dark.Builder/v3`, e as três primeiras recusas vermelhas.
+- À mão, HOME temporário e `MEOW_COSMIC_SISTEMA` em v3: `derivar_acento.py dracula-pink`, `latte-pink` e `frappe-pink` (este pelo `derivar_flavor`) derivam com rc 1 e a segunda passada dá `já confere`, rc 0; `aplicar_tema.sh dracula-pink` escreve `Builder/v3` no COSMIC de brinquedo e o `--conferir` diz `já aplicado (198 arquivos conferem)`.
+- `vidro-do-cosmic.sh`, `flavor-padrao.sh`, `oraculo-tema.sh`, `derivados.sh`, `contrato-cosmic.sh`, `claro-do-pack.sh`, `variante.sh`, `notas-de-funcao.sh`, `garantir-builds.sh`, `doctor-so-le.sh` e `espaco-pagina.py`, todos verdes.
+- `tests/app-completo.py`, com as mudanças de `app.js` e do `/previa`: `ok: o painel inteiro, porta por porta e controle por controle`, `rc=0`.
+- `tests/previa-cerca.sh`: `ok: a rota /previa responde a verdade sobre a imagem que sumiu`, `ok: a prévia diz «ainda não gerada» só quando a imagem existe, e «não existe mais» quando sumiu`.
+- Todas as provas acima foram refeitas pelo conferente sobre o código final, menos as de «antes». `tests/todos.sh` não rodou: é do coordenador.
+
+Falha que continua e não é desta sprint: `tests/graficos.sh` sai `rc=1`, com as 8 provas da seção 13b verdes e 2 `FALHA pede gente, sem receita` (cat: `precisa-de-gente.tsv` inexistente). Medido: a P175 apagou `meow_precisa_de_gente` e `meow_precisa_de_gente_resolvida` de `lib/comum.sh`, e `scripts/graficos.sh` ainda chama as duas (linhas do `cmd_compilar` e do `cmd_aplicar`). Está como achado.
+
+Falta da mão de quem usa:
+
+- Tirar a regra `NOPASSWD: ALL` do sudoers depois do install, com `visudo -c` e prova do `sudo -A` antes (do coordenador).
+- A ponte instalada só ganha o cabeçalho novo com o install.
+- Quando a regra sair: a armadilha do `sudo` em `GSD.md` e a prova dela em `tests/decisoes.sh` citam `NOPASSWD`, e passam a mentir nessa hora.

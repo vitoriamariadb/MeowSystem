@@ -366,10 +366,10 @@ src = open(sys.argv[1], encoding="utf-8").read()
 exemplo = open(sys.argv[1].replace("scripts/migrar_conf.py", "meow.conf.exemplo"), encoding="utf-8").read()
 sys.exit(0 if re.search(r'APOSENTADAS = \{[^}]*"ICONES_BASE"', src) and not re.search(r"(?m)^ICONES_BASE=", exemplo) else 1)
 PY
-if grep -rn 'sudo -l' "$RAIZ/bin/meow" | grep -q 'NOPASSWD'; then
-  falha "43: o aviso do NOPASSWD volta a mandar rodar sudo -l"
+if grep -qE 'NOPASSWD|sudo -n -l|sudo -l' "$RAIZ/bin/meow"; then
+  falha "43: o doctor volta a avisar do NOPASSWD ou a listar as regras do sudo"
 else
-  ok "43: o aviso do NOPASSWD diz o estado, sem receita"
+  ok "43: o doctor não avisa do NOPASSWD nem lista as regras do sudo"
 fi
 
 echo "== os princípios, cada um com o teste que o cobra dentro do runner"

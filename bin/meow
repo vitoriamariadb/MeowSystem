@@ -160,7 +160,7 @@ chk_gerar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   [ "$rc" = "0" ] && { echo "os temas e a v1 das capturas conferem com $(meow_paleta_nome)"; return 0; }
-  echo "$msg — 'meow doctor --consertar' regenera"
+  echo "$msg — o conserto regenera"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -170,7 +170,7 @@ chk_tema() {
     local deriva
     deriva="$(python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$alvo" 2>&1)"
     if [ "$?" = "1" ]; then
-      echo "${deriva#  } — 'meow doctor --consertar' deriva e aplica"
+      echo "${deriva#  } — o conserto deriva e aplica"
       return "$MEOW_DIVERGENTE"
     fi
     echo "não há captura para '$alvo' (${deriva#*não se deriva — })"
@@ -1757,7 +1757,7 @@ cmd_status() {
   if [ "$qtd" = "0" ]; then
     meow_ok "nada divergente — tudo no lugar"
   else
-    meow_info "detalhes e conserto: meow doctor --consertar"
+    meow_info "o conserto das divergências está no painel, em «Consertar»"
   fi
   printf '\n'
   return "$(pior_rc)"
@@ -1782,13 +1782,6 @@ cmd_doctor() {
   rodar_checks
   local i
   for i in "${!CHK_NOME[@]}"; do imprimir_check "$i" 1; done
-
-  if [ "$consertar" = 1 ] && sudo -n -l 2>/dev/null | grep -Eq 'NOPASSWD:[[:space:]]*ALL[[:space:]]*$'; then
-    meow_aviso "o sudo desta máquina libera TUDO sem senha para você (NOPASSWD: ALL)"
-    meow_info "  enquanto essa regra existir, a ponte root não restringe nada —"
-    meow_info "  ela é que permitirá tirá-la, e não o contrário"
-    meow_info "  o MeowSystem não mexe nela: regra de sudo é sua, não nossa"
-  fi
 
   local pior; pior="$(pior_rc)"
   if [ "$consertar" = "0" ]; then

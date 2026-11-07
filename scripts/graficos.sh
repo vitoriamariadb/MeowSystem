@@ -470,8 +470,10 @@ _gr_baixar() {
   if ! ( cd "$baixado" && apt-get source --download-only "$GR_PACOTE=$ver" ) >"$log" 2>&1; then
     if grep -q ' 404 ' "$log" 2>/dev/null; then
       meow_erro "o repositório já não serve o fonte do portal $ver (404): o portal do pacote segue valendo"
+      _gr_gravar_falha "$ver" baixar
     elif grep -qiE "deb-src|'source'" "$log" 2>/dev/null; then
       meow_erro "as fontes do apt desta máquina não servem código-fonte (sem deb-src): o portal do pacote segue valendo"
+      _gr_gravar_falha "$ver" baixar
     else
       meow_erro "o apt-get source do portal $ver falhou (sem rede?): a próxima passada tenta de novo"
     fi

@@ -48,7 +48,7 @@ prova no código. O texto de antes de cada linha mora no histórico do git.
 | 40 | Nomes em inglês que vêm do `.desktop` do sistema ficam | é o nome do lançador; só texto, nada no código a lê |
 | 41 | Alvo de pack que sai da raiz recusa o pack inteiro; nome torto é pulado e contado | sair da raiz é fuga |
 | 42 | O `pack.py sincronizar` fica no verbo manual, com a guarda de mesma extensão | só compara arte com arte |
-| 43 | O aviso do `NOPASSWD: ALL` diz o estado, sem receita; tirar o `NOPASSWD` é de quem usa | segurança da conta |
+| 43 | O doctor não avisa do `NOPASSWD: ALL` nem lista as regras do sudo; a regra sai do sudoers depois do install, à mão do coordenador | segurança da conta; sim de 06/11: «Tirar a regra e o aviso» |
 | 44 | O Light do tema segue o COSMIC instalado | o oráculo mostra a diferença |
 | 45 | O README regera o que vem do código e as capturas do painel (headless, HOME temporário) no merge para o master e no push, nunca em cada commit | sim de 26/10 |
 | 46 | As duas regras do «lado vestido» ficam: as duas passam pelo `derivar_flavor.par_do_outro_lado` no lado escuro, e o `tests/variante.sh` vigia | uma derivação só |

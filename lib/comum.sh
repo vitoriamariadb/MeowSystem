@@ -468,7 +468,7 @@ meow_cosmic_dir() {
 meow_cosmic_v() {
   local n
   n="$(ls -1 "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/$1" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\)$/\1/p' | sort -n | tail -1)"
-  printf 'v%s' "${n:-1}"
+  printf 'v%s' "${n:-${2:-1}}"
 }
 
 meow_libcosmic_de() {

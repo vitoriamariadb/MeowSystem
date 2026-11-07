@@ -101,6 +101,7 @@ cat > "$FALSO/apt-get" <<FIM
 #!/bin/sh
 echo "apt-get \$*" >> "$T/apt-get.log"
 [ -f "$T/sem-fonte" ] && { echo "E: Falha ao buscar http://x/y.tar.xz 404 Not Found"; exit 1; }
+[ -f "$T/sem-deb-src" ] && { echo "E: You must put some 'deb-src' URIs in your sources.list"; exit 1; }
 pacote="\${3%%=*}"; versao="\${3#*=}"
 [ "\$1" = source ] || exit 1
 : > "\${pacote}_\${versao#*:}.dsc"
@@ -359,6 +360,21 @@ confere "sai 2, avisa, e não instala" '[ "$rc" = 2 ] && grep -q "compilação d
 graf pendente
 confere "a falha de compilação espera (não é pendente de imediato)" '[ ! -s "$T/saida" ]' "$(cat "$T/saida")"
 rm -f "$T/cargo-falha"
+
+printf '\n13b. o fonte que o apt não serve: a espera cresce, e o portal entra nela\n'
+for sem in sem-deb-src sem-fonte; do
+  rm -rf "$CASA/.cache/meowsystem/graficos/baixado" "$ESTADO/graficos/falhas.tsv"
+  : > "$T/$sem"
+  graf compilar; rc=$?
+  confere "$sem: sai 2, sem compilar e sem instalar" '[ "$rc" = 2 ] && [ ! -e "$LIBEXEC/1.14.0~1~24.04~ccccccc" ]' "$(cat "$T/saida")"
+  graf pendente
+  confere "$sem: o portal espera, não é pendente de imediato" '[ ! -s "$T/saida" ]' "$(cat "$T/saida")"
+  confere "$sem: a falha gravada é a do download" '[ "$(cut -f3 "$ESTADO/graficos/falhas.tsv")" = baixar ] && [ "$(cut -f4 "$ESTADO/graficos/falhas.tsv")" = 1 ]' "$(cat "$ESTADO/graficos/falhas.tsv" 2>&1)"
+  graf compilar
+  confere "$sem: a segunda tentativa soma, e a espera dobra" '[ "$(cut -f4 "$ESTADO/graficos/falhas.tsv")" = 2 ]' "$(cat "$ESTADO/graficos/falhas.tsv" 2>&1)"
+  rm -f "$T/$sem"
+done
+rm -f "$ESTADO/graficos/falhas.tsv"
 
 printf '\n14. o shim: a regra do ruim, a conferência do marcador e o pacote de fábrica\n'
 SH="$T/shim"; mkdir -p "$SH/casa/9.9" "$SH/bin"

@@ -70,7 +70,7 @@ cache_do_codigo="$(cd "$RAIZ" && grep -rhoE '(\$MEOW_CACHE|\$\{MEOW_CACHE\}|\$\{
   | sed -E 's|^.*/||' | grep -v '^meowsystem$' | sort -u)"
 for nome in $nomes_do_codigo; do mkdir -p "$E/$nome" 2>/dev/null || : > "$E/$nome"; done
 for nome in $cache_do_codigo; do mkdir -p "$C/$nome"; done
-mkdir -p "$LIBEXEC/cosmic-comp" "$LIBEXEC/oraculo-tema" "$CASA/.local/share/meowsystem/fastfetch" \
+mkdir -p "$LIBEXEC/cosmic-comp" "$LIBEXEC/oraculo-tema" "$LIBEXEC/graficos" "$C/graficos" "$CASA/.local/share/meowsystem/fastfetch" \
   "$CASA/.local/share/meowsystem/packs" "$CASA/.local/share/meowsystem/temas-de-apps" "$CASA/.local/share/meowsystem/bin" \
   "$CASA/.config/meowsystem/extensoes" "$CASA/.config/meow" "$C/pintados" "$C/painel" "$E/vizinhos" "$E/paineis" "$E/zapzap"
 : > "$C/flatpak-libadwaita.tsv"; : > "$CASA/.config/meow/meow.conf"
