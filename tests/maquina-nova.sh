@@ -98,7 +98,7 @@ rodar() {
     FALSO_LOG="$T" MEOW_RUSTUP_PINO="${PINO:-$T/pino-certo}" MEOW_PONTE="$T/sem-ponte" \
     ${MEOW_BACKUPS:+MEOW_BACKUPS="$MEOW_BACKUPS"} RUST_PRECISA="${RUST_PRECISA:-sim}" \
     ${COMPOSITOR:+COMPOSITOR="$COMPOSITOR"} ${FILES_MENU:+FILES_MENU="$FILES_MENU"} EXTENSOES="${EXTENSOES:-}" \
-    FASTFETCH_LOGO=nao "$@"
+    FASTFETCH_LOGO=nao MEOW_IGNORA_DESKTOP=1 "$@"
 }
 
 retrato() { (cd "$T/casa" && find . -printf '%p %s %T@\n' 2>/dev/null | LC_ALL=C sort); }
