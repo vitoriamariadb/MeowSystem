@@ -268,6 +268,7 @@ function completarParDaNoite(lote, chave, valor) {
 const HISTORICO = [];
 const HISTORICO_MAX = 20;
 let EM_VOO = 0;
+let TRABALHOS_A_CAMINHO = 0;
 let FILA_DE_GRAVACAO = Promise.resolve();
 let ACOMPANHANDO = false;
 
@@ -1060,8 +1061,9 @@ async function rodar(acao, argumento = "", opcoes = {}) {
     if (!ok) return null;
     seco = ok === "seco";
   }
+  TRABALHOS_A_CAMINHO++;
   const r = await api("/api/rodar", { method: "POST",
-    body: JSON.stringify({ acao: acao.id, argumento, confirmado: true, seco }) });
+    body: JSON.stringify({ acao: acao.id, argumento, confirmado: true, seco }) }).finally(() => { TRABALHOS_A_CAMINHO--; });
   if (r.erro) { torrada(r.erro, "erro"); return null; }
   abrirResultado(r, opcoes.depois || null,
     seco ? () => rodar(acao, argumento, { ...opcoes, semPerguntar: true }) : null);
@@ -1158,9 +1160,14 @@ async function puxar() {
   }
   if (!$("#resultado").open) torrada(`${t.rotulo}: ${frase}`, classe === "erro" ? "erro" : "ok");
   pastilhaDeTrabalho(false);
+  TRABALHOS_A_CAMINHO++;
   TRABALHO = null;
-  if (t.escreve && !t.seco) await depoisDeEscrever();
-  if (t.depois && (r.rc === 0 || r.rc === 1)) t.depois();
+  try {
+    if (t.escreve && !t.seco) await depoisDeEscrever();
+    if (t.depois && (r.rc === 0 || r.rc === 1)) t.depois();
+  } finally {
+    TRABALHOS_A_CAMINHO--;
+  }
 }
 async function depoisDeEscrever() {
   for (const k of [...PREVIAS.keys()]) if (/^(icone|parede|gato)\//.test(k)) PREVIAS.delete(k);
