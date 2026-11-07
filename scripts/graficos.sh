@@ -346,8 +346,6 @@ _gr_ligar_portal() {
 
 _gr_tirar_portal() {
   local mudou=0 vivo
-  meow_precisa_de_gente_resolvida graficos-caiu
-  meow_precisa_de_gente_resolvida graficos-nao-encaixa
   if [ -e "$GR_DROPIN" ]; then
     if _gr_dropin_nosso; then
       meow_muda "o drop-in do portal sairia ($GR_DROPIN)"
@@ -426,8 +424,7 @@ _gr_marcar_caiu() {
   if meow_seco; then meow_muda "poria de lado o build do portal $ver: $porque"; return 1; fi
   printf 'caiu %s\n' "$(date -Is)" > "$GR_CASA/$ver/ruim" || { meow_erro "não consegui marcar $GR_CASA/$ver/ruim"; return 2; }
   rm -f "$GR_CASA/$ver/quedas"
-  meow_precisa_de_gente graficos-caiu "O portal da casa caiu" \
-    "xdg-desktop-portal-cosmic $ver: $porque, e o compartilhamento segue no portal do pacote até a próxima versão"
+  meow_registrar "graficos.sh pôs de lado o portal $ver: $porque"
   meow_muda "o build do portal $ver foi posto de lado ($porque) — o portal sobe do pacote"
   return 1
 }
@@ -594,8 +591,7 @@ cmd_compilar() {
   _gr_preparar "$ver" "$fonte" "$log"; recusa_rc=$?
   if [ "$recusa_rc" != 0 ]; then
     rm -rf "$fonte"
-    [ "$recusa_rc" = 4 ] && meow_precisa_de_gente graficos-nao-encaixa "Patch do portal precisa de rebase" \
-      "xdg-desktop-portal-cosmic $ver: a série de patches/graficos.series não entra, e o compartilhamento segue no portal do pacote até um rebase"
+    [ "$recusa_rc" = 4 ] && meow_registrar "graficos.sh: o patch do portal não entra no $ver, e o portal do pacote segue valendo"
     return "$MEOW_ERRO"
   fi
   while IFS=$'\t' read -r alvo arquivo marca; do
@@ -643,8 +639,6 @@ cmd_compilar() {
   rm -f "$destino/ruim" "$destino/quedas" "$destino/perdoado"
   rm -rf "$fonte" "$GR_CACHE/baixado"
   _gr_limpar_falha "$ver"
-  meow_precisa_de_gente_resolvida graficos-caiu
-  meow_precisa_de_gente_resolvida graficos-nao-encaixa
   for d in "$GR_CASA"/*/; do
     [ -d "$d" ] || continue
     [ "${d%/}" = "$destino" ] && continue
@@ -693,11 +687,8 @@ cmd_aplicar() {
   cmd_cuidar; [ "$?" = 1 ] && mudou=1
   s="$(_gr_situacao)"
   if [ "$s" = nao-encaixa ]; then
-    meow_precisa_de_gente graficos-nao-encaixa "Patch do portal precisa de rebase" \
-      "xdg-desktop-portal-cosmic $ver: a série de patches/graficos.series não entra, e o compartilhamento segue no portal do pacote até um rebase"
     meow_pula "portal $ver: o patch não entra nesta versão — o portal do pacote segue valendo"
   elif _gr_valido "$ver"; then
-    meow_precisa_de_gente_resolvida graficos-nao-encaixa
     _gr_ruim "$ver" && meow_pula "o build do portal $ver está de lado (caiu) — o portal do pacote segue valendo"
   fi
   if ! _gr_valido "$ver" && [ "$s" != nao-encaixa ]; then

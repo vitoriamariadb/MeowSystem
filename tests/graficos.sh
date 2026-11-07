@@ -314,10 +314,10 @@ versoes "xdg-desktop-portal-cosmic=1.13.0~1~24.04~bbbbbbb" "google-chrome-stable
 printf 'um\nMUDOU\ntres\nquatro\ncinco\nseis\n' > "$T/fix/a/src/a.rs"
 n_cargo="$(wc -l < "$T/cargo.log")"
 graf aplicar; rc=$?
-confere "aplicar não compila, sai 0 e diz que o patch não entra" '[ "$rc" = 0 ] && grep -q "não entra" "$T/saida" && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ]' "$(cat "$T/saida")"
+confere "aplicar não compila, sai 0 e diz que o patch não entra" '[ "$rc" = 0 ] && grep -q "não entra" "$T/saida" && ! grep -qiE "command not found|comando não encontrado" "$T/saida" && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ]' "$(cat "$T/saida")"
 graf estado
 confere "o estado vira nao-encaixa" 'grep -qx estado=nao-encaixa "$T/saida"' "$(cat "$T/saida")"
-confere "pede gente, sem receita" 'grep -q "^graficos-nao-encaixa" "$ESTADO/precisa-de-gente.tsv" && ! grep -qiE "digite|rode |execute" "$ESTADO/precisa-de-gente.tsv"' "$(cat "$ESTADO/precisa-de-gente.tsv" 2>&1)"
+confere "a recusa vai para o log e para o doctor, sem tela e sem receita" 'grep -q "o patch do portal não entra" "$ESTADO/meow.log" && ! grep -qiE "digite|rode |execute" "$ESTADO/meow.log" && [ ! -e "$ESTADO/precisa-de-gente.tsv" ] && ! grep -q "^graficos-" "$ESTADO/pendencias.tsv" 2>/dev/null' "$(cat "$ESTADO/meow.log" 2>&1)"
 confere "o shim fica no pacote" '[ "$(MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$LIBEXEC" PATH="$FALSO:$PATH" bash "$LIBEXEC/portal-shim")" = /usr/libexec/xdg-desktop-portal-cosmic ]'
 ext env EXTENSOES_FUNDO=1 EXTENSOES_COMPILAR=1 "$RAIZ/scripts/extensoes_build.sh" graficos --aplicar; rc=$?
 confere "com a recusa, a etapa do install não conta como escrita (o laço não acusa idempotência)" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
@@ -420,7 +420,8 @@ graf conferir; rc=$?
 confere "cair de novo faz o conferir divergir, sem escrever" '[ "$rc" = 1 ] && [ ! -e "$LIBEXEC/$VER1/ruim" ] && grep -q "poria de lado" "$T/saida"' "$(cat "$T/saida")"
 graf cuidar; rc=$?
 confere "cair repetido põe o build de lado (caiu)" '[ "$rc" = 1 ] && [ "$(head -c 4 "$LIBEXEC/$VER1/ruim")" = caiu ] && grep -q "caiu 2 vez" "$T/saida"' "$(cat "$T/saida")"
-confere "pede gente, sem receita" 'grep -q "^graficos-caiu" "$ESTADO/precisa-de-gente.tsv"'
+confere "a queda vai para o log, sem tela e sem pendência" 'grep -q "pôs de lado o portal $VER1" "$ESTADO/meow.log" && [ ! -e "$ESTADO/precisa-de-gente.tsv" ] && ! grep -q "^graficos-" "$ESTADO/pendencias.tsv" 2>/dev/null' "$(cat "$ESTADO/meow.log" 2>&1)"
+confere "a saída da queda não tropeça em função que não existe" '! grep -qiE "command not found|comando não encontrado" "$T/saida"' "$(cat "$T/saida")"
 confere "o shim volta ao pacote" '[ "$(MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$LIBEXEC" PATH="$FALSO:$PATH" bash "$LIBEXEC/portal-shim")" = /usr/libexec/xdg-desktop-portal-cosmic ]'
 graf cuidar; rc=$?
 confere "o caiu não se perdoa" '[ "$rc" = 0 ] && [ -e "$LIBEXEC/$VER1/ruim" ]' "$(cat "$T/saida")"
