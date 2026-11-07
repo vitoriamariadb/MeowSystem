@@ -85,6 +85,14 @@ SYS_PCI=/sys/bus/pci/devices
 ENV_SISTEMA=/etc/environment
 ENV_ORIGINAL=/var/lib/meowsystem/environment.original
 CHAVE_GPU=COSMIC_RENDER_DEVICE
+CHROME_PACOTE=google-chrome-stable
+CHROME_POLICY_DIR=/etc/opt/chrome/policies/managed
+CHROME_POLICY="$CHROME_POLICY_DIR/compartilhar-tela.json"
+CHROME_POLICY_TEXTO='{
+  "ScreenCaptureAllowed": true,
+  "VideoCaptureAllowed": true,
+  "AudioCaptureAllowed": true
+}'
 
 morrer() { printf 'ponte_root: %s\n' "$1" >&2; exit "${2:-2}"; }
 
@@ -413,7 +421,7 @@ atualizar)
   ;;
 
 pacotes)
-  PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy curl xz-utils unzip pop-fonts build-essential pkgconf libxkbcommon-dev libwayland-dev libdbus-1-dev libudev-dev just cmake patch dpkg-dev libegl1-mesa-dev libfontconfig-dev libgbm-dev libinput-dev libpixman-1-dev libseat-dev libsystemd-dev libxcb1-dev libdisplay-info-dev libglib2.0-dev software-properties-common "
+  PERMITIDOS=" librsvg2-bin imagemagick libgtk-3-bin python3 git btop bat papirus-icon-theme python3-numpy curl xz-utils unzip pop-fonts build-essential pkgconf libxkbcommon-dev libwayland-dev libdbus-1-dev libudev-dev just cmake patch dpkg-dev libegl1-mesa-dev libfontconfig-dev libgbm-dev libinput-dev libpixman-1-dev libseat-dev libsystemd-dev libxcb1-dev libdisplay-info-dev libglib2.0-dev libclang-dev clang libpipewire-0.3-dev libegl-dev software-properties-common "
   pedidos=()
   while IFS= read -r nome || [ -n "${nome:-}" ]; do
     [ -n "$nome" ] || continue
@@ -486,6 +494,25 @@ gpu-compositor-tirar)
   printf 'mudou\n'
   ;;
 
+chrome-policy)
+  [ "$(dpkg-query -W -f='${db:Status-Status}' "$CHROME_PACOTE" 2>/dev/null)" = installed ] || exit 0
+  tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+  printf '%s\n' "$CHROME_POLICY_TEXTO" > "$tmp"
+  [ ! -L "$CHROME_POLICY" ] || morrer "link simbólico no destino: $CHROME_POLICY"
+  if cmp -s "$tmp" "$CHROME_POLICY"; then exit 0; fi
+  install -d -m 755 -o root -g root "$CHROME_POLICY_DIR" || morrer "não consegui criar $CHROME_POLICY_DIR"
+  install -m 644 -o root -g root "$tmp" "$CHROME_POLICY" || morrer "não consegui escrever $CHROME_POLICY"
+  anotar "chrome-policy"
+  printf 'mudou\n'
+  ;;
+
+chrome-policy-tirar)
+  [ -e "$CHROME_POLICY" ] || [ -L "$CHROME_POLICY" ] || exit 0
+  rm -f "$CHROME_POLICY" || morrer "não consegui tirar $CHROME_POLICY"
+  anotar "chrome-policy-tirar"
+  printf 'mudou\n'
+  ;;
+
 limpar)
   export DEBIAN_FRONTEND=noninteractive
   anotar "limpar"
@@ -545,6 +572,8 @@ Cmnd_Alias MEOWSYSTEM_PONTE = \\
     $PONTE cosmic-comp-de-fabrica, \\
     $PONTE gpu-compositor, \\
     $PONTE gpu-compositor-tirar, \\
+    $PONTE chrome-policy, \\
+    $PONTE chrome-policy-tirar, \\
     $PONTE estado
 
 $quem ALL=(root) NOPASSWD: MEOWSYSTEM_PONTE
@@ -559,7 +588,8 @@ REGRA_FIM
   printf '        libreoffice-devolver · som · som-padrao · atualizar · pacotes ·\n'
   printf '        fastfetch ·\n'
   printf '        limpar · cosmic-comp-de-fabrica · gpu-compositor ·\n'
-  printf '        gpu-compositor-tirar · estado ·\n'
+  printf '        gpu-compositor-tirar · chrome-policy · chrome-policy-tirar ·\n'
+  printf '        estado ·\n'
   printf '        regra-sudo\n'
   ;;
 

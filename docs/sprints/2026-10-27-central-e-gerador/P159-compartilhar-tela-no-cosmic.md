@@ -146,3 +146,67 @@ problema, sem medição. Rodar a mesma prova em cada um, porque o `req` da séri
    Num PC sem Chrome, `aplicar` sai `ok` sem criar a pasta; instalar o Chrome depois e o pós-apt cria a policy.
 5. `apt` trazendo versão nova do portal: o `garantir_builds` recompila, ou o shim cai no pacote se o patch recusar.
 6. `reverter` deixa o portal do pacote funcionando e tira a policy.
+
+## Execução
+
+Feita no bloco `bloco/graficos`, em três commits (série de patches, verbos da ponte, a build inteira).
+
+- A cura é o PR #385 sem o SHM forçado (decisão de 06/11). A parte 2 (P163) ficou fora.
+- `patches/` ganhou `graficos.series` e `graficos.versao` (`1.11.0~1792525517~24.04~f448ddf`), com os três patches
+  do portal e do toolkit. Cada patch declara o marcador `MEOW-PORTAL-PATCH-1` ou `MEOW-TOOLKIT-PATCH-1`, conferido no
+  binário com `grep -a`.
+- O toolkit entra no portal por `[patch."https://github.com/pop-os/cosmic-protocols"]` com caminho relativo e sem as
+  linhas `source =` do `Cargo.lock`, para o `--frozen --offline` aceitar.
+- `scripts/graficos.sh` tem `aplicar`, `conferir`, `reverter`, `compilar`, `validar`, `cuidar`, `pendente` e `estado`.
+  A segunda passada do `aplicar` não compila, não escreve e não reinicia.
+- O portal patchado vai por drop-in `ExecStart=` para `scripts/portal_shim.sh`, que sempre existe e cai no pacote
+  quando falta build, marcador, biblioteca ou o arquivo `ruim` (a terceira queda dentro da janela escreve `ruim`).
+- A policy do Chrome é feita pelos verbos novos `chrome-policy` e `chrome-policy-tirar` da ponte root. Sem Chrome o
+  verbo sai 0 sem criar a pasta; com Chrome escreve os três booleanos e a segunda passada não escreve.
+- O cartão "Aprimoramentos gráficos" (`assets/extensoes/graficos.pino`, `TIPO="graficos"`, `GRAFICOS`) entra na página
+  Extensões; o `garantir_builds` conta o portal em `_gb_instalados` e recompila na troca de versão.
+- O doctor ganhou `chk_graficos` e `fix_graficos`; `meow graficos` é o comando. Decisão 54 em `docs/DECISOES.md`, no
+  mesmo commit do código, citando o sim de 06/11.
+
+Provas: `graficos.sh validar` contra o `apt-get source` real, com `-F0` nos três patches (portal f448ddf, cosmic-protocols
+c0cff4d); `graficos.sh compilar` em HOME temporário (3m47s), os dois marcadores no binário; `compilar` de novo diz
+"nada a compilar" e `pendente` sai vazio; `tests/graficos.sh` (portátil) e `tests/graficos-fonte-real.sh` (máquina).
+
+Conferência do bloco, com caso em `tests/graficos.sh` para cada item:
+
+- Compartilhamento pausado deixa o nó `cosmic-screencast` em `suspended`: agora o nó conta como no ar em qualquer
+  estado, e `pw-dump` que não se entende nunca libera o reinício.
+- Esperar build ou stream não é escrita. Antes a etapa devolvia 1 em toda passagem, e o laço do install acusava
+  idempotência e saía 2, também em PC com o patch recusado.
+- O `garantir_builds` liga o portal antes dos retornos do compositor (degrau 4, espera), e a recusa sai 0.
+- Uma queda só não põe o build de lado, porque no híbrido o pacote cai a cada tentativa: a regra é cair repetido.
+- `meow graficos reverter` grava `GRAFICOS="nao"`, como o Remover do cartão, e o doctor das 5h não desfaz.
+- O `reverter` com stream no ar espera, e a passada seguinte devolve; sem a ponte ele não diz que voltou.
+
+Não coberto: nada foi aplicado na máquina (sem `install.sh`, sem reiniciar o portal); a prova de 30 minutos e a
+chamada no Teams ficam para quem usa, em "Como se prova". O PR #385 sem o SHM forçado nunca rodou ao vivo: o que
+se mediu no nitro-5 foi o binário só SHM. Seguem sem medida o Chrome híbrido importar o LINEAR de outra GPU e o furo
+da #286, em que o modifier fixado como `Value::Long` cai no `return`. Se a tela vier preta, a causa é uma dessas e a
+parte 2 é a P163.
+
+Regressão final, `./tests/todos.sh` inteiro em `45f65578`: **134 verdes, 0 pulados, 6 vermelhos** de 140. A primeira
+passada, antes da cura abaixo, deu 132 verdes, 0 pulados e 8 vermelhos.
+
+- Curado: `migracao-do-painel.py` acusava `chave sem destino: GRAFICOS`, vermelho deste bloco que as duas conferências
+  anteriores não viram. A chave ganhou lugar em Extensões › Builds, ao lado do Compositor (`45f65578`).
+- `numeros.sh` e `readme.sh` são deste bloco e **seguem vermelhos na branch**: os READMEs dizem 72 etapas, 82
+  conferências e 130 ajustes, e o código tem 73, 83 e 131. Regerar exige commit nos READMEs, e o gancho troca a identidade
+  dos créditos por `[REDACTED]`: medido num commit, desfeito na hora, sem pular o gancho. A regeneração é do merge
+  (decisão 45).
+- `ganchos.sh`, `compositor-shim.sh` e `decisoes.sh` não são deste bloco: a cura é o `fdb7a88d` da integração.
+- Prova do merge: numa árvore descartável com este HEAD, o `fdb7a88d` e o `scripts/readme.py texto`, `numeros.sh`,
+  `readme.sh`, `ganchos.sh`, `compositor-shim.sh`, `decisoes.sh`, `migracao-do-painel.py` e `graficos.sh` deram
+  7 verdes, 0 pulados, 0 vermelhos.
+- `app-completo.py` não é deste bloco: os mesmos 10 achados de `/previa` caem em `integracao/2026-11-06`, sem nenhum
+  commit daqui. `modificacoes-pagina.py` é intermitente e também não: caiu em `abrir_menu` na base e em HEAD, e passou
+  na última suíte (rc=0).
+
+Falta da mão de quem usa: a build instalada de verdade, com o drop-in `shm-sem-dmabuf.conf` aposentado, porque ele sorteia
+depois do `meow-graficos.conf` e vence; a primeira compilação real, de uns 4 minutos; e, nos três PCs, os passos de
+«Como se prova», com Janela, Tela inteira e Teams, `aplicar` duas vezes e o `reverter`. O verbo `chrome-policy` nunca rodou
+como root, e a ponte instalada só o ganha com o install.

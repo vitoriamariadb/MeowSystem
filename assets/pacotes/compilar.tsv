@@ -28,3 +28,15 @@ menu-arquivos	patch
 menu-arquivos	dpkg-dev
 menu-arquivos	libglib2.0-dev
 menu-arquivos	libxkbcommon-dev
+graficos	build-essential
+graficos	pkgconf
+graficos	patch
+graficos	dpkg-dev
+graficos	libclang-dev
+graficos	clang
+graficos	libpipewire-0.3-dev
+graficos	libegl-dev
+graficos	libgbm-dev
+graficos	libglib2.0-dev
+graficos	libwayland-dev
+graficos	libxkbcommon-dev

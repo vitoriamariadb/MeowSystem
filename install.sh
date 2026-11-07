@@ -1330,6 +1330,16 @@ etapa_compositor() {
   return $?
 }
 
+etapa_graficos() {
+  passo "Aprimoramentos gráficos (portal de compartilhar tela e policy do Chrome)"
+  if [ "${GRAFICOS:-sim}" = nao ]; then
+    "$MEOW_RAIZ/scripts/extensoes_build.sh" graficos --reverter
+    return $?
+  fi
+  EXTENSOES_FUNDO=1 "$MEOW_RAIZ/scripts/extensoes_gesto.sh" instalar graficos
+  return $?
+}
+
 etapa_gpu() {
   passo "GPU do compositor (a placa dedicada)"
   GPU_COMPOSITOR="${GPU_COMPOSITOR:-dedicada}" "$MEOW_RAIZ/scripts/gpu_compositor.sh" aplicar
@@ -2053,7 +2063,7 @@ main() {
                 etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos etapa_ocultar_casa etapa_janela_dock
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_bloco_terminal etapa_files_menu etapa_cursor etapa_flatpak_tema etapa_escritorio etapa_apps
                 etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_discord etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
-                etapa_extensoes etapa_compositor etapa_gpu etapa_extensoes_tema etapa_midia etapa_lancador etapa_autostart etapa_autoreparo)
+                etapa_extensoes etapa_compositor etapa_gpu etapa_graficos etapa_extensoes_tema etapa_midia etapa_lancador etapa_autostart etapa_autoreparo)
   if [ -n "$so_etapas" ]; then
     local pedida escolhida escolhidas=()
     for pedida in ${so_etapas//,/ }; do
@@ -2215,6 +2225,13 @@ fim_dos_builds() {
   grep -qx 'compositor_estado=pendente' <<< "$estado" && oque="O compositor"
   if grep -qx 'menu_estado=pendente' <<< "$estado"; then
     if [ -n "$oque" ]; then oque="$oque e o Menu do Arquivos"; verbo="compilam"; vale="valem"; else oque="O Menu do Arquivos"; fi
+  fi
+  if grep -qx 'graficos_estado=pendente' <<< "$estado"; then
+    if [ -z "$oque" ]; then
+      printf '  O portal de compartilhar tela ainda compila em segundo plano.\n\n'
+      return 0
+    fi
+    oque="$oque e o portal de compartilhar tela"; verbo="compilam"; vale="valem"
   fi
   [ -n "$oque" ] || oque="O compositor"
   printf '  %s ainda %s em segundo plano e %s no próximo login.\n\n' "$oque" "$verbo" "$vale"

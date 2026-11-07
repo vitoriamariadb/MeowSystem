@@ -2898,7 +2898,7 @@ def _acento_da_pagina(flavor, valores):
 EXT_CASA = os.path.join(RAIZ, "assets", "extensoes")
 EXT_CHAVES = ("NOME", "DESCRICAO", "URL", "COMMIT", "VERSAO", "APP_ID", "BIN", "UPSTREAM",
               "SUBSTITUI", "DATA", "ORDEM", "TIPO", "PADRAO", "ATIVA", "PENDENCIA")
-EXT_TIPOS_DE_BUILD = ("compositor", "menu")
+EXT_TIPOS_DE_BUILD = ("compositor", "menu", "graficos")
 RE_ID_EXT = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 EXT_GESTO = os.path.join(RAIZ, "scripts", "extensoes_gesto.sh")
 EXT_CONSTRUTOR = os.path.join(RAIZ, "scripts", "extensoes_build.sh")

@@ -470,6 +470,12 @@ registro 52 'packs/<id>/' && grep -q '^def motivo_para_nao_aprimorar' "$RAIZ/scr
   && grep -q 'href: "#novo/cores"' "$RAIZ/app/pagina/paginas.js" && grep -q '"/api/pack-cores"' "$RAIZ/app/servidor.py" \
   && ok "52: Criar o meu tema gera um tema novo; o Personalizar aprimora o tema no ar" \
   || falha "52: o Criar e o Personalizar voltaram a ser o mesmo fluxo, ou a decisão saiu do registro"
+registro 54 'sim de 06/11' && registro 54 'Cria outra build' && [ -x "$RAIZ/scripts/graficos.sh" ] && [ -x "$RAIZ/scripts/portal_shim.sh" ] \
+  && [ -f "$RAIZ/patches/graficos.series" ] && [ -f "$RAIZ/patches/graficos.versao" ] \
+  && grep -q '^chrome-policy)' "$RAIZ/scripts/ponte_root.sh" && grep -q '^etapa_graficos()' "$RAIZ/install.sh" \
+  && ! grep -q 'dmabuf, fixated' "$RAIZ"/patches/xdg-desktop-portal-cosmic-*.patch \
+  && ok "54: o portal e a policy do Chrome são uma build própria, com shim, série e verbo na ponte, sem o SHM forçado" \
+  || falha "54: falta o script, o shim, a série, o verbo da ponte ou a etapa do portal, ou o SHM forçado entrou"
 registro 56 'espaco.tsv' && [ -f "$RAIZ/assets/contratos/espaco.tsv" ] && [ -f "$RAIZ/scripts/espaco.py" ] \
   && grep -q 'espaco.py" continua' "$RAIZ/scripts/extensoes_build.sh" && grep -q '^chk_disco' "$RAIZ/bin/meow" \
   && grep -q 'meow_desinstalar_espaco$' "$RAIZ/lib/desinstalar.sh" && grep -q '"espaco_liberar"' "$RAIZ/app/servidor.py" \

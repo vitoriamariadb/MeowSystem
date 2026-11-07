@@ -80,3 +80,24 @@ A feature segue a P159: é o mesmo binário e o mesmo trilho.
 4. Confirmar por um segundo participante, como o celular.
 5. A própria tela aparece na call do Teams no navegador. Se a imagem não congelar mais e isto continuar falhando, a
    causa é outra e vira sprint nova.
+
+## Execução
+
+Feita junto com a P159, na mesma build, porque o diff da P160 (cosmic-protocols#95) é a série `toolkit` dela.
+
+- `patches/cosmic-protocols-frame-destruido-antes.patch` destrói o `screencopy_frame` e dá `flush` antes de chamar
+  `ready` ou `failed`, e leva o marcador `MEOW-TOOLKIT-PATCH-1`.
+- O toolkit local entra no build do portal pelo patch `xdg-desktop-portal-cosmic-toolkit-local.patch`; o `-F0` foi
+  provado no fonte real do `cosmic-protocols` c0cff4d, e o portal compilou com os dois marcadores no binário.
+- A aprovação da prova de 30 minutos continua sendo de quem usa: ela exige a build instalada na máquina, e este bloco
+  não instala nem reinicia nada. Se o congelamento persistir com os dois marcadores vivos, a causa é outra e vira
+  sprint nova.
+
+Regressão final no `bloco/graficos`, `45f65578`: **134 verdes, 0 pulados, 6 vermelhos** de 140, os mesmos da P159, onde
+cada um está explicado. Nenhum vem do toolkit: `graficos.sh` e `graficos-fonte-real.sh` estão verdes.
+
+Falta da mão de quem usa, com a build instalada: depois do reboot, 30 minutos de janela no Chrome, inclusive o próprio
+navegador; `coredumpctl` sem entrada nova e o journal sem `create_frame sent before`; um segundo participante
+confirmando; e a própria tela na call do Teams. A prova de 30 minutos de 06/11 foi feita com o binário da máquina, com
+este toolkit e o SHM forçado, não com esta build: o `-F0` e o marcador provam que o patch entrou, não que a corrida acabou
+sem o SHM forçado.

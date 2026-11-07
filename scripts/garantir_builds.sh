@@ -8,6 +8,7 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 GB_COMPOSITOR="${GB_COMPOSITOR:-$MEOW_RAIZ/scripts/compositor_patches.sh}"
 GB_FILES="${GB_FILES:-$MEOW_RAIZ/scripts/files_menu.sh}"
 GB_EXTENSOES="${GB_EXTENSOES:-$MEOW_RAIZ/scripts/extensoes_build.sh}"
+GB_GRAFICOS="${GB_GRAFICOS:-$MEOW_RAIZ/scripts/graficos.sh}"
 GB_CASA="${GB_CASA:-${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}}"
 GB_FILES_GUARDA="${GB_FILES_GUARDA:-$MEOW_ESTADO/cosmic-files}"
 GB_MATRIZ="${GB_MATRIZ:-${CP_MATRIZ:-$MEOW_ESTADO/cosmic-comp/matriz.tsv}}"
@@ -24,8 +25,8 @@ case ":$PATH:" in
 esac
 
 _gb_instalados() {
-  dpkg-query -W -f='${Package}\t${Version}\t${db:Status-Status}\n' cosmic-files cosmic-comp 2>/dev/null |
-    awk -F'\t' '($1=="cosmic-files" || $1=="cosmic-comp") && $3=="installed" && $2!="" {print $1"\t"$2}'
+  dpkg-query -W -f='${Package}\t${Version}\t${db:Status-Status}\n' cosmic-files cosmic-comp xdg-desktop-portal-cosmic 2>/dev/null |
+    awk -F'\t' '($1=="cosmic-files" || $1=="cosmic-comp" || $1=="xdg-desktop-portal-cosmic") && $3=="installed" && $2!="" {print $1"\t"$2}'
 }
 
 _gb_comp_valido() {
@@ -93,6 +94,7 @@ _gb_pendentes() {
   while IFS=$'\t' read -r p v; do
     case "$p" in
       cosmic-files) _gb_files_quer && ! _gb_files_valido "$v" && printf '%s\t%s\n' "$p" "$v" ;;
+      xdg-desktop-portal-cosmic) [ -n "$("$GB_GRAFICOS" pendente 2>/dev/null)" ] && printf '%s\t%s\n' "$p" "$v" ;;
       cosmic-comp)  _gb_comp_quer && [ ! -e "$GB_CASA/$v/ruim" ] \
                       && { ! _gb_comp_valido "$v" || _gb_comp_digital_mudou "$v"; } \
                       && ! _gb_comp_degrau4 "$v" && ! _gb_comp_espera "$v" >/dev/null \
@@ -111,6 +113,30 @@ _gb_compilar_files() {
   [ "$rc" = "3" ] && { meow_pula "cosmic-files $1: falta ferramenta de compilação nesta máquina — o do pacote segue valendo"; return 0; }
   meow_aviso "cosmic-files $1: o build falhou — o do pacote segue valendo, e o próximo gatilho tenta de novo"
   return 2
+}
+
+_gb_graficos_valido() { "$GB_GRAFICOS" estado 2>/dev/null | grep -qx 'build=sim'; }
+
+_gb_compilar_graficos() {
+  meow_info "portal $1: sem o build desta versão — compilando"
+  "$GB_GRAFICOS" compilar; local rc=$?
+  _gb_graficos_valido && return 0
+  [ "$rc" = "3" ] && { meow_pula "portal $1: falta ferramenta de compilação nesta máquina — o do pacote segue valendo"; return 0; }
+  if "$GB_GRAFICOS" estado 2>/dev/null | grep -qx 'estado=nao-encaixa'; then
+    meow_pula "portal $1: o patch não entra nesta versão — o do pacote segue valendo até um rebase"
+    return 0
+  fi
+  meow_aviso "portal $1: o build não ficou pronto — o do pacote segue valendo, e o próximo gatilho tenta de novo"
+  return 2
+}
+
+_gb_graficos_ligar() {
+  local rc=0
+  meow_seco && return 0
+  [ -n "$(_gb_instalados | awk -F'\t' '$1=="xdg-desktop-portal-cosmic" {print $2}')" ] || return 0
+  GR_COMPILAR=nao "$GB_GRAFICOS" aplicar || rc=$?
+  [ "$rc" = "2" ] && return 2
+  return 0
 }
 
 _gb_compilar_comp() {
@@ -133,18 +159,20 @@ cmd_rodar() {
   meow_tem dpkg-query || { meow_pula "sem dpkg nesta máquina"; return "$MEOW_SEM_DEPENDENCIA"; }
   mapfile -t pend < <(_gb_pendentes)
   if [ "${#pend[@]}" = "0" ]; then
+    local rg="$MEOW_OK"
+    _gb_graficos_ligar || rg="$MEOW_ERRO"
     local vc; vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
     if [ -n "$vc" ] && _gb_comp_degrau4 "$vc" && ! _gb_comp_valido "$vc"; then
       meow_pula "cosmic-comp $vc: o patch obrigatório não entra nesta versão (degrau 4) — a sessão segue no de fábrica até a série mudar"
-      return "$MEOW_OK"
+      return "$rg"
     fi
     local espera
     if [ -n "$vc" ] && _gb_comp_quer && [ ! -e "$GB_CASA/$vc/ruim" ] && espera="$(_gb_comp_espera "$vc")"; then
       meow_pula "cosmic-comp $vc: a compilação falhou $( [ "${espera#* }" = 1 ] && echo "1 vez" || echo "${espera#* } vezes") nesta versão e série — a próxima tentativa é a partir de $(date -d "@${espera%% *}" '+%d/%m %H:%M')"
-      return "$MEOW_OK"
+      return "$rg"
     fi
     meow_ok "o compositor e o menu do cosmic-files têm build para a versão instalada"
-    return "$MEOW_OK"
+    return "$rg"
   fi
   if meow_seco; then
     for p in "${pend[@]}"; do meow_muda "compilaria o ${p%%$'\t'*} ${p#*$'\t'}"; done
@@ -164,8 +192,10 @@ cmd_rodar() {
     case "${p%%$'\t'*}" in
       cosmic-files) _gb_compilar_files "$v" || falhou=1 ;;
       cosmic-comp)  _gb_compilar_comp  "$v" || falhou=1 ;;
+      xdg-desktop-portal-cosmic) _gb_compilar_graficos "$v" || falhou=1 ;;
     esac
   done
+  _gb_graficos_ligar || falhou=1
   meow_registrar "garantir_builds.sh falhou=$falhou"
   [ "$falhou" = "1" ] && return "$MEOW_ERRO"
   return "$MEOW_OK"
@@ -192,7 +222,7 @@ _gb_transitorio() {
   local k
   meow_tem systemd-run || return 1
   [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] || [ -S "${XDG_RUNTIME_DIR:-/nao/existe}/bus" ] || return 1
-  for k in COMPOSITOR FILES_MENU MEOW_CONF MEOW_ESTADO; do
+  for k in COMPOSITOR FILES_MENU GRAFICOS MEOW_CONF MEOW_ESTADO; do
     [ -n "${!k:-}" ] && env_extra+=("--setenv=$k=${!k}")
   done
   mkdir -p "$MEOW_ESTADO" 2>/dev/null
@@ -239,8 +269,9 @@ cmd_fundo() {
 }
 
 cmd_estado() {
-  local vc vf e_comp e_menu remendos
+  local vc vf vg e_comp e_menu remendos
   vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
+  vg="$(_gb_instalados | awk -F'\t' '$1=="xdg-desktop-portal-cosmic" {print $2}')"
   vf="$(_gb_instalados | awk -F'\t' '$1=="cosmic-files" {print $2}')"
   if [ -z "$vc" ]; then e_comp=ausente
   elif [ -e "$GB_CASA/$vc/ruim" ]; then e_comp=falhou
@@ -254,8 +285,10 @@ cmd_estado() {
   elif _gb_files_valido "$vf"; then e_menu=ok
   else e_menu=pendente; fi
   remendos="$(awk '$1=="req" || $1=="opt" {n++} END {print n+0}' "$GB_SERIE" 2>/dev/null)"
-  printf 'compositor_versao=%s\ncompositor_estado=%s\nremendos=%s\nmenu_versao=%s\nmenu_estado=%s\nconstruindo=%s\n' \
-    "$vc" "$e_comp" "$remendos" "$vf" "$e_menu" "$(gb_construindo && echo sim || echo nao)"
+  printf 'compositor_versao=%s\ncompositor_estado=%s\nremendos=%s\nmenu_versao=%s\nmenu_estado=%s\ngraficos_versao=%s\ngraficos_estado=%s\nconstruindo=%s\n' \
+    "$vc" "$e_comp" "$remendos" "$vf" "$e_menu" "$vg" \
+    "$("$GB_GRAFICOS" estado 2>/dev/null | sed -n 's/^estado=//p' | head -1)" \
+    "$(gb_construindo && echo sim || echo nao)"
   return "$MEOW_OK"
 }
 

@@ -117,6 +117,7 @@ PORTATIL=(
   mapas-fim-de-linha.sh
   wallpaper-base.sh
   gpu-do-compositor.sh
+  graficos.sh
   deb.sh
   espaco.sh
 )
@@ -150,6 +151,7 @@ MAQUINA=(
   logo-pagina.py
   logo-do-pack-pessoal-pagina.py
   zapzap-tema-de-conversa.py
+  graficos-fonte-real.sh
 )
 
 SEM_PULO=(

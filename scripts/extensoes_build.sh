@@ -24,11 +24,13 @@ PINO_CHAVES=" ORDEM TIPO PADRAO CHAVE_DO_CONF ATIVA NOME DESCRICAO URL COMMIT VE
 GARANTIR="${EXTENSOES_GARANTIR:-$RAIZ/scripts/garantir_builds.sh}"
 COMPOSITOR_PATCHES="${EXTENSOES_COMPOSITOR:-$RAIZ/scripts/compositor_patches.sh}"
 FILES_MENU_SH="${EXTENSOES_FILES_MENU:-$RAIZ/scripts/files_menu.sh}"
+GRAFICOS_SH="${EXTENSOES_GRAFICOS:-$RAIZ/scripts/graficos.sh}"
 SHIM="${CP_SHIM:-$HOME/.local/bin/cosmic-comp}"
 SHIM_MARCA="MEOW-COSMIC-COMP-SHIM"
 MENU_MARCA="MEOW-FILES-WALLPAPER-PATCH-2"
 CASA_COMP="${GB_CASA:-${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}}"
 GUARDA_MENU="${GB_FILES_GUARDA:-$MEOW_ESTADO/cosmic-files}"
+CASA_GRAFICOS="${GR_CASA:-$HOME/.local/libexec/meow/graficos}"
 TRAVA_BUILDS="${GB_TRAVA:-$MEOW_ESTADO/builds.lock}"
 
 ID=""; CASA=0; PASSADA=0
@@ -58,7 +60,7 @@ _pino_ler() {
 
 _pino_valido() {
   local alvo restante par
-  case "${P_TIPO:-applet}" in applet|compositor|menu) ;; *) return 1 ;; esac
+  case "${P_TIPO:-applet}" in applet|compositor|menu|graficos) ;; *) return 1 ;; esac
   case "${P_PADRAO:-nao}" in sim|nao) ;; *) return 1 ;; esac
   [ -z "$P_CHAVE_DO_CONF" ] || [[ "$P_CHAVE_DO_CONF" =~ ^[A-Z][A-Z0-9_]*$ ]] || return 1
   [ -z "$P_PENDENCIA" ] || [[ "$P_PENDENCIA" =~ ^[a-z0-9][a-z0-9-]*$ ]] || return 1
@@ -603,25 +605,37 @@ _ativa() {
   case "$(_tipo)" in
     compositor) grep -qs -- "$SHIM_MARCA" "$SHIM" ;;
     menu) grep -a -qs -- "$MENU_MARCA" "$BINDIR/$P_BIN" && grep -a -qs -- "$MENU_MARCA" "$BINDIR/$P_BIN-applet" ;;
+    graficos) [ "${B_SITUACAO:-}" = oficial ] || { "$GRAFICOS_SH" estado 2>/dev/null | grep -qx 'dropin=sim' && { [ -z "${B_SITUACAO:-}" ] || [ "$B_SITUACAO" = ok ]; }; } ;;
     *) _painel_cita "$P_APP_ID" ;;
   esac
 }
 
 _b_campos() {
   local prefixo="$1" saida
-  if [ "$(_tipo)" = menu ]; then saida="$(FILES_MENU=sim "$GARANTIR" estado 2>/dev/null)"
-  else saida="$("$GARANTIR" estado 2>/dev/null)"; fi
+  case "$(_tipo)" in
+    menu) saida="$(FILES_MENU=sim "$GARANTIR" estado 2>/dev/null)" ;;
+    graficos) saida="$(GRAFICOS=sim "$GARANTIR" estado 2>/dev/null)" ;;
+    *) saida="$("$GARANTIR" estado 2>/dev/null)" ;;
+  esac
   B_VERSAO="$(printf '%s\n' "$saida" | sed -n "s/^${prefixo}_versao=//p" | head -1)"
   B_SITUACAO="$(printf '%s\n' "$saida" | sed -n "s/^${prefixo}_estado=//p" | head -1)"
   B_CONSTRUINDO="$(printf '%s\n' "$saida" | sed -n 's/^construindo=//p' | head -1)"
 }
 
-_b_prefixo() { [ "$(_tipo)" = menu ] && printf menu || printf compositor; }
+_b_prefixo() {
+  case "$(_tipo)" in
+    menu) printf menu ;;
+    graficos) printf graficos ;;
+    *) printf compositor ;;
+  esac
+}
 
 _b_guardados() {
   local d
   if [ "$(_tipo)" = menu ]; then
     for d in "$GUARDA_MENU"/*/; do [ -d "$d" ] && [ "$(basename "$d")" != "$1" ] && return 0; done
+  elif [ "$(_tipo)" = graficos ]; then
+    for d in "$CASA_GRAFICOS"/*/; do [ -d "$d" ] && [ "$(basename "$d")" != "$1" ] && return 0; done
   else
     for d in "$CASA_COMP"/*/; do [ -x "$d/cosmic-comp" ] && [ "$(basename "$d")" != "$1" ] && return 0; done
   fi
@@ -635,7 +649,14 @@ _b_conf_quer() {
   [ "$valor" != nao ]
 }
 
-_b_pronto() { case "$B_SITUACAO" in ok|desligado) return 0 ;; esac; return 1; }
+_b_pronto() {
+  if [ "$(_tipo)" = graficos ]; then
+    case "$B_SITUACAO" in ok|oficial) return 0 ;; esac
+    return 1
+  fi
+  case "$B_SITUACAO" in ok|desligado) return 0 ;; esac
+  return 1
+}
 
 _b_estado() {
   local instalada=nao atualizacao=nao ativa=nao
@@ -648,6 +669,7 @@ _b_estado() {
 }
 
 _b_conferir() {
+  if [ "$(_tipo)" = graficos ]; then "$GRAFICOS_SH" conferir; return $?; fi
   _b_campos "$(_b_prefixo)"
   if ! _b_pronto; then
     meow_muda "$(_nome) sem build para a versão instalada (${B_VERSAO:-sem pacote})"
@@ -671,7 +693,8 @@ _b_compilar() {
   (
     exec 9>>"$TRAVA_BUILDS" || exit "$MEOW_ERRO"
     flock 9
-    "$COMPOSITOR_PATCHES" compilar
+    if [ "$(_tipo)" = graficos ]; then GR_REFAZER="${EXTENSOES_REFAZER:-0}" "$GRAFICOS_SH" compilar
+    else "$COMPOSITOR_PATCHES" compilar; fi
   )
 }
 
@@ -679,6 +702,8 @@ _b_ligar() {
   local rc
   if [ "$(_tipo)" = menu ]; then
     FILES_MENU=sim "$FILES_MENU_SH" aplicar; rc=$?
+  elif [ "$(_tipo)" = graficos ]; then
+    GR_COMPILAR=nao GRAFICOS=sim "$GRAFICOS_SH" aplicar; rc=$?
   else
     "$COMPOSITOR_PATCHES" ativar; rc=$?
   fi
@@ -701,7 +726,7 @@ _b_aplicar() {
       if [ -n "$P_CHAVE_DO_CONF" ]; then env "$P_CHAVE_DO_CONF=sim" "$GARANTIR" --fundo; rc=$?
       else "$GARANTIR" --fundo; rc=$?; fi
       [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
-      [ "$rc" = "$MEOW_SEM_DEPENDENCIA" ] || mudou=1
+      [ "$rc" = "$MEOW_DIVERGENTE" ] && mudou=1
     else
       _b_compilar; rc=$?
       _b_campos "$(_b_prefixo)"
@@ -725,6 +750,8 @@ _b_reverter() {
   local rc
   if [ "$(_tipo)" = menu ]; then
     "$FILES_MENU_SH" remover; rc=$?
+  elif [ "$(_tipo)" = graficos ]; then
+    "$GRAFICOS_SH" reverter; rc=$?
   else
     "$COMPOSITOR_PATCHES" desativar; rc=$?
   fi

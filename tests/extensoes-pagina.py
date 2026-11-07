@@ -107,7 +107,7 @@ def montar():
         fh.write(f'[url "file://{vazio}"]\n\tinsteadOf = https://exemplo.test/dona/vazio\n')
     for ident in APPLETS:
         escrever_pino(ident, commits[ident])
-    for ident in ("compositor", "menu-arquivos"):
+    for ident in ("compositor", "menu-arquivos", "graficos"):
         shutil.copyfile(os.path.join(casa.RAIZ, "assets", "extensoes", ident + ".pino"), os.path.join(pinos, ident + ".pino"))
     garantir = os.path.join(TESTE, "garantir")
     casa.escrever_exec(garantir,
@@ -117,7 +117,7 @@ def montar():
         'else e=pendente; fi\n'
         '[ -f "${MEOW_TESTE_COMP%/*}/comp-ruim" ] && e=falhou\n'
         'printf \'compositor_versao=0.1~t\\ncompositor_estado=%s\\nmenu_versao=1.0~t\\n'
-        'menu_estado=pendente\\nconstruindo=nao\\n\' "$e"\n')
+        'menu_estado=pendente\\ngraficos_versao=1.0~t\\ngraficos_estado=pendente\\nconstruindo=nao\\n\' "$e"\n')
     compositor = os.path.join(TESTE, "compositor")
     casa.escrever_exec(compositor,
         '#!/bin/sh\necho "compositor $*" >> "$MEOW_TESTE_CARGO"\n'
@@ -403,6 +403,15 @@ def main():
                   and re.search(r"\b\d+ remendos", cartao_de_build(pag, "compositor").inner_text()), "e diz a versão e os remendos")
             checa(eventual(lambda: pilula_de_build(pag, "menu-arquivos") == "Não instalada"),
                   f"o menu sem build: «{pilula_de_build(pag, 'menu-arquivos')}»")
+            checa(cartao_de_build(pag, "graficos").count() == 1
+                  and cartao_de_build(pag, "graficos").locator("h3").inner_text() == "Aprimoramentos gráficos"
+                  and cartao_de_build(pag, "graficos").locator("img").count() == 1,
+                  "o cartão «Aprimoramentos gráficos» está na aba Builds, com ícone próprio")
+            checa(eventual(lambda: pilula_de_build(pag, "graficos") == "Não instalada")
+                  and "portal 1.0~t" in cartao_de_build(pag, "graficos").inner_text(),
+                  f"o portal sem build: «{pilula_de_build(pag, 'graficos')}», com a versão do pacote")
+            checa(botoes_de_build(pag, "graficos") == ["Instalar", "Atualizar (parado)", "Refazer", "Remover Aprimoramentos gráficos (parado)"],
+                  f"e tem os quatro botões do cartão de build ({botoes_de_build(pag, 'graficos')})")
             foto("extensoes-builds-desligado")
             cartao_de_build(pag, "compositor").get_by_role("button", name="Instalar").click()
             estado = fim_do_trabalho(pag)

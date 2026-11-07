@@ -1208,6 +1208,14 @@ FILES_MENU="sim"                  # sim | nao
 # Com "nao", o doctor avisa e você roda `meow files-menu build` quando quiser.
 FILES_MENU_AUTOBUILD="sim"
 
+# @ Compartilhar tela e janela
+# > O portal do COSMIC cai ao compartilhar tela em várias máquinas, e a tela congela no meio da call.
+# Compila o xdg-desktop-portal-cosmic com a série de patches/graficos.series (o ajuste da
+# negociação do formato, #286, e a corrida no toolkit, #384), liga o shim que escolhe entre
+# o build e o portal do pacote, e põe a policy do Chrome que libera captura de tela. Sem
+# Chrome a policy não é escrita. Sai do trilho sozinho quando o pacote traz a correção.
+GRAFICOS="sim"                    # sim | nao
+
 # (havia um WALLPAPER_SEMENTES aqui, com "comunidade,cosmic,minhas". Nunca
 #  existiu categoria nenhuma no `cmd_semear`: ele baixa a coleção Catppuccin do
 #  commit pinado, e ponto. Removido em 08/08/2026 — chave que nada lê.)
