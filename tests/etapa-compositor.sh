@@ -31,7 +31,7 @@ chmod 755 "$T/falso/"* "$T/garantir"
 cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"
 
 instalar() {
-  env -i PATH="$T/falso:$PATH" HOME="$CASA" USER=t NO_COLOR=1 MEOW_IGNORA_DESKTOP=1 \
+  env -i CP_ESPACO_KB=1 PATH="$T/falso:$PATH" HOME="$CASA" USER=t NO_COLOR=1 MEOW_IGNORA_DESKTOP=1 \
     MEOW_PONTE=/nao/existe TESTE_DIR="$T" EXTENSOES_GARANTIR="$T/garantir" \
     bash "$RAIZ/install.sh" --etapa compositor > "$T/saida" 2>&1
 }
@@ -77,7 +77,7 @@ printf '#!/bin/sh\nprintf "cosmic-comp\\t0.1~r\\tinstalled\\n"\n' > "$T/real/dpk
 printf '#!/bin/sh\necho "compositor $*" >> "%s/comp5.log"\nexit 0\n' "$T" > "$T/real/compositor"
 printf '#!/bin/sh\nexit 0\n' > "$T/real/files"
 chmod 755 "$T/real/"*
-env -i PATH="$T/real:$T/falso:$PATH" HOME="$CASA" USER=t NO_COLOR=1 MEOW_IGNORA_DESKTOP=1 \
+env -i CP_ESPACO_KB=1 PATH="$T/real:$T/falso:$PATH" HOME="$CASA" USER=t NO_COLOR=1 MEOW_IGNORA_DESKTOP=1 \
   MEOW_PONTE=/nao/existe GB_COMPOSITOR="$T/real/compositor" GB_FILES="$T/real/files" GB_ESPERA=1 \
   bash "$RAIZ/install.sh" --etapa compositor > "$T/saida" 2>&1; rc=$?
 confere "o install sai 0" '[ "$rc" = 0 ]'
@@ -127,12 +127,12 @@ cat > "$C6/patches/t6.patch" <<'FIM'
  fn quatro() {}
 FIM
 comp6() {
-  env -i PATH="$C6/bin:$T/falso:$PATH" HOME="$C6/casa" NO_COLOR=1 MEOW_ESTADO="$ESTADO6" \
+  env -i CP_ESPACO_KB=1 PATH="$C6/bin:$T/falso:$PATH" HOME="$C6/casa" NO_COLOR=1 MEOW_ESTADO="$ESTADO6" \
     CP_REPO="$C6/patches" CP_SERIE="$C6/patches/series" CP_CACHE="$C6/cache" CP_GUARDA="$C6/guarda" \
     CP_CASA="$CASA6" CP_SHIM="$C6/casa/.local/bin/cosmic-comp" CP_BIN="$C6/nao-existe" "$@" > "$T/saida" 2>&1
 }
 gb6() {
-  env -i PATH="$C6/bin:$T/falso:$PATH" HOME="$C6/casa" NO_COLOR=1 MEOW_ESTADO="$ESTADO6" COMPOSITOR=sim FILES_MENU=nao \
+  env -i CP_ESPACO_KB=1 PATH="$C6/bin:$T/falso:$PATH" HOME="$C6/casa" NO_COLOR=1 MEOW_ESTADO="$ESTADO6" COMPOSITOR=sim FILES_MENU=nao \
     MEOW_CONF="$C6/casa/.config/meow/meow.conf" CP_REPO="$C6/patches" CP_SERIE="$C6/patches/series" \
     CP_CASA="$CASA6" GB_COMPOSITOR="$C6/gb-comp" bash "$RAIZ/scripts/garantir_builds.sh" "$@" > "$T/saida" 2>&1
 }

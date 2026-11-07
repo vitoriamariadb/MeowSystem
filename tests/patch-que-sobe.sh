@@ -63,7 +63,7 @@ FIM
 chmod 755 "$T/compositor"
 gb() {
   env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR -u WAYLAND_DISPLAY \
-    HOME="$T/home" PATH="$T/bin:$PATH" MEOW_RAIZ="$RAIZ" NO_COLOR=1 FILES_MENU=nao \
+    HOME="$T/home" PATH="$T/bin:$PATH" MEOW_RAIZ="$RAIZ" NO_COLOR=1 FILES_MENU=nao CP_ESPACO_KB=1 \
     MEOW_ESTADO="$ESTADO" MEOW_CONF="$T/home/.config/meow/meow.conf" \
     GB_COMPOSITOR="$T/compositor" CP_REPO="$T/patches" CP_SERIE="$T/patches/series" \
     "$RAIZ/scripts/garantir_builds.sh" "$@" > "$T/saida" 2>&1
@@ -98,14 +98,14 @@ fazer_patch 1
 (cd "$FONTE" && patch -p1 -s < "$T/patches/t.patch") || falha "o brinquedo não aplicou a v1"
 fazer_patch 2
 antes="$(sha256sum "$FONTE/src/a.rs")"
-env -i PATH="$T/bin:$PATH" HOME="$T/home" NO_COLOR=1 MEOW_ESTADO="$ESTADO" \
+env -i CP_ESPACO_KB=1 PATH="$T/bin:$PATH" HOME="$T/home" NO_COLOR=1 MEOW_ESTADO="$ESTADO" \
   CP_REPO="$T/patches" CP_SERIE="$T/patches/series" CP_BIN="$T/nao-existe" \
   bash "$RAIZ/scripts/compositor_patches.sh" aplicar "$FONTE" > "$T/saida" 2>&1; rc=$?
 [ "$rc" != 0 ] && ok "o aplicar recusa a árvore com a v1 (rc $rc)" || falha "o aplicar aceitou a árvore com a v1"
 igual "e não escreve nela" "$(sha256sum "$FONTE/src/a.rs")" "$antes"
 grep -q 'outra versão' "$T/saida" && ok "e diz que é outra versão" || falha "não disse outra versão: $(cat "$T/saida")"
 comp() {
-  env -i PATH="$T/bin:$PATH" HOME="$T/home" NO_COLOR=1 MEOW_ESTADO="$ESTADO" \
+  env -i CP_ESPACO_KB=1 PATH="$T/bin:$PATH" HOME="$T/home" NO_COLOR=1 MEOW_ESTADO="$ESTADO" \
     CP_REPO="$T/patches" CP_SERIE="$T/patches/series" CP_CACHE="$T/cache" CP_GUARDA="$T/guarda" \
     CP_CASA="$CASA" CP_SHIM="$T/home/.local/bin/cosmic-comp" \
     bash "$RAIZ/scripts/compositor_patches.sh" compilar > "$T/saida" 2>&1

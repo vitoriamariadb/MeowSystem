@@ -24,7 +24,7 @@ printf '[package]\nname = "cosmic-comp"\n' > "$fonte/Cargo.toml"
 printf 'all:\n\ttrue\n' > "$fonte/Makefile"
 : > "$TMP/serie-vazia"
 
-saida="$(env -i PATH="$TMP/falso:$PATH" HOME="$TMP/casa" NO_COLOR=1 \
+saida="$(env -i CP_ESPACO_KB=1 PATH="$TMP/falso:$PATH" HOME="$TMP/casa" NO_COLOR=1 \
   CP_CACHE="$TMP/cache" CP_SERIE="$TMP/serie-vazia" CP_GUARDA="$TMP/guarda" \
   CP_CASA="$TMP/casa/.local/libexec/meow/cosmic-comp" CP_SHIM="$TMP/casa/.local/bin/cosmic-comp" \
   bash "$RAIZ/scripts/compositor_patches.sh" compilar 2>&1)"; rc=$?
