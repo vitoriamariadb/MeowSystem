@@ -3099,6 +3099,15 @@ cmd_leitura() {
   esac
 }
 
+compositor_compilar_sob_builds_lock() {
+  mkdir -p "$MEOW_ESTADO" || return "$MEOW_ERRO"
+  (
+    exec 9>>"$MEOW_ESTADO/builds.lock" || exit "$MEOW_ERRO"
+    flock -n 9 || { meow_info "outra passagem está compilando — espero ela acabar"; flock 9; }
+    MEOW_DRY_RUN=0 "$RAIZ/scripts/compositor_patches.sh" compilar
+  )
+}
+
 cmd_compositor() {
   local verbo="compilar" seco="${MEOW_DRY_RUN:-0}"
   local -a resto=()
@@ -3112,7 +3121,11 @@ cmd_compositor() {
   [ "${#resto[@]}" -gt 0 ] && verbo="${resto[0]}"
 
   case "$verbo" in
-    compilar|validar)
+    compilar)
+      [ "$seco" = "1" ] && { MEOW_DRY_RUN=1 "$RAIZ/scripts/compositor_patches.sh" compilar; return; }
+      meow_travar || return "$MEOW_ERRO"
+      compositor_compilar_sob_builds_lock ;;
+    validar)
       [ "$seco" = "1" ] || meow_travar || return "$MEOW_ERRO"
       MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
     conferir|reverter|qual)
