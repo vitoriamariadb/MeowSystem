@@ -1757,7 +1757,7 @@ cmd_status() {
   if [ "$qtd" = "0" ]; then
     meow_ok "nada divergente — tudo no lugar"
   else
-    meow_info "detalhes e conserto: meow doctor --consertar"
+    meow_info "o conserto das divergências está no painel, em «Consertar»"
   fi
   printf '\n'
   return "$(pior_rc)"
