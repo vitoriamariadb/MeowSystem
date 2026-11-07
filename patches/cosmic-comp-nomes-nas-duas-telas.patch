@@ -1,0 +1,262 @@
+# cosmic-comp-nomes-nas-duas-telas.patch
+#
+# MARCADOR: AURORA-AREAS-NOMES-1   (base: AURORA-AREAS-NOMES)
+#
+# Em Global, add_output dá as áreas fixadas à primeira saída; as outras completam
+# a lista com add_empty_workspace, e workspace_set_idx escreve o número no lugar
+# do nome. Sim de 06/11/2026: «Sim, nomes nas duas telas».
+#
+# No fim do ramo Global do refresh, cada área sem nome próprio recebe o nome da
+# área de mesmo índice que tem nome próprio. `nome_copiado` separa a cópia do
+# dono: to_pinned não grava a cópia, nem se alguém fixá-la, e o arquivo segue com
+# a lista numa tela só. Sem dono no índice, a cópia volta ao número. Passar de
+# Global a OutputBound solta as cópias.
+#
+# Ao tirar a saída, em Global, a área copiada não vai para o fim da lista: as
+# janelas dela entram na irmã de mesmo índice, e ela some. Se quem sai é o dono,
+# ele toma o lugar da cópia. Assim tirar o monitor não cria área a mais nem nome
+# repetido, com janela ou sem janela. As janelas fundidas não voltam sozinhas ao
+# monitor: quem guardava a volta era a área a mais.
+#
+--- a/src/shell/mod.rs
++++ b/src/shell/mod.rs
+@@ -507,6 +507,109 @@
+ }
+ */
+ 
++#[used]
++static AURORA_AREAS_NOMES: &str = "AURORA-AREAS-NOMES-1";
++
++fn nome_da_area<'a>(irmas: impl Iterator<Item = (Option<&'a str>, bool)>) -> Option<&'a str> {
++    irmas
++        .filter(|(_, copiado)| !copiado)
++        .find_map(|(nome, _)| nome)
++}
++
++#[derive(Debug, PartialEq)]
++enum AreaNaSaida {
++    Funde,
++    Substitui,
++    Segue,
++}
++
++fn area_na_saida(global: bool, sai_copiada: bool, fica_copiada: Option<bool>) -> AreaNaSaida {
++    match (global, sai_copiada, fica_copiada) {
++        (true, true, Some(_)) => AreaNaSaida::Funde,
++        (true, false, Some(true)) => AreaNaSaida::Substitui,
++        _ => AreaNaSaida::Segue,
++    }
++}
++
++fn repor_area_da_tela_cheia(previous: &mut FullscreenRestoreState, area: WorkspaceHandle) {
++    if let FullscreenRestoreState::Tiling { workspace, .. }
++    | FullscreenRestoreState::Floating { workspace, .. } = previous
++    {
++        *workspace = area;
++    }
++}
++
++fn fundir_area(
++    mut area: Workspace,
++    destino: &mut Workspace,
++    workspace_state: &mut WorkspaceUpdateGuard<'_, State>,
++) {
++    let de = area.handle;
++    let para = destino.handle;
++
++    for mapped in area.mapped().cloned().collect::<Vec<_>>() {
++        if area.unmap_element(&mapped).is_none() {
++            continue;
++        }
++        for (janela, _) in mapped.windows() {
++            toplevel_leave_workspace(&janela, &de);
++            toplevel_enter_workspace(&janela, &para);
++        }
++        if destino.tiling_enabled {
++            for maximizada in destino
++                .mapped()
++                .filter(|m| m.maximized_state.lock().unwrap().is_some())
++                .cloned()
++                .collect::<Vec<_>>()
++            {
++                destino.unmaximize_request(&maximizada);
++            }
++            destino
++                .tiling_layer
++                .map(mapped, None::<std::iter::Empty<_>>, None);
++        } else {
++            destino.floating_layer.map(mapped, None);
++        }
++    }
++
++    let cheias = area
++        .get_fullscreen_surfaces()
++        .map(|f| f.surface.clone())
++        .collect::<Vec<_>>();
++    for janela in cheias {
++        let Some((janela, mut previous_state, previous_geometry)) = area.take_fullscreen(&janela)
++        else {
++            continue;
++        };
++        toplevel_leave_workspace(&janela, &de);
++        toplevel_enter_workspace(&janela, &para);
++        if let Some(previous) = &mut previous_state {
++            repor_area_da_tela_cheia(previous, para);
++        }
++        destino.map_fullscreen(&janela, None, previous_state, previous_geometry);
++    }
++
++    for mut minimizada in area.minimized_windows.drain(..) {
++        for janela in minimizada.windows() {
++            toplevel_leave_workspace(&janela, &de);
++            toplevel_enter_workspace(&janela, &para);
++        }
++        match &mut minimizada {
++            MinimizedWindow::Tiling { previous, .. } => {
++                previous.state.take();
++            }
++            MinimizedWindow::Fullscreen {
++                previous: Some(dados),
++                ..
++            } => repor_area_da_tela_cheia(&mut dados.previous_state, para),
++            _ => {}
++        }
++        destino.minimized_windows.push(minimizada);
++    }
++
++    workspace_state.remove_workspace(de);
++}
++
+ impl WorkspaceSet {
+     fn new(
+         state: &mut WorkspaceUpdateGuard<'_, State>,
+@@ -730,6 +833,14 @@
+         }
+     }
+ 
++    fn soltar_nomes_copiados(&mut self, state: &mut WorkspaceUpdateGuard<'_, State>) {
++        for workspace in self.workspaces.iter_mut().filter(|w| w.nome_copiado) {
++            workspace.nome_copiado = false;
++            workspace.name = None;
++        }
++        self.update_workspace_idxs(state);
++    }
++
+     fn post_remove_workspace(
+         &mut self,
+         workspace_state: &mut WorkspaceUpdateGuard<'_, State>,
+@@ -986,7 +1097,26 @@
+                 let new_set = self.sets.get_mut(&new_output).unwrap();
+                 let workspace_group = new_set.group;
+                 for (i, mut workspace) in set.workspaces.into_iter().enumerate() {
+-                    if workspace.can_auto_remove(xdg_activation_state) {
++                    let saida = area_na_saida(
++                        self.mode == WorkspaceMode::Global,
++                        workspace.nome_copiado,
++                        new_set.workspaces.get(i).map(|w| w.nome_copiado),
++                    );
++                    if saida == AreaNaSaida::Funde {
++                        workspace.set_output(&new_output, false);
++                        fundir_area(workspace, &mut new_set.workspaces[i], workspace_state);
++                    } else if saida == AreaNaSaida::Substitui {
++                        workspace_state.remove_workspace_state(&workspace.handle, WState::Active);
++                        workspace_state.move_workspace_to_group(workspace_group, workspace.handle);
++                        workspace.set_output(&new_output, false);
++                        workspace.refresh();
++                        let copia = std::mem::replace(&mut new_set.workspaces[i], workspace);
++                        fundir_area(copia, &mut new_set.workspaces[i], workspace_state);
++                        if i == new_set.active {
++                            workspace_state
++                                .add_workspace_state(&new_set.workspaces[i].handle, WState::Active);
++                        }
++                    } else if workspace.can_auto_remove(xdg_activation_state) {
+                         workspace_state.remove_workspace(workspace.handle);
+                     } else {
+                         // update workspace protocol state
+@@ -1211,7 +1341,9 @@
+ 
+         match (old_mode, self.mode) {
+             (WorkspaceMode::Global, WorkspaceMode::OutputBound) => {
+-                // We basically just unlink the existing spaces, so nothing needs to be updated
++                for set in self.sets.values_mut() {
++                    set.soltar_nomes_copiados(workspace_state);
++                }
+             }
+             (WorkspaceMode::OutputBound, WorkspaceMode::Global) => {
+                 // lets construct an iterator of all the pairs of workspaces we have to "merge"
+@@ -1338,6 +1470,8 @@
+                         set.update_workspace_idxs(workspace_state);
+                     }
+                 }
++
++                self.copiar_nomes(workspace_state);
+             }
+             WorkspaceMode::OutputBound => {
+                 for set in self.sets.values_mut() {
+@@ -1351,6 +1485,30 @@
+         }
+     }
+ 
++    fn copiar_nomes(&mut self, workspace_state: &mut WorkspaceUpdateGuard<'_, State>) {
++        let len = self.sets[0].workspaces.len();
++        for i in 0..len {
++            let nome = nome_da_area(self.sets.values().map(|s| {
++                let workspace = &s.workspaces[i];
++                (workspace.name.as_deref(), workspace.nome_copiado)
++            }))
++            .map(str::to_owned);
++            for set in self.sets.values_mut() {
++                let workspace = &mut set.workspaces[i];
++                if (workspace.name.is_none() || workspace.nome_copiado) && workspace.name != nome {
++                    workspace.nome_copiado = nome.is_some();
++                    workspace.name = nome.clone();
++                    workspace_set_idx(
++                        workspace_state,
++                        i as u8 + 1,
++                        &workspace.handle,
++                        workspace.name.as_deref(),
++                    );
++                }
++            }
++        }
++    }
++
+     pub fn get(&self, num: usize, output: &Output) -> Option<&Workspace> {
+         self.sets
+             .get(output)
+diff --color -rU3 p0/src/shell/workspace.rs p1/src/shell/workspace.rs
+--- a/src/shell/workspace.rs
++++ b/src/shell/workspace.rs
+@@ -111,6 +111,7 @@
+     pub pinned: bool,
+     pub id: Option<String>,
+     pub name: Option<String>,
++    pub nome_copiado: bool,
+ 
+     pub handle: WorkspaceHandle,
+     pub focus_stack: FocusStacks,
+@@ -402,6 +403,7 @@
+             pinned: false,
+             id: None,
+             name: None,
++            nome_copiado: false,
+             handle,
+             focus_stack: FocusStacks::default(),
+             image_copy: ImageCopySessions::default(),
+@@ -436,6 +438,7 @@
+             pinned: true,
+             id: pinned.id.clone(),
+             name: pinned.name.clone(),
++            nome_copiado: false,
+             handle,
+             focus_stack: FocusStacks::default(),
+             image_copy: ImageCopySessions::default(),
+@@ -454,7 +457,7 @@
+ 
+     pub fn to_pinned(&self) -> Option<PinnedWorkspace> {
+         let output = self.explicit_output().clone();
+-        if self.pinned {
++        if self.pinned && !self.nome_copiado {
+             debug_assert!(self.id.is_some());
+             Some(PinnedWorkspace {
+                 output: cosmic_comp_config::workspace::OutputMatch {

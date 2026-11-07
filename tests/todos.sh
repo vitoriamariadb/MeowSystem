@@ -62,6 +62,7 @@ PORTATIL=(
   icones-do-sistema.sh
   compositor-shim.sh
   janela-sem-app-id.sh
+  nomes-nas-duas-telas.sh
   decisoes.sh
   precisa-de-gente.sh
   sentinela.sh
