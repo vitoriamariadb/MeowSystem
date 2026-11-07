@@ -122,6 +122,7 @@ PORTATIL=(
   graficos.sh
   deb.sh
   espaco.sh
+  levantamento.sh
 )
 
 MAQUINA=(
