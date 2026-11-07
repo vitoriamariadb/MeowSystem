@@ -4,11 +4,13 @@ extensoes-fontes	reconstruível	$MEOW_ESTADO/extensoes/*/src	Applets	2	-	nunca	s
 extensoes-estado	de quem usa	$MEOW_ESTADO/extensoes	Ajustes	-	-	nunca	sim	O registro de cada applet instalado: carimbo, lista de ícones e de uso.
 compositor-cache	reconstruível	$MEOW_CACHE/cosmic-comp	Compositor	4	-	versoes:2	sim	Fonte e compilação do compositor. Fica a versão em uso e, no máximo, uma anterior. Apagar faz o próximo build compilar do zero.
 compositor-builds	reconstruível	$HOME/.local/libexec/meow/cosmic-comp	Em uso	4	-	guardados:2	sim	O compositor que a sessão usa. Ficam a versão em uso e uma anterior; as duas só saem ao desinstalar.
+graficos-builds	reconstruível	$HOME/.local/libexec/meow/graficos	Em uso	4	-	nunca	sim	O portal do compartilhamento de tela já compilado. Fica só o da versão em uso, e continua aqui depois de reverter. Apagar faz o próximo build compilar do zero.
 oraculo-builds	reconstruível	$HOME/.local/libexec/meow/oraculo-tema	Em uso	3	-	recentes:2	sim	O oráculo do tema que o doctor usa. Ficam o da revisão em uso e uma anterior; as duas só saem ao desinstalar.
 libexec-resto	reconstruível	$HOME/.local/libexec/meow	Em uso	-	-	nunca	sim	O que o MeowSystem compilou para a sua sessão.
 menu-builds	reconstruível	$MEOW_ESTADO/cosmic-files	Em uso	4	-	guardados:2	sim	O menu do Arquivos já compilado. Ficam a versão em uso e uma anterior; as duas só saem ao desinstalar.
 compositor-estado	de quem usa	$MEOW_ESTADO/cosmic-comp	Ajustes	-	-	nunca	sim	O que o MeowSystem lembra do compositor: matriz de patches e alvos.
 previa-cache	reconstruível	$MEOW_CACHE/cosmic-prever	Prévia	4	1024	ocioso	sim	A compilação de prévia dos patches contra o COSMIC novo. Sai quando fica parada e nunca passa de 1 GB, o mais antigo primeiro.
+graficos-cache	reconstruível	$MEOW_CACHE/graficos	Baixados	4	-	ocioso	sim	O fonte do portal que veio da internet e a compilação dele. Saem sozinhos quando ficam parados; voltam com a rede.
 oraculo-cache	reconstruível	$MEOW_CACHE/oraculo-tema	Oráculo	3	-	ocioso	sim	A compilação do oráculo do tema. O binário pronto mora em outro lugar, então sai quando fica parada.
 binarios-em-uso	reconstruível	$HOME/.local/bin/meow*|$HOME/.local/bin/cosmic-comp|$HOME/.local/bin/cosmic-files|$HOME/.local/bin/cosmic-files-applet	Em uso	10	-	nunca	passo	Os programas instalados para a sua sessão. Só saem ao desinstalar.
 lancadores-dos-applets	reconstruível	$HOME/.local/share/applications/io.github.meowsystem.*|$HOME/.local/share/metainfo/io.github.meowsystem.*|$HOME/.local/share/icons/hicolor/*/apps/io.github.meowsystem.*	Em uso	-	-	nunca	passo	O lançador, a ficha e o ícone de cada applet instalado. Saem com o applet.
@@ -37,5 +39,6 @@ estado-travas	de quem usa	$MEOW_ESTADO/lock|$MEOW_ESTADO/lock.troca|$MEOW_ESTADO
 estado-registros	de quem usa	$MEOW_ESTADO/*.log|$MEOW_ESTADO/*.log.*|$MEOW_ESTADO/logs	Ajustes	-	-	nunca	sim	O registro do que o MeowSystem fez.
 estado-tabelas	de quem usa	$MEOW_ESTADO/*.tsv|$MEOW_ESTADO/*.txt|$MEOW_ESTADO/*.md5|$MEOW_ESTADO/*.json|$MEOW_ESTADO/raiz	Ajustes	-	-	nunca	sim	O que o MeowSystem lembra: pendências, manifesto, avisos e escolhas.
 estado-marcas	de quem usa	$MEOW_ESTADO/wallpaper-*|$MEOW_ESTADO/logo-*|$MEOW_ESTADO/libreoffice-*|$MEOW_ESTADO/flatpak-*|$MEOW_ESTADO/lancador-*|$MEOW_ESTADO/relogio|$MEOW_ESTADO/areas|$MEOW_ESTADO/janelas|$MEOW_ESTADO/som-do-pack|$MEOW_ESTADO/cosmic-versoes|$MEOW_ESTADO/pack-do-install|$MEOW_ESTADO/temas-de-apps|$MEOW_ESTADO/midia|$MEOW_ESTADO/leitura|$MEOW_ESTADO/rust|$MEOW_ESTADO/zapzap	Ajustes	-	-	nunca	sim	O que cada etapa do MeowSystem lembra do que já fez.
+graficos-estado	de quem usa	$MEOW_ESTADO/graficos	Ajustes	-	-	nunca	sim	O que o MeowSystem lembra do portal: a falha de cada versão e a espera até a próxima tentativa.
 estado-temas	reconstruível	$MEOW_ESTADO/temas	Ajustes	1	-	nunca	sim	Os temas gerados da paleta. Voltam sozinhos.
 estado-geral	de quem usa	$MEOW_ESTADO/*	Ajustes	-	-	nunca	sim	O resto do estado do MeowSystem.
