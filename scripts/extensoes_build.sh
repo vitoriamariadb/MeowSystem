@@ -503,7 +503,7 @@ _aplicar() {
             --manifest-path "$ARVORE/Cargo.toml" >>"$log" 2>&1; then
       compilou=1
     else
-      ap_falhou "$ID" "$alvo_rev"
+      meow_cargo_sem_rede "$log" || ap_falhou "$ID" "$alvo_rev"
       git -C "$ARVORE" checkout -q -- . 2>/dev/null
       meow_aviso "$(_nome) não compila no libcosmic ${alvo_rev:0:7} do painel — volta ao pino ${P_LIBCOSMIC:0:7}"
     fi
@@ -512,6 +512,11 @@ _aplicar() {
     : > "$log"
     if ! CARGO_TARGET_DIR="$ALVO" cargo build --release --locked \
           --manifest-path "$ARVORE/Cargo.toml" >>"$log" 2>&1; then
+      if meow_cargo_sem_rede "$log"; then
+        meow_aviso "$(_nome) não compilou: faltou rede para baixar as dependências — tenta de novo na próxima passada"
+        meow_info "  o registro está em $log"
+        return "$MEOW_SEM_DEPENDENCIA"
+      fi
       _marcar_falha
       meow_erro "o cargo falhou — $(meow_motivo_do_cargo "$log")"
       meow_info "  o registro está em $log"

@@ -63,6 +63,7 @@ echo "cargo \$*" >> "$T/cargo.log"
 [ "\$1" = build ] || exit 0
 case "\$*" in *--locked*) ;; *) [ -f "$T/painel-falha" ] && exit 101 ;; esac
 [ -f "$T/cargo-falha" ] && { echo "error: linker \\\`cc\\\` not found" >&2; exit 101; }
+[ -f "$T/cargo-sem-rede" ] && { echo "error: failed to download from https://static.crates.io/crates/x/0.1.0/download" >&2; echo "  [6] Could not resolve hostname (Could not resolve host: static.crates.io)" >&2; exit 101; }
 mkdir -p "\$CARGO_TARGET_DIR/release"
 printf '#!/bin/sh\n# %s\n' "\$(grep -o 'rev = "[0-9a-f]*"' "$T/lar/.local/state/meowsystem/extensoes/fake/src/Cargo.toml")" > "\$CARGO_TARGET_DIR/release/meowsystem-teste"
 chmod 755 "\$CARGO_TARGET_DIR/release/meowsystem-teste"
@@ -196,6 +197,19 @@ rm -f "$T/cargo-falha"
 saida="$(EBX EXTENSOES_COMPILAR=1 fake --aplicar)"; rc=$?
 igual "tentar de novo cura" "$rc" 1
 grep -qx 'falhou=nao' <<< "$(EBX fake --estado)" && ok "e a marca de falha sai" || falha "falhou ficou"
+
+echo "== cargo sem rede: a falta é passageira, nada fica gravado, e a passada seguinte compila"
+cd "$REPO" && echo rede >> data/novo && git add -A && git -c core.hooksPath=/dev/null commit -q -m rede && C5="$(git rev-parse HEAD)"; cd "$RAIZ"
+pino "$C5"; lock_painel 1111111111111111111111111111111111111111
+antes="$(sha256sum "$BIN")"; touch "$T/cargo-sem-rede"
+saida="$(EBX EXTENSOES_COMPILAR=1 fake --aplicar)"; rc=$?
+igual "rc 3, falta passageira" "$rc" 3
+grep -q 'faltou rede' <<< "$saida" && grep -q 'próxima passada' <<< "$saida" && ok "diz que faltou rede e que tenta de novo" || falha "motivo: $saida"
+igual "o binário anterior ficou" "$(sha256sum "$BIN")" "$antes"
+grep -qx 'falhou=nao' <<< "$(EBX fake --estado)" && ok "e não grava a falha do pino" || falha "a falta de rede virou falha do pino"
+rm -f "$T/cargo-sem-rede"; : > "$T/cargo.log"
+saida="$(EBX EXTENSOES_COMPILAR=1 fake --aplicar)"; rc=$?
+igual "com a rede de volta, compila na passada seguinte" "$rc $(builds)" "1 1"
 
 echo "== o binário sumiu: volta sem compilar"
 rm -f "$BIN"; : > "$T/cargo.log"

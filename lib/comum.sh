@@ -333,9 +333,15 @@ for n in sorted(validos):
 PYFIM
 }
 
+meow_cargo_sem_rede() {
+  grep -qE 'Could not resolve host|failed to download from|spurious network error|Couldn.t connect to server|Network is unreachable|Connection timed out|Operation timed out' "$1" 2>/dev/null
+}
+
 meow_motivo_do_cargo() {
   local log="$1" lib
-  if grep -q 'linker `cc` not found' "$log" 2>/dev/null; then
+  if meow_cargo_sem_rede "$log"; then
+    printf 'faltou rede para baixar as dependências'
+  elif grep -q 'linker `cc` not found' "$log" 2>/dev/null; then
     printf 'falta o compilador C (pacote build-essential)'
   elif lib="$(grep -o 'The system library `[^`]*`' "$log" 2>/dev/null | head -n1)" && [ -n "$lib" ]; then
     lib="${lib#*\`}"
