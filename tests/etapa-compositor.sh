@@ -203,11 +203,11 @@ printf '# cabeça\n1.0~velha\n' > "$V7"
 printf '2.0~boa\t2026-11-06\tp.patch:2\n3.0~quebra\t2026-11-06\tp.patch:4\n4.0~falha\t2026-11-06\t\tfalhou=1@1\n' > "$E7/cosmic-comp/matriz.tsv"
 env MEOW_ESTADO="$E7" NUMEROS_VERSAO="$V7" bash "$RAIZ/tests/numeros.sh" > "$T/saida" 2>&1
 confere "a versão atrasada fica vermelha" 'grep -q "não tem a última versão boa da matriz: 2.0~boa" "$T/saida"'
-env MEOW_ESTADO="$E7" NUMEROS_VERSAO="$V7" MEOW_NUMEROS_CORRIGIR=1 bash "$RAIZ/tests/numeros.sh" > "$T/saida" 2>&1
+env MEOW_ESTADO="$E7" NUMEROS_VERSAO="$V7" MEOW_NUMEROS_CORRIGIR=versao bash "$RAIZ/tests/numeros.sh" > "$T/saida" 2>&1
 confere "o gancho a corrige, e só a linha da versão" '[ "$(cat "$V7")" = "# cabeça
 2.0~boa" ]'
 printf '1.5~outra-casa\t2026-11-06\tp.patch:1\n' > "$E7/cosmic-comp/matriz.tsv"
-env MEOW_ESTADO="$E7" NUMEROS_VERSAO="$V7" MEOW_NUMEROS_CORRIGIR=1 bash "$RAIZ/tests/numeros.sh" > "$T/saida" 2>&1
+env MEOW_ESTADO="$E7" NUMEROS_VERSAO="$V7" MEOW_NUMEROS_CORRIGIR=versao bash "$RAIZ/tests/numeros.sh" > "$T/saida" 2>&1
 confere "a casa de versão mais velha não puxa o arquivo para trás" 'grep -qx "2.0~boa" "$V7"'
 
 printf '\n'

@@ -126,6 +126,19 @@ grep -q "^sudo -n $PONTE estado" "$DOCTOR_REGISTRO" \
   || falha "a ponte viva parou de perguntar à ponte fora do modo só leitura"
 : > "$DOCTOR_REGISTRO"
 
+env PATH="$FALSO:$PATH_DOCTOR" HOME="$CASA" MEOW_RAIZ="$RAIZ" MEOW_PONTE="$PONTE" NO_COLOR=1 \
+  "$RAIZ/bin/meow" status > "$TMP/saida-status" 2>&1
+[ -s "$DOCTOR_REGISTRO" ] \
+  && falha "o meow status chamou o que não devia: $(LC_ALL=C sort -u "$DOCTOR_REGISTRO" | paste -sd';' -)" \
+  || ok "o meow status só lê: nenhum sudo, e nada que escreva"
+grep -q 'Divergências' "$TMP/saida-status" \
+  && ok "e o meow status chegou até as divergências" \
+  || falha "o meow status não chegou ao fim: $(tail -3 "$TMP/saida-status")"
+novos="$(find "$CASA" -type f | sed "s|^$CASA|~|" | LC_ALL=C sort)"
+[ -z "$novos" ] && ok "o meow status não escreveu arquivo na casa de brinquedo" \
+  || falha "o meow status escreveu: $novos"
+: > "$DOCTOR_REGISTRO"
+
 if [ -z "$ANTES" ]; then
   printf '  --   sem cosmic-panel nesta máquina — o PID de verdade não foi conferido\n'
 elif [ "$ANTES" = "$DEPOIS" ]; then
