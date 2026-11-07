@@ -11,6 +11,7 @@ menu-builds	reconstruível	$MEOW_ESTADO/cosmic-files	Em uso	4	-	guardados:2	sim	
 compositor-estado	de quem usa	$MEOW_ESTADO/cosmic-comp	Ajustes	-	-	nunca	sim	O que o MeowSystem lembra do compositor: matriz de patches e alvos.
 previa-cache	reconstruível	$MEOW_CACHE/cosmic-prever	Prévia	4	1024	ocioso	sim	A compilação de prévia dos patches contra o COSMIC novo. Sai quando fica parada e nunca passa de 1 GB, o mais antigo primeiro.
 graficos-cache	reconstruível	$MEOW_CACHE/graficos	Baixados	4	-	ocioso	sim	O fonte do portal que veio da internet e a compilação dele. Saem sozinhos quando ficam parados; voltam com a rede.
+menu-cache	reconstruível	$MEOW_CACHE/cosmic-files	Baixados	4	-	ocioso	sim	O registro da compilação do menu do Arquivos e a árvore enquanto ele compila. Sai sozinho quando fica parado; volta no próximo build.
 oraculo-cache	reconstruível	$MEOW_CACHE/oraculo-tema	Oráculo	3	-	ocioso	sim	A compilação do oráculo do tema. O binário pronto mora em outro lugar, então sai quando fica parada.
 binarios-em-uso	reconstruível	$HOME/.local/bin/meow*|$HOME/.local/bin/cosmic-comp|$HOME/.local/bin/cosmic-files|$HOME/.local/bin/cosmic-files-applet	Em uso	10	-	nunca	passo	Os programas instalados para a sua sessão. Só saem ao desinstalar.
 lancadores-dos-applets	reconstruível	$HOME/.local/share/applications/io.github.meowsystem.*|$HOME/.local/share/metainfo/io.github.meowsystem.*|$HOME/.local/share/icons/hicolor/*/apps/io.github.meowsystem.*	Em uso	-	-	nunca	passo	O lançador, a ficha e o ícone de cada applet instalado. Saem com o applet.

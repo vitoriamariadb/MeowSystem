@@ -118,7 +118,10 @@ cmd_build() {
   fi
   meow_seco && { meow_muda "compilaria o cosmic-files $ver patchado (~161 MB de fonte, minutos)"; return "$MEOW_DIVERGENTE"; }
 
-  tmpdir="$(mktemp -d -p "${TMPDIR:-/tmp}" meow-cf.XXXXXX)" || return "$MEOW_ERRO"
+  local obra="$MEOW_CACHE/cosmic-files" log
+  mkdir -p "$obra" || { meow_erro "não consegui criar $obra"; return "$MEOW_ERRO"; }
+  log="$obra/compilar-$ver.log"
+  tmpdir="$(mktemp -d -p "$obra" meow-cf.XXXXXX)" || return "$MEOW_ERRO"
   trap 'rm -rf "$tmpdir"' RETURN
 
   meow_info "baixando o fonte do cosmic-files $ver…"
@@ -148,8 +151,8 @@ cmd_build() {
   meow_info "compilando (Nice=19, pode levar minutos)…"
   ( cd "$fonte" && tar pxf vendor.tar 2>/dev/null
     nice -n 19 cargo build --release --frozen --offline \
-      && nice -n 19 cargo build --package cosmic-files-applet --release --frozen --offline ) >/dev/null 2>&1 \
-    || { meow_erro "o cargo falhou"; return "$MEOW_ERRO"; }
+      && nice -n 19 cargo build --package cosmic-files-applet --release --frozen --offline ) >"$log" 2>&1 \
+    || { meow_erro "o cargo falhou — o registro está em $log"; return "$MEOW_ERRO"; }
 
   local b
   for b in "${BINS[@]}"; do

@@ -719,6 +719,9 @@ inchar
 saida="$(sob_a_trava "$RAIZ/scripts/files_menu.sh" build)"
 case "$saida" in *"cortou Applets"*) ok "o build do menu do Arquivos limpa no fim" ;; *) falha "o menu não limpou: $saida" ;; esac
 [ -x "$CASA/.local/bin/cosmic-files" ] && ok "e o menu segue instalado depois da limpeza" || falha "a limpeza atrapalhou o aplicar: $saida"
+compgen -G "$C/cosmic-files/compilar-*.log" >/dev/null && [ -z "$(find "$C/cosmic-files" -maxdepth 1 -name 'meow-cf.*' -print -quit)" ] \
+  && ok "o menu compila no cache do disco, guarda o registro e não deixa a árvore" \
+  || falha "o build do menu não ficou no cache do disco: $(ls -la "$C/cosmic-files" 2>&1)"
 
 echo "== 7c. oraculo-builds guarda o em uso e um anterior"
 mundo
