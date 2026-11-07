@@ -347,17 +347,16 @@ COSMIC_DIR = os.environ.get("MEOW_COSMIC_DIR") or os.path.expanduser("~/.config/
 COSMIC_SISTEMA = os.environ.get("MEOW_COSMIC_SISTEMA") or "/usr/share/cosmic"
 
 
-def _cosmic_pasta(ident):
+def _cosmic_pasta(ident, padrao=1):
     try:
         nomes = os.listdir(os.path.join(COSMIC_SISTEMA, ident))
     except OSError:
         nomes = []
     versoes = [int(n[1:]) for n in nomes if re.fullmatch(r"v\d+", n)]
-    return "%s/v%d/" % (ident, max(versoes, default=1))
+    return "%s/v%d/" % (ident, max(versoes, default=padrao))
 
 
 PASTA_COMP = _cosmic_pasta("com.system76.CosmicComp")
-CONF_COMP = os.path.join(COSMIC_DIR, PASTA_COMP)
 
 _BARRAS = (("PAINEL", _cosmic_pasta("com.system76.CosmicPanel.Panel")),
            ("DOCK", _cosmic_pasta("com.system76.CosmicPanel.Dock")))
@@ -2843,12 +2842,16 @@ def _variante_sem_tema(flavor, accent):
     return _SEM_TEMA_CACHE[chave]
 
 
+def _builder_do_tema(arvore):
+    return _cosmic_pasta("com.system76.CosmicTheme.%s.Builder" % arvore, 2)
+
+
 def _flavor_na_tela():
-    escuro = _cosmic_ler("com.system76.CosmicTheme.Mode/v1/is_dark")
+    escuro = _cosmic_ler(_cosmic_pasta("com.system76.CosmicTheme.Mode") + "is_dark")
     if escuro not in ("true", "false"):
         return None
     arvore = "Dark" if escuro == "true" else "Light"
-    bruto = _cosmic_ler("com.system76.CosmicTheme.%s.Builder/v2/palette" % arvore) or ""
+    bruto = _cosmic_ler(_builder_do_tema(arvore) + "palette") or ""
     m = re.search(r'\bname:\s*"([^"]*)"', bruto)
     if not m:
         return None
@@ -2859,11 +2862,11 @@ def _flavor_na_tela():
 
 
 def _acento_na_tela(flavor):
-    escuro = _cosmic_ler("com.system76.CosmicTheme.Mode/v1/is_dark")
+    escuro = _cosmic_ler(_cosmic_pasta("com.system76.CosmicTheme.Mode") + "is_dark")
     if escuro not in ("true", "false"):
         return None
     arvore = "Dark" if escuro == "true" else "Light"
-    bruto = _cosmic_ler("com.system76.CosmicTheme.%s.Builder/v2/accent" % arvore) or ""
+    bruto = _cosmic_ler(_builder_do_tema(arvore) + "accent") or ""
     m = re.match(r'^Some\(\s*"(#[0-9A-Fa-f]{6})', bruto)
     if not m:
         return None

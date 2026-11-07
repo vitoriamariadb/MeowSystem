@@ -72,6 +72,7 @@ PORTATIL=(
   cadeia-de-atualizacao.sh
   volta-do-cosmic.sh
   contrato-cosmic.sh
+  esquema-do-tema.sh
   oraculo-tema.sh
   applet-pino.sh
   extensoes.sh
