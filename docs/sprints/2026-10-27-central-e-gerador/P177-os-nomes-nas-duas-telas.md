@@ -28,6 +28,7 @@ Patch passa no dry-run `-F0` sobre o fonte real de ec674cd com a série inteira;
 - `Workspace.nome_copiado` separa a cópia do dono. No fim do ramo Global do `refresh`, `copiar_nomes` dá a cada área sem nome próprio o nome do dono de mesmo índice, em `Workspace.name` e no protocolo. Sem dono no índice, a cópia volta ao número.
 - `to_pinned` recusa a cópia, mesmo fixada à mão; o `persist` não mudou e herda isso. Quem fixa a cópia fica com o alfinete só na sessão.
 - `remove_output`, só em Global: a cópia que sai funde as janelas na irmã de mesmo índice e some do protocolo (`fundir_area`, com janela normal, em tela cheia e minimizada). Se quem sai é o dono, ele toma o lugar da cópia e recebe as janelas dela. Área sem cópia segue como na fábrica.
+- A pilha de foco da área que some vai para baixo da pilha da tela que fica (`FocusStacks::por_baixo`). Sem isso, `focus_target_is_valid` não acha a janela no topo da pilha e o teclado salta de janela ao fechar a tampa.
 - Passar de Global a independentes solta as cópias (`update_config`).
 - Decisão 53 reescrita no mesmo commit, com o sim de 06/11: «Sim, nomes nas duas telas». `meow.conf.exemplo` deixou de dizer que a outra tela tem número.
 
@@ -42,8 +43,8 @@ Renomear: `Request::Rename` cai no `_ => {}` do handler em ec674cd, e nenhuma á
 - Fonte limpo de ec674cd com a série inteira: `dry-run` `-F0` rc=0 nos 7 patches, um a um, sem `FAILED` nem `fuzz`.
 - O patch sozinho sobre o fonte limpo: `checking file src/shell/mod.rs`, `checking file src/shell/workspace.rs`, sem `offset`: a numeração do `@@` é a do fonte limpo.
 - `nice -n 19 cargo check --frozen --offline`: `Finished dev profile`, rc=0, 0 `warning`.
-- `bash tests/nomes-nas-duas-telas.sh`: `test result: ok. 9 passed; 0 failed`, `nomes-nas-duas-telas: tudo certo`. O doctor acusa `FALTA AURORA-AREAS-NOMES-1` no binário sem marcador, aceita o binário com ele e acha o patch declarado na série.
-- Com `to_pinned` sem a recusa, o mesmo teste dá `FALHA a cópia não entra no arquivo`.
+- `bash tests/nomes-nas-duas-telas.sh`: `test result: ok. 10 passed; 0 failed`, `nomes-nas-duas-telas: tudo certo`. O doctor acusa `FALTA AURORA-AREAS-NOMES-1` no binário sem marcador, aceita o binário com ele e acha o patch declarado na série.
+- Mutação em cópia do repositório, uma por vez, todas mortas pelo teste: `to_pinned` sem a recusa dá `FALHA to_pinned grava a cópia`; sem `copiar_nomes` no `refresh` dá `FALHA a cópia saiu do fim do ramo Global`; sem o `swap` da pilha dá `FALHA fechar a tampa tira o foco de quem está na tela de fora`; sem `soltar_nomes_copiados` dá `FALHA as cópias ficam presas ao sair de Global`; cópia dona de nome, cópia que não funde, dono que não substitui, independentes que funde e pilha invertida dão `FALHA as funções não passaram`.
 - `tudo certo` ou `tudo verde`, rc=0: `decisoes`, `compositor-shim`, `garantir-builds`, `janela-sem-app-id`, `areas-em-cada-tela`, `notas-de-funcao`, `patch-que-sobe`. Também rc=0: `estilo`, `orfaos`, `seco`, `frases-velhas`, `nada-manda-digitar`, `achados-tecnicos`.
 
 ### Custo aceito
@@ -51,6 +52,14 @@ Renomear: `Request::Rename` cai no `_ => {}` do handler em ec674cd, e nenhuma á
 - As janelas fundidas não voltam sozinhas ao monitor quando ele reconecta: quem guardava a volta era a área a mais, que esta sprint proíbe. Isso muda a prova 2 da P161 para as janelas em área copiada.
 - Fechar a tampa com a lista no monitor interno leva o dono à tela de fora e funde as janelas nele. Abrir a tampa devolve o dono ao interno, com todas as janelas juntas.
 - Janela solta que entra em área com ladrilho vira ladrilho, como no `move_element`.
+- Monitor que some ao dormir conta como tirar o monitor: as janelas dele ficam na irmã até serem levadas de volta.
+- Quem digita na tela que sai recebe o foco na janela do topo da tela que fica.
+
+### Achados, por leitura do fonte
+
+- Fábrica: ao religar o HDMI com a área ativa fora da primeira, `add_output` marca `Active` no índice 0 e o `refresh` iguala `set.active` sem refazer o estado. A barra da tela religada marca a primeira área até a próxima troca.
+- Fábrica: em `remove_output` no modo Global, `remove_group_output` usa o grupo da saída que ficou, e o grupo da saída removida fica vazio no protocolo.
+- `Request::Rename` não tem capacidade anunciada em `create_workspace` nem em `create_workspace_from_pinned`, nem caso no `commit_requests`: rename pelo protocolo não existe hoje. Se vier a existir, renomear na cópia será sobrescrito pelo nome do dono.
 
 ### O que falta da mão de quem usa
 

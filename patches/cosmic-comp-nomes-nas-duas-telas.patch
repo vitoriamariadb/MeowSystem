@@ -18,9 +18,12 @@
 # repetido, com janela ou sem janela. As janelas fundidas não voltam sozinhas ao
 # monitor: quem guardava a volta era a área a mais.
 #
+# A pilha de foco da área que some vai para baixo da pilha da tela que fica, e
+# quem digita na tela que fica não perde o foco quando a outra sai.
+#
 --- a/src/shell/mod.rs
 +++ b/src/shell/mod.rs
-@@ -507,6 +507,109 @@
+@@ -507,6 +507,111 @@
  }
  */
  
@@ -63,6 +66,7 @@
 +) {
 +    let de = area.handle;
 +    let para = destino.handle;
++    let foco = std::mem::take(&mut area.focus_stack);
 +
 +    for mapped in area.mapped().cloned().collect::<Vec<_>>() {
 +        if area.unmap_element(&mapped).is_none() {
@@ -124,13 +128,14 @@
 +        destino.minimized_windows.push(minimizada);
 +    }
 +
++    destino.focus_stack.por_baixo(foco);
 +    workspace_state.remove_workspace(de);
 +}
 +
  impl WorkspaceSet {
      fn new(
          state: &mut WorkspaceUpdateGuard<'_, State>,
-@@ -730,6 +833,14 @@
+@@ -730,6 +835,14 @@
          }
      }
  
@@ -145,7 +150,7 @@
      fn post_remove_workspace(
          &mut self,
          workspace_state: &mut WorkspaceUpdateGuard<'_, State>,
-@@ -986,7 +1097,26 @@
+@@ -986,7 +1099,30 @@
                  let new_set = self.sets.get_mut(&new_output).unwrap();
                  let workspace_group = new_set.group;
                  for (i, mut workspace) in set.workspaces.into_iter().enumerate() {
@@ -163,7 +168,11 @@
 +                        workspace_state.move_workspace_to_group(workspace_group, workspace.handle);
 +                        workspace.set_output(&new_output, false);
 +                        workspace.refresh();
-+                        let copia = std::mem::replace(&mut new_set.workspaces[i], workspace);
++                        let mut copia = std::mem::replace(&mut new_set.workspaces[i], workspace);
++                        std::mem::swap(
++                            &mut copia.focus_stack,
++                            &mut new_set.workspaces[i].focus_stack,
++                        );
 +                        fundir_area(copia, &mut new_set.workspaces[i], workspace_state);
 +                        if i == new_set.active {
 +                            workspace_state
@@ -173,7 +182,7 @@
                          workspace_state.remove_workspace(workspace.handle);
                      } else {
                          // update workspace protocol state
-@@ -1211,7 +1341,9 @@
+@@ -1211,7 +1347,9 @@
  
          match (old_mode, self.mode) {
              (WorkspaceMode::Global, WorkspaceMode::OutputBound) => {
@@ -184,7 +193,7 @@
              }
              (WorkspaceMode::OutputBound, WorkspaceMode::Global) => {
                  // lets construct an iterator of all the pairs of workspaces we have to "merge"
-@@ -1338,6 +1470,8 @@
+@@ -1338,6 +1476,8 @@
                          set.update_workspace_idxs(workspace_state);
                      }
                  }
@@ -193,7 +202,7 @@
              }
              WorkspaceMode::OutputBound => {
                  for set in self.sets.values_mut() {
-@@ -1351,6 +1485,30 @@
+@@ -1351,6 +1491,30 @@
          }
      }
  
@@ -224,7 +233,6 @@
      pub fn get(&self, num: usize, output: &Output) -> Option<&Workspace> {
          self.sets
              .get(output)
-diff --color -rU3 p0/src/shell/workspace.rs p1/src/shell/workspace.rs
 --- a/src/shell/workspace.rs
 +++ b/src/shell/workspace.rs
 @@ -111,6 +111,7 @@
@@ -260,3 +268,18 @@ diff --color -rU3 p0/src/shell/workspace.rs p1/src/shell/workspace.rs
              debug_assert!(self.id.is_some());
              Some(PinnedWorkspace {
                  output: cosmic_comp_config::workspace::OutputMatch {
+@@ -1986,6 +1989,14 @@
+     pub fn get_mut<'a>(&'a mut self, seat: &Seat<State>) -> FocusStackMut<'a> {
+         FocusStackMut(self.0.entry(seat.clone()).or_default())
+     }
++
++    pub fn por_baixo(&mut self, pilhas: FocusStacks) {
++        for (seat, mut pilha) in pilhas.0 {
++            let de_cima = self.0.entry(seat).or_default();
++            pilha.extend(de_cima.drain(..));
++            *de_cima = pilha;
++        }
++    }
+ }
+ 
+ pub struct OutputNotMapped;

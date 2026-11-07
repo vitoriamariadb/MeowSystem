@@ -39,6 +39,12 @@ grep -q '^+    for mut minimizada in area.minimized_windows.drain(..) {$' "$PATC
   && grep -q '^+        .get_fullscreen_surfaces()$' "$PATCH" \
   && ok "janela minimizada e em tela cheia também mudam de área" || falha "a fusão perde janela minimizada ou em tela cheia"
 
+grep -q '^+    let foco = std::mem::take(&mut area.focus_stack);$' "$PATCH" \
+  && grep -q '^+    destino.focus_stack.por_baixo(foco);$' "$PATCH" \
+  && ok "a pilha de foco da área fundida vai para a irmã" || falha "a fusão perde a pilha de foco"
+grep -A2 '^+                        std::mem::swap($' "$PATCH" | grep -q '^+                            &mut copia.focus_stack,$' \
+  && ok "a pilha da tela que fica continua em cima" || falha "fechar a tampa tira o foco de quem está na tela de fora"
+
 echo "== o doctor confere o marcador"
 mkdir -p "$T/bin" "$T/casa/.local/state/meowsystem" "$T/proc"
 for c in sudo pkexec su apt apt-get cargo just make systemctl pkill; do
@@ -65,7 +71,19 @@ if ! rustc --version >/dev/null 2>&1; then
   pula "sem rustc nesta máquina: as funções não foram compiladas"
 else
   { sed -n '/^+fn nome_da_area/,/^+}/p;/^+#\[derive(Debug, PartialEq)\]/,/^+}/p;/^+fn area_na_saida/,/^+}/p' "$PATCH" | sed 's/^+//'
+    echo "struct FocusStacks(std::collections::HashMap<u8, Vec<&'static str>>);"
+    echo 'impl FocusStacks {'
+    sed -n '/^+    pub fn por_baixo/,/^+    }$/p' "$PATCH" | sed 's/^+//'
+    echo '}'
     cat <<'RS'
+#[test]
+fn a_pilha_da_tela_que_fica_continua_em_cima() {
+    use std::collections::HashMap;
+    let mut fica = FocusStacks(HashMap::from([(1, vec!["a"])]));
+    fica.por_baixo(FocusStacks(HashMap::from([(1, vec!["b", "c"]), (2, vec!["d"])])));
+    assert_eq!(fica.0[&1], ["b", "c", "a"]);
+    assert_eq!(fica.0[&2], ["d"]);
+}
 #[test]
 fn a_outra_tela_recebe_o_nome_do_dono() {
     let irmas = [(Some("Pop"), false), (None, false)];
