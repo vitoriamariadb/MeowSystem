@@ -88,6 +88,7 @@ def rodar(acao, arg):
     return t, None
 
 
+APAGA_O_PROPRIO_RESTAURAR = {"desinstalar"}
 falhas, vistas = [], 0
 for ident, acao in sv.ACOES.items():
     if ident == "restaurar" or (so and ident not in so):
@@ -128,6 +129,12 @@ for ident, acao in sv.ACOES.items():
         if fora_do_motor:
             falhas.append(f"{ident}: não mudou nada e deixou «Restaurar» ({fora_do_motor[:2]})")
         print(f"  ok {ident}: nada mudou (rc {t.rc})")
+        continue
+    if ident in APAGA_O_PROPRIO_RESTAURAR:
+        if tem:
+            falhas.append(f"{ident}: apaga os backups por decisão e deixou «Restaurar»")
+        else:
+            print(f"  ok {ident}: apagou os backups e o próprio «Restaurar»")
         continue
     if not tem:
         mudou = sorted(k for k in set(antes) | set(depois) if antes.get(k) != depois.get(k))
