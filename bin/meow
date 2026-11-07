@@ -160,7 +160,7 @@ chk_gerar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   [ "$rc" = "0" ] && { echo "os temas e a v1 das capturas conferem com $(meow_paleta_nome)"; return 0; }
-  echo "$msg — 'meow doctor --consertar' regenera"
+  echo "$msg — o conserto regenera"
   return "$MEOW_DIVERGENTE"
 }
 
@@ -170,7 +170,7 @@ chk_tema() {
     local deriva
     deriva="$(python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$alvo" 2>&1)"
     if [ "$?" = "1" ]; then
-      echo "${deriva#  } — 'meow doctor --consertar' deriva e aplica"
+      echo "${deriva#  } — o conserto deriva e aplica"
       return "$MEOW_DIVERGENTE"
     fi
     echo "não há captura para '$alvo' (${deriva#*não se deriva — })"

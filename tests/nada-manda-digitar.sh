@@ -17,7 +17,7 @@ fi
 
 printf '\n--- 1b. as outras formas de receita (P82, item 1) ---\n'
 MSG='^[^#]*(meow_(info|pula|aviso|muda|ok|erro)|echo|printf) '
-FORMAS="(instale com|o que olhar primeiro|instale à mão|repete sozinho até ninguém mais escrever:|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|(conserto|conserta|consertar):? +meow doctor|'meow doctor --consertar' os escreve|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com '|acrescente .*à mão|tire a linha à mão|faça uma vez, à mão|tire pela interface|a alternativa, pelo cargo|veja: ls |«Devolver»)"
+FORMAS="(instale com|o que olhar primeiro|instale à mão|repete sozinho até ninguém mais escrever:|veja o motivo|adicione com|sudo -l|systemctl --user start|rode o install\\.sh|sudo apt install|rustup toolchain install|meow tema capturar|(capture antes|diagnóstico|e rode):? +.?meow [a-z]|rode: meow doctor --consertar|(conserto|conserta|consertar):? +meow doctor|'meow doctor --consertar'|rode uma vez no terminal|com sudo disponível|para ter o nosso de volta|ou agora, com '|acrescente .*à mão|tire a linha à mão|faça uma vez, à mão|tire pela interface|a alternativa, pelo cargo|veja: ls |«Devolver»)"
 achados="$(cd "$RAIZ" && grep -nE "$MSG.*$FORMAS" scripts/*.sh lib/*.sh bin/meow install.sh \
              scripts/temas-de-apps/*/manifesto.sh 2>/dev/null | grep -vE '"uso: meow ')"
 if [ -z "$achados" ]; then
