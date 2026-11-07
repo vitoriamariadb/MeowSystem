@@ -29,9 +29,12 @@
 # fechada ou levada a outra tela sai da lembrança: `conferir_fundidas` olha a tela
 # em que ela está, e o dono que muda de tela não conta porque a área é a mesma.
 #
+# A janela volta como estava: solta na posição dela, maximizada ou encaixada no
+# canto. Passar a independentes apaga as lembranças mesmo com uma tela só.
+#
 --- a/src/shell/mod.rs
 +++ b/src/shell/mod.rs
-@@ -507,6 +507,243 @@
+@@ -507,6 +507,278 @@
  }
  */
  
@@ -73,6 +76,7 @@
 +    saida: cosmic_comp_config::workspace::OutputMatch,
 +    indice: usize,
 +    flutuante: Option<FloatingRestoreData>,
++    maximizada: bool,
 +    tela: Output,
 +    area: WorkspaceHandle,
 +}
@@ -81,6 +85,7 @@
 +    Mapeada {
 +        mapped: CosmicMapped,
 +        flutuante: Option<FloatingRestoreData>,
++        maximizada: bool,
 +    },
 +    Cheia {
 +        janela: CosmicSurface,
@@ -125,11 +130,19 @@
 +        JanelaTirada::Minimizada(area.minimized_windows.remove(posicao))
 +    } else {
 +        let mapped = area.element_for_surface(janela)?.clone();
-+        let flutuante = match area.unmap_element(&mapped)? {
-+            WorkspaceRestoreData::Floating(dados) => Some(dados),
-+            _ => None,
++        let (flutuante, maximizada) = match area.unmap_element(&mapped)? {
++            WorkspaceRestoreData::Floating(dados) => {
++                let maximizada = dados.was_maximized;
++                (Some(dados), maximizada)
++            }
++            WorkspaceRestoreData::Tiling(dados) => (None, dados.was_maximized),
++            _ => (None, false),
 +        };
-+        JanelaTirada::Mapeada { mapped, flutuante }
++        JanelaTirada::Mapeada {
++            mapped,
++            flutuante,
++            maximizada,
++        }
 +    };
 +    for janela in tirada.janelas() {
 +        toplevel_leave_workspace(&janela, &area.handle);
@@ -138,34 +151,54 @@
 +    Some(tirada)
 +}
 +
-+fn por_janela(
-+    tirada: JanelaTirada,
-+    destino: &mut Workspace,
-+    flutuante: Option<&FloatingRestoreData>,
-+) {
++fn por_janela(tirada: JanelaTirada, destino: &mut Workspace, volta: Option<&JanelaFundida>) {
 +    for janela in tirada.janelas() {
 +        toplevel_enter_workspace(&janela, &destino.handle);
 +        toplevel_enter_output(&janela, &destino.output);
 +    }
 +    match tirada {
 +        JanelaTirada::Mapeada { mapped, .. } => {
++            let flutuante = volta.and_then(|f| f.flutuante.as_ref());
 +            if let Some(dados) = flutuante {
 +                let posicao = dados.position_relative(destino.output.geometry().size.as_logical());
-+                destino.floating_layer.map(mapped, posicao);
++                destino.floating_layer.map(mapped.clone(), posicao);
 +            } else if destino.tiling_enabled {
-+                for maximizada in destino
-+                    .mapped()
-+                    .filter(|m| m.maximized_state.lock().unwrap().is_some())
-+                    .cloned()
-+                    .collect::<Vec<_>>()
-+                {
-+                    destino.unmaximize_request(&maximizada);
++                if volta.is_none() {
++                    for maximizada in destino
++                        .mapped()
++                        .filter(|m| m.maximized_state.lock().unwrap().is_some())
++                        .cloned()
++                        .collect::<Vec<_>>()
++                    {
++                        destino.unmaximize_request(&maximizada);
++                    }
 +                }
 +                destino
 +                    .tiling_layer
-+                    .map(mapped, None::<std::iter::Empty<_>>, None);
++                    .map(mapped.clone(), None::<std::iter::Empty<_>>, None);
 +            } else {
-+                destino.floating_layer.map(mapped, None);
++                destino.floating_layer.map(mapped.clone(), None);
++            }
++
++            let encaixe = flutuante.and_then(|dados| dados.was_snapped);
++            if volta.is_some_and(|f| f.maximizada)
++                && let Some(original_geometry) = destino.element_geometry(&mapped)
++            {
++                let original_layer = if destino.is_tiled(&mapped.active_window()) {
++                    ManagedLayer::Tiling
++                } else {
++                    ManagedLayer::Floating
++                };
++                *mapped.maximized_state.lock().unwrap() = Some(MaximizedState {
++                    original_geometry,
++                    original_layer,
++                    original_snapped: encaixe,
++                });
++                destino
++                    .floating_layer
++                    .map_maximized(mapped, original_geometry, false);
++            } else if let Some(cantos) = encaixe {
++                destino.floating_layer.snap_to_corner(&mapped, &cantos);
 +            }
 +        }
 +        JanelaTirada::Cheia {
@@ -201,9 +234,13 @@
 +    indice: usize,
 +    destino: &Workspace,
 +) {
-+    let flutuante = match tirada {
-+        JanelaTirada::Mapeada { flutuante, .. } => flutuante.clone(),
-+        _ => None,
++    let (flutuante, maximizada) = match tirada {
++        JanelaTirada::Mapeada {
++            flutuante,
++            maximizada,
++            ..
++        } => (flutuante.clone(), *maximizada),
++        _ => (None, false),
 +    };
 +    for janela in tirada.janelas() {
 +        if let Some(lembrada) = fundidas.iter_mut().find(|f| f.janela == janela) {
@@ -215,6 +252,7 @@
 +                saida: saida.clone(),
 +                indice,
 +                flutuante: flutuante.clone(),
++                maximizada,
 +                tela: destino.output.clone(),
 +                area: destino.handle,
 +            });
@@ -275,7 +313,7 @@
  impl WorkspaceSet {
      fn new(
          state: &mut WorkspaceUpdateGuard<'_, State>,
-@@ -730,6 +967,14 @@
+@@ -730,6 +1002,14 @@
          }
      }
  
@@ -290,7 +328,7 @@
      fn post_remove_workspace(
          &mut self,
          workspace_state: &mut WorkspaceUpdateGuard<'_, State>,
-@@ -863,6 +1108,7 @@
+@@ -863,6 +1143,7 @@
      appearance: AppearanceConfig,
      // Persisted workspace to add on first `output_add`
      persisted_workspaces: Vec<PinnedWorkspace>,
@@ -298,7 +336,7 @@
  }
  
  impl Workspaces {
-@@ -877,6 +1123,7 @@
+@@ -877,6 +1158,7 @@
              theme,
              appearance: config.cosmic_conf.appearance_settings,
              persisted_workspaces: config.cosmic_conf.pinned_workspaces.clone(),
@@ -306,7 +344,7 @@
          }
      }
  
-@@ -948,6 +1195,7 @@
+@@ -948,6 +1230,7 @@
              }
          }
          self.sets.insert(output.clone(), set);
@@ -314,7 +352,7 @@
      }
  
      pub fn remove_output<'a>(
-@@ -986,7 +1234,44 @@
+@@ -986,7 +1269,44 @@
                  let new_set = self.sets.get_mut(&new_output).unwrap();
                  let workspace_group = new_set.group;
                  for (i, mut workspace) in set.workspaces.into_iter().enumerate() {
@@ -360,19 +398,21 @@
                          workspace_state.remove_workspace(workspace.handle);
                      } else {
                          // update workspace protocol state
-@@ -1211,7 +1496,10 @@
- 
-         match (old_mode, self.mode) {
-             (WorkspaceMode::Global, WorkspaceMode::OutputBound) => {
--                // We basically just unlink the existing spaces, so nothing needs to be updated
-+                for set in self.sets.values_mut() {
-+                    set.soltar_nomes_copiados(workspace_state);
-+                }
-+                self.fundidas.clear();
+@@ -1205,6 +1525,13 @@
              }
-             (WorkspaceMode::OutputBound, WorkspaceMode::Global) => {
-                 // lets construct an iterator of all the pairs of workspaces we have to "merge"
-@@ -1276,6 +1564,7 @@
+         }
+ 
++        if old_mode == WorkspaceMode::Global && self.mode == WorkspaceMode::OutputBound {
++            for set in self.sets.values_mut() {
++                set.soltar_nomes_copiados(workspace_state);
++            }
++            self.fundidas.clear();
++        }
++
+         if self.sets.len() <= 1 {
+             return;
+         }
+@@ -1276,6 +1603,7 @@
          workspace_state: &mut WorkspaceUpdateGuard<'_, State>,
          xdg_activation_state: &XdgActivationState,
      ) {
@@ -380,7 +420,7 @@
          match self.mode {
              WorkspaceMode::Global => {
                  let Some(max) = self.sets.values().map(|set| set.workspaces.len()).max() else {
-@@ -1338,6 +1627,8 @@
+@@ -1338,6 +1666,8 @@
                          set.update_workspace_idxs(workspace_state);
                      }
                  }
@@ -389,7 +429,7 @@
              }
              WorkspaceMode::OutputBound => {
                  for set in self.sets.values_mut() {
-@@ -1351,6 +1642,110 @@
+@@ -1351,6 +1681,110 @@
          }
      }
  
@@ -465,7 +505,7 @@
 +
 +            let areas = &mut self.sets[alvo].workspaces;
 +            let destino = indice_da_volta(fundida.indice, areas.len());
-+            por_janela(tirada, &mut areas[destino], fundida.flutuante.as_ref());
++            por_janela(tirada, &mut areas[destino], Some(fundida));
 +            areas[destino].focus_stack.por_baixo(foco);
 +        }
 +

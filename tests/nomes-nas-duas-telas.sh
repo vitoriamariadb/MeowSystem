@@ -29,7 +29,7 @@ grep -E '^[+-]' "$PATCH" | grep -q 'pinned = \|WState::Pinned' \
 echo "== os caminhos do compositor"
 grep -A3 '^+                self.copiar_nomes(workspace_state);$' "$PATCH" | grep -q 'WorkspaceMode::OutputBound' \
   && ok "o refresh copia no fim do ramo Global" || falha "a cópia saiu do fim do ramo Global"
-grep -q '^+                    set.soltar_nomes_copiados(workspace_state);$' "$PATCH" \
+grep -q '^+                set.soltar_nomes_copiados(workspace_state);$' "$PATCH" \
   && ok "passar a independentes solta as cópias" || falha "as cópias ficam presas ao sair de Global"
 grep -q '^+    workspace_state.remove_workspace(area.handle);$' "$PATCH" \
   && ok "a área fundida sai do protocolo" || falha "a área fundida fica no protocolo"
@@ -58,8 +58,21 @@ grep -q '^+        self.conferir_fundidas();$' "$PATCH" \
   && grep -A2 '^+        fundidas.retain_mut(|fundida| {$' "$PATCH" | grep -q '^+            if !fundida.janela.alive() {$' \
   && ok "fechar a janela apaga a lembrança" || falha "a janela fechada segue lembrada"
 sed -n '/^+    fn devolver_janelas/,/^+    }$/p' "$PATCH" > "$T/devolver"
-grep -q 'fundida.flutuante.as_ref()' "$T/devolver" \
+sed -n '/^+fn por_janela/,/^+}$/p' "$PATCH" > "$T/por"
+grep -q 'por_janela(tirada, &mut areas\[destino\], Some(fundida));' "$T/devolver" \
+  && grep -q 'volta.and_then(|f| f.flutuante.as_ref())' "$T/por" \
   && ok "a janela solta volta solta, no lugar dela" || falha "a janela solta volta como ladrilho"
+grep -q 'WorkspaceRestoreData::Tiling(dados) => (None, dados.was_maximized),' "$PATCH" \
+  && grep -q 'let maximizada = dados.was_maximized;' "$PATCH" \
+  && grep -q '} => (flutuante.clone(), \*maximizada),' "$PATCH" \
+  && grep -q '^+                maximizada,$' "$PATCH" \
+  && grep -q 'volta.is_some_and(|f| f.maximizada)' "$T/por" \
+  && grep -q 'map_maximized(mapped, original_geometry, false)' "$T/por" \
+  && ok "a janela maximizada volta maximizada, de ladrilho ou solta" || falha "a janela maximizada volta sem maximizar"
+grep -q 'original_snapped: encaixe,' "$T/por" && grep -q 'snap_to_corner(&mapped, &cantos)' "$T/por" \
+  && ok "a janela encaixada no canto volta encaixada" || falha "a janela encaixada perde o canto"
+grep -A1 'if volta.is_none() {' "$T/por" | grep -q 'for maximizada in destino' \
+  && ok "a volta não tira o maximizado de quem já voltou" || falha "a janela que volta desfaz a maximizada da área"
 grep -q 'focus_stack.por_baixo(foco)' "$T/devolver" \
   && ! grep -qE 'set_active_output|set_focused_output|activate\(|add_workspace_state|append' "$T/devolver" \
   && ok "a volta não rouba o foco nem troca a área ativa" || falha "a volta mexe no foco ou na área ativa"
@@ -68,8 +81,11 @@ grep -q 'while set.workspaces.len() < max.unwrap_or(0) {' "$T/devolver" \
   && ok "a volta só completa até a lista das outras telas, sem área a mais" || falha "a volta cria área além da lista"
 grep -q 'self.fundidas.retain(|f| !devolvidas.contains(&f.janela));' "$T/devolver" \
   && ok "a janela devolvida sai da lembrança" || falha "a janela devolvida segue lembrada"
-grep -q '^+                self.fundidas.clear();$' "$PATCH" \
+grep -q '^+            self.fundidas.clear();$' "$PATCH" \
   && ok "passar a independentes apaga as lembranças" || falha "as lembranças ficam ao sair de Global"
+grep -A8 '^+        if old_mode == WorkspaceMode::Global && self.mode == WorkspaceMode::OutputBound {$' "$PATCH" \
+  | grep -q '^ *if self.sets.len() <= 1 {$' \
+  && ok "com uma tela só, passar a independentes também apaga" || falha "passar a independentes com o monitor fora guarda as lembranças"
 grep -E '^\+' "$PATCH" | grep -qE 'cosmic_config|set_pinned_workspaces|\.persist|std::fs' \
   && falha "a lembrança passou da memória" || ok "a lembrança vive só na sessão, em memória"
 
