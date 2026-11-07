@@ -22,13 +22,23 @@ IGNORAR = "*\n"
 ARVORES = ("Dark", "Light")
 
 
-def versao_do_builder(arvore: str) -> str:
-    pasta = Path(os.environ.get("MEOW_COSMIC_SISTEMA") or "/usr/share/cosmic") / f"com.system76.CosmicTheme.{arvore}.Builder"
+def _versoes(pasta: Path) -> list:
     try:
         nomes = os.listdir(pasta)
     except OSError:
         nomes = []
-    return "v%d" % max((int(n[1:]) for n in nomes if re.fullmatch(r"v\d+", n)), default=2)
+    return [int(n[1:]) for n in nomes if re.fullmatch(r"v\d+", n)]
+
+
+def versao_do_builder(arvore: str) -> str:
+    pasta = Path(os.environ.get("MEOW_COSMIC_SISTEMA") or "/usr/share/cosmic") / f"com.system76.CosmicTheme.{arvore}.Builder"
+    return "v%d" % max(_versoes(pasta), default=2)
+
+
+def receita_da_captura(base: Path, arvore: str) -> Path:
+    pasta = base / f"com.system76.CosmicTheme.{arvore}.Builder"
+    inteiras = [v for v in _versoes(pasta) if (pasta / f"v{v}" / "alpha_map").is_file()]
+    return pasta / ("v%d" % max(inteiras, default=2))
 
 
 _F = struct.Struct("<f")
@@ -387,7 +397,7 @@ def _acento_da_receita(receita: dict) -> str:
 
 def derivar_arvore(base: Path, arvore: str, acento_hex: str) -> dict:
     prod_d = base / f"com.system76.CosmicTheme.{arvore}" / "v2"
-    rec_d = base / f"com.system76.CosmicTheme.{arvore}.Builder" / versao_do_builder(arvore)
+    rec_d = receita_da_captura(base, arvore)
     produto = {p.name: p.read_text() for p in prod_d.iterdir() if p.is_file()}
     receita = {p.name: p.read_text() for p in rec_d.iterdir() if p.is_file()}
     faltam = [n for n in COMPONENTES + CONTAINERS + ("accent_text",) if n not in produto]

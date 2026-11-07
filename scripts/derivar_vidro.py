@@ -177,7 +177,7 @@ def _hex_alfa(a: float) -> str:
 
 def derivar_arvore(captura: Path, cosmic: Path, arvore: str) -> tuple[dict, str]:
     prod_d = captura / f"com.system76.CosmicTheme.{arvore}" / "v2"
-    rec_d = captura / f"com.system76.CosmicTheme.{arvore}.Builder" / ac.versao_do_builder(arvore)
+    rec_d = ac.receita_da_captura(captura, arvore)
     if not (prod_d.is_dir() and rec_d.is_dir()):
         return {}, ""
     receita = {p.name: p.read_text(encoding="utf-8") for p in rec_d.iterdir() if p.is_file()}

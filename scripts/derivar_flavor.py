@@ -555,7 +555,7 @@ def _ler_arvore(dir_: Path) -> dict:
 
 def derivar_lado(base: Path, arvore: str, de: dict, acento_de: str, para: dict, acento_para: str,
                  nome: str) -> dict:
-    rec_d = base / f"com.system76.CosmicTheme.{arvore}.Builder" / da.versao_do_builder(arvore)
+    rec_d = da.receita_da_captura(base, arvore)
     prod_d = base / f"com.system76.CosmicTheme.{arvore}" / "v2"
     receita, produto = _ler_arvore(rec_d), _ler_arvore(prod_d)
     faltam = [n for n in ("palette", "alpha_map", "frosted") if n not in receita]

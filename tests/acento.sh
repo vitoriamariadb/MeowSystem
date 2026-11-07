@@ -241,35 +241,50 @@ guarda "$T/outra-casa/.config/cosmic"; g2=$?
   && ok "a guarda deixa passar na máquina de onde a captura saiu e recusa nas outras" \
   || falha "a guarda não lê a origem nova (mesma máquina rc=$g1, outra rc=$g2)"
 
-BV="$T/builder-versao"; mkdir -p "$BV/sistema" "$BV/captura"
-cap_origem="$(ls -d "$RAIZ"/packs/dracula/temas/capturados/*/ | head -n1)"
-cp -a "$cap_origem/." "$BV/captura/"
-for arv in Dark Light; do
-  mkdir -p "$BV/sistema/com.system76.CosmicTheme.$arv.Builder/v1" "$BV/sistema/com.system76.CosmicTheme.$arv.Builder/v2"
-  mv "$BV/captura/com.system76.CosmicTheme.$arv.Builder/v2" "$BV/captura/com.system76.CosmicTheme.$arv.Builder/v3"
+BV="$T/builder-versao"; mkdir -p "$BV/cap-v3" "$BV/cap-parcial" "$BV/sem-nada" "$BV/sistema-v1/com.system76.CosmicTheme.Dark.Builder/v1"
+cap_v2="$(ls -d "$RAIZ"/packs/dracula/temas/capturados/*/ | head -n1)"
+cp -a "$cap_v2/." "$BV/cap-v3/"
+cp -a "$cap_v2/." "$BV/cap-parcial/"
+mv "$BV/cap-v3/com.system76.CosmicTheme.Dark.Builder/v2" "$BV/cap-v3/com.system76.CosmicTheme.Dark.Builder/v3"
+mkdir -p "$BV/cap-parcial/com.system76.CosmicTheme.Dark.Builder/v3" "$BV/sistema-v3/com.system76.CosmicTheme.Dark.Builder/v3" "$BV/sistema-v3/com.system76.CosmicTheme.Dark.Builder/v2"
+cp "$cap_v2/com.system76.CosmicTheme.Dark.Builder/v2/accent" "$BV/cap-parcial/com.system76.CosmicTheme.Dark.Builder/v3/"
+for v in v1 v2 v3; do
+  d="$BV/cosmic-$v/com.system76.CosmicTheme.Dark.Builder/$v"; mkdir -p "$d"
+  cp "$cap_v2/com.system76.CosmicTheme.Dark.Builder/v2/frosted" "$d/"
+  sed 's/very_high_2: 0.66615/very_high_2: 0.5/' "$cap_v2/com.system76.CosmicTheme.Dark.Builder/v2/alpha_map" > "$d/alpha_map"
 done
-chaves_do_acento() {
-  env -i PATH="$PATH" MEOW_COSMIC_SISTEMA="$1" python3 -I - "$RAIZ/scripts" "$BV/captura" <<'PY' 2>&1
+do_builder() {
+  env -i PATH="$PATH" MEOW_COSMIC_SISTEMA="$1" python3 -I - "$RAIZ/scripts" "$2" "$3" <<'PY' 2>&1
 import sys
 sys.path.insert(0, sys.argv[1])
 from pathlib import Path
 import derivar_acento as da
+import derivar_vidro as dv
+cap, cosmic = Path(sys.argv[2]), Path(sys.argv[3])
 print("versao=" + da.versao_do_builder("Dark"))
 try:
-    print("\n".join(sorted(k for k in da.derivar_arvore(Path(sys.argv[2]), "Dark", "#ff79c6") if ".Builder/" in k)))
-except ValueError as e:
+    print("\n".join(sorted(k for k in da.derivar_arvore(cap, "Dark", "#ff79c6") if ".Builder/" in k)))
+    print("vidro=%d" % len(dv.derivar_arvore(cap, cosmic, "Dark")[0]))
+except (OSError, ValueError) as e:
     print("erro=" + str(e))
 PY
 }
-mkdir -p "$BV/sistema-v3/com.system76.CosmicTheme.Dark.Builder/v3" "$BV/sistema-v3/com.system76.CosmicTheme.Dark.Builder/v2" "$BV/sem-nada"
-v3="$(chaves_do_acento "$BV/sistema-v3")"
-sem="$(chaves_do_acento "$BV/sem-nada")"
-[ "$(sed -n 1p <<< "$v3")" = "versao=v3" ] && grep -qx 'com.system76.CosmicTheme.Dark.Builder/v3/accent' <<< "$v3" \
-  && ! grep -q 'Builder/v2' <<< "$v3" \
-  && ok "com o sistema em v3, a receita do accent sai em Builder/v3, a pasta que o painel lê" \
-  || falha "o acento não segue a versão do Builder do sistema" "$v3"
-[ "$(sed -n 1p <<< "$sem")" = "versao=v2" ] \
-  && ok "sem a pasta do sistema, o Builder cai em v2, como o painel" || falha "o padrão do Builder não é v2" "$sem"
+confere_builder() {
+  local frase="$1" versao="$2" pasta="$3" saida="$4"
+  [ "$(sed -n 1p <<< "$saida")" = "versao=$versao" ] && grep -qx "com.system76.CosmicTheme.Dark.Builder/$pasta/accent" <<< "$saida" \
+    && [ "$(grep -c '\.Builder/' <<< "$saida")" = 1 ] && grep -qE '^vidro=[1-9]' <<< "$saida" \
+    && ok "$frase" || falha "$frase" "$saida"
+}
+confere_builder "captura em v2 com o sistema em v3: lê a receita da captura e grava em Builder/v3, a pasta que o painel lê" v3 v3 \
+  "$(do_builder "$BV/sistema-v3" "$cap_v2" "$BV/cosmic-v3")"
+confere_builder "captura tirada em v3 com o sistema em v3: lê e grava em v3" v3 v3 \
+  "$(do_builder "$BV/sistema-v3" "$BV/cap-v3" "$BV/cosmic-v3")"
+confere_builder "derivada que só tem o accent em v3: o vidro ainda acha a receita inteira" v3 v3 \
+  "$(do_builder "$BV/sistema-v3" "$BV/cap-parcial" "$BV/cosmic-v3")"
+confere_builder "sistema só em v1: a captura segue lida na receita inteira e o accent sai em v1" v1 v1 \
+  "$(do_builder "$BV/sistema-v1" "$cap_v2" "$BV/cosmic-v1")"
+confere_builder "sem a pasta do sistema, o Builder cai em v2, como o painel" v2 v2 \
+  "$(do_builder "$BV/sem-nada" "$cap_v2" "$BV/cosmic-v2")"
 achados="$(cd "$RAIZ" && grep -nE 'Builder("? / "|/)v2' scripts/derivar_acento.py scripts/derivar_flavor.py scripts/derivar_vidro.py scripts/vidro.sh)"
 [ -z "$achados" ] && ok "nenhum escritor crava Builder/v2" || falha "escritor que crava Builder/v2" "$achados"
 
