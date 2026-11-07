@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import math
 import os
+import re
 import shutil
 import struct
 import sys
@@ -19,6 +20,15 @@ MARCA = "derivada de "
 IGNORAR = "*\n"
 
 ARVORES = ("Dark", "Light")
+
+
+def versao_do_builder(arvore: str) -> str:
+    pasta = Path(os.environ.get("MEOW_COSMIC_SISTEMA") or "/usr/share/cosmic") / f"com.system76.CosmicTheme.{arvore}.Builder"
+    try:
+        nomes = os.listdir(pasta)
+    except OSError:
+        nomes = []
+    return "v%d" % max((int(n[1:]) for n in nomes if re.fullmatch(r"v\d+", n)), default=2)
 
 
 _F = struct.Struct("<f")
@@ -377,7 +387,7 @@ def _acento_da_receita(receita: dict) -> str:
 
 def derivar_arvore(base: Path, arvore: str, acento_hex: str) -> dict:
     prod_d = base / f"com.system76.CosmicTheme.{arvore}" / "v2"
-    rec_d = base / f"com.system76.CosmicTheme.{arvore}.Builder" / "v2"
+    rec_d = base / f"com.system76.CosmicTheme.{arvore}.Builder" / versao_do_builder(arvore)
     produto = {p.name: p.read_text() for p in prod_d.iterdir() if p.is_file()}
     receita = {p.name: p.read_text() for p in rec_d.iterdir() if p.is_file()}
     faltam = [n for n in COMPONENTES + CONTAINERS + ("accent_text",) if n not in produto]
@@ -413,7 +423,7 @@ def derivar_arvore(base: Path, arvore: str, acento_hex: str) -> dict:
             saida[f"com.system76.CosmicTheme.{arvore}/v2/{arq}"] = txt
     rec = _trocar_no_lugar(receita["accent"], {".": acento_hex.upper()[:7] + "FF"})
     if rec != receita["accent"]:
-        saida[f"com.system76.CosmicTheme.{arvore}.Builder/v2/accent"] = rec
+        saida[f"com.system76.CosmicTheme.{arvore}.Builder/{versao_do_builder(arvore)}/accent"] = rec
 
     v1_d = base / f"com.system76.CosmicTheme.{arvore}" / "v1"
     for chave in v1.CONJUNTO:

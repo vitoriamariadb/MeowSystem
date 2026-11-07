@@ -194,7 +194,7 @@ if [ "$escritos" -eq 0 ]; then
 fi
 
 conferir_receita() {
-  local b="$BASE/com.system76.CosmicTheme.Dark.Builder/v2"
+  local b="$BASE/com.system76.CosmicTheme.Dark.Builder/$(meow_cosmic_v com.system76.CosmicTheme.Dark.Builder 2)"
   local d="$BASE/com.system76.CosmicTheme.Dark/v2"
   [ -f "$b/frosted" ] && [ -f "$b/alpha_map" ] && [ -f "$d/transparent_background" ] || return 0
 
