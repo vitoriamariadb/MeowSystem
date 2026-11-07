@@ -49,10 +49,10 @@ Renomear: `Request::Rename` cai no `_ => {}` do handler em ec674cd, e nenhuma á
 
 ### Custo aceito
 
-- As janelas fundidas não voltam sozinhas ao monitor quando ele reconecta: quem guardava a volta era a área a mais, que esta sprint proíbe. Isso muda a prova 2 da P161 para as janelas em área copiada.
-- Fechar a tampa com a lista no monitor interno leva o dono à tela de fora e funde as janelas nele. Abrir a tampa devolve o dono ao interno, com todas as janelas juntas.
-- Janela solta que entra em área com ladrilho vira ladrilho, como no `move_element`.
-- Monitor que some ao dormir conta como tirar o monitor: as janelas dele ficam na irmã até serem levadas de volta.
+- As janelas fundidas voltam ao monitor quando ele reconecta: é a P179, com o sim de 07/11 («Devolver ao religar»).
+- Fechar a tampa com a lista no monitor interno leva o dono à tela de fora e funde as janelas nele. Abrir a tampa devolve o dono ao interno, e a P179 devolve à tela de fora as janelas que eram dela.
+- Janela solta que entra em área com ladrilho vira ladrilho, como no `move_element`, e volta solta ao religar.
+- Monitor que some ao dormir conta como tirar o monitor: as janelas dele ficam na irmã até ele voltar.
 - Quem digita na tela que sai recebe o foco na janela do topo da tela que fica.
 
 ### Achados, por leitura do fonte
@@ -67,6 +67,6 @@ Nada disso rodou no `cosmic-comp` de verdade. Depois do install e do login, com 
 
 1. As duas telas mostram os nomes, sem número e sem duplicata, e `pinned_workspaces` segue com a lista numa tela só.
 2. Tirar o HDMI com a área copiada vazia e depois com janela: a barra segue com as mesmas áreas, e nenhuma janela some.
-3. Religar o HDMI: os nomes voltam às duas telas, sem área a mais.
+3. Religar o HDMI: os nomes voltam às duas telas, sem área a mais, e as janelas voltam a ele (P179).
 4. Fechar e abrir a tampa com janelas nas duas telas: nada some e os nomes não repetem.
 5. Janela em tela cheia e janela minimizada na tela que sai continuam restauráveis depois da fusão.

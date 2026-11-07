@@ -521,7 +521,8 @@ cobre 44 oraculo-tema.sh 'd77e99f Light: só background.component.pressed difere
 cobre 45 ganchos.sh 'chama o readme.sh --commit' scripts/readme.sh 'commit'
 cobre 50 extensoes-gesto.sh 'instalar um repo do usuário: compila, não mexe no EXTENSOES' bin/meow 'EXTENSOES_COMPILAR=1'
 cobre 53 areas-em-cada-tela.sh 'a tela do notebook ganha Pop e OS, nessa ordem' scripts/areas.sh 'pinned_workspaces'
-cobre 53 nomes-nas-duas-telas.sh 'a cópia não entra no arquivo' patches/cosmic-comp-nomes-nas-duas-telas.patch 'AURORA-AREAS-NOMES-1'
+cobre 53 nomes-nas-duas-telas.sh 'a cópia não entra no arquivo' patches/cosmic-comp-nomes-nas-duas-telas.patch 'AURORA-AREAS-NOMES-2'
+cobre 53 nomes-nas-duas-telas.sh 'a janela volta ao religar' patches/cosmic-comp-nomes-nas-duas-telas.patch 'fn devolver_janelas'
 registro 55 'entra sem clique' && ! grep -q 'retido\|liberar' "$RAIZ/scripts/compositor_shim.sh" \
   && ! grep -q 'cmd_liberar\|compositor-caiu' "$RAIZ/scripts/compositor_patches.sh" \
   && ! grep -q 'patch-obrigatorio' "$RAIZ/scripts/garantir_builds.sh" \
