@@ -83,7 +83,7 @@ igual "o req que não entra fica fora do cartão: log e doctor" "$(linhas)" 0
 
 echo "== 3. a rota sem leitor saiu"
 grep -q 'precisa-de-gente\|precisa_de_gente' "$RAIZ/app/servidor.py" && falha "o servidor ainda serve a rota morta" || ok "o servidor não tem a rota nem o leitor"
-grep -q 'meow_precisa_de_gente' "$RAIZ/lib/comum.sh" "$RAIZ/scripts/sentinela.sh" && falha "ainda há quem escreva o arquivo" || ok "ninguém escreve o arquivo"
+grep -rq 'meow_precisa_de_gente' "$RAIZ/lib" "$RAIZ/scripts" "$RAIZ/bin" && falha "ainda há quem escreva o arquivo" || ok "ninguém escreve o arquivo"
 
 echo "== 4. o Manter não tem cartão de pendências"
 if grep -q 'PRECISA_DE_GENTE\|linhaDeGente\|bloco("Pendências"' "$RAIZ/app/pagina/paginas.js" "$RAIZ/app/pagina/app.js"; then
