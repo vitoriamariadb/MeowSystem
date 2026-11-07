@@ -399,8 +399,9 @@ n="$(grep -cE '^\| [0-9]+ \|' "$DEC")"
 velhos="$(grep -lE '02-decisoes\.md|P82-abertos\.md' "$RAIZ/AGENTS.md" "$G" "$RAIZ"/docs/*.md "$RAIZ"/docs/sprints/*/*.md "$RAIZ"/tests/* "$RAIZ"/packs/*/*.md 2>/dev/null | grep -v '/tests/decisoes\.sh$')"
 [ -z "$velhos" ] && ok "ninguém aponta para os registros antigos" || falha "ainda aponta para o registro antigo: $velhos"
 faltam=""
-for k in 'NOPASSWD' 'HOME temporário' 'troca palavras' '/tmp' 'Senha nunca'; do tem "$k" || faltam+=" «$k»"; done
+for k in 'Teste nunca chama `sudo` de verdade' 'HOME temporário' 'troca palavras' '/tmp' 'Senha nunca'; do tem "$k" || faltam+=" «$k»"; done
 [ -z "$faltam" ] && ok "as armadilhas estão no GSD.md" || falha "o GSD.md perdeu a armadilha:$faltam"
+tem 'NOPASSWD' && falha "a armadilha do sudo ainda depende da regra NOPASSWD, que sai das máquinas" || ok "a armadilha do sudo vale sem a regra NOPASSWD"
 
 [ -f "$RAIZ/packs/meowsystem/mascote/coquinha.svg" ] && [ -f "$RAIZ/packs/meowsystem/mascote/mimir.svg" ] \
   && [ "$(ls "$RAIZ"/packs/dracula/mascote/morcego*.svg 2>/dev/null | wc -l)" = 3 ] && ! ls -d "$RAIZ"/assets/gat[o]s >/dev/null 2>&1 \

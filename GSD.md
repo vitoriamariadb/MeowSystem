@@ -26,7 +26,7 @@ O registro é [`docs/DECISOES.md`](docs/DECISOES.md): uma linha por decisão que
 
 ## 4. Armadilhas
 
-- `sudo` é `NOPASSWD: ALL` e escreve no sistema real. Teste que chama `sudo` não falha: escreve.
+- `sudo` escreve no sistema real, com ou sem regra aberta no sudoers. Teste nunca chama `sudo` de verdade.
 - Teste e QA usam HOME temporário, falsos no PATH que recusam escrita (`sudo`, `pkexec`, `su`, `apt`, `cargo`, `just`, `make`, `systemctl` de escrita, `pkill`) e nenhum barramento da sessão.
 - Painel só com HOME temporário, PID próprio, nunca `--parar`.
 - Agente não roda `install.sh`, `meow compositor` nem `meow doctor --consertar` com o HOME real; quem coordena a
