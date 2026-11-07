@@ -1,6 +1,11 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- 07/11, noite: install com o HOME real (askpass) e todos os builds. Os 12 `cosmic-*` atualizáveis subiram (o kernel e o resto
+  não). Compositor, menu do Arquivos, portal e os três applets presos (Modo performance, Soneca, Ajustes rápidos) em `ok`; a
+  segunda passagem do install: `rc=0`, nada a escrever. P182 aberta e curada (portal do rebuild local, menu fora do `/tmp`,
+  applets sem rede, «sem rede?» falso, teste do compositor preso ao disco), em `bloco/p182`.
+  PRÓXIMO: suíte na integração, `master`, push.
 - 06/11, 16:40, sessão de estudo, nada em voo. Respostas de quem usa: o tronco é só `master` (reescrever as decisões 22 e 24 e
   a citação à branch `arquivo`, que não existe); a queda na fábrica não aparece na tela, nem no Manter (vale a decisão 27 ao pé da
   letra; o ESTADO-FINAL se corrige); a P162 herda o `app_id` do cliente, verificando antes se o compositor o guarda; a P159 e a
