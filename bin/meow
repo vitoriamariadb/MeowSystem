@@ -1783,13 +1783,6 @@ cmd_doctor() {
   local i
   for i in "${!CHK_NOME[@]}"; do imprimir_check "$i" 1; done
 
-  if [ "$consertar" = 1 ] && sudo -n -l 2>/dev/null | grep -Eq 'NOPASSWD:[[:space:]]*ALL[[:space:]]*$'; then
-    meow_aviso "o sudo desta máquina libera TUDO sem senha para você (NOPASSWD: ALL)"
-    meow_info "  enquanto essa regra existir, a ponte root não restringe nada —"
-    meow_info "  ela é que permitirá tirá-la, e não o contrário"
-    meow_info "  o MeowSystem não mexe nela: regra de sudo é sua, não nossa"
-  fi
-
   local pior; pior="$(pior_rc)"
   if [ "$consertar" = "0" ]; then
     printf '\n'
