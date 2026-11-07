@@ -2954,6 +2954,7 @@ cmd_ajuda() {
   meow status                  painel de estado e o que está divergente
   meow doctor                  confere tudo em seco. Sai 1 se houver divergência
   meow doctor --consertar      confere e aplica só o que falhou
+  meow levantamento            lê a máquina antes do install e lista tudo o que vai travar
 
   meow tema                    tema alvo, tema ativo e capturas disponíveis
   meow tema <captura>          aplica a captura por cópia (sem GUI)
@@ -3494,6 +3495,7 @@ despachar() {
     leitura)          shift; cmd_leitura "$@" ;;
     compositor)       shift; cmd_compositor "$@" ;;
     espaco|espaço)    shift; cmd_espaco "$@" ;;
+    levantamento)     shift; carregar_conf || exit "$MEOW_ERRO"; exec "$RAIZ/scripts/levantamento.sh" "$@" ;;
     cosmic)           shift
       case "${1:-prever}" in
         prever|ler|icones) "$RAIZ/scripts/cosmic_prever.sh" "$@"; exit $? ;;

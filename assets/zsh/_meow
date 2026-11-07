@@ -63,6 +63,7 @@ _meow() {
     'files-menu:os 2 itens de papel de parede no menu da área de trabalho'
     'compositor:baixa, patcha e compila o cosmic-comp (é o que a linha patches do doctor pede)'
     'espaco:quanto o MeowSystem ocupa no disco, e o que dá para liberar'
+    'levantamento:lê a máquina antes do install e lista tudo o que vai travar'
     'apps:tabela de módulo, app instalado e tema'
     'configurar:wizard curto: as chaves essenciais do meow.conf (--tudo para o resto)'
     'ativar:roda o install.sh inteiro'

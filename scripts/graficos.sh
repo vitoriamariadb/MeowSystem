@@ -457,13 +457,7 @@ cmd_cuidar() {
   return 1
 }
 
-_gr_versao_do_fonte() {
-  if [[ "$1" =~ ^(.+)\+[0-9]+~[a-z][a-z0-9]*[0-9]+$ ]]; then
-    printf '%s' "${BASH_REMATCH[1]}"
-  else
-    printf '%s' "$1"
-  fi
-}
+_gr_versao_do_fonte() { meow_versao_do_fonte "$1"; }
 
 _gr_dsc() { printf '%s/baixado/%s_%s.dsc' "$GR_CACHE" "$GR_PACOTE" "$(_gr_versao_do_fonte "${1#*:}")"; }
 

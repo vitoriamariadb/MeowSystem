@@ -333,6 +333,14 @@ for n in sorted(validos):
 PYFIM
 }
 
+meow_versao_do_fonte() {
+  if [[ "$1" =~ ^(.+)\+[0-9]+~[a-z][a-z0-9]*[0-9]+$ ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+  else
+    printf '%s' "$1"
+  fi
+}
+
 meow_apt_fonte_saiu_do_repositorio() {
   grep -qiE "Não é possível encontrar a versão|Impossível encontrar um pacote fonte|Can.t find version|Can not find version|Unable to find a source package" "$1" 2>/dev/null
 }
