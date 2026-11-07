@@ -314,15 +314,18 @@ versoes "xdg-desktop-portal-cosmic=1.13.0~1~24.04~bbbbbbb" "google-chrome-stable
 printf 'um\nMUDOU\ntres\nquatro\ncinco\nseis\n' > "$T/fix/a/src/a.rs"
 n_cargo="$(wc -l < "$T/cargo.log")"
 graf aplicar; rc=$?
-confere "aplicar não compila, sai 0 e diz que o patch não entra" '[ "$rc" = 0 ] && grep -q "não entra" "$T/saida" && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ]' "$(cat "$T/saida")"
+confere "aplicar não compila, sai 0 e diz que o patch não entra" '[ "$rc" = 0 ] && grep -q "não entra" "$T/saida" && ! grep -qiE "command not found|comando não encontrado" "$T/saida" && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ]' "$(cat "$T/saida")"
 graf estado
 confere "o estado vira nao-encaixa" 'grep -qx estado=nao-encaixa "$T/saida"' "$(cat "$T/saida")"
-confere "pede gente, sem receita" 'grep -q "^graficos-nao-encaixa" "$ESTADO/precisa-de-gente.tsv" && ! grep -qiE "digite|rode |execute" "$ESTADO/precisa-de-gente.tsv"' "$(cat "$ESTADO/precisa-de-gente.tsv" 2>&1)"
+confere "a recusa vai para o log, sem tela e sem receita" 'grep -q "o patch do portal não entra" "$ESTADO/meow.log" && ! grep -qiE "digite|rode |execute" "$ESTADO/meow.log" && [ ! -e "$ESTADO/precisa-de-gente.tsv" ] && ! grep -q "^graficos-" "$ESTADO/pendencias.tsv" 2>/dev/null' "$(cat "$ESTADO/meow.log" 2>&1)"
+graf conferir
+confere "a primeira linha do conferir, a que o doctor mostra, diz que o patch não entra" 'head -1 "$T/saida" | grep -q "o patch não entra"' "$(cat "$T/saida")"
 confere "o shim fica no pacote" '[ "$(MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$LIBEXEC" PATH="$FALSO:$PATH" bash "$LIBEXEC/portal-shim")" = /usr/libexec/xdg-desktop-portal-cosmic ]'
 ext env EXTENSOES_FUNDO=1 EXTENSOES_COMPILAR=1 "$RAIZ/scripts/extensoes_build.sh" graficos --aplicar; rc=$?
 confere "com a recusa, a etapa do install não conta como escrita (o laço não acusa idempotência)" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
 graf pendente
 confere "a recusa não volta a ser pendente (o garantir_builds não repete)" '[ ! -s "$T/saida" ]' "$(cat "$T/saida")"
+confere "a segunda passada não registra a recusa de novo" '[ "$(linhas "o patch do portal não entra" "$ESTADO/meow.log")" = 1 ]' "$(cat "$ESTADO/meow.log")"
 printf 'um\ndois\ntres\nquatro\ncinco\n' > "$T/fix/a/src/a.rs"
 ext "$RAIZ/scripts/garantir_builds.sh"; rc=$?
 confere "a recusa já gravada não é falha do garantir_builds" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
@@ -336,6 +339,17 @@ sed -i 's/^ZZ$/um/' "$T/fix/a/src/a.rs"
 printf 'portal p-portal.patch MEOW-PORTAL-PATCH-1\nportal p-wiring.patch -\ntoolkit p-toolkit.patch MEOW-TOOLKIT-PATCH-1\n\n\n' > "$T/patches/graficos.series"
 graf pendente
 confere "mexer na série devolve a versão à fila" '[ "$(cat "$T/saida")" = "1.13.0~1~24.04~bbbbbbb" ]' "$(cat "$T/saida")"
+printf 'um\nMUDOU\ntres\nquatro\ncinco\nseis\n' > "$T/fix/a/src/a.rs"
+: > "$ESTADO/meow.log"
+graf validar; rc=$?
+confere "a recusa vista pelo validar também vai para o log" '[ "$rc" = 2 ] && grep -q "o patch do portal não entra" "$ESTADO/meow.log"' "$(cat "$T/saida" "$ESTADO/meow.log")"
+printf 'um\ndois\ntres\nquatro\ncinco\n' > "$T/fix/a/src/a.rs"
+printf 'portal p-portal.patch MEOW-PORTAL-PATCH-1\nportal p-wiring.patch -\ntoolkit p-toolkit.patch MEOW-TOOLKIT-PATCH-1\n\n\n\n' > "$T/patches/graficos.series"
+printf '#!/bin/sh\ncase " $* " in *" --dry-run "*) exec %s "$@" ;; esac\nexit 1\n' "$(command -v patch)" > "$FALSO/patch"; chmod +x "$FALSO/patch"
+: > "$ESTADO/meow.log"
+graf compilar; rc=$?
+rm -f "$FALSO/patch"
+confere "o patch que passa no dry-run e não entra na hora também vai para o log" '[ "$rc" = 2 ] && grep -q "não entrou na hora de aplicar" "$T/saida" && grep -q "o patch do portal não entra" "$ESTADO/meow.log"' "$(cat "$T/saida" "$ESTADO/meow.log")"
 
 printf '\n12. o patch que compila mas some do binário não instala\n'
 versoes "xdg-desktop-portal-cosmic=1.14.0~1~24.04~ccccccc" "google-chrome-stable=146.0"
@@ -420,7 +434,8 @@ graf conferir; rc=$?
 confere "cair de novo faz o conferir divergir, sem escrever" '[ "$rc" = 1 ] && [ ! -e "$LIBEXEC/$VER1/ruim" ] && grep -q "poria de lado" "$T/saida"' "$(cat "$T/saida")"
 graf cuidar; rc=$?
 confere "cair repetido põe o build de lado (caiu)" '[ "$rc" = 1 ] && [ "$(head -c 4 "$LIBEXEC/$VER1/ruim")" = caiu ] && grep -q "caiu 2 vez" "$T/saida"' "$(cat "$T/saida")"
-confere "pede gente, sem receita" 'grep -q "^graficos-caiu" "$ESTADO/precisa-de-gente.tsv"'
+confere "a queda vai para o log, sem tela e sem pendência" 'grep -q "pôs de lado o portal $VER1" "$ESTADO/meow.log" && [ ! -e "$ESTADO/precisa-de-gente.tsv" ] && ! grep -q "^graficos-" "$ESTADO/pendencias.tsv" 2>/dev/null' "$(cat "$ESTADO/meow.log" 2>&1)"
+confere "a saída da queda não tropeça em função que não existe" '! grep -qiE "command not found|comando não encontrado" "$T/saida"' "$(cat "$T/saida")"
 confere "o shim volta ao pacote" '[ "$(MEOW_SHIM_SO_DIZER=1 MEOW_SHIM_CASA="$LIBEXEC" PATH="$FALSO:$PATH" bash "$LIBEXEC/portal-shim")" = /usr/libexec/xdg-desktop-portal-cosmic ]'
 graf cuidar; rc=$?
 confere "o caiu não se perdoa" '[ "$rc" = 0 ] && [ -e "$LIBEXEC/$VER1/ruim" ]' "$(cat "$T/saida")"
@@ -446,7 +461,6 @@ graf aplicar; rc=$?
 confere "aplicar tira o drop-in e o shim, não compila e mantém a policy" '[ "$rc" = 1 ] && [ ! -e "$DROPIN" ] && [ ! -e "$LIBEXEC/portal-shim" ] && [ "$(wc -l < "$T/cargo.log")" = "$n_cargo" ] && [ -f "$POLICY" ]' "$(cat "$T/saida")"
 graf aplicar; rc=$?
 confere "a segunda passada sai 0" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
-confere "a correção oficial encerra o que pedia gente" '! grep -q "^graficos-" "$ESTADO/precisa-de-gente.tsv"' "$(cat "$ESTADO/precisa-de-gente.tsv" 2>&1)"
 ext "$RAIZ/scripts/extensoes_build.sh" graficos --estado
 confere "no cartão a correção oficial conta como ativa" 'grep -qx instalada=sim "$T/saida" && grep -qx ativa=sim "$T/saida"' "$(cat "$T/saida")"
 printf '%s\n' "$VER1" > "$T/patches/graficos.versao"

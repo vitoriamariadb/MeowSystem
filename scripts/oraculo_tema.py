@@ -4,7 +4,7 @@
     oraculo_tema.py comparar <dir-da-captura> <Dark|Light> <json-do-oraculo>
 
 O JSON é a saída do `meow-oraculo-tema` (`src/oraculo-tema`) sobre a receita
-`com.system76.CosmicTheme.<Árvore>.Builder/v2` da captura. A cópia em Python é
+`com.system76.CosmicTheme.<Árvore>.Builder` da captura, na versão que ela traz. A cópia em Python é
 o `build()` do `scripts/derivar_flavor.py`, portado da revisão c003a58 do
 libcosmic. Cada campo de cor que o Python calcula é procurado no JSON pelo
 mesmo caminho (`background` + `component.pressed` -> `background.component.pressed`)
@@ -48,9 +48,9 @@ def _no_json(tema: dict, arq: str, caminho: str):
 
 
 def comparar(captura: Path, arvore: str, json_oraculo: Path) -> list[str]:
-    receita = df._ler_arvore(captura / f"com.system76.CosmicTheme.{arvore}.Builder" / "v2")
+    receita = df._ler_arvore(da.receita_da_captura(captura, arvore))
     if not receita:
-        raise ValueError(f"a captura não tem a receita {arvore}.Builder/v2")
+        raise ValueError(f"a captura não tem a receita {arvore}.Builder")
     b = df.build(df.ler_receita(receita))
     tema = json.loads(json_oraculo.read_text(encoding="utf-8"))
     diverge = []
