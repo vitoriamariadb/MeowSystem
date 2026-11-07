@@ -68,7 +68,7 @@ _gr_oficial() {
   [ -n "$fim" ] && dpkg --compare-versions "$1" ge "$fim" 2>/dev/null
 }
 
-_gr_validada() { grep -qxF -- "$1" "$GR_VERSOES" 2>/dev/null; }
+_gr_validada() { grep -qxF -- "$(_gr_versao_do_fonte "$1")" "$GR_VERSOES" 2>/dev/null; }
 
 _gr_entradas() {
   local alvo arquivo marca
@@ -457,15 +457,26 @@ cmd_cuidar() {
   return 1
 }
 
+_gr_versao_do_fonte() {
+  if [[ "$1" =~ ^(.+)\+[0-9]+~[a-z][a-z0-9]*[0-9]+$ ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+  else
+    printf '%s' "$1"
+  fi
+}
+
+_gr_dsc() { printf '%s/baixado/%s_%s.dsc' "$GR_CACHE" "$GR_PACOTE" "$(_gr_versao_do_fonte "${1#*:}")"; }
+
 _gr_baixar() {
-  local ver="$1" baixado dsc log
+  local ver="$1" baixado dsc log fonte_ver
   baixado="$GR_CACHE/baixado"
-  dsc="$baixado/${GR_PACOTE}_${ver#*:}.dsc"
+  fonte_ver="$(_gr_versao_do_fonte "$ver")"
+  dsc="$(_gr_dsc "$ver")"
   [ -f "$dsc" ] && return 0
   mkdir -p "$baixado" || { meow_erro "não consegui criar $baixado"; return 2; }
   log="$GR_CACHE/baixar-$ver.log"
-  meow_info "BAIXA DA INTERNET: o fonte do portal $ver (~155 MB), para $baixado"
-  if ! ( cd "$baixado" && apt-get source --download-only "$GR_PACOTE=$ver" ) >"$log" 2>&1; then
+  meow_info "BAIXA DA INTERNET: o fonte do portal $fonte_ver (~155 MB), para $baixado"
+  if ! ( cd "$baixado" && apt-get source --download-only "$GR_PACOTE=$fonte_ver" ) >"$log" 2>&1; then
     if grep -q ' 404 ' "$log" 2>/dev/null; then
       meow_erro "o repositório já não serve o fonte do portal $ver (404): o portal do pacote segue valendo"
       _gr_gravar_falha "$ver" baixar
@@ -510,7 +521,7 @@ _gr_preparar() {
   local ver="$1" fonte="$2" log="$3" alvo arquivo marca arvore recusou=0
   _gr_baixar "$ver" || return 2
   rm -rf "$fonte"
-  if ! dpkg-source -x "$GR_CACHE/baixado/${GR_PACOTE}_${ver#*:}.dsc" "$fonte" >>"$log" 2>&1 || [ ! -f "$fonte/Cargo.toml" ]; then
+  if ! dpkg-source -x "$(_gr_dsc "$ver")" "$fonte" >>"$log" 2>&1 || [ ! -f "$fonte/Cargo.toml" ]; then
     meow_erro "o fonte do portal não se extraiu em $fonte (registro: $log)"
     return 2
   fi

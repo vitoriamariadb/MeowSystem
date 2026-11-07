@@ -390,6 +390,19 @@ for sem in sem-deb-src sem-fonte; do
 done
 rm -f "$ESTADO/graficos/falhas.tsv"
 
+printf '\n13c. o rebuild local (+0~nome1) baixa o fonte da versão de base\n'
+LOCAL="$VER1+0~hefesto1"
+rm -rf "$CASA/.cache/meowsystem/graficos/baixado" "$ESTADO/graficos/falhas.tsv"; : > "$T/apt-get.log"
+versoes "xdg-desktop-portal-cosmic=$LOCAL" "google-chrome-stable=146.0"
+graf compilar; rc=$?
+confere "o apt recebe a versão de base, nunca a do rebuild local" \
+  'grep -qx "apt-get source --download-only xdg-desktop-portal-cosmic=$VER1" "$T/apt-get.log" && ! grep -q hefesto "$T/apt-get.log"' "$(cat "$T/apt-get.log" "$T/saida")"
+confere "o build fica na casa da versão instalada, com os marcadores" \
+  '[ -x "$LIBEXEC/$LOCAL/xdg-desktop-portal-cosmic" ] && grep -qx MEOW-TOOLKIT-PATCH-1 "$LIBEXEC/$LOCAL/marcadores"' "$(cat "$T/saida")"
+confere "a versão de base validada vale para o rebuild local" \
+  'MEOW_RAIZ="$RAIZ" GR_VERSOES="$T/patches/graficos.versao" bash -c ". \"$RAIZ/lib/comum.sh\"; eval \"\$(sed -n \"/^_gr_versao_do_fonte()/,/^}/p; /^_gr_validada()/p\" \"$RAIZ/scripts/graficos.sh\")\"; _gr_validada \"$LOCAL\""'
+rm -f "$ESTADO/graficos/falhas.tsv"
+
 printf '\n14. o shim: a regra do ruim, a conferência do marcador e o pacote de fábrica\n'
 SH="$T/shim"; mkdir -p "$SH/casa/9.9" "$SH/bin"
 printf '#!/bin/sh\necho fabrica "$@"\n' > "$SH/fabrica"; chmod 755 "$SH/fabrica"
