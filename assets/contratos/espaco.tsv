@@ -4,11 +4,11 @@ extensoes-fontes	reconstruível	$MEOW_ESTADO/extensoes/*/src	Applets	2	-	nunca	s
 extensoes-estado	de quem usa	$MEOW_ESTADO/extensoes	Ajustes	-	-	nunca	sim	O registro de cada applet instalado: carimbo, lista de ícones e de uso.
 compositor-cache	reconstruível	$MEOW_CACHE/cosmic-comp	Compositor	4	-	versoes:2	sim	Fonte e compilação do compositor. Fica a versão em uso e, no máximo, uma anterior. Apagar faz o próximo build compilar do zero.
 compositor-builds	reconstruível	$HOME/.local/libexec/meow/cosmic-comp	Em uso	4	-	guardados:2	sim	O compositor que a sessão usa. Ficam a versão em uso e uma anterior; as duas só saem ao desinstalar.
-oraculo-builds	reconstruível	$HOME/.local/libexec/meow/oraculo-tema	Em uso	3	-	nunca	sim	O oráculo do tema que o doctor usa. Só sai ao desinstalar.
+oraculo-builds	reconstruível	$HOME/.local/libexec/meow/oraculo-tema	Em uso	3	-	recentes:2	sim	O oráculo do tema que o doctor usa. Ficam o da revisão em uso e uma anterior; as duas só saem ao desinstalar.
 libexec-resto	reconstruível	$HOME/.local/libexec/meow	Em uso	-	-	nunca	sim	O que o MeowSystem compilou para a sua sessão.
 menu-builds	reconstruível	$MEOW_ESTADO/cosmic-files	Em uso	4	-	guardados:2	sim	O menu do Arquivos já compilado. Ficam a versão em uso e uma anterior; as duas só saem ao desinstalar.
 compositor-estado	de quem usa	$MEOW_ESTADO/cosmic-comp	Ajustes	-	-	nunca	sim	O que o MeowSystem lembra do compositor: matriz de patches e alvos.
-previa-cache	reconstruível	$MEOW_CACHE/cosmic-prever	Prévia	4	-	ocioso	sim	A compilação de prévia dos patches contra o COSMIC novo. Sai quando fica parada.
+previa-cache	reconstruível	$MEOW_CACHE/cosmic-prever	Prévia	4	1024	ocioso	sim	A compilação de prévia dos patches contra o COSMIC novo. Sai quando fica parada e nunca passa de 1 GB, o mais antigo primeiro.
 oraculo-cache	reconstruível	$MEOW_CACHE/oraculo-tema	Oráculo	3	-	ocioso	sim	A compilação do oráculo do tema. O binário pronto mora em outro lugar, então sai quando fica parada.
 binarios-em-uso	reconstruível	$HOME/.local/bin/meow*|$HOME/.local/bin/cosmic-comp|$HOME/.local/bin/cosmic-files|$HOME/.local/bin/cosmic-files-applet	Em uso	10	-	nunca	passo	Os programas instalados para a sua sessão. Só saem ao desinstalar.
 lancadores-dos-applets	reconstruível	$HOME/.local/share/applications/io.github.meowsystem.*|$HOME/.local/share/metainfo/io.github.meowsystem.*|$HOME/.local/share/icons/hicolor/*/apps/io.github.meowsystem.*	Em uso	-	-	nunca	passo	O lançador, a ficha e o ícone de cada applet instalado. Saem com o applet.

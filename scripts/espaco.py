@@ -196,6 +196,35 @@ def build_em_curso(raiz=None):
     return bool(raiz) and os.path.isdir(raiz) and build_do_cargo_em_curso(raiz)
 
 
+def pegar_trava_de_builds():
+    caminho = trava_de_builds()
+    herdado = os.environ.get("ESPACO_TRAVA_FD", "")
+    if herdado.isdigit():
+        try:
+            fd = int(herdado)
+            if os.path.samestat(os.fstat(fd), os.stat(caminho)):
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return "minha", None
+        except OSError:
+            pass
+    try:
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
+        fd = os.open(caminho, os.O_RDWR | os.O_CREAT, 0o666)
+    except OSError:
+        return "indisponivel", None
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        os.close(fd)
+        return "ocupada", None
+    return "minha", fd
+
+
+def soltar_trava_de_builds(fd):
+    if fd is not None:
+        os.close(fd)
+
+
 def uso_pct():
     forcado = os.environ.get("ESPACO_DISCO_USO_PCT")
     if forcado and forcado.isdigit():
@@ -390,8 +419,28 @@ def plano_versoes(e, apertado, agora):
     return cortes
 
 
+def unidades_de_segundo_nivel(pasta):
+    unidades = []
+    try:
+        filhos = sorted(os.listdir(pasta))
+    except OSError:
+        return unidades
+    for nome in filhos:
+        caminho = os.path.join(pasta, nome)
+        if os.path.isdir(caminho) and not os.path.islink(caminho):
+            try:
+                netos = sorted(os.listdir(caminho))
+            except OSError:
+                continue
+            unidades += [os.path.join(caminho, n) for n in netos]
+        else:
+            unidades.append(caminho)
+    return unidades
+
+
 def plano_ocioso(e, apertado, agora):
     limite = 86400 if apertado else OCIOSO_S
+    teto = e["teto"] // 2 if apertado else e["teto"]
     cortes = []
     for pasta in e["caminhos"]:
         try:
@@ -402,6 +451,48 @@ def plano_ocioso(e, apertado, agora):
             caminho = os.path.join(pasta, nome)
             if agora - ultimo_uso_da_pasta(caminho) >= limite:
                 cortes.append({"caminho": caminho, "motivo": "parado há dias"})
+        if not teto:
+            continue
+        saem = [c["caminho"] for c in cortes]
+        total = tamanho(pasta) - sum(tamanho(c) for c in saem)
+        if total <= teto:
+            continue
+        restantes = sorted(
+            (ultimo_uso_da_pasta(u), u) for u in unidades_de_segundo_nivel(pasta)
+            if not any(u == s or u.startswith(s + os.sep) for s in saem))
+        for uso, unidade in restantes:
+            if total <= teto:
+                break
+            if agora - uso < GUARDA_S:
+                continue
+            total -= tamanho(unidade)
+            cortes.append({"caminho": unidade, "motivo": "acima do teto"})
+    return cortes
+
+
+def plano_recentes(e):
+    manter = e["args"][0] if e["args"] else 2
+    cortes = []
+    for pasta in e["caminhos"]:
+        versoes = {}
+        try:
+            nomes = sorted(os.listdir(pasta))
+        except OSError:
+            continue
+        for nome in nomes:
+            caminho = os.path.join(pasta, nome)
+            if not os.path.isdir(caminho):
+                continue
+            try:
+                pronto = any(not f.startswith(".") and os.path.isfile(os.path.join(caminho, f))
+                             for f in os.listdir(caminho))
+            except OSError:
+                continue
+            if pronto:
+                versoes[nome] = ultimo_uso_da_pasta(caminho)
+        ficam = versoes_que_ficam(versoes, None, manter)
+        cortes += [{"caminho": os.path.join(pasta, v), "motivo": "versão antiga"}
+                   for v in sorted(versoes) if v not in ficam]
     return cortes
 
 
@@ -452,6 +543,8 @@ def planejar(entradas, modo, agora=None, apertado=None):
             cortes = plano_guardados(e)
         elif corte == "ocioso":
             cortes = plano_ocioso(e, apertado, agora)
+        elif corte == "recentes":
+            cortes = plano_recentes(e)
         elif corte == "orfao":
             cortes = plano_orfao(e)
         elif corte == "rotacao":
@@ -464,8 +557,10 @@ def planejar(entradas, modo, agora=None, apertado=None):
     return planos
 
 
-def em_curso_para(e, cortes):
-    if build_em_curso():
+def em_curso_para(e, cortes, trava="sem"):
+    if trava == "ocupada":
+        return True
+    if trava != "minha" and build_em_curso():
         return True
     raizes = e["caminhos"] if e["modo"] == "unidades" else [c["caminho"] for c in cortes]
     return any(os.path.isdir(r) and build_do_cargo_em_curso(r) for r in raizes)
@@ -507,21 +602,30 @@ def executar(modo, seco=False, agora=None, apertado=None):
     donos_dos_caminhos(entradas)
     planos = planejar(entradas, modo, agora, apertado)
     por_id = {e["id"]: e for e in entradas}
+    trava, fd = "sem", None
+    if not seco and any(por_id[i]["modo"] != "rotacao" for i in planos):
+        trava, fd = pegar_trava_de_builds()
+        if trava == "minha":
+            donos_dos_caminhos(entradas)
+            planos = planejar(entradas, modo, agora, apertado)
     liberou = 0
     saida = []
     esperou = []
-    for ident, cortes in planos.items():
-        e = por_id[ident]
-        if e["modo"] != "rotacao" and em_curso_para(e, cortes):
-            esperou.append(e["nome"])
-            continue
-        if not seco:
-            cortes = [c for c in cortes if remover(c["caminho"])]
-            if not cortes:
+    try:
+        for ident, cortes in planos.items():
+            e = por_id[ident]
+            if e["modo"] != "rotacao" and em_curso_para(e, cortes, trava):
+                esperou.append(e["nome"])
                 continue
-        bytes_do_item = sum(c["bytes"] for c in cortes)
-        liberou += bytes_do_item
-        saida.append((e["nome"], bytes_do_item, cortes[0]["motivo"]))
+            if not seco:
+                cortes = [c for c in cortes if remover(c["caminho"])]
+                if not cortes:
+                    continue
+            bytes_do_item = sum(c["bytes"] for c in cortes)
+            liberou += bytes_do_item
+            saida.append((e["nome"], bytes_do_item, cortes[0]["motivo"]))
+    finally:
+        soltar_trava_de_builds(fd)
     return {"liberou": liberou, "itens": saida, "esperou": esperou}
 
 
@@ -545,7 +649,8 @@ def montar_relatorio(agora=None):
         liberavel = sum(c["bytes"] for c in cortes_liberar.get(e["id"], []))
         itens.append({"id": e["id"], "nome": e["nome"], "categoria": e["categoria"], "bytes": ocupa,
                       "liberavel": liberavel,
-                      "refazer": e["refazer"] if liberavel and e["modo"] != "guardados" else 0, "dica": e["dica"],
+                      "refazer": e["refazer"] if liberavel and e["modo"] not in ("guardados", "recentes") else 0,
+                      "dica": e["dica"],
                       "desinstala": e["desinstala"]})
     return itens
 
@@ -636,7 +741,7 @@ def cmd_cortar(modo):
         registrar("espaco %s liberou %s" % (modo, bonito(resultado["liberou"])))
     if resultado["itens"]:
         return 1
-    if modo == "liberar":
+    if modo == "liberar" and not resultado["esperou"]:
         print("nada a liberar")
     return 0
 

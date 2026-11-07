@@ -163,6 +163,7 @@ cmd_build() {
   done
   meow_ok "build patchado do cosmic-files $ver guardado em $dir"
   meow_registrar "files_menu.sh build $ver"
+  meow_limpar_fim_de_build
   cmd_aplicar
   return "$MEOW_DIVERGENTE"
 }

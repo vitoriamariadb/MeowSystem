@@ -959,6 +959,7 @@ cmd_compilar() {
   if cmp -s "$bin" "$destino/cosmic-comp" && [ -f "$destino/estado" ] && [ ! -e "$destino/ruim" ] \
      && ! _cp_digital_mudou "$destino" && grep -q '^bibliotecas=' "$destino/estado"; then
     meow_ok "o binário compilado é o que já está em $destino — nada a instalar"
+    meow_limpar_fim_de_build
     return "$MEOW_OK"
   fi
   mkdir -p "$destino" || { meow_erro "não consegui criar $destino"; return "$MEOW_ERRO"; }
@@ -989,6 +990,7 @@ cmd_compilar() {
     rm -rf -- "$d" && meow_info "podei o fonte antigo: ${d##*/}"
   done
 
+  meow_limpar_fim_de_build
   meow_registrar "compositor_patches.sh compilar $ver"
   meow_info "vale no PRÓXIMO LOGIN — a sessão de agora segura o binário antigo até lá"
   return "$MEOW_OK"

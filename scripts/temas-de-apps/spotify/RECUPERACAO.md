@@ -122,14 +122,13 @@ Depois, para voltar ao tema: `meow apps aplicar spotify`.
 ## Onde está o original de fábrica
 
 O `xpui.spa` **de fábrica** da versão 1.2.92.147 (commit `abf9251b…`) está
-guardado em quatro lugares, todos com o mesmo
+guardado em três lugares, todos com o mesmo
 sha256 `5ec1901f0b1988a7d1188127b5aa76ae25e15acec887dc664f286fb774006dfe`
 (11168399 bytes):
 
 | Onde | Quem cuida |
 |---|---|
 | `~/.local/state/spicetify/Backup/xpui.spa` | o spicetify (é o que o `restore` usa) |
-| `~/.local/state/meowsystem/backups/spotify-xpui-fabrica/xpui.spa` | o MeowSystem |
 | `~/Backups/spotify-fabrica-abf9251b/` | ninguém — é justamente o ponto |
 | `<outro disco>/backup-spotify-fabrica-abf9251b/` | ninguém, e em **outro disco** |
 
