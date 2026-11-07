@@ -112,14 +112,14 @@ areas refazer-alfinetes >/dev/null
 MODO=independentes areas refazer-alfinetes >/dev/null
 confere "partida de quatro entradas, duas por tela" '[ "$(grep -c "output:" "$PW")" = 4 ]'
 saida="$(da_conf alfinetes)"; rc=$?
-confere "sem AREAS_MODO o padrão é juntas e o doctor acusa a repetida e o modo" '[ "$rc" = 1 ] && printf "%s" "$saida" | grep -q "repetidas na tela: eDP-1" && printf "%s" "$saida" | grep -q "workspace_mode está OutputBound"' "rc=$rc $saida"
+confere "sem AREAS_MODO o padrão é juntas e o doctor acusa a lista fora de casa e o modo" '[ "$rc" = 1 ] && printf "%s" "$saida" | grep -q "lista das áreas fora da tela de casa: HDMI-A-1" && printf "%s" "$saida" | grep -q "workspace_mode está OutputBound"' "rc=$rc $saida"
 antes="$(md5sum < "$PW")"
 SECO=1 da_conf refazer-alfinetes >/dev/null
 confere "o ensaio não grava nem a lista nem o modo" '[ "$antes" = "$(md5sum < "$PW")" ] && [ ! -e "$WM" ]'
 da_conf refazer-alfinetes >/dev/null
 confere "o modo vira Global" 'grep -q "workspace_mode: Global" "$WM"' "$(cat "$WM" 2>&1)"
 confere "o arquivo do modo nasce completo" 'grep -q "workspace_layout: Vertical" "$WM" && grep -q "workspace_wraparound: true" "$WM"' "$(cat "$WM" 2>&1)"
-confere "a lista fica só com as áreas de uma tela" '[ "$(grep -c "output:" "$PW")" = 2 ] && [ "$(da_tela HDMI-A-1 | paste -sd,)" = "Pop,OS" ] && [ -z "$(da_tela eDP-1)" ]' "$(cat "$PW")"
+confere "a lista fica só com as áreas de uma tela" '[ "$(grep -c "output:" "$PW")" = 2 ] && [ "$(da_tela eDP-1 | paste -sd,)" = "Pop,OS" ] && [ -z "$(da_tela HDMI-A-1)" ]' "$(cat "$PW")"
 confere "nenhum id repete" '[ "$(ids_repetidos)" = 0 ]'
 confere "o encaixe da lista segue" '[ "$(grep -c "tiling_enabled: true" "$PW")" = 1 ] && [ "$(grep -c "tiling_enabled: false" "$PW")" = 1 ]'
 
@@ -134,12 +134,12 @@ confere "aplicar e refazer não mudam um byte" '[ "$antes" = "$(md5sum < "$PW")$
 
 printf '\nrenomear e acrescentar em juntas valem na lista única\n'
 NOMES="Casa, OS" da_conf aplicar >/dev/null
-confere "o nome novo entra uma vez" '[ "$(da_tela HDMI-A-1 | paste -sd,)" = "Casa,OS" ] && [ -z "$(da_tela eDP-1)" ]' "$(cat "$PW")"
+confere "o nome novo entra uma vez" '[ "$(da_tela eDP-1 | paste -sd,)" = "Casa,OS" ] && [ -z "$(da_tela HDMI-A-1)" ]' "$(cat "$PW")"
 NOMES="Casa, OS, Som" da_conf aplicar >/dev/null
-confere "a área nova nasce uma vez" '[ "$(da_tela HDMI-A-1 | paste -sd,)" = "Casa,OS,Som" ] && [ "$(grep -c "output:" "$PW")" = 3 ]' "$(cat "$PW")"
+confere "a área nova nasce uma vez" '[ "$(da_tela eDP-1 | paste -sd,)" = "Casa,OS,Som" ] && [ "$(grep -c "output:" "$PW")" = 3 ]' "$(cat "$PW")"
 confere "e os ids seguem únicos" '[ "$(ids_repetidos)" = 0 ]'
 NOMES="Casa, OS, Som" SIM=1 da_conf desalfinetar Som >/dev/null
-confere "tirar uma área tira da lista" '[ "$(da_tela HDMI-A-1 | paste -sd,)" = "Casa,OS" ]'
+confere "tirar uma área tira da lista" '[ "$(da_tela eDP-1 | paste -sd,)" = "Casa,OS" ]'
 
 printf '\no modo troca sem perder o resto da chave\n'
 printf '(workspace_mode: Global, workspace_layout: Horizontal, action_on_typing: OpenLauncher, workspace_wraparound: false)' > "$WM"
@@ -193,7 +193,88 @@ printf '\nrenomear no mesmo gesto da virada para juntas não deixa o nome velho 
 semear
 areas refazer-alfinetes >/dev/null
 NOMES="Casa, OS" da_conf aplicar >/dev/null
-confere "só a lista nova fica" '[ "$(da_tela HDMI-A-1 | paste -sd,)" = "Casa,OS" ] && [ -z "$(da_tela eDP-1)" ]' "$(cat "$PW")"
+confere "só a lista nova fica" '[ "$(da_tela eDP-1 | paste -sd,)" = "Casa,OS" ] && [ -z "$(da_tela HDMI-A-1)" ]' "$(cat "$PW")"
+
+printf '\nem juntas a lista mora no monitor interno\n'
+semear
+ids_antes="$(grep -o 'id: Some("[^"]*")' "$PW" | paste -sd,)"
+saida="$(da_conf alfinetes)"; rc=$?
+confere "o doctor acusa a lista presa ao monitor de fora" '[ "$rc" = 1 ] && printf "%s" "$saida" | grep -q "lista das áreas fora da tela de casa: HDMI-A-1"' "rc=$rc $saida"
+antes="$(md5sum < "$PW")"
+SECO=1 da_conf refazer-alfinetes >/dev/null
+confere "o ensaio não grava" '[ "$antes" = "$(md5sum < "$PW")" ]'
+da_conf aplicar >/dev/null
+confere "a lista passa ao eDP-1 e a HDMI-A-1 fica sem área" '[ "$(da_tela eDP-1 | paste -sd,)" = "Pop,OS" ] && [ -z "$(da_tela HDMI-A-1)" ] && [ "$(grep -c "output:" "$PW")" = 2 ]' "$(cat "$PW")"
+confere "os ids e o encaixe seguem os mesmos" '[ "$(grep -o "id: Some(\"[^\"]*\")" "$PW" | paste -sd,)" = "$ids_antes" ] && [ "$(grep -c "tiling_enabled: true" "$PW")" = 1 ]' "$(cat "$PW")"
+saida="$(da_conf alfinetes)"; rc=$?
+confere "alfinetes fica verde" '[ "$rc" = 0 ]' "rc=$rc $saida"
+saida="$(da_conf conferir)"; rc=$?
+confere "conferir fica verde" '[ "$rc" = 0 ]' "rc=$rc $saida"
+antes="$(marca)"
+da_conf aplicar >/dev/null; da_conf refazer-alfinetes >/dev/null
+confere "a segunda passada não troca nem o inode" '[ "$antes" = "$(marca)" ]'
+semear
+da_conf refazer-alfinetes >/dev/null
+confere "refazer-alfinetes também leva a lista ao eDP-1" '[ "$(da_tela eDP-1 | paste -sd,)" = "Pop,OS" ] && [ -z "$(da_tela HDMI-A-1)" ]' "$(cat "$PW")"
+
+printf '\na lista em casa não depende da ordem do arquivo\n'
+gerar() { python3 -I - "$@" > "$PW" <<'PY2'
+import sys
+print("[")
+n = 0
+for grupo in sys.argv[1:]:
+    tela, nomes = grupo.split(":")
+    for nome in nomes.split(","):
+        n += 1
+        print('    (\n        output: (\n            name: "%s",\n            edid: None,\n        ),\n        tiling_enabled: %s,\n        id: Some("a%05d"),\n        name: Some("%s"),\n    ),' % (tela, "true" if nome.endswith("*") else "false", n, nome.rstrip("*")))
+print("]")
+PY2
+}
+gerar 'HDMI-A-1:Estudo' 'eDP-1:Pop*,OS'
+antes="$(md5sum < "$PW")"
+saida="$(da_conf alfinetes)"; rc=$?
+confere "área marcada à mão no monitor de fora, primeira no arquivo: o doctor fica quieto" '[ "$rc" = 0 ]' "rc=$rc $saida"
+da_conf aplicar >/dev/null; da_conf refazer-alfinetes >/dev/null
+confere "e nenhuma passada a apaga nem renomeia" '[ "$antes" = "$(md5sum < "$PW")" ]' "$(cat "$PW")"
+NOMES="Casa, OS" da_conf aplicar >/dev/null
+confere "renomear vale na lista de casa, a marcada à mão fica" '[ "$(da_tela eDP-1 | paste -sd,)" = "Casa,OS" ] && [ "$(da_tela HDMI-A-1)" = Estudo ]' "$(cat "$PW")"
+
+printf '\ncópia menor em casa não parte a lista\n'
+gerar 'HDMI-A-1:Pop,OS,Som*' 'eDP-1:Pop,OS'
+NOMES="Pop, OS, Som" da_conf aplicar >/dev/null
+confere "uma passada leva a lista inteira a casa" '[ "$(da_tela eDP-1 | paste -sd,)" = "Pop,OS,Som" ] && [ -z "$(da_tela HDMI-A-1)" ]' "$(cat "$PW")"
+confere "o id e o encaixe da que faltava seguem" 'grep -q "id: Some(\"a00003\")" "$PW" && [ "$(grep -c "tiling_enabled: true" "$PW")" = 1 ]' "$(cat "$PW")"
+saida="$(NOMES="Pop, OS, Som" da_conf alfinetes)"; rc=$?
+confere "e o doctor fica verde" '[ "$rc" = 0 ]' "rc=$rc $saida"
+
+printf '\nnotebook com dois monitores internos\n'
+printf '#!/bin/sh\nprintf "eDP-1 (enabled)\\n  Make: A\\neDP-2 (enabled)\\n  Make: B\\nHDMI-A-1 (enabled)\\n  Make: LG\\n"\n' > "$T/bin/cosmic-randr"
+gerar 'eDP-2:Pop*,OS'
+antes="$(md5sum < "$PW")"
+saida="$(da_conf alfinetes)"; rc=$?
+confere "a lista já num interno não é acusada" '[ "$rc" = 0 ]' "rc=$rc $saida"
+da_conf aplicar >/dev/null; da_conf refazer-alfinetes >/dev/null
+confere "e não troca de interno" '[ "$antes" = "$(md5sum < "$PW")" ]' "$(cat "$PW")"
+
+printf '\nsem monitor interno a lista segue a ordem do arquivo\n'
+printf '#!/bin/sh\nprintf "HDMI-A-1 (enabled)\\n  Make: LG\\nDP-2 (enabled)\\n  Make: Dell\\n"\n' > "$T/bin/cosmic-randr"
+semear
+printf '(workspace_mode: Global, workspace_layout: Vertical, action_on_typing: None, workspace_wraparound: true)' > "$WM"
+antes="$(md5sum < "$PW")$(md5sum < "$WM")"
+saida="$(da_conf alfinetes)"; rc=$?
+confere "o doctor fica quieto" '[ "$rc" = 0 ]' "rc=$rc $saida"
+da_conf aplicar >/dev/null; da_conf refazer-alfinetes >/dev/null
+confere "aplicar e refazer não mudam um byte" '[ "$antes" = "$(md5sum < "$PW")$(md5sum < "$WM")" ]' "$(cat "$PW")"
+confere "a lista segue no HDMI-A-1" '[ "$(da_tela HDMI-A-1 | paste -sd,)" = "Pop,OS" ]'
+
+printf '\nLVDS e DSI também são monitor interno\n'
+for interno in LVDS-1 DSI-1; do
+  printf '#!/bin/sh\nprintf "HDMI-A-1 (enabled)\\n  Make: LG\\n%s (enabled)\\n  Make: X\\n"\n' "$interno" > "$T/bin/cosmic-randr"
+  semear
+  da_conf aplicar >/dev/null
+  confere "$interno recebe a lista" '[ "$(da_tela "$interno" | paste -sd,)" = "Pop,OS" ] && [ -z "$(da_tela HDMI-A-1)" ]' "$(cat "$PW")"
+done
+printf '#!/bin/sh\nprintf "HDMI-A-1 (enabled)\\n  Make: LG\\neDP-1 (enabled)\\n  Make: BOE\\nDP-9 (disabled)\\n"\n' > "$T/bin/cosmic-randr"
 
 printf '\nsem nomes, o modo vale e os nomes não são tocados\n'
 semear
