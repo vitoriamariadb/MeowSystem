@@ -187,5 +187,26 @@ Não coberto: nada foi aplicado na máquina (sem `install.sh`, sem reiniciar o p
 chamada no Teams ficam para quem usa, em "Como se prova". O PR #385 sem o SHM forçado nunca rodou ao vivo: o que
 se mediu no nitro-5 foi o binário só SHM. Seguem sem medida o Chrome híbrido importar o LINEAR de outra GPU e o furo
 da #286, em que o modifier fixado como `Value::Long` cai no `return`. Se a tela vier preta, a causa é uma dessas e a
-parte 2 é a P163. Falhas anteriores a este bloco e fora do escopo: `decisoes.sh` (comentário no `.gitignore`),
-`compositor-shim.sh`, `ganchos.sh`.
+parte 2 é a P163.
+
+Regressão final, `./tests/todos.sh` inteiro em `45f65578`: **134 verdes, 0 pulados, 6 vermelhos** de 140. A primeira
+passada, antes da cura abaixo, deu 132 verdes, 0 pulados e 8 vermelhos.
+
+- Curado: `migracao-do-painel.py` acusava `chave sem destino: GRAFICOS`, vermelho deste bloco que as duas conferências
+  anteriores não viram. A chave ganhou lugar em Extensões › Builds, ao lado do Compositor (`45f65578`).
+- `numeros.sh` e `readme.sh` são deste bloco e **seguem vermelhos na branch**: os READMEs dizem 72 etapas, 82
+  conferências e 130 ajustes, e o código tem 73, 83 e 131. Regerar exige commit nos READMEs, e o gancho troca a identidade
+  dos créditos por `[REDACTED]`: medido num commit, desfeito na hora, sem pular o gancho. A regeneração é do merge
+  (decisão 45).
+- `ganchos.sh`, `compositor-shim.sh` e `decisoes.sh` não são deste bloco: a cura é o `fdb7a88d` da integração.
+- Prova do merge: numa árvore descartável com este HEAD, o `fdb7a88d` e o `scripts/readme.py texto`, `numeros.sh`,
+  `readme.sh`, `ganchos.sh`, `compositor-shim.sh`, `decisoes.sh`, `migracao-do-painel.py` e `graficos.sh` deram
+  7 verdes, 0 pulados, 0 vermelhos.
+- `app-completo.py` não é deste bloco: os mesmos 10 achados de `/previa` caem em `integracao/2026-11-06`, sem nenhum
+  commit daqui. `modificacoes-pagina.py` é intermitente e também não: caiu em `abrir_menu` na base e em HEAD, e passou
+  na última suíte (rc=0).
+
+Falta da mão de quem usa: a build instalada de verdade, com o drop-in `shm-sem-dmabuf.conf` aposentado, porque ele sorteia
+depois do `meow-graficos.conf` e vence; a primeira compilação real, de uns 4 minutos; e, nos três PCs, os passos de
+«Como se prova», com Janela, Tela inteira e Teams, `aplicar` duas vezes e o `reverter`. O verbo `chrome-policy` nunca rodou
+como root, e a ponte instalada só o ganha com o install.
