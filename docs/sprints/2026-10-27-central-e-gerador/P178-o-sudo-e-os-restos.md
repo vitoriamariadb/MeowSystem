@@ -58,6 +58,7 @@ Provas, literais:
 - `tests/graficos.sh`, seção 13b nova, para `sem-deb-src` e `sem-fonte`: `ok    ...: o portal espera, não é pendente de imediato`, `...: a falha gravada é a do download`, `...: a segunda tentativa soma, e a espera dobra`. Antes da cura, as três vermelhas nas duas variantes.
 - `tests/espaco.sh`: `espaco: tudo certo`. Antes: `FALHA todo caminho que o código escreve em estado e cache tem dono no registro`, `sem dono: .../.local/state/meowsystem/graficos`.
 - `tests/acento.sh`: `acento: tudo certo`, com três provas novas (`Builder/v3` quando o sistema está em v3, v2 sem a pasta, nenhum escritor crava `Builder/v2`), as três vermelhas antes. `vidro-do-cosmic.sh`, `flavor-padrao.sh`, `oraculo-tema.sh`, `derivados.sh`, `contrato-cosmic.sh`, `claro-do-pack.sh`, `variante.sh`, `notas-de-funcao.sh`, `garantir-builds.sh`, `doctor-so-le.sh` e `espaco-pagina.py`, todos verdes.
+- `tests/app-completo.py`, com as mudanças de `app.js` e do `/previa`: `ok: o painel inteiro, porta por porta e controle por controle`, `rc=0`.
 - `tests/previa-cerca.sh`: `ok: a prévia diz «ainda não gerada» só quando a imagem existe, e «não existe mais» quando sumiu`.
 
 Falha que continua e não é desta sprint: `tests/graficos.sh` segue com 2 `FALHA pede gente, sem receita` (cat: `precisa-de-gente.tsv` inexistente). Medido: a P175 apagou `meow_precisa_de_gente` e `meow_precisa_de_gente_resolvida` de `lib/comum.sh`, e `scripts/graficos.sh` ainda chama as duas (linhas do `cmd_compilar` e do `cmd_aplicar`). Está como achado.
