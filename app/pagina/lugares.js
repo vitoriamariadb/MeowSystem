@@ -316,6 +316,9 @@ const LUGAR_EXTENSOES = {
     { c: "COMPOSITOR", r: "Compositor" },
     { c: "GRAFICOS", r: "Aprimoramentos gráficos" },
   ],
+  espaco: [
+    { a: "espaco_liberar", r: "Liberar" },
+  ],
 };
 
 const LUGAR_MODIFICACOES = {
@@ -389,6 +392,7 @@ function inventarioDoPainel() {
   for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Manter", "Zona de perigo");
   for (const l of LUGAR_EXTENSOES.applets) pus(l, "extensoes", "Applets", "Applets");
   for (const l of LUGAR_EXTENSOES.builds) pus(l, "extensoes", "Builds", "Builds");
+  for (const l of LUGAR_EXTENSOES.espaco) pus(l, "extensoes", "Espaço", "Espaço");
   for (const l of LUGAR_MODIFICACOES.cabeca) pus(l, "modificacoes", "", "");
   for (const l of LUGAR_MODIFICACOES.cartao) pus(l, "modificacoes", "", "");
   for (const l of LUGAR_MODIFICACOES.chaves) pus(l, "modificacoes", "", l.bloco);

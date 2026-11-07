@@ -5248,6 +5248,8 @@ def inventario_do_painel():
         pus(l, "extensoes", "Applets", "Applets")
     for l in c["LUGAR_EXTENSOES"]["builds"]:
         pus(l, "extensoes", "Builds", "Builds")
+    for l in c["LUGAR_EXTENSOES"]["espaco"]:
+        pus(l, "extensoes", "Espaço", "Espaço")
     mods = c["LUGAR_MODIFICACOES"]
     for parte in ("cabeca", "cartao", "chaves"):
         for l in mods[parte]:
