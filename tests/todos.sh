@@ -59,6 +59,7 @@ PORTATIL=(
   biblioteca-em-portugues.sh
   trava-herdada.sh
   autostart.sh
+  arquivos-filhos.sh
   icones-do-sistema.sh
   compositor-shim.sh
   janela-sem-app-id.sh

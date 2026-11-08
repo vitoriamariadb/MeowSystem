@@ -1076,6 +1076,8 @@ chk_leitura() {
   "$RAIZ/scripts/leitura.sh" conferir 2>&1
 }
 
+chk_arquivosfilhos() { "$RAIZ/scripts/arquivos_filhos.sh" --conferir 2>&1; }
+
 chk_autostart() {
   AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" "$RAIZ/scripts/autostart.sh" conferir 2>&1
 }
@@ -1371,6 +1373,7 @@ fix_absolutos() { _lancador_do_sistema 2>&1 || return "$MEOW_SEM_DEPENDENCIA"
                     "$RAIZ/scripts/icones_absolutos.sh" 2>&1; }
 fix_ocultarcasa(){ LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
                     "$RAIZ/scripts/ocultar_casa.sh" --aplicar 2>&1; }
+fix_arquivosfilhos() { "$RAIZ/scripts/arquivos_filhos.sh" aplicar 2>&1; }
 fix_janeladock() { "$RAIZ/scripts/appid_dock.sh" --aplicar 2>&1; }
 fix_lancador()  { "$RAIZ/scripts/lancador.sh" --aplicar 2>&1; }
 fix_lancadorapt() {
@@ -1548,7 +1551,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches graficos relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches graficos relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart arquivosfilhos atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 
 declare -A SEM_CONSERTO_RAZAO=(

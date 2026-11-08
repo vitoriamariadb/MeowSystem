@@ -9,8 +9,8 @@
 [![licença](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-CBA6F7?style=for-the-badge&labelColor=1E1E2E)](LICENSE)
 [![plataforma](https://img.shields.io/badge/Pop!__OS%2024.04-COSMIC-89B4FA?style=for-the-badge&labelColor=1E1E2E)](https://github.com/pop-os/cosmic-epoch)
 ![versão](https://img.shields.io/badge/vers%C3%A3o-v2.3.1-FAB387?style=for-the-badge&labelColor=1E1E2E)
-[![instalador](https://img.shields.io/badge/instalador-73%20etapas-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
-[![doctor](https://img.shields.io/badge/doctor-84%20confer%C3%AAncias-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
+[![instalador](https://img.shields.io/badge/instalador-74%20etapas-89DCEB?style=for-the-badge&labelColor=1E1E2E)](install.sh)
+[![doctor](https://img.shields.io/badge/doctor-85%20confer%C3%AAncias-94E2D5?style=for-the-badge&labelColor=1E1E2E)](bin/meow)
 
 <img src="docs/capturas/desktop.jpg" width="920" alt="A área de trabalho vestida pelo MeowSystem">
 
@@ -38,7 +38,7 @@ Sem o `git`, pelo arquivo do GitHub:
 curl -L https://github.com/vitoriamariadb/MeowSystem/archive/refs/heads/master.tar.gz | tar xz && cd MeowSystem-master && ./install.sh
 ```
 
-São 73 etapas, e nenhuma pede flag. A senha do sudo é pedida **uma vez**, para registrar a ponte
+São 74 etapas, e nenhuma pede flag. A senha do sudo é pedida **uma vez**, para registrar a ponte
 root; depois, nenhuma tela pede senha. O instalador baixa o que o Pop!_OS não traz: o compilador e
 as bibliotecas dos applets, do compositor e do Menu do Arquivos, o Rust (pelo `rustup`, em
 `~/.cargo`), o `fastfetch` e o `starship`. O compositor compila em segundo plano e vale no próximo
@@ -90,7 +90,7 @@ O formato está em [`docs/PACKS.md`](docs/PACKS.md).
 
 ## Manter
 
-`meow doctor` faz 84 conferências sem escrever nada; `meow doctor --consertar` conserta o que
+`meow doctor` faz 85 conferências sem escrever nada; `meow doctor --consertar` conserta o que
 estiver fora, sem mandar ninguém digitar. Ele roda sozinho às 5h, e o **Consertar** da porta
 Cuidar é o mesmo gesto.
 
