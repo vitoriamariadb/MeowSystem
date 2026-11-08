@@ -124,6 +124,7 @@ PORTATIL=(
   deb.sh
   espaco.sh
   levantamento.sh
+  pacotes-numa-lista.sh
 )
 
 MAQUINA=(

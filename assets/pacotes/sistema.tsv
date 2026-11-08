@@ -1,0 +1,10 @@
+rsvg-convert	librsvg2-bin
+convert	imagemagick
+gtk-update-icon-cache	libgtk-3-bin
+python3	python3
+git	git
+btop	btop
+batcat	bat
+curl	curl
+xz	xz-utils
+unzip	unzip

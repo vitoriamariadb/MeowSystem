@@ -357,23 +357,13 @@ etapa_atalho() {
 etapa_pacotes() {
   passo "Pacotes do sistema"
 
-  local -A NECESSARIOS=(
-    [rsvg-convert]=librsvg2-bin
-    [convert]=imagemagick
-    [gtk-update-icon-cache]=libgtk-3-bin
-    [python3]=python3
-    [git]=git
-    [btop]=btop
-    [batcat]=bat
-    [curl]=curl
-    [xz]=xz-utils
-    [unzip]=unzip
-  )
-  local faltam=()
-  local b
-  for b in "${!NECESSARIOS[@]}"; do
-    meow_tem "$b" || faltam+=("${NECESSARIOS[$b]}")
-  done
+  local faltam=() b p
+  [ -f "$MEOW_RAIZ/assets/pacotes/sistema.tsv" ] \
+    || { meow_erro "falta assets/pacotes/sistema.tsv — repositório incompleto"; return "$MEOW_ERRO"; }
+  while IFS=$'\t' read -r b p; do
+    [ -n "$b" ] && [ -n "$p" ] || continue
+    meow_tem "$b" || faltam+=("$p")
+  done < "$MEOW_RAIZ/assets/pacotes/sistema.tsv"
   [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
   [ -d /usr/share/fonts/opentype/fira ] || ! apt-cache show pop-fonts >/dev/null 2>&1 \
     || faltam+=(pop-fonts)

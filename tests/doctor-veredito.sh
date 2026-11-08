@@ -208,6 +208,7 @@ printf '\n--- 5. a lista da ponte é a do install.sh ---\n'
 do_install="$( (sed -n '/^etapa_pacotes()/,/^}/p' "$RAIZ/install.sh" \
   | grep -oE '\]=[a-zA-Z0-9_.+-]+|faltam\+=\([a-zA-Z0-9_.+-]+\)' \
   | sed -E 's/^\]=//; s/^faltam\+=\((.*)\)$/\1/'
+  cut -f2 "$RAIZ/assets/pacotes/sistema.tsv"
   cut -f2 "$RAIZ/assets/pacotes/compilar.tsv" \
   ) | LC_ALL=C sort -u | paste -sd' ' -)"
 da_ponte="$(sed -n 's/^ *PERMITIDOS=" \(.*\) "$/\1/p' "$RAIZ/scripts/ponte_root.sh" \
