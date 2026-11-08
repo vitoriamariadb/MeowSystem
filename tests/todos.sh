@@ -108,6 +108,7 @@ PORTATIL=(
   ponte-reparo.sh
   ponte-so-reserva.sh
   painel-janela-propria.sh
+  painel-sobrevive-ao-lancador.sh
   areas-em-cada-tela.sh
   margem-no-teto.sh
   ponte-cosmic-comp.sh

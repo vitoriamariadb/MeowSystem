@@ -130,8 +130,15 @@ fi
 TUBO="$(mktemp -u -t meow-app-XXXXXX)"
 mkfifo -m 600 "$TUBO" || { meow_erro "não consegui criar o cano em $TUBO"; exit "$MEOW_ERRO"; }
 
+ESCOPO_PROPRIO=()
+if [ "$ABRIR" = "1" ] && meow_tem systemd-run &&
+   systemd-run --user --scope --quiet --collect true >/dev/null 2>&1; then
+  ESCOPO_PROPRIO=(systemd-run --user --scope --quiet --collect --)
+fi
+
 MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$MEOW_ESTADO" MEOW_APP_VIGIA="$ABRIR" \
-  MEOW_APP_SEM_JANELA="$SEM_JANELA" python3 "$SERVIDOR" > "$TUBO" &
+  MEOW_APP_SEM_JANELA="$SEM_JANELA" ${ESCOPO_PROPRIO[@]+"${ESCOPO_PROPRIO[@]}"} \
+  python3 "$SERVIDOR" > "$TUBO" &
 PID=$!
 
 limpar() {
@@ -175,11 +182,24 @@ APP_ID="com.meowsystem.Painel"
 
 _soltar() {
   if [ -n "${MEOW_FD:-}" ]; then
-    eval '"$@" >/dev/null 2>&1 {MEOW_FD}>&- &'
+    eval '${ESCOPO_PROPRIO[@]+"${ESCOPO_PROPRIO[@]}"} "$@" >/dev/null 2>&1 {MEOW_FD}>&- &'
   else
-    "$@" >/dev/null 2>&1 &
+    ${ESCOPO_PROPRIO[@]+"${ESCOPO_PROPRIO[@]}"} "$@" >/dev/null 2>&1 &
   fi
+  local filho=$!
   disown 2>/dev/null || true
+  [ "${#ESCOPO_PROPRIO[@]}" -gt 0 ] && _esperar_sair_do_cgroup "$filho"
+  return 0
+}
+
+_esperar_sair_do_cgroup() {
+  local pid="$1" meu _
+  meu="$(cat "/proc/$$/cgroup" 2>/dev/null)"
+  for _ in $(seq 1 60); do
+    kill -0 "$pid" 2>/dev/null || return 0
+    [ "$(cat "/proc/$pid/cgroup" 2>/dev/null)" != "$meu" ] && return 0
+    sleep 0.05
+  done
 }
 
 _exec_do_desktop() {
