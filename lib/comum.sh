@@ -984,3 +984,16 @@ meow_desktop_banco() {
   fi
   return 0
 }
+
+meow_fontconfig_sem_rastro() {
+  [ -n "${MEOW_FC_DESCARTE:-}" ] && [ -f "$MEOW_FC_DESCARTE/fonts.conf" ] && return 0
+  local base="${FONTCONFIG_FILE:-/etc/fonts/fonts.conf}" dir
+  [ -f "$base" ] || return 0
+  dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/meow-fontconfig-$(id -u)"
+  mkdir -p "$dir/cache" 2>/dev/null || return 0
+  printf '<?xml version="1.0"?>\n<fontconfig>\n  <cachedir>%s/cache</cachedir>\n  <include ignore_missing="yes">%s</include>\n</fontconfig>\n' \
+    "$dir" "$base" > "$dir/fonts.conf" 2>/dev/null || return 0
+  export FONTCONFIG_FILE="$dir/fonts.conf" MEOW_FC_DESCARTE="$dir"
+}
+
+{ [ "${MEOW_SO_LE:-0}" = 1 ] || [ "$MEOW_SECO" = 1 ]; } && meow_fontconfig_sem_rastro

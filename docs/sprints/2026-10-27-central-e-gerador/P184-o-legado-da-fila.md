@@ -19,3 +19,19 @@ Pedido de quem usa, depois da P183: «Corrige isso e qualquer outro problema leg
 - `tests/margem-no-teto.sh`: a conf com 20 passa a dizer 8, o conferir não a toca, e a passada seguinte sai 0 sem aviso.
 - `apt list --upgradable` vazio.
 - A suíte portátil verde no contêiner e no CI do GitHub depois do push.
+
+## Andamento (08/11, madrugada)
+
+Curados: a margem (`7503f821`), o apt, a lista única de pacotes que o CI instala (`44d6e83e`), o `zstd` (`66c85851`), o `contrato-cosmic` (`49cd43a7`), o fontconfig que gravava `~/.cache/fontconfig` no doctor só leitura, no `meow status` e no install seco (fecha `doctor-so-le` e `deb`), o `icones_absolutos.sh` que exige o GTK 4 do Python e não só o `gi` (fecha o caso 11 do `achados-tecnicos`) e o `todos.sh --so=a.sh,b.sh`, que roda só os pedidos com os falsos da suíte.
+
+Ainda vermelhos no contêiner que imita o runner (`~/.cache/meow-ci-imagem`, imagem `meow-ci-novo`, uid 1001, o clone copiado para dentro; medir sempre pelo `todos.sh --so=`):
+
+- `achados-tecnicos`: «o mapa CRLF perdeu as linhas (rc=1)» e «sem a ponte, houve sudo fora dela (rc greeter=3)».
+- `doctor-veredito`: «sem curl, o instalar_fontes.sh não pediu pela ponte (recebido: 'pop-fonts')».
+- `garantir-builds`: «sem build, a linha patches diverge (rc 1)», «o --consertar não usou o systemd-run».
+- `maquina-nova`: «o apt não recebeu» os pacotes de compilar, «o install não trouxe o rust», «sem .git, rc 2».
+- `pack`: o `icones_bandeja.sh` e o `icones_sistema.sh` não pulam num pack de terceiro sem o bloco (rc 1, esperado 3).
+- `seco`: o ensaio não anuncia `meow-gato.timer`, `meow-wallpaper.timer`, `meow-fundo.path`, `meow-ativos.path`.
+- `nada-manda-digitar`: uma saída ainda manda digitar ou editar o conf.
+
+No GitHub, `pack`, `seco` e `nada-manda-digitar` passavam: podem ser só do contêiner, que é mais pelado que o runner. Os outros quatro caíam lá também.

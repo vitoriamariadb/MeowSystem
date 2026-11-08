@@ -1198,21 +1198,12 @@ chk_cli() {
 }
 
 _pacotes_faltando() {
-  local faltam=() par bin pac
-  while IFS= read -r par; do
-    [ -n "$par" ] || continue
-    bin="${par%%=*}"; bin="${bin#[}"; bin="${bin%]}"
-    pac="${par#*=}"
+  local faltam=() bin pac lista="$RAIZ/assets/pacotes/sistema.tsv"
+  [ -s "$lista" ] || { echo "não consegui ler a lista de pacotes (assets/pacotes/sistema.tsv)"; return "$MEOW_ERRO"; }
+  while IFS=$'\t' read -r bin pac; do
+    [ -n "$bin" ] && [ -n "$pac" ] || continue
     meow_tem "$bin" || faltam+=("$pac")
-  done < <(sed -n '/^etapa_pacotes()/,/^}/p' "$RAIZ/install.sh" \
-           | grep -oE '^[[:space:]]*\[[a-zA-Z0-9_.+-]+\]=[a-zA-Z0-9_.+-]+' \
-           | tr -d '[:blank:]')
-  [ "${#faltam[@]}" -gt 0 ] || {
-    local lidos
-    lidos="$(sed -n '/^etapa_pacotes()/,/^}/p' "$RAIZ/install.sh" \
-             | grep -cE '^[[:space:]]*\[[a-zA-Z0-9_.+-]+\]=[a-zA-Z0-9_.+-]+')"
-    [ "${lidos:-0}" -gt 0 ] || { echo "não consegui ler a lista de pacotes do install.sh"; return "$MEOW_ERRO"; }
-  }
+  done < "$lista"
   [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
   python3 -I -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
   [ -d /usr/share/fonts/opentype/fira ] || ! apt-cache show pop-fonts >/dev/null 2>&1 \
@@ -1697,6 +1688,7 @@ campo() { printf '    %s%s%s %s\n' "$C_DIM" "$(pad "$1" 12)" "$C_ZERO" "$2"; }
 
 cmd_status() {
   export MEOW_SO_LE=1
+  meow_fontconfig_sem_rastro
   carregar_conf --ponte-opcional || return "$MEOW_ERRO"
   meow_titulo "MeowSystem — estado"
 
@@ -1776,7 +1768,7 @@ cmd_doctor() {
     esac
     shift
   done
-  [ "$consertar" = 1 ] || export MEOW_SO_LE=1
+  [ "$consertar" = 1 ] || { export MEOW_SO_LE=1; meow_fontconfig_sem_rastro; }
   carregar_conf --ponte-opcional || return "$MEOW_ERRO"
 
   meow_titulo "MeowSystem — doctor"

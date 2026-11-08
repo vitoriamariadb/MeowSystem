@@ -1996,7 +1996,7 @@ main() {
       --uma-passagem) uma_passagem=1 ;;
       --etapa)     so_etapas="${2:-}"; [ $# -gt 0 ] && shift ;;
       --etapa=*)   so_etapas="${1#--etapa=}" ;;
-      --dry-run|--seco|-n)       MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN ;;
+      --dry-run|--seco|-n)       MEOW_SECO=1; MEOW_DRY_RUN=1; export MEOW_DRY_RUN; meow_fontconfig_sem_rastro ;;
       --uninstall|--desinstalar) desinstalar=1 ;;
       --guardar-backups) MEOW_GUARDAR_BACKUPS=1; export MEOW_GUARDAR_BACKUPS ;;
       --perfil)    com_perfil=1; perfil="${2:-}"; [ $# -gt 0 ] && shift ;;
