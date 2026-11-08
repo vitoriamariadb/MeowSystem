@@ -1001,4 +1001,6 @@ meow_fontconfig_sem_rastro() {
   export FONTCONFIG_FILE="$dir/fonts.conf" MEOW_FC_DESCARTE="$dir"
 }
 
-{ [ "${MEOW_SO_LE:-0}" = 1 ] || [ "$MEOW_SECO" = 1 ]; } && meow_fontconfig_sem_rastro
+if [ "${MEOW_SO_LE:-0}" = 1 ] || [ "$MEOW_SECO" = 1 ]; then
+  meow_fontconfig_sem_rastro
+fi

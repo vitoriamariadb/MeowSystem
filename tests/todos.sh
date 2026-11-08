@@ -125,6 +125,7 @@ PORTATIL=(
   espaco.sh
   levantamento.sh
   pacotes-numa-lista.sh
+  comum-carrega-limpo.sh
 )
 
 MAQUINA=(
