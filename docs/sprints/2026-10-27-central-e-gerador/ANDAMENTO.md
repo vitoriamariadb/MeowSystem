@@ -1,6 +1,12 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- 07/11, 22h, ANTES DO REBOOT: P184 em curso. Feito: margem (`7503f821`, só local, falta o push), apt zerado (kernel 7.2.15,
+  módulo da NVIDIA conferido). Install com o HOME real rodado no `master` local antes do reboot.
+  PRÓXIMO, depois do reboot: 1) conferir que a sessão subiu no 7.2.15 e que o doctor não acusa mais raio/patches/forma;
+  2) refazer o contêiner do CI (`~/.cache/meow-ci`, imagem `meow-ci`, uid 1001, copiar o clone para dentro) e rodar
+  `./tests/todos.sh --portatil`; 3) curar os 12 vermelhos do CI de uma vez, o workflow instalando a lista de pacotes do
+  install em vez da dele; 4) uma suíte, push, pull, install, `meow levantamento`.
 - 07/11, noite: install com o HOME real (askpass) e todos os builds. Os 12 `cosmic-*` atualizáveis subiram (o kernel e o resto
   não). Compositor, menu do Arquivos, portal e os três applets presos (Modo performance, Soneca, Ajustes rápidos) em `ok`; a
   segunda passagem do install: `rc=0`, nada a escrever. P182 aberta e curada (portal do rebuild local, menu fora do `/tmp`,
