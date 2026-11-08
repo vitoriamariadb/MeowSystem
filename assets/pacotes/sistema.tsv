@@ -8,3 +8,4 @@ batcat	bat
 curl	curl
 xz	xz-utils
 unzip	unzip
+zstd	zstd
