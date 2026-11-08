@@ -18,7 +18,10 @@ for b in Panel Dock; do
   echo 0 > "$d/margin"; echo 1.0 > "$d/opacity"; echo true > "$d/anchor_gap"
 done
 
-export HOME="$T/home" MEOW_COSMIC_SISTEMA="$T/sistema" MEOW_IGNORA_DESKTOP=1 NO_COLOR=1
+mkdir -p "$T/bin"
+printf '#!/bin/sh\nexit 0\n' > "$T/bin/cosmic-term"; chmod 755 "$T/bin/cosmic-term"
+mkdir -p "$C/com.system76.CosmicComp/v2" "$C/com.system76.CosmicAppletTime/v2"
+export HOME="$T/home" MEOW_COSMIC_SISTEMA="$T/sistema" MEOW_IGNORA_DESKTOP=1 NO_COLOR=1 PATH="$T/bin:$PATH"
 
 echo "== meow_cosmic_v"
 v="$(bash -c ". '$RAIZ/lib/comum.sh'; meow_cosmic_v com.system76.CosmicComp")"
