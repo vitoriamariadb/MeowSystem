@@ -987,12 +987,17 @@ meow_desktop_banco() {
 
 meow_fontconfig_sem_rastro() {
   [ -n "${MEOW_FC_DESCARTE:-}" ] && [ -f "$MEOW_FC_DESCARTE/fonts.conf" ] && return 0
-  local base="${FONTCONFIG_FILE:-/etc/fonts/fonts.conf}" dir
+  local base="${FONTCONFIG_FILE:-/etc/fonts/fonts.conf}" dir tmp
   [ -f "$base" ] || return 0
   dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/meow-fontconfig-$(id -u)"
-  mkdir -p "$dir/cache" 2>/dev/null || return 0
+  [ -d "$dir" ] || mkdir -m 700 "$dir" 2>/dev/null || return 0
+  [ -O "$dir" ] && [ ! -L "$dir" ] || return 0
+  chmod 700 "$dir" 2>/dev/null || return 0
+  [ -d "$dir/cache" ] || mkdir -m 700 "$dir/cache" 2>/dev/null || return 0
+  [ -O "$dir/cache" ] && [ ! -L "$dir/cache" ] || return 0
+  tmp="$(mktemp -p "$dir" fonts.XXXXXX)" || return 0
   printf '<?xml version="1.0"?>\n<fontconfig>\n  <cachedir>%s/cache</cachedir>\n  <include ignore_missing="yes">%s</include>\n</fontconfig>\n' \
-    "$dir" "$base" > "$dir/fonts.conf" 2>/dev/null || return 0
+    "$dir" "$base" > "$tmp" && mv -f "$tmp" "$dir/fonts.conf" || { rm -f "$tmp"; return 0; }
   export FONTCONFIG_FILE="$dir/fonts.conf" MEOW_FC_DESCARTE="$dir"
 }
 
