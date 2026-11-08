@@ -123,7 +123,7 @@ aplicar_barra() {
       case "$rc" in
         1) mudou=1
            meow_muda "$barra: a margem $margem do meow.conf passa do teto de $FORMA_TETO_MARGEM, acima do qual o cosmic-panel cai — a conf passa a dizer $FORMA_TETO_MARGEM" ;;
-        2) meow_erro "não consegui gravar $chave_margem no meow.conf"; return 2 ;;
+        2) meow_erro "$barra: a margem $FORMA_TETO_MARGEM não ficou guardada na configuração"; return 2 ;;
       esac
     else
       meow_aviso "$barra: margem $margem acima de $FORMA_TETO_MARGEM derruba o cosmic-panel — fica em $FORMA_TETO_MARGEM"
