@@ -547,17 +547,16 @@ EXTRAS = {
     "cuidar": ["estado:*", "cuidar:exportar", "cuidar:importar"],
     "modificacoes*": ["chave:APPS_ATIVOS:*", "acao:modificacao_*", "modificacao:*"],
 }
-GLOBAIS = ["marca", "porta:*", "busca", "achado", "mudancas", "desfazer-uma", "descartar",
-           "menu", "menu:*", "progresso:*", "pergunta:*", "exportar:imagens",
+GLOBAIS = ["marca", "porta:*", "busca", "achado", "descartar", "reiniciar-barra",
+           "progresso:*", "pergunta:*", "exportar:imagens",
            "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
 NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "chave:APPS_ATIVOS:*", "modificacao:ligar:*", "modificacao:menu:*",
-          "modificacao:adicionar", "busca", "achado", "mudancas", "desfazer-uma",
-          "descartar", "menu", "menu:*", "progresso:*", "pergunta:*",
+          "modificacao:adicionar", "busca", "achado",
+          "descartar", "reiniciar-barra", "progresso:*", "pergunta:*",
           "exportar:imagens", "criar:voltar", "criar:proximo"]
 OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cuidar", "porta:modificacoes",
                 "chave:APPS_ATIVOS:*", "busca", "achado",
-                "mudancas", "desfazer-uma", "descartar", "menu", "menu:creditos",
-                "menu:pagina", "progresso:parar", "pergunta:nao", "pergunta:sim",
+                "descartar", "reiniciar-barra", "progresso:parar", "pergunta:nao", "pergunta:sim",
                 "criar:voltar", "criar:proximo"]
 
 ROTAS = ["tema", "criar/cores", "criar/icones", "criar/papel", "criar/sons", "criar/mandar",
@@ -713,7 +712,7 @@ class Percurso:
                 return True
             except Exception:
                 self.pag.wait_for_timeout(200)
-                if nome in ("descartar", "desfazer-uma") and self.achar(nome) is None:
+                if nome == "descartar" and self.achar(nome) is None:
                     self.acionados.add(molde(nome))
                     return True
         estado = self.js("() => ({ n: document.getElementById('aplicar').dataset.n, mudancas: MUDANCAS.size,"
@@ -1594,15 +1593,8 @@ class Percurso:
         self.esperar_gravacao()
         self.checa(self.js("() => HISTORICO.length") == 1, "um clique num ajuste grava e entra na barra")
         self.checa(valor_de("RELOGIO_SEGUNDOS") != antes, "o meow.conf muda sem Aplicar")
-        self.checa(self.pag.locator("#conta").inner_text() == "1 mudança", "a barra diz «1 mudança»")
-        self.clicar("mudancas")
-        self.assentar()
-        if self.checa(self.achar("desfazer-uma"), "a conta abre a lista do que mudou"):
-            self.clicar("desfazer-uma")
-            self.esperar_gravacao()
-        self.checa(valor_de("RELOGIO_SEGUNDOS") == antes, "o Desfazer de uma mudança devolve o valor no meow.conf")
-        self.clicar("chave:RELOGIO_SEGUNDOS")
-        self.esperar_gravacao()
+        self.checa(self.pag.locator("#conta").count() == 0 and self.pag.locator("#ultimas").count() == 0,
+                   "o header não conta nem lista as mudanças")
         self.clicar("descartar")
         self.esperar_gravacao()
         self.checa(self.js("() => HISTORICO.length") == 0, "o Desfazer da barra esvazia a lista")
@@ -1624,17 +1616,14 @@ class Percurso:
                         self.checa(self.achar("progresso:parar"), "e a linha de progresso traz o Parar")
                     self.esperar_trabalho(teto=300, parar=True)
                     self.checa(not self.js("() => document.getElementById('progresso').offsetParent"), "e a linha some no fim")
-        self.clicar("menu")
-        self.assentar()
-        self.clicar("menu:creditos")
-        self.assentar()
-        if self.checa(self.aberto("creditos"), "«Créditos» abre o diálogo do painel"):
-            self.h_link_externo("creditos:repositorio")
-            self.clicar("creditos:ok")
+        self.checa(self.pag.locator("#menu").count() == 0, "sem Créditos nem «Esta tela num arquivo», o «…» não existe")
+        if self.checa(self.achar("reiniciar-barra"), "o header traz «Reiniciar a barra»"):
+            n0 = len(self.posts)
+            self.clicar("reiniciar-barra")
             self.assentar()
-        if not self.js("() => document.getElementById('menu').open"):
-            self.clicar("menu")
-        self.h_download("menu:pagina")
+            self.checa(any(u == "rodar" and c.get("acao") == "extensao_reiniciar_painel" for u, c in self.posts[n0:]),
+                       "e ele roda a ação que reinicia a barra do COSMIC")
+            self.esperar_trabalho(teto=120)
         self.clicar("marca")
         self.assentar()
         self.checa(self.js("() => location.hash") == "#tema", "a marca leva ao Tema")

@@ -1,11 +1,6 @@
 "use strict";
 
 const EXT = { dados: null, quando: 0, pedindo: false, religar: null, mudou: 0, trocou: false };
-const REPOSITORIO_DA_CASA = "https://github.com/vitoriamariadb/MeowSystem";
-const AUTORES = [
-  { nome: "Vitória Maria", papel: "autora" },
-  { nome: "André Farias", papel: "coautor" },
-];
 const ABAS_EXT = [
   { id: "applets", nome: "Applets", icone: "grade" },
   { id: "builds", nome: "Builds", icone: "terminal" },
@@ -475,33 +470,4 @@ async function puxarRepositorio() {
 async function pararRepositorio() {
   const t = ADICIONAR && ADICIONAR.trabalho;
   if (t) await api("/api/parar", { method: "POST", body: JSON.stringify({ id: t.id }) });
-}
-
-async function abrirCreditos() {
-  let d = document.getElementById("creditos");
-  if (!d) {
-    d = elemento("dialog", { id: "creditos", "aria-labelledby": "creditos-t" }, [
-      elemento("div", { class: "dentro" }, [
-        elemento("h2", { id: "creditos-t", texto: "MeowSystem" }),
-        elemento("ul", { class: "creditos" }, AUTORES.map((a) =>
-          elemento("li", {}, [elemento("b", { texto: a.nome }), elemento("span", { texto: a.papel })]))),
-        elemento("a", { class: "versao", href: REPOSITORIO_DA_CASA, target: "_blank", rel: "noopener",
-          controle: "creditos:repositorio", texto: REPOSITORIO_DA_CASA }),
-        elemento("ul", { class: "creditos upstreams", id: "creditos-upstreams" }),
-        elemento("div", { class: "acoes" }, [
-          botao("OK", { class: "bt principal", controle: "creditos:ok", onclick: () => d.close() })]),
-      ]),
-    ]);
-    document.body.append(d);
-  }
-  d.showModal();
-  if (!EXT.dados) {
-    const r = await api("/api/extensoes");
-    if (!r.erro) EXT.dados = r;
-  }
-  const origens = ((EXT.dados && EXT.dados.extensoes) || []).filter((e) => e.casa && e.upstream);
-  $("#creditos-upstreams").replaceChildren(...origens.map((e) => elemento("li", {}, [
-    elemento("b", { texto: e.nome }),
-    elemento("a", { class: "versao", href: e.upstream, target: "_blank", rel: "noopener",
-      controle: "creditos:upstream:" + e.id, texto: nomeDoRepositorio(e.upstream) })])));
 }

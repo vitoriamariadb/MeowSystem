@@ -59,11 +59,6 @@ dialog .campo { width: 100%; }
 dialog .registro { padding: 0; }
 dialog .pilha-campo { display: grid; gap: var(--e-2); }
 
-.creditos { display: grid; gap: var(--e-2); margin: 0; padding: 0; list-style: none; }
-.creditos li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--e-3); }
-.creditos li span { color: var(--tinta-3); }
-.creditos .versao { width: auto; overflow-wrap: anywhere; cursor: pointer; }
-.creditos.upstreams { padding-top: var(--e-3); border-top: 1px solid var(--linha); }
 
 #adicionar:not([data-passo="url"]):not([data-passo="erro-url"]) .p-url,
 #adicionar:not([data-passo="erro-url"]) .p-erro-url,

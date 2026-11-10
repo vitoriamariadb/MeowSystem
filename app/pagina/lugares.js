@@ -359,8 +359,7 @@ const LUGAR_MODIFICACOES = {
 const LUGAR_TOPO = [
   { g: "descartar", r: "Desfazer" },
   { g: "busca", r: "Procurar um ajuste" },
-  { g: "creditos", r: "Créditos" },
-  { g: "exportar-pagina", r: "Esta tela num arquivo" },
+  { g: "reiniciar-barra", r: "Reiniciar a barra" },
   { g: "parar", r: "Parar" },
 ];
 

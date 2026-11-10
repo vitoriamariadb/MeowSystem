@@ -14,9 +14,8 @@ GESTOS_DE_ANTES = [
     ("Descartar (só na página)", "Topo: Descartar", "descartar"),
     ("Busca (só na página)", "Topo: Buscar um ajuste ou uma ação", "busca"),
     ("GET /api/exportar/conf", "Topo: Exportar › Meus ajustes", "exportar-conf"),
-    ("GET /api/exportar/pagina", "Topo: Exportar › Esta tela num arquivo", "exportar-pagina"),
     ("POST /api/importar", "Topo: Importar", "importar"),
-    ("Link do repositório", "Menu: Créditos", "creditos"),
+    ("Recarregar o painel (só na página)", "Topo: Reiniciar a barra", "reiniciar-barra"),
     ("POST /api/pack-importar", "Início: Importar um pack", "pack-importar"),
     ("POST /api/pack-importar (CSV)", "Início: pack de um .csv", "tema-criar"),
     ("GET /api/pack-exportar", "Início: Exportar o pack", "pack-exportar"),
@@ -31,9 +30,7 @@ GESTOS_DE_ANTES = [
     ("GET /api/glifos", "Ícones: Buscar desenho", "glifos"),
     ("POST /api/autorais", "Ícones: Desenhos autorais do pack", "autorais"),
     ("POST /api/jogo-fora", "Lançadores e jogos: o jogo no lançador", "jogo-fora"),
-    ("POST /api/parar", "Janela do trabalho: Parar", "parar"),
-    ("POST /api/guardar-log", "Janela do trabalho: Guardar", "guardar-log"),
-    ("Rodar de verdade (depois do ensaio)", "Janela do trabalho: Rodar de verdade", "ensaio-rodar"),
+    ("POST /api/parar", "Topo: Parar", "parar"),
 ]
 
 def _node(expr):

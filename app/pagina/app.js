@@ -1154,30 +1154,11 @@ function lerClaro() {
 function atualizarAplicar() {
   const n = HISTORICO.length;
   $("#aplicar").dataset.n = String(n);
-  $("#conta").textContent = n === 1 ? "1 mudança" : `${n} mudanças`;
-  const caixa = $("#ultimas");
-  if (!n) { caixa.hidden = true; $("#conta").setAttribute("aria-expanded", "false"); }
-  caixa.replaceChildren(...HISTORICO.map((e) => elemento("div", { class: "ultima", role: "listitem" }, [
-    elemento("span", {}, [elemento("b", { texto: e.rotulo }), elemento("small", { texto: e.detalhe })]),
-    botao("Desfazer", { class: "bt leve pequeno", controle: "desfazer-uma", icone: "desfazer",
-      onclick: () => desfazerEntradas([e]) }),
-  ])));
 }
 function nomeDeChave(chave) {
   const l = inventarioDoPainel().find((x) => x.tipo === "chave" && x.id === chave);
   return l ? l.rotulo : ((CHAVE.get(chave) || {}).titulo || chave);
 }
-function fecharUltimas() {
-  $("#ultimas").hidden = true;
-  $("#conta").setAttribute("aria-expanded", "false");
-}
-function alternarUltimas() {
-  const caixa = $("#ultimas");
-  if (!HISTORICO.length) return;
-  caixa.hidden = !caixa.hidden;
-  $("#conta").setAttribute("aria-expanded", String(!caixa.hidden));
-}
-
 async function importarArquivo(arquivo) {
   if (!arquivo) return;
   if (arquivo.size > 512 * 1024) { torrada("Arquivo grande demais", "erro"); return; }
@@ -1300,15 +1281,6 @@ function desenharPortas() {
       [icone(p.icone), elemento("span", { texto: p.nome })]),
   ])));
 }
-function desenharMenu() {
-  const itens = [];
-  itens.push(elemento("button", { type: "button", role: "menuitem", controle: "menu:creditos", texto: "Créditos",
-    onclick: () => { $("#menu").open = false; abrirCreditos(); } }));
-  itens.push(elemento("a", { href: "/api/exportar/pagina", download: true, role: "menuitem",
-    controle: "menu:pagina", texto: "Esta tela num arquivo" }));
-  $("#menu-corpo").replaceChildren(...itens);
-}
-
 function render() {
   if (!ESQUEMA || ESQUEMA.erro) return;
   const ativo = document.activeElement;
@@ -1345,20 +1317,9 @@ async function iniciar() {
   atualizarAplicar();
   ligarDicas();
   ligarBusca();
-  desenharMenu();
   $(".pular").addEventListener("click", (ev) => { ev.preventDefault(); $("#principal").focus(); });
   $("#desfazer").addEventListener("click", desfazerTudo);
-  $("#conta").addEventListener("click", alternarUltimas);
-  const menu = $("#menu");
-  document.addEventListener("click", (e) => {
-    if (menu.open && !menu.contains(e.target)) menu.open = false;
-    if (!$("#aplicar").contains(e.target)) fecharUltimas();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape") return;
-    if (menu.open) { menu.open = false; menu.querySelector("summary").focus(); }
-    fecharUltimas();
-  });
+  $("#reiniciar-barra").addEventListener("click", () => rodar(ACAO.get("extensao_reiniciar_painel")));
   $("#parar").addEventListener("click", async () => {
     if (!TRABALHO) return;
     await api("/api/parar", { method: "POST", body: JSON.stringify({ id: TRABALHO.id }) });

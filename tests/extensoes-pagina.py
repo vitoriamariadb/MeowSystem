@@ -535,22 +535,11 @@ def main():
             pag.locator("#pergunta-nao").click()
             checa(os.path.isfile(os.path.join(casa.CASA, ".local", "bin", "meowsystem-novo")), "recusar a pergunta não remove")
 
-            print("10. Créditos: o diálogo do painel, com as duas autorias")
-            pag.locator("#menu summary").click()
-            checa(pag.locator("#menu-corpo [data-controle='menu:creditos']").evaluate("(e) => e.tagName") == "BUTTON", "«Créditos» é um botão do menu")
-            pag.locator("#menu-corpo [data-controle='menu:creditos']").click()
-            pag.wait_for_function("() => document.getElementById('creditos').open")
-            pag.wait_for_function("() => document.querySelectorAll('#creditos-upstreams li').length > 0", timeout=10000)
-            texto = pag.locator("#creditos").inner_text()
-            checa("Vitória Maria" in texto and "autora" in texto and "André Farias" in texto and "coautor" in texto,
-                  "o diálogo traz Vitória Maria (autora) e André Farias (coautor)")
-            href = pag.locator("#creditos [data-controle='creditos:repositorio']").get_attribute("href")
-            rel = pag.locator("#creditos [data-controle='creditos:repositorio']").get_attribute("rel")
-            checa(href == "https://github.com/vitoriamariadb/MeowSystem" and "noopener" in (rel or ""), f"o link da casa é {href}")
-            checa("dona/cosmic-ext-applet-casa-um" in texto, "e cada applet da casa aponta para o upstream")
-            foto("extensoes-creditos")
-            pag.locator("[data-controle='creditos:ok']").click()
-            pag.wait_for_function("() => !document.getElementById('creditos').open")
+            print("10. o header não tem «…», Créditos nem a lista de mudanças, e traz «Reiniciar a barra»")
+            checa(pag.locator("#menu").count() == 0 and pag.locator("#conta").count() == 0 and pag.locator("#creditos").count() == 0,
+                  "nada de menu, contagem ou Créditos")
+            checa(pag.locator("#reiniciar-barra").inner_text().strip() == "Reiniciar a barra", "o botão tem o nome do glossário")
+            foto("extensoes-header")
 
             print("11. os quatro forks do catálogo: um cartão por fork, com nome e ícone")
             pinos_reais = os.path.join(casa.RAIZ, "assets", "extensoes")
