@@ -1,7 +1,7 @@
 # Glossário da interface (P184, proposta de 10/11/2026)
 
 Critério único: quem lê só o nome sabe o que acontece ao clicar. Linguagem de produto, sem jargão da casa.
-Fonte: `relatorios/textos_da_tela.py` (582 textos únicos). Abaixo só o que troca; o resto fica como está.
+Fonte: `relatorios/textos-da-tela.tsv` (582 textos únicos). Abaixo só o que troca; o resto fica como está.
 
 Coluna «quem usa»: vazio = a aprovar; «sim» = aprovado; «fica» = segue o de hoje; outro texto = o escolhido.
 

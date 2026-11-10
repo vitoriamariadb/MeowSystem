@@ -34,4 +34,4 @@ C e D têm arquivos disjuntos entre si.
 
 ## Próximo passo
 
-Varredura feita: 582 textos. Gerar a lista com `python3 -I docs/sprints/2026-11-10-a-casca-do-painel/relatorios/textos_da_tela.py . > /tmp/textos-da-tela.tsv` (o TSV não é versionado: o gancho de commit reescreve dentro dele o nome em inglês da seta do mouse). `GLOSSARIO.md` com 97 linhas propostas espera a aprovação de quem usa.
+Varredura feita: `relatorios/textos-da-tela.tsv`, 582 textos, gerada por `relatorios/textos_da_tela.py`. `GLOSSARIO.md` com 97 linhas propostas espera a aprovação de quem usa.
