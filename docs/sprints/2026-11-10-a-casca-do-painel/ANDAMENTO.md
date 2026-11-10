@@ -32,6 +32,27 @@ C e D têm arquivos disjuntos entre si.
 2. B (a casca), depois A, C e D, no máximo dois em voo.
 3. Integração, suíte inteira, push, install nas três máquinas; P194 e P195 medidas na sessão real.
 
+## O glossário aprovado (10/11)
+
+`GLOSSARIO.md` fechado: coluna «quem usa» com as respostas do artifact e das perguntas. Leitura:
+`sim` troca pelo proposto; `fica` e `não: original` mantêm o de hoje; `não: <texto>` e texto solto valem o que
+ela escreveu; «sai» tira da tela. Várias respostas tiram linhas inteiras («Vale para», «Escolhida dura», o texto
+de «Pôr agora», «Simular», «Toca nos apps», «Reler», «Mascote novo entra»).
+
+Quem aplica:
+- **Bloco B** aplica TODAS as trocas de nome do glossário (rótulos em `lugares.js`, `rotulo` do `servidor.py`,
+  literais dos `.js` e `index.html`), mais as remoções da moldura: «Ver sem mudar», «Ensaio» e «Rodar de verdade»
+  saem (a tela já mostra o resultado em tempo real; o gesto é só «Aplicar»), «Procurar um ajuste» vira «Buscar»,
+  «Sem servidor» vira um estado com o motivo (ex.: «Não aplicado: falha no compositor»). Um teste lê o
+  `GLOSSARIO.md` e falha se um termo trocado voltar.
+- **Blocos A, C e D** fazem as remoções de linha das telas deles, sobre o B já integrado.
+
+## Blocos em voo
+
+| bloco | worktree | branch | agentes |
+| --- | --- | --- | --- |
+| B casca + glossário | `~/Desenvolvimento/.meow-wt-casca` | `bloco/casca` | implementa (agente high), confere e corrige (agente high) |
+
 ## Próximo passo
 
-Varredura feita: `relatorios/textos-da-tela.tsv`, 582 textos, gerada por `relatorios/textos_da_tela.py`. `GLOSSARIO.md` com as linhas propostas; as respostas de quem usa estão no artifact https://claude.ai/artifact/4EXn4h1dDSz1ju791RbV99 (Aprovado, Reprovado e comentário por linha) e voltam para cá quando ela terminar.
+Bloco B em voo. Quando o conferente voltar: integrar `bloco/casca` no master, depois A, C e D (no máximo dois em voo).

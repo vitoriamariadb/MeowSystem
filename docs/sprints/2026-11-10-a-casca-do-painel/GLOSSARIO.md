@@ -33,7 +33,7 @@ Coluna «quem usa»: respostas do artifact de 10/11 (`sim` troca pelo proposto; 
 | Gerar · Do acervo | Desenhar · Escolher pronto | fica |
 | Partida | Original | sim |
 | Aro | Borda | sim |
-| Reler | sai: o painel já relê o editor sozinho (proposta, falta o sim) | a responder |
+| Reler | sai: o painel já relê o editor sozinho a cada 2 s | sim (10/11) |
 | Toca no COSMIC | Nativo do COSMIC | sim |
 | Toca nos apps | Dos apps | ? Sai |
 | Ouvir o instalado | sai (P187) | sim |
