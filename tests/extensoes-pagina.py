@@ -340,7 +340,7 @@ def main():
             fim_do_trabalho(pag)
             checa(eventual(lambda: pilula(pag, "casa-um") == "Na barra"), f"depois de atualizar volta a «{pilula(pag, 'casa-um')}»")
 
-            print("6. falha de compilação: o cartão mostra o registro e oferece tentar de novo")
+            print("6. falha de compilação: o cartão não mostra registro e oferece tentar de novo")
             cartao(pag, "casa-tres").get_by_role("button", name="Remover Casa Três").click()
             confirmar(pag)
             fim_do_trabalho(pag)
@@ -351,8 +351,7 @@ def main():
             estado = fim_do_trabalho(pag)
             checa(estado == "erro", f"o trabalho termina em erro ({estado})")
             checa(eventual(lambda: pilula(pag, "casa-tres") == "Falhou"), f"o cartão diz «{pilula(pag, 'casa-tres')}»")
-            checa("linker" in cartao(pag, "casa-tres").locator(".registro").inner_text() or
-                  "linker" in cartao(pag, "casa-tres").locator(".registro").text_content(), "e o registro guarda o erro do cargo")
+            checa(pag.locator("#conteudo details.registro, #conteudo pre").count() == 0, "e nenhum registro aparece na tela")
             checa(eventual(lambda: "Tentar de novo" in botoes(pag, "casa-tres")), f"e oferece tentar de novo ({botoes(pag, 'casa-tres')})")
             foto("extensoes-falhou")
             os.remove(os.path.join(TESTE, "falha"))

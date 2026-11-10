@@ -33,6 +33,9 @@ GESTOS_DE_ANTES = [
     ("POST /api/parar", "Topo: Parar", "parar"),
 ]
 
+FORA_DA_TELA = {"LOG_NIVEL"}
+
+
 def _node(expr):
     js = ("const L = require(%s); process.stdout.write(JSON.stringify(%s));"
           % (json.dumps(os.path.join(RAIZ, "app", "pagina", "lugares.js")), expr))
@@ -121,10 +124,10 @@ def gerar():
     linhas.append("|---|---|---|---|")
     for chave, secao, titulo in chaves:
         lugares = por.get(("chave", chave), [])
-        if not lugares:
+        if not lugares and chave not in FORA_DA_TELA:
             sem += 1
             falhas.append("chave sem destino: %s" % chave)
-        agora = "; ".join(sorted({onde(l) for l in lugares})) or "**SEM DESTINO**"
+        agora = "; ".join(sorted({onde(l) for l in lugares})) or ("fora da tela" if chave in FORA_DA_TELA else "**SEM DESTINO**")
         nome = "; ".join(sorted({l["rotulo"] for l in lugares}))
         linhas.append("| `%s` | %s | %s | %s |" % (chave, secao or "—", agora, nome))
 

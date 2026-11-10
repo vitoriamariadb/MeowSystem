@@ -101,8 +101,6 @@ function cartaoDeExtensao(e, ocupado) {
       elemento("div", {}, [elemento("h3", { texto: e.nome }), versaoDaExtensao(e)]),
     ]),
     elemento("span", { class: "estado-pilula", "data-estado": estado, "data-pilula": true, texto }),
-    e.falhou && e.registro ? elemento("details", { class: "registro" }, [
-      elemento("summary", { texto: "Registro" }), elemento("pre", {}, linhasDoRegistro(e.registro))]) : null,
     elemento("div", { class: "fila" }, botoesDoCartao(e, parado)),
   ]);
 }
@@ -141,11 +139,6 @@ function cartaoDoBuildDaCasa(e, ocupado, construindo, remendos) {
     elemento("span", { class: "estado-pilula", "data-estado": estado, "data-pilula": true, texto }),
     elemento("div", { class: "fila" }, botoesDoBuildDaCasa(e, !!ocupado || !!construindo)),
   ]);
-}
-
-function linhasDoRegistro(texto) {
-  return String(texto || "").split("\n").map((l) =>
-    elemento("span", { class: classeDaLinha(l) || null, texto: l + "\n" }));
 }
 
 function pendenciaDeTroca(e, parado) {
@@ -224,7 +217,6 @@ function blocoDeBuilds(dados) {
       });
     }),
   ];
-  const falhas = (dados.extensoes || []).filter((e) => e.falhou && e.registro);
   return elemento("section", { class: "bloco", "data-bloco": "Builds" }, [
     elemento("header", {}, [elemento("h2", { texto: "Builds" }),
       botao("Refazer tudo", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "build:tudo",
@@ -233,8 +225,6 @@ function blocoDeBuilds(dados) {
     daCasa.length ? elemento("div", { class: "grade-extensoes grade-builds" },
       daCasa.map((e) => cartaoDoBuildDaCasa(e, ocupado, b.construindo, b.remendos))) : null,
     elemento("ul", { class: "linhas" }, linhas),
-    ...falhas.map((e) => elemento("details", { class: "registro", open: true }, [
-      elemento("summary", { texto: "Registro de " + e.nome }), elemento("pre", {}, linhasDoRegistro(e.registro))])),
   ]);
 }
 

@@ -271,11 +271,7 @@ const LUGAR_CUIDAR = {
       { c: "STEAM_VIGIA", r: "Jogo desinstalado sai" },
       { c: "HEROIC_VIGIA", r: "Jogo do Heroic" },
       { c: "PONTE_ROOT", r: "Consertos de sistema" },
-    ] },
-    { titulo: "Registro", linhas: [
-      { c: "LOG_NIVEL", r: "Quanto fala" },
-      { c: "BACKUPS_MANTIDOS", r: "Cópias guardadas" },
-      { a: "log", r: "Registro", b: "Ver" },
+      { c: "BACKUPS_MANTIDOS", r: "Backups guardados" },
     ] },
   ],
   maquina: [

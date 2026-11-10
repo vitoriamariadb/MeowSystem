@@ -256,6 +256,20 @@ def main():
             pag.locator("#desfazer").click()
             assentar(pag)
 
+            print("10. P191: o Manter não tem registro, e os backups guardados moram no bloco do que roda sozinho")
+            ir(pag, "cuidar")
+            checa(pag.locator('[data-controle="chave:LOG_NIVEL"], [data-controle="acao:log"], [data-bloco="Registro"]').count() == 0,
+                  "sem «Quanto fala», sem «Ver o registro» e sem bloco de registro")
+            backups = pag.locator('.linha[data-linha~="BACKUPS_MANTIDOS"]')
+            checa(backups.count() == 1 and backups.evaluate("(e) => e.closest('.bloco').dataset.bloco") == "Sozinho",
+                  "«Backups guardados» está no bloco «Sozinho»")
+            valor10 = casa.valor_de("BACKUPS_MANTIDOS")
+            novo10 = "7" if valor10 != "7" else "8"
+            pag.evaluate("([c, v]) => escolher(c, v)", ["BACKUPS_MANTIDOS", novo10])
+            assentar(pag)
+            checa(casa.valor_de("BACKUPS_MANTIDOS") == novo10, "e grava pelo bloco novo")
+            pag.locator("#desfazer").click()
+            assentar(pag)
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:

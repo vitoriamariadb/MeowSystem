@@ -67,25 +67,17 @@ TRANSBORDOS = """
 }
 """
 
-VOLTAR_E_REGISTRO = """
-() => {
-  const r = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { top: Math.round(b.top), bottom: Math.round(b.bottom), left: Math.round(b.left) }; };
-  return { registro: r('.grade-cuidar > [data-bloco="Registro"]'), voltar: r('.grade-cuidar > .bloco.tracejado') };
-}
+SEM_REGISTRO_E_COM_PERIGO = """
+() => ({ registro: document.querySelectorAll('[data-bloco="Registro"]').length,
+         logs: document.querySelectorAll('.grade-cuidar pre, .grade-cuidar details.registro').length,
+         perigo: document.querySelectorAll('.grade-cuidar > .bloco.tracejado').length })
 """
 
 
-def voltar_ao_lado_do_registro(pag, largura):
-    p = pag.evaluate(VOLTAR_E_REGISTRO)
-    reg, vol = p["registro"], p["voltar"]
-    if not (reg and vol):
-        checa(False, f"cuidar {largura}: o Registro e o cartão tracejado são filhos da grade ({p})")
-    elif largura > 860:
-        checa(vol["top"] == reg["top"] and vol["left"] > reg["left"],
-              f"cuidar {largura}: o cartão tracejado fica à direita do Registro, no mesmo topo ({p})")
-    else:
-        checa(vol["left"] == reg["left"] and vol["top"] >= reg["bottom"],
-              f"cuidar {largura}: numa coluna, o cartão tracejado vem depois do Registro ({p})")
+def sem_registro_e_com_perigo(pag, largura):
+    p = pag.evaluate(SEM_REGISTRO_E_COM_PERIGO)
+    checa(p["registro"] == 0 and p["logs"] == 0 and p["perigo"] == 1,
+          f"cuidar {largura}: sem bloco de registro nem log, e o cartão tracejado é filho da grade ({p})")
 
 
 POSICOES = """
@@ -205,7 +197,7 @@ def main():
                     nome = rota.replace("/", "-")
                     ruins = pag.evaluate(TRANSBORDOS)
                     if rota == "cuidar":
-                        voltar_ao_lado_do_registro(pag, w)
+                        sem_registro_e_com_perigo(pag, w)
                     checa(not ruins, f"{rota}: nada estoura o pai ({ruins[:3]})")
                     foto(pag, f"{w}x{h}-{nome}-topo")
                     pag.evaluate("() => scrollTo(0, document.documentElement.scrollHeight)")
@@ -232,7 +224,7 @@ def main():
             pag.goto(url)
             esperar(pag, 800)
             ir(pag, "cuidar")
-            voltar_ao_lado_do_registro(pag, 800)
+            sem_registro_e_com_perigo(pag, 800)
             foto(pag, "800x1000-cuidar-topo")
             contexto.close()
             contexto = nav.new_context(viewport={"width": 1920, "height": 1080})

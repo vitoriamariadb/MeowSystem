@@ -3724,14 +3724,6 @@ ACOES = {
         "ajuda": "Tira o que o MeowSystem reconstrói sozinho: compilação dos "
                  "applets, cache do compositor e resíduos. Nada que seja seu.",
     },
-    "log": {
-        "rotulo": "Ver o registro",
-        "grupo": "Instalação",
-        "natureza": "mostrar",
-        "argv": _meow("log"),
-        "escreve": False, "sudo": False, "confirma": False, "oculta": True,
-        "ajuda": "O que este projeto escreveu, e quando.",
-    },
 
     "sistema_ver": {
         "rotulo": "O que muda",
