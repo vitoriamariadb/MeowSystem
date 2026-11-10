@@ -34,4 +34,4 @@ C e D têm arquivos disjuntos entre si.
 
 ## Próximo passo
 
-Varredura feita: `relatorios/textos-da-tela.tsv`, 582 textos, gerada por `relatorios/textos_da_tela.py`. `GLOSSARIO.md` com 97 linhas propostas espera a aprovação de quem usa.
+Varredura feita: `relatorios/textos-da-tela.tsv`, 582 textos, gerada por `relatorios/textos_da_tela.py`. `GLOSSARIO.md` com as linhas propostas; as respostas de quem usa estão no artifact https://claude.ai/artifact/4EXn4h1dDSz1ju791RbV99 (Aprovado, Reprovado e comentário por linha) e voltam para cá quando ela terminar.

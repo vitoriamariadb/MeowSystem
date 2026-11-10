@@ -11,7 +11,8 @@ Coluna «quem usa»: vazio = a aprovar; «sim» = aprovado; «fica» = segue o d
 | --- | --- | --- |
 | Definir (aba) | Ajustes | |
 | Manter (aba) | Manutenção | |
-| Modificações (aba) | Temas nos apps | |
+| Modificações (aba) | Temas nos apps | sim |
+| Procurar um ajuste | Buscar | sim |
 | N mudanças | sai (P190) | sim |
 | Recarregar o painel | Reiniciar a barra | |
 | Créditos · Esta tela num arquivo | saem (P190) | sim |
