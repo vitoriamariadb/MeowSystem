@@ -505,6 +505,14 @@ TEXTO_RUIM_JS = r"""
 }
 """
 
+def fim_do_trabalho(pag, teto=180000):
+    pag.wait_for_function("() => ['ok', 'erro'].includes(document.getElementById('progresso').dataset.estado)"
+                          " && (!TRABALHO || !TRABALHO.timer)", timeout=teto)
+    estado = pag.evaluate("() => document.getElementById('progresso').dataset.estado")
+    pag.evaluate("() => { document.getElementById('progresso').dataset.estado = 'lido'; }")
+    return estado
+
+
 def molde(nome):
     n = re.sub(r"=.*$", "=*", nome)
     n = re.sub(r"^pack:[^:]+:", "pack:*:", n)
@@ -540,18 +548,17 @@ EXTRAS = {
     "modificacoes*": ["chave:APPS_ATIVOS:*", "acao:modificacao_*", "modificacao:*"],
 }
 GLOBAIS = ["marca", "porta:*", "busca", "achado", "mudancas", "desfazer-uma", "descartar",
-           "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*", "exportar:imagens",
+           "menu", "menu:*", "progresso:*", "pergunta:*", "exportar:imagens",
            "padrao:*", "automatico:*", "restaurar:*", "ficha:*"]
 NO_FIM = ["marca", "porta:*", "ajuste:*", "passo:*", "chave:APPS_ATIVOS:*", "modificacao:ligar:*", "modificacao:menu:*",
           "modificacao:adicionar", "busca", "achado", "mudancas", "desfazer-uma",
-          "descartar", "menu", "menu:*", "trabalho", "resultado:*", "pergunta:*",
+          "descartar", "menu", "menu:*", "progresso:*", "pergunta:*",
           "exportar:imagens", "criar:voltar", "criar:proximo"]
 OBRIGATORIOS = ["marca", "porta:tema", "porta:criar", "porta:ajustes", "porta:cuidar", "porta:modificacoes",
                 "chave:APPS_ATIVOS:*", "busca", "achado",
                 "mudancas", "desfazer-uma", "descartar", "menu", "menu:creditos",
-                "menu:pagina", "trabalho", "resultado:ok", "resultado:guardar", "resultado:parar",
-                "resultado:registro", "pergunta:nao", "pergunta:sim",
-                "pergunta:ensaio", "criar:voltar", "criar:proximo"]
+                "menu:pagina", "progresso:parar", "pergunta:nao", "pergunta:sim",
+                "criar:voltar", "criar:proximo"]
 
 ROTAS = ["tema", "criar/cores", "criar/icones", "criar/papel", "criar/sons", "criar/mandar",
          "novo/cores", "novo/papel", "novo/mandar",
@@ -691,6 +698,8 @@ class Percurso:
     def clicar(self, nome, so_livre=False):
         if nome.startswith("acao:"):
             self.esperar_gravacao()
+        if nome != "progresso:parar":
+            self.js("() => { document.getElementById('progresso').dataset.estado = 'lido'; }")
         for _vez in range(4):
             el = self.esperar_nome(nome, teto=4.0)
             if so_livre:
@@ -704,8 +713,6 @@ class Percurso:
                 return True
             except Exception:
                 self.pag.wait_for_timeout(200)
-                if not nome.startswith(("resultado:", "pergunta:")) and self.aberto("resultado"):
-                    self.limpar()
                 if nome in ("descartar", "desfazer-uma") and self.achar(nome) is None:
                     self.acionados.add(molde(nome))
                     return True
@@ -754,38 +761,21 @@ class Percurso:
         fim = time.time() + teto
         parou = False
         while time.time() < fim:
-            correndo = self.js("() => document.getElementById('resultado-estado').dataset.estado === 'correndo'"
-                               " && !document.getElementById('parar').hidden")
-            if not correndo:
+            if not self.js("() => !!TRABALHO && !!TRABALHO.timer"):
                 break
-            if parar and not parou and self.achar("resultado:parar"):
-                self.clicar("resultado:parar")
+            if parar and not parou and self.achar("progresso:parar"):
+                self.clicar("progresso:parar")
                 parou = True
             self.pag.wait_for_timeout(300)
         else:
-            if self.achar("resultado:parar"):
-                self.clicar("resultado:parar")
+            if self.achar("progresso:parar"):
+                self.clicar("progresso:parar")
                 self.pag.wait_for_timeout(2000)
             self.falha("o trabalho passou do teto de %ds" % teto)
-        estado = self.js("() => document.getElementById('resultado-estado').textContent")
-        self.checa(estado and estado[0].isupper(), f"a janela diz o fim com maiúscula ({estado!r})")
-        return estado
+        return self.js("() => document.getElementById('progresso').dataset.estado")
 
-    def fechar_resultado(self):
-        for _vez in range(4):
-            if not self.aberto("resultado"):
-                break
-            el = self.esperar_nome("resultado:ok", teto=4.0)
-            try:
-                if el is not None:
-                    el.click(timeout=5000)
-                    self.acionados.add(molde("resultado:ok"))
-            except Exception:
-                self.pag.wait_for_timeout(300)
-        else:
-            if self.aberto("resultado"):
-                self.falha("o «OK» não fecha a janela do trabalho")
-        self.assentar()
+    def trabalho_visto(self):
+        return self.js("() => ['correndo', 'ok', 'erro'].includes(document.getElementById('progresso').dataset.estado)")
 
     def fechar_pergunta(self):
         if self.aberto("pergunta"):
@@ -796,10 +786,9 @@ class Percurso:
         for _vez in range(3):
             if self.aberto("pergunta"):
                 self.fechar_pergunta()
-            if self.aberto("resultado"):
+            if self.js("() => !!TRABALHO && !!TRABALHO.timer"):
                 longo = self.js("() => !!TRABALHO && TRABALHO.acao === 'instalar'")
                 self.esperar_trabalho(parar=longo)
-                self.fechar_resultado()
             if not self.js("() => !!TRABALHO && !!TRABALHO.timer"):
                 break
             self.pag.wait_for_timeout(500)
@@ -813,25 +802,11 @@ class Percurso:
             if titulo == "Falta a ponte":
                 self.fechar_pergunta()
                 return "ponte"
-            if self.achar("pergunta:ensaio"):
-                self.clicar("pergunta:ensaio")
-                self.assentar()
-                if self.checa(self.aberto("resultado"), f"o «Ver sem mudar» de «{nome}» abre a janela"):
-                    self.checa(self.js("() => !document.getElementById('faixa-ensaio').hidden"),
-                               f"a janela do ensaio de «{nome}» diz que é ensaio")
-                    self.esperar_trabalho()
-                    if nome == "acao:leitura_remover" and self.achar("resultado:de-verdade"):
-                        self.clicar("resultado:de-verdade")
-                        self.assentar()
-                        self.esperar_trabalho()
-                    self.fechar_resultado()
-                return "ensaio"
             self.clicar("pergunta:sim")
             self.assentar()
-        if self.aberto("resultado"):
+        if self.trabalho_visto():
             longo = self.js("() => !!TRABALHO && TRABALHO.acao === 'instalar'")
             self.esperar_trabalho(parar=longo)
-            self.fechar_resultado()
             return "trabalho"
         return ""
 
@@ -1201,7 +1176,7 @@ class Percurso:
         if acao and acao["sudo"] and not ponte:
             self.checa(como == "ponte", f"«{nome}» é de root e, sem a ponte, mostra «Falta a ponte» ({como!r})")
         elif acao and acao["confirma"]:
-            self.checa(como in ("ensaio", "trabalho"), f"«{nome}» pergunta e roda ({como!r})")
+            self.checa(como == "trabalho", f"«{nome}» pergunta e roda ({como!r})")
         else:
             self.checa(como == "trabalho" or len(self.posts) > n0 or self.estado() != antes,
                        f"«{nome}» roda ({como!r})")
@@ -1564,7 +1539,6 @@ class Percurso:
             except Exception as e:  # noqa: BLE001
                 self.falha(f"o gesto em «{nome}» quebrou: {type(e).__name__}: {str(e).splitlines()[0][:160]}")
                 self.fechar_pergunta()
-                self.fechar_resultado()
             self.acionados.add(m)
             if time.time() - t0 > 20:
                 print(f"   · {nome}: {round(time.time() - t0)}s", flush=True)
@@ -1645,20 +1619,11 @@ class Percurso:
                            "e o botão é «Consertar a ponte»")
                 self.clicar("pergunta:sim")
                 self.assentar()
-                if self.checa(self.aberto("resultado"), "«Consertar a ponte» roda"):
+                if self.checa(self.trabalho_visto(), "«Consertar a ponte» roda"):
                     if self.js("() => !!TRABALHO && !!TRABALHO.timer"):
-                        self.pag.keyboard.press("Escape")
-                        self.assentar()
-                        if self.checa(self.achar("trabalho"), "fechar a janela com o trabalho correndo deixa a pastilha"):
-                            self.clicar("trabalho")
-                            self.assentar()
+                        self.checa(self.achar("progresso:parar"), "e a linha de progresso traz o Parar")
                     self.esperar_trabalho(teto=300, parar=True)
-                    if self.achar("resultado:registro"):
-                        self.clicar("resultado:registro")
-                    if self.achar("resultado:guardar"):
-                        self.clicar("resultado:guardar")
-                        self.assentar()
-                    self.fechar_resultado()
+                    self.checa(not self.js("() => document.getElementById('progresso').offsetParent"), "e a linha some no fim")
         self.clicar("menu")
         self.assentar()
         self.clicar("menu:creditos")

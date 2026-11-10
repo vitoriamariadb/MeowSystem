@@ -50,23 +50,6 @@ def foto(pag, nome):
         pag.screenshot(path=os.path.join(FOTOS, nome + ".png"))
 
 
-def janela(pag, teto=60000):
-    try:
-        pag.wait_for_function("() => document.getElementById('resultado').open", timeout=teto)
-        return True
-    except Exception:
-        return False
-
-
-def parar_e_fechar(pag):
-    if pag.evaluate("() => document.getElementById('resultado').open"):
-        if pag.locator("#parar").is_visible():
-            pag.locator("#parar").click()
-        pag.wait_for_function("() => document.getElementById('parar').hidden", timeout=120000)
-        pag.locator("#resultado-ok").click()
-        pag.wait_for_timeout(300)
-
-
 def main():
     ambiente = casa.montar_casa()
     proc, url = casa.sobe_servidor(ambiente)
@@ -97,7 +80,7 @@ def main():
             definir = [c for u, c in posts[n0:] if u == "definir"]
             checa(definir and f'"valor": "{outra}"' in definir[0].replace('":"', '": "') and "FLAVOR" in definir[0],
                   f"o /api/definir leva FLAVOR={outra} ({definir[:1]})")
-            checa(not pag.evaluate("() => document.getElementById('resultado').open"), "e nenhuma janela de trabalho abre")
+            checa(pag.locator("#resultado").count() == 0, "e não existe janela de resultado")
             foto(pag, "1-vestir")
             checa(casa.valor_de("FLAVOR") == outra, f"o meow.conf diz FLAVOR={outra}")
             checa(pag.evaluate("() => HISTORICO.length") == 1, "e a variante entra na barra para desfazer")

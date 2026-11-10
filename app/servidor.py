@@ -5260,15 +5260,13 @@ def inventario_do_painel():
                 pus(l, "modificacoes", d["nome"], b["titulo"])
     for l in c["LUGAR_TOPO"]:
         pus(l, "topo", "Barra de cima", "Barra de cima")
-    for l in c["LUGAR_JANELA"]:
-        pus(l, "janela", "Janela do trabalho", "Janela do trabalho")
     _LUGARES["tabela"] = saida
     return saida
 
 
 def _caminho_na_tela(l):
-    porta = l["pagina"] if l["porta"] in ("topo", "janela") else nome_da_porta(l["porta"])
-    base = porta if l["porta"] in ("tema", "cuidar", "topo", "janela") or not l["pagina"] \
+    porta = l["pagina"] if l["porta"] == "topo" else nome_da_porta(l["porta"])
+    base = porta if l["porta"] in ("tema", "cuidar", "topo") or not l["pagina"] \
         else "%s › %s" % (porta, l["pagina"])
     if l["bloco"] and l["bloco"] not in (l["pagina"], base):
         return base + " › " + l["bloco"]

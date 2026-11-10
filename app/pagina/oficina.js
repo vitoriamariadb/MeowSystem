@@ -635,7 +635,7 @@ async function rodarNaGaleria(id, argumento) {
   if (!a) return;
   const r = await api("/api/rodar", { method: "POST", body: JSON.stringify({ acao: id, argumento, confirmado: true }) });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirResultado(r);
+  iniciarProgresso(r);
 }
 function montarGaleria() {
   const abas = elemento("div", { class: "seg", role: "group", "aria-label": "Grupo" });
@@ -686,7 +686,7 @@ async function definirJogo(appid, acao, motivo, remover) {
   if (r.erro) { torrada(r.erro, "erro"); return; }
   JOGO_ABERTO = null;
   const t = await api("/api/rodar", { method: "POST", body: JSON.stringify({ acao: "jogos_aplicar", argumento: "", confirmado: true }) });
-  if (t.erro) torrada(t.erro, "erro"); else abrirResultado(t);
+  if (t.erro) torrada(t.erro, "erro"); else iniciarProgresso(t);
   JOGOS = null;
 }
 async function trocarNoLancador(j, ligar) {

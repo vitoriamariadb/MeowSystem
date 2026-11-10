@@ -1014,7 +1014,7 @@ function botaoAcervo(tipo, texto, comoEscolha = false) {
   return elemento("span", { style: "display:contents" }, [b, campo]);
 }
 
-function perguntar({ titulo, ok = "OK", perigo = false, corpo = null, ensaio = false }) {
+function perguntar({ titulo, ok = "OK", perigo = false, corpo = null }) {
   const d = $("#pergunta");
   $("#pergunta-titulo").textContent = maiuscula(titulo);
   $("#pergunta-corpo").replaceChildren(...(corpo ? [corpo] : []));
@@ -1022,16 +1022,14 @@ function perguntar({ titulo, ok = "OK", perigo = false, corpo = null, ensaio = f
   const sim = $("#pergunta-sim");
   sim.textContent = maiuscula(ok);
   sim.className = "bt " + (perigo ? "perigo" : "principal");
-  $("#confirmar-ensaio").hidden = !ensaio;
   d.returnValue = "";
   d.showModal();
   return new Promise((resolver) => {
-    d.addEventListener("close", () => resolver(d.returnValue === "seco" ? "seco" : d.returnValue === "sim"), { once: true });
+    d.addEventListener("close", () => resolver(d.returnValue === "sim"), { once: true });
   });
 }
 
 let TRABALHO = null;
-let ULTIMO_TRABALHO = null;
 const RESTAUROS = new Set();
 function lerRestauros() {
   RESTAUROS.clear();
@@ -1052,21 +1050,18 @@ async function esperarOSinoGravado() {
 async function rodar(acao, argumento = "", opcoes = {}) {
   if (!acao) return null;
   if (acao.id === "som_aplicar" && !(await esperarOSinoGravado())) return null;
-  if (TRABALHO && TRABALHO.timer) { torrada("Espere o trabalho terminar"); abrirJanela(); return null; }
+  if (TRABALHO && TRABALHO.timer) { torrada("Espere o trabalho terminar"); return null; }
   if (deRoot(acao) && !ESQUEMA.ponte) { await semPonte(); return null; }
-  let seco = false;
   if (acao.confirma && !opcoes.semPerguntar) {
     const ok = await perguntar({ titulo: maiuscula(acao.rotulo) + "?", ok: opcoes.verbo || acao.rotulo,
-      perigo: !!acao.destrutivo, ensaio: !!acao.escreve });
+      perigo: !!acao.destrutivo });
     if (!ok) return null;
-    seco = ok === "seco";
   }
   TRABALHOS_A_CAMINHO++;
   const r = await api("/api/rodar", { method: "POST",
-    body: JSON.stringify({ acao: acao.id, argumento, confirmado: true, seco }) }).finally(() => { TRABALHOS_A_CAMINHO--; });
+    body: JSON.stringify({ acao: acao.id, argumento, confirmado: true }) }).finally(() => { TRABALHOS_A_CAMINHO--; });
   if (r.erro) { torrada(r.erro, "erro"); return null; }
-  abrirResultado(r, opcoes.depois || null,
-    seco ? () => rodar(acao, argumento, { ...opcoes, semPerguntar: true }) : null);
+  iniciarProgresso(r, opcoes.depois || null);
   return r;
 }
 async function rodarAcao(id, argumento = "") {
@@ -1076,7 +1071,7 @@ async function restaurarAcao(id) {
   const r = await api("/api/rodar", { method: "POST",
     body: JSON.stringify({ acao: "restaurar", argumento: id, confirmado: true }) });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirResultado(r);
+  iniciarProgresso(r);
   if (TRABALHO) TRABALHO.restaura = id;
 }
 function fimDoTrabalho() {
@@ -1086,35 +1081,21 @@ function fimDoTrabalho() {
   });
 }
 
-function abrirJanela() {
-  const d = $("#resultado");
-  if (!d.open) d.showModal();
-  pastilhaDeTrabalho(false);
-}
-function marcarEstado(estado, texto) {
-  const el = $("#resultado-estado");
-  el.dataset.estado = estado;
-  el.textContent = maiuscula(texto);
-}
-function abrirResultado(trabalho, depois = null, deVerdade = null) {
+function iniciarProgresso(trabalho, depois = null) {
   if (TRABALHO && TRABALHO.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve, rotulo: maiuscula(trabalho.rotulo),
-               acao: trabalho.acao || null, fim: trabalho.fim || {}, mudou: false, depois,
-               conserta: trabalho.conserta_com || null, seco: !!trabalho.seco, deVerdade };
-  ULTIMO_TRABALHO = { id: trabalho.id, acao: trabalho.acao || null };
-  $("#resultado-titulo").textContent = maiuscula(trabalho.rotulo || "Trabalho");
-  $("#saida").replaceChildren();
-  $("#registro").open = false;
-  $("#parar").hidden = false;
-  $("#resultado-restaurar").hidden = true;
-  $("#faixa-ensaio").hidden = !trabalho.seco;
-  $("#ensaio-rodar").hidden = true;
-  delete $("#resultado-guardar").dataset.estado;
-  for (const v of document.querySelectorAll("#resultado .consertar")) v.remove();
-  marcarEstado("correndo", "Rodando");
-  abrirJanela();
+               acao: trabalho.acao || null, fim: trabalho.fim || {}, mudou: false, depois };
+  const barra = $("#progresso");
+  barra.dataset.estado = "correndo";
+  $("#progresso-nome").textContent = TRABALHO.rotulo || "Trabalho";
+  barra.hidden = false;
   TRABALHO.timer = setInterval(puxar, 400);
   puxar();
+}
+function fimDoProgresso(estado) {
+  const barra = $("#progresso");
+  barra.dataset.estado = estado;
+  barra.hidden = true;
 }
 function classeDaLinha(l) {
   const t = l.trimStart();
@@ -1129,41 +1110,22 @@ async function puxar() {
   const desde = t.proximo;
   const r = await api(`/api/trabalho?id=${t.id}&desde=${desde}`);
   if (TRABALHO !== t || t.proximo !== desde) return;
-  if (r.erro) { clearInterval(t.timer); t.timer = null; TRABALHO = null; pastilhaDeTrabalho(false); return; }
+  if (r.erro) { clearInterval(t.timer); t.timer = null; TRABALHO = null; fimDoProgresso("erro"); return; }
   t.proximo = r.proximo;
-  const saida = $("#saida");
-  for (const l of r.linhas || []) {
-    saida.append(elemento("span", { class: classeDaLinha(l) || null, texto: l + "\n" }));
-    if (l.trimStart().startsWith("~~")) t.mudou = true;
-  }
-  saida.scrollTop = saida.scrollHeight;
+  for (const l of r.linhas || []) if (l.trimStart().startsWith("~~")) t.mudou = true;
   if (r.vivo) return;
   clearInterval(t.timer);
   t.timer = null;
-  $("#parar").hidden = true;
   if (r.restauravel && t.acao) RESTAUROS.add(t.acao);
   if (t.acao === "restaurar" && (r.rc === 0 || r.rc === 1)) RESTAUROS.delete(t.restaura);
-  $("#resultado-restaurar").hidden = !(r.restauravel && t.acao);
   const tabela = t.fim || {};
   const [classe, frase] = (r.rc === 0 && t.mudou && tabela["0~"]) || tabela[String(r.rc)] || ["erro", `Saiu ${r.rc}`];
-  marcarEstado(classe === "ok" ? "ok" : classe === "erro" ? "erro" : "correndo", `${maiuscula(frase)} · ${r.segundos}s`);
-  if (classe === "erro") $("#registro").open = true;
-  if (r.rc === 1 && t.conserta && ACAO.get(t.conserta)) {
-    const a = ACAO.get(t.conserta);
-    $("#resultado .acoes").prepend(botao(maiuscula(a.rotulo), { class: "bt consertar", controle: "resultado:consertar",
-      onclick: () => { $("#resultado").close(); rodar(a, ""); } }));
-  }
-  if (t.seco && t.deVerdade && typeof r.rc === "number" && r.rc >= 0) {
-    const b = $("#ensaio-rodar");
-    b.hidden = false;
-    b.onclick = () => { $("#resultado").close(); t.deVerdade(); };
-  }
-  if (!$("#resultado").open) torrada(`${t.rotulo}: ${frase}`, classe === "erro" ? "erro" : "ok");
-  pastilhaDeTrabalho(false);
+  fimDoProgresso(classe === "erro" ? "erro" : "ok");
+  if (classe === "erro") torrada(`${t.rotulo}: ${frase}`, "erro");
   TRABALHOS_A_CAMINHO++;
   TRABALHO = null;
   try {
-    if (t.escreve && !t.seco) await depoisDeEscrever();
+    if (t.escreve) await depoisDeEscrever();
     if (t.depois && (r.rc === 0 || r.rc === 1)) t.depois();
   } finally {
     TRABALHOS_A_CAMINHO--;
@@ -1189,15 +1151,6 @@ function lerClaro() {
   if (esquema.includes("light")) document.documentElement.dataset.claro = "1";
   else delete document.documentElement.dataset.claro;
 }
-function pastilhaDeTrabalho(mostrar) {
-  let p = document.getElementById("pastilha-trabalho");
-  if (!mostrar) { if (p) p.remove(); return; }
-  if (p || !TRABALHO) return;
-  p = botao(TRABALHO.rotulo || "Trabalho", { class: "bt pequeno", id: "pastilha-trabalho",
-    controle: "trabalho", icone: "girar", onclick: abrirJanela });
-  $("#aplicar").before(p);
-}
-
 function atualizarAplicar() {
   const n = HISTORICO.length;
   $("#aplicar").dataset.n = String(n);
@@ -1246,7 +1199,7 @@ function indiceDaBusca() {
   const visto = new Set();
   const saida = [];
   for (const l of inventarioDoPainel()) {
-    if (l.porta === "topo" || l.porta === "janela" || (l.tipo === "chave" && !CHAVE.has(l.id)) || (l.tipo === "acao" && !ACAO.has(l.id))) continue;
+    if (l.porta === "topo" || (l.tipo === "chave" && !CHAVE.has(l.id)) || (l.tipo === "acao" && !ACAO.has(l.id))) continue;
     const k = l.porta + l.pagina + l.rotulo;
     if (visto.has(k)) continue;
     visto.add(k);
@@ -1406,21 +1359,9 @@ async function iniciar() {
     if (menu.open) { menu.open = false; menu.querySelector("summary").focus(); }
     fecharUltimas();
   });
-  $("#resultado").addEventListener("close", () => { if (TRABALHO && TRABALHO.timer) pastilhaDeTrabalho(true); });
-  $("#resultado-ok").addEventListener("click", () => $("#resultado").close());
   $("#parar").addEventListener("click", async () => {
     if (!TRABALHO) return;
     await api("/api/parar", { method: "POST", body: JSON.stringify({ id: TRABALHO.id }) });
-  });
-  $("#resultado-guardar").addEventListener("click", async () => {
-    if (!ULTIMO_TRABALHO) return;
-    const r = await api("/api/guardar-log", { method: "POST", body: JSON.stringify({ id: ULTIMO_TRABALHO.id }) });
-    if (r.erro) { torrada(r.erro, "erro"); return; }
-    $("#resultado-guardar").dataset.estado = "feito";
-    $("#resultado-guardar").dataset.dica = maiuscula(r.caminho || "");
-  });
-  $("#resultado-restaurar").addEventListener("click", () => {
-    if (ULTIMO_TRABALHO && ULTIMO_TRABALHO.acao) restaurarAcao(ULTIMO_TRABALHO.acao);
   });
   addEventListener("beforeunload", (ev) => { if (EM_VOO > 0) ev.preventDefault(); });
   ROTA = rotaDoHash();

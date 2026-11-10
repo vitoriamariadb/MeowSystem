@@ -169,15 +169,8 @@ def ir(pag, rota):
 
 
 def fim_do_trabalho(pag, fechar=True):
-    pag.wait_for_function("() => document.getElementById('resultado').open", timeout=30000)
-    pag.wait_for_function("() => !TRABALHO || !TRABALHO.timer", timeout=180000)
-    pag.wait_for_timeout(300)
-    estado = pag.evaluate("() => document.getElementById('resultado-estado').dataset.estado")
-    if estado != "ok":
-        print("      registro: " + pag.locator("#saida").text_content().strip().replace("\n", "\n      "))
+    estado = casa.fim_do_trabalho(pag)
     if fechar:
-        pag.locator("#resultado-ok").click()
-        pag.wait_for_function("() => !document.getElementById('resultado').open")
         pag.wait_for_function("() => !EXT.pedindo", timeout=30000)
         pag.wait_for_timeout(500)
     return estado

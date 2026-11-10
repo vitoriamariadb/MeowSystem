@@ -361,11 +361,7 @@ const LUGAR_TOPO = [
   { g: "busca", r: "Procurar um ajuste" },
   { g: "creditos", r: "Créditos" },
   { g: "exportar-pagina", r: "Esta tela num arquivo" },
-];
-const LUGAR_JANELA = [
   { g: "parar", r: "Parar" },
-  { g: "guardar-log", r: "Guardar" },
-  { g: "ensaio-rodar", r: "Rodar de verdade" },
 ];
 
 function inventarioDoPainel() {
@@ -398,10 +394,9 @@ function inventarioDoPainel() {
   for (const l of LUGAR_MODIFICACOES.chaves) pus(l, "modificacoes", "", l.bloco);
   for (const d of LUGAR_MODIFICACOES.detalhes) for (const b of d.blocos) for (const l of b.linhas) pus(l, "modificacoes", d.nome, b.titulo);
   for (const l of LUGAR_TOPO) pus(l, "topo", "Barra de cima", "Barra de cima");
-  for (const l of LUGAR_JANELA) pus(l, "janela", "Janela do trabalho", "Janela do trabalho");
   return saida;
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_EXTENSOES, LUGAR_MODIFICACOES, LUGAR_TOPO, LUGAR_JANELA, inventarioDoPainel };
+  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_EXTENSOES, LUGAR_MODIFICACOES, LUGAR_TOPO, inventarioDoPainel };
 }

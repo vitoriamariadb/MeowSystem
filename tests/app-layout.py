@@ -324,27 +324,28 @@ def main():
                     foto(pag, f"{w}x{h}-ficha-icone-{fonte}")
                 pag.evaluate("() => { APP_ABERTO = null; DESENHO_FONTE = 'gerar'; render(); }")
 
-            print("== o diálogo do Instalar tudo")
+            print("== a linha de progresso do Instalar tudo")
             for (w, h) in LARGURAS:
                 pag.set_viewport_size({"width": w, "height": h})
                 ir(pag, "cuidar")
                 info = pag.evaluate("""() => {
-                  const d = document.getElementById('resultado');
-                  document.getElementById('resultado-titulo').textContent = 'Instalar tudo';
-                  document.getElementById('saida').textContent = ('x'.repeat(400) + '\\n' + 'linha curta\\n').repeat(40);
-                  document.getElementById('registro').open = true;
-                  if (!d.open) d.showModal();
-                  const r = d.getBoundingClientRect();
-                  const ok = document.getElementById('resultado-ok').getBoundingClientRect();
+                  const p = document.getElementById('progresso');
+                  document.getElementById('progresso-nome').textContent = 'Instalar tudo';
+                  p.dataset.estado = 'correndo';
+                  p.hidden = false;
+                  const r = p.getBoundingClientRect();
+                  const t = document.getElementById('topo').getBoundingClientRect();
                   const pr = document.getElementById('parar').getBoundingClientRect();
-                  const out = { l: r.left, r: r.right, t: r.top, b: r.bottom, okb: ok.bottom, okr: ok.right, okvis: ok.width > 0,
-                                parar: pr.width > 0, doc: document.documentElement.scrollWidth, pre: document.getElementById('saida').scrollWidth > document.getElementById('saida').clientWidth + 1 };
+                  const l = p.querySelector('.progresso-linha').getBoundingClientRect();
+                  const out = { l: r.left, r: r.right, linhaL: l.left, linhaR: l.right, linhaH: l.height, colada: Math.abs(r.top - t.bottom) <= 1,
+                                parar: pr.width > 0 && pr.left >= 0 && pr.right <= innerWidth && pr.bottom <= innerHeight,
+                                doc: document.documentElement.scrollWidth };
+                  p.hidden = true;
                   return out;
                 }""")
-                cabe = info["l"] >= 0 and info["r"] <= w and info["t"] >= 0 and info["b"] <= h and info["okb"] <= h and info["okr"] <= w
-                checa(cabe and info["okvis"] and info["parar"] and info["doc"] == w and not info["pre"], f"{w}x{h}: o diálogo cabe, com os botões à vista e sem barra para o lado ({info})")
-                foto(pag, f"{w}x{h}-dialogo")
-                pag.evaluate("() => document.getElementById('resultado').close()")
+                cabe = info["linhaL"] == 0 and info["linhaR"] == w and info["linhaH"] > 0 and info["colada"]
+                checa(cabe and info["parar"] and info["doc"] == w, f"{w}x{h}: a linha vai de borda a borda logo abaixo do header, com o Parar à vista e sem barra para o lado ({info})")
+                foto(pag, f"{w}x{h}-progresso")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:

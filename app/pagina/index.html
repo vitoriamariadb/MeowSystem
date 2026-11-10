@@ -47,6 +47,14 @@
     </summary>
     <div class="menu-corpo" id="menu-corpo" role="menu"></div>
   </details>
+  <div class="progresso" id="progresso" role="progressbar" aria-busy="true" aria-labelledby="progresso-nome" data-estado="parado" hidden>
+    <span class="progresso-linha"></span>
+    <span class="progresso-corpo">
+      <span class="progresso-nome" id="progresso-nome"></span>
+      <button type="button" class="bt leve pequeno so-icone" id="parar" aria-label="Parar" data-dica="Parar"
+              data-controle="progresso:parar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </span>
+  </div>
 </header>
 
 <nav class="abas-ajustes" id="abas" aria-label="Definir" hidden>
@@ -66,38 +74,12 @@
 <div id="torradas" class="torradas" aria-live="polite"></div>
 <div id="dica" class="dica" role="tooltip" hidden></div>
 
-<dialog id="resultado" class="resultado" aria-labelledby="resultado-titulo">
-  <div class="dentro">
-    <header class="resultado-topo">
-      <h2 id="resultado-titulo"></h2>
-      <span class="fila">
-        <span id="faixa-ensaio" class="estado-pilula" data-estado="ensaio" hidden>Ensaio</span>
-        <span id="resultado-estado" class="estado-pilula"></span>
-      </span>
-    </header>
-    <details class="registro" id="registro">
-      <summary data-controle="resultado:registro">Registro</summary>
-      <pre id="saida" tabindex="0" aria-live="polite"></pre>
-    </details>
-    <div class="acoes">
-      <button type="button" class="bt perigo" id="parar" data-controle="resultado:parar">Parar</button>
-      <button type="button" class="bt" id="resultado-restaurar" data-controle="resultado:restaurar" hidden>Restaurar</button>
-      <button type="button" class="bt" id="resultado-guardar" data-controle="resultado:guardar"
-              data-dica="Guarda o registro num arquivo">Guardar</button>
-      <button type="button" class="bt" id="ensaio-rodar" data-controle="resultado:de-verdade" hidden>Rodar de verdade</button>
-      <button type="button" class="bt principal" id="resultado-ok" data-controle="resultado:ok">OK</button>
-    </div>
-  </div>
-</dialog>
-
 <dialog id="pergunta" aria-labelledby="pergunta-titulo">
   <form method="dialog" class="dentro">
     <h2 id="pergunta-titulo"></h2>
     <div id="pergunta-corpo"></div>
     <div class="acoes">
       <button value="nao" class="bt" id="pergunta-nao" data-controle="pergunta:nao">Cancelar</button>
-      <button value="seco" class="bt" id="confirmar-ensaio" data-controle="pergunta:ensaio" hidden
-              data-dica="Mostra o que mudaria, sem gravar nada">Ver sem mudar</button>
       <button value="sim" class="bt principal" id="pergunta-sim" data-controle="pergunta:sim">OK</button>
     </div>
   </form>

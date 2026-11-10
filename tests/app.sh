@@ -198,19 +198,18 @@ if _guardado or len(_ligam) != 1 or "_ambiente_do_painel(seco=False)" not in _py
 else:
     print("ok: o ensaio é pedido por gesto, e não guardado num interruptor")
 
-_pecas = [("o botão do diálogo", "confirmar-ensaio", _js),
-          ("a faixa da gaveta", "faixa-ensaio", _js),
-          ("o «Rodar de verdade» pós-ensaio", "ensaio-rodar", _js),
-          ("a cópia descartável do ensaio", "_conf_de_ensaio", _py),
+_pecas = [("a cópia descartável do ensaio", "_conf_de_ensaio", _py),
           ("o MEOW_CONF do ensaio", 'ambiente["MEOW_CONF"]', _py),
           ("o seco no /api/rodar", 'corpo.get("seco")', _py)]
 _faltam = ["%s (%s)" % (nome, marca) for nome, marca, onde in _pecas if marca not in onde]
-if _faltam:
-    print("FALHOU: o ensaio da sprint P8 sumiu da tela: %s" % ", ".join(_faltam),
-          file=sys.stderr)
+_html = open(os.path.join(raiz, "app/pagina/index.html"), encoding="utf-8").read()
+_voltou = [m for m in ("confirmar-ensaio", "faixa-ensaio", "ensaio-rodar", 'id="resultado"') if m in _js or m in _html]
+if _faltam or _voltou:
+    print("FALHOU: o ensaio no servidor sumiu (%s) ou voltou à tela (%s)"
+          % (", ".join(_faltam) or "—", ", ".join(_voltou) or "—"), file=sys.stderr)
     falhou = 1
 else:
-    print("ok: o «Ver sem mudar» está no diálogo da ação e na janela de resultado")
+    print("ok: o ensaio só vive no servidor; a tela não tem «Ver sem mudar» nem janela de resultado")
 
 import hashlib as _hl
 import shutil as _sh
@@ -265,15 +264,13 @@ for _id9f, _a9f in servidor.ACOES.items():
         _erros9f.append("%s conserta com %r, que não é ação que escreve" % (_id9f, _alvo9f))
 if servidor.ACOES.get("doctor", {}).get("conserta_com") != "doctor_consertar":
     _erros9f.append("o «Conferir a máquina» não declara o «Consertar o que estiver fora»")
-_js9f = open(os.path.join(raiz, "app/pagina/app.js"), encoding="utf-8").read()
-if ('"conserta_com"' not in _inspect9.getsource(servidor)
-        or "conserta: trabalho.conserta_com" not in _js9f or '"resultado:consertar"' not in _js9f):
-    _erros9f.append("o trabalho não leva a `conserta_com` à gaveta, ou a gaveta não a oferece")
+if '"conserta_com"' not in _inspect9.getsource(servidor):
+    _erros9f.append("o trabalho não leva a `conserta_com` ao painel")
 if _erros9f:
     print("FALHOU: " + "; ".join(_erros9f), file=sys.stderr)
     falhou = 1
 else:
-    print("ok: o «há divergências» do conferir oferece o botão do conserto na gaveta")
+    print("ok: o «há divergências» do conferir declara o conserto que o doctor faz")
 
 import inspect as _inspect
 import tempfile as _tf

@@ -103,12 +103,8 @@ def quieto(pag):
     pag.wait_for_function("() => !EM_VOO && !ACOMPANHANDO && !TRABALHOS_A_CAMINHO && (!TRABALHO || !TRABALHO.timer) && !MOD.pedindo",
                           timeout=180000)
     pag.wait_for_timeout(400)
-    if pag.evaluate("() => document.getElementById('resultado').open"):
-        estado = pag.evaluate("() => document.getElementById('resultado-estado').dataset.estado")
-        if estado == "erro":
-            print("      registro: " + pag.locator("#saida").text_content().strip().replace("\n", "\n      "))
-        pag.locator("#resultado-ok").click()
-        pag.wait_for_function("() => !document.getElementById('resultado').open")
+    if pag.evaluate("() => ['ok', 'erro'].includes(document.getElementById('progresso').dataset.estado)"):
+        pag.evaluate("() => { document.getElementById('progresso').dataset.estado = 'lido'; }")
     pag.wait_for_function("() => !MOD.pedindo", timeout=30000)
     pag.wait_for_timeout(300)
 
