@@ -33,12 +33,12 @@ Coluna «quem usa»: respostas do artifact de 10/11 (`sim` troca pelo proposto; 
 | Gerar · Do acervo | Desenhar · Escolher pronto | fica |
 | Partida | Original | sim |
 | Aro | Borda | sim |
-| Reler | Recarregar do editor | a responder |
+| Reler | sai: o painel já relê o editor sozinho (proposta, falta o sim) | a responder |
 | Toca no COSMIC | Nativo do COSMIC | sim |
 | Toca nos apps | Dos apps | ? Sai |
 | Ouvir o instalado | sai (P187) | sim |
 | Regravar o som · Regravar | Salvar o sino (P188) | Gerar Sons |
-| Peso da primeira · Peso da segunda | Volume da primeira nota · Volume da segunda nota | não: confuso |
+| Peso da primeira · Peso da segunda | Volume da primeira nota · Volume da segunda nota | Volume da nota 1 · Volume da nota 2 (AskUserQuestion 10/11) |
 | Duração | Duração do som | sim |
 
 ## Ajustes (hoje Definir)
@@ -68,7 +68,7 @@ Coluna «quem usa»: respostas do artifact de 10/11 (`sim` troca pelo proposto; 
 | Pastas suas | Suas pastas de imagens | não: Seus papéis de parede. |
 | Versão do acervo | sai, como a do ponteiro | sim |
 | Medir a luz · Medir | Separar claras e escuras | sim: Separar tons de cores |
-| Botão direito | «Usar como papel de parede» no Arquivos | não: Muito grande. |
+| Botão direito | «Usar como papel de parede» no Arquivos | Menu do Arquivos (AskUserQuestion 10/11) |
 | Menu se reconstrói | Recompilar o menu sozinho | Recompilar automaticamente. |
 | Gira a cada · Girar sozinho | Troca a cada · Trocar sozinho | Troca a cada |
 | Pôr agora · Pôr | Aplicar agora | não: quem aplica quer aplicar agora. sem texto pra isso. |
@@ -99,7 +99,7 @@ Coluna «quem usa»: respostas do artifact de 10/11 (`sim` troca pelo proposto; 
 | Conferir todo dia | Verificar e consertar todo dia | não: Rotina |
 | Avisar o conserto | Avisar quando consertar | sim |
 | Cortar o repetido | Desligar o que conflita | sim |
-| Mascote novo entra | Usar mascotes novos sozinho | não: e precisa de status pra isso |
+| Mascote novo entra | Usar mascotes novos sozinho | sai: fica sempre ligado; quem coloca mascote quer que ele entre (10/11) |
 | Ícones após atualizar | Refazer ícones após atualizar | sim |
 | Jogo desinstalado sai | Remover jogos desinstalados | sim |
 | Consertos de sistema | Permissão de sistema | sim |
