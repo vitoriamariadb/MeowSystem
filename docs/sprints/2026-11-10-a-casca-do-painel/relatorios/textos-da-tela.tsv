@@ -1,0 +1,584 @@
+# espaço 5 · extensões 34 · logo 4 · mapa 357 · modificações 9 · moldura 81 · personalizar 32 · servidor 27 · standalone 1 · ícones 32 · total 582
+texto	tipo	onde
+…: entrou	aviso	app/pagina/app.js:1003
+Falta a ponte	rótulo	app/pagina/app.js:1043
+Consertar a ponte	opção	app/pagina/app.js:1043
+Espere o trabalho terminar	aviso	app/pagina/app.js:1055
+Desfazer	botão	app/pagina/app.js:1209
+Arquivo grande demais	aviso	app/pagina/app.js:1230
+Não consegui ler o arquivo	aviso	app/pagina/app.js:1232
+Nada mudou	aviso	app/pagina/app.js:1238
+Nada com esse nome	texto	app/pagina/app.js:1265
+Créditos	texto	app/pagina/app.js:1352
+Esta tela num arquivo	texto	app/pagina/app.js:1355
+Sem servidor	opção	app/pagina/app.js:176
+As escolhas que esperam continuam nesta aba	dica	app/pagina/app.js:191
+POST	opção	app/pagina/app.js:330
+Gravado; falta a ponte para aplicar	aviso	app/pagina/app.js:356
+O sistema decide	dica	app/pagina/app.js:431
+Min	texto	app/pagina/app.js:515
+Acrescentar	opção	app/pagina/app.js:680
+Sim	opção	app/pagina/app.js:73
+Não	opção	app/pagina/app.js:73
+Automático	opção	app/pagina/app.js:73
+Escuro	opção	app/pagina/app.js:73
+Claro	opção	app/pagina/app.js:73
+Sorteada	opção	app/pagina/app.js:74
+De A a Z	opção	app/pagina/app.js:74
+Pouco	opção	app/pagina/app.js:74
+O que mudou	opção	app/pagina/app.js:74
+Tudo	opção	app/pagina/app.js:74
+Não achei esse programa	aviso	app/pagina/app.js:747
+Traço	opção	app/pagina/app.js:75
+Chapado	opção	app/pagina/app.js:75
+O outro	opção	app/pagina/app.js:75
+Pela hora	opção	app/pagina/app.js:75
+Girando	opção	app/pagina/app.js:75
+Sempre o mesmo	opção	app/pagina/app.js:75
+Preencher	opção	app/pagina/app.js:76
+Caber	opção	app/pagina/app.js:76
+Esticar	opção	app/pagina/app.js:76
+VS Code	opção	app/pagina/app.js:760
+Obsidian	opção	app/pagina/app.js:760
+Firefox	opção	app/pagina/app.js:761
+Brave	opção	app/pagina/app.js:761
+Chrome	opção	app/pagina/app.js:761
+Thunderbird	opção	app/pagina/app.js:761
+Discord	opção	app/pagina/app.js:761
+Telegram	opção	app/pagina/app.js:762
+Spotify	opção	app/pagina/app.js:762
+WhatsApp	opção	app/pagina/app.js:762
+OBS	opção	app/pagina/app.js:762
+GIMP	opção	app/pagina/app.js:762
+Krita	opção	app/pagina/app.js:762
+VLC	opção	app/pagina/app.js:763
+Steam	opção	app/pagina/app.js:763
+Heroic	opção	app/pagina/app.js:763
+Kitty	opção	app/pagina/app.js:763
+OnlyOffice	opção	app/pagina/app.js:764
+Apps GNOME	opção	app/pagina/app.js:765
+Todas as áreas	opção	app/pagina/app.js:77
+Cada área	opção	app/pagina/app.js:77
+Alt + setas mudam a ordem	dica	app/pagina/app.js:778
+Em coluna	opção	app/pagina/app.js:78
+Contornando	opção	app/pagina/app.js:78
+Degraus	opção	app/pagina/app.js:78
+Crescente	opção	app/pagina/app.js:78
+Reto	opção	app/pagina/app.js:78
+Médio	opção	app/pagina/app.js:79
+Alto	opção	app/pagina/app.js:79
+Destaque	opção	app/pagina/app.js:79
+Do tema	opção	app/pagina/app.js:79
+Nova área	opção	app/pagina/app.js:791
+Restaurar	botão	app/pagina/app.js:932
+Liberar	botão	app/pagina/espaco.js:48
+Reconstruível	rótulo	app/pagina/espaco.js:5
+Backups	rótulo	app/pagina/espaco.js:6
+Seus dados	rótulo	app/pagina/espaco.js:7
+Espaço	texto	app/pagina/espaco.js:91
+Applets	rótulo	app/pagina/extensoes.js:10
+Builds	rótulo	app/pagina/extensoes.js:11
+Registro	texto	app/pagina/extensoes.js:110
+Trocar	botão	app/pagina/extensoes.js:165
+Manter	botão	app/pagina/extensoes.js:167
+Áreas de trabalho	opção	app/pagina/extensoes.js:194
+Refazer tudo	botão	app/pagina/extensoes.js:235
+Registro de 	texto	app/pagina/extensoes.js:242
+BUILDS_AO_ENTRAR	opção	app/pagina/extensoes.js:260
+Refazer ao entrar na sessão	texto	app/pagina/extensoes.js:269
+Adicionar repositório	botão	app/pagina/extensoes.js:282
+Painel	texto	app/pagina/extensoes.js:295
+Reiniciar o painel	botão	app/pagina/extensoes.js:297
+Adicionar	botão	app/pagina/extensoes.js:310
+Nenhuma extensão no catálogo	texto	app/pagina/extensoes.js:315
+Extensões	texto	app/pagina/extensoes.js:326
+Repositório	texto	app/pagina/extensoes.js:358
+Commit	texto	app/pagina/extensoes.js:359
+Substitui	texto	app/pagina/extensoes.js:360
+Endereço	texto	app/pagina/extensoes.js:367
+baixa e compila	texto	app/pagina/extensoes.js:370
+Compilando	texto	app/pagina/extensoes.js:371
+Não compilou	texto	app/pagina/extensoes.js:372
+Instalada, fora da barra	texto	app/pagina/extensoes.js:373
+Cancelar	texto	app/pagina/extensoes.js:376
+Ler	botão	app/pagina/extensoes.js:378
+Instalar	botão	app/pagina/extensoes.js:379
+Parar	botão	app/pagina/extensoes.js:381
+Tentar de novo	botão	app/pagina/extensoes.js:382
+OK	botão	app/pagina/extensoes.js:384
+MeowSystem	texto	app/pagina/extensoes.js:485
+Vitória Maria	rótulo	app/pagina/extensoes.js:6
+André Farias	rótulo	app/pagina/extensoes.js:7
+Remover	dica	app/pagina/extensoes.js:77
+Ver sem mudar	texto	app/pagina/index.html:100
+Mostra o que mudaria, sem gravar nada	dica	app/pagina/index.html:100
+Pular para o conteúdo	texto	app/pagina/index.html:19
+Portas	rótulo	app/pagina/index.html:26
+Achados	rótulo	app/pagina/index.html:36
+Gravado	rótulo	app/pagina/index.html:39
+Últimas mudanças	rótulo	app/pagina/index.html:42
+Mais	dica	app/pagina/index.html:45
+Ensaio	texto	app/pagina/index.html:74
+Guarda o registro num arquivo	dica	app/pagina/index.html:86
+Logo	texto	app/pagina/logo-do-pack.js:16
+Fechar	texto	app/pagina/logo-do-pack.js:20
+Abrir um arquivo	texto	app/pagina/logo-do-pack.js:52
+Trocar a logo	dica	app/pagina/logo-do-pack.js:7
+Conferir	rótulo	app/pagina/lugares.js:101
+Estado atual	rótulo	app/pagina/lugares.js:102
+Ver	rótulo	app/pagina/lugares.js:102
+Teto dos cantos	rótulo	app/pagina/lugares.js:103
+Janelas e tela	rótulo	app/pagina/lugares.js:106
+Janelas	rótulo	app/pagina/lugares.js:108
+Lado a lado	rótulo	app/pagina/lugares.js:109
+JANELAS_TILING	opção	app/pagina/lugares.js:109
+Vale para	rótulo	app/pagina/lugares.js:110
+JANELAS_TILING_ESCOPO	opção	app/pagina/lugares.js:110
+Tela	rótulo	app/pagina/lugares.js:112
+Tamanho de tudo	rótulo	app/pagina/lugares.js:113
+ESCALA_TELA	opção	app/pagina/lugares.js:113
+GPU do compositor	rótulo	app/pagina/lugares.js:114
+GPU_COMPOSITOR	opção	app/pagina/lugares.js:114
+Ponteiro	rótulo	app/pagina/lugares.js:115
+CURSOR	opção	app/pagina/lugares.js:115
+Versão do ponteiro	rótulo	app/pagina/lugares.js:116
+CURSOR_VERSAO	opção	app/pagina/lugares.js:116
+Trazer ponteiro	rótulo	app/pagina/lugares.js:117
+Trazer .zip	rótulo	app/pagina/lugares.js:117
+Nas telas	rótulo	app/pagina/lugares.js:120
+AREAS_MODO	opção	app/pagina/lugares.js:120
+Nomes	rótulo	app/pagina/lugares.js:121
+AREAS_NOMES	opção	app/pagina/lugares.js:121
+Encaixe por área	rótulo	app/pagina/lugares.js:122
+AREAS_ENCAIXE	opção	app/pagina/lugares.js:122
+Folga no nome	rótulo	app/pagina/lugares.js:123
+AREAS_FOLGA	opção	app/pagina/lugares.js:123
+Gravar as áreas	rótulo	app/pagina/lugares.js:124
+Gravar	rótulo	app/pagina/lugares.js:124
+Primeira área	rótulo	app/pagina/lugares.js:125
+Criar	rótulo	app/pagina/lugares.js:125
+Tirar uma área	rótulo	app/pagina/lugares.js:126
+Tirar	rótulo	app/pagina/lugares.js:126
+Áreas de antes	rótulo	app/pagina/lugares.js:127
+Voltar	rótulo	app/pagina/lugares.js:127
+Áreas agora	rótulo	app/pagina/lugares.js:128
+Próxima imagem	rótulo	app/pagina/lugares.js:132
+Imagem anterior	rótulo	app/pagina/lugares.js:135
+Anterior	rótulo	app/pagina/lugares.js:135
+Voltar a girar	rótulo	app/pagina/lugares.js:136
+Girar	rótulo	app/pagina/lugares.js:136
+Carrossel agora	rótulo	app/pagina/lugares.js:137
+Regras do carrossel	rótulo	app/pagina/lugares.js:138
+Reaplicar	rótulo	app/pagina/lugares.js:138
+PACK	opção	app/pagina/lugares.js:14
+Troca	rótulo	app/pagina/lugares.js:140
+A cada	rótulo	app/pagina/lugares.js:141
+WALLPAPER_INTERVALO	opção	app/pagina/lugares.js:141
+Ordem	rótulo	app/pagina/lugares.js:142
+WALLPAPER_ORDEM	opção	app/pagina/lugares.js:142
+Encaixe	rótulo	app/pagina/lugares.js:143
+WALLPAPER_AJUSTE	opção	app/pagina/lugares.js:143
+Avisar a troca	rótulo	app/pagina/lugares.js:144
+WALLPAPER_NOTIFICAR	opção	app/pagina/lugares.js:144
+Escolhida dura	rótulo	app/pagina/lugares.js:145
+WALLPAPER_FIXO_TTL	opção	app/pagina/lugares.js:145
+Botão direito	rótulo	app/pagina/lugares.js:146
+FILES_MENU	opção	app/pagina/lugares.js:146
+Menu se reconstrói	rótulo	app/pagina/lugares.js:147
+FILES_MENU_AUTOBUILD	opção	app/pagina/lugares.js:147
+Menu agora	rótulo	app/pagina/lugares.js:148
+Variante	rótulo	app/pagina/lugares.js:15
+FLAVOR	opção	app/pagina/lugares.js:15
+Pasta do carrossel	rótulo	app/pagina/lugares.js:151
+WALLPAPER_BASE	opção	app/pagina/lugares.js:151
+Pastas suas	rótulo	app/pagina/lugares.js:152
+WALLPAPER_FONTES_PERMITIDAS	opção	app/pagina/lugares.js:152
+Acervo do Dracula	rótulo	app/pagina/lugares.js:153
+WALLPAPER_DRACULA_REPO	opção	app/pagina/lugares.js:153
+Versão do acervo	rótulo	app/pagina/lugares.js:154
+WALLPAPER_DRACULA_COMMIT	opção	app/pagina/lugares.js:154
+Mascote	rótulo	app/pagina/lugares.js:157
+Na dock	rótulo	app/pagina/lugares.js:159
+Aplicar tema	rótulo	app/pagina/lugares.js:16
+LOGO	opção	app/pagina/lugares.js:160
+Como escolhe	rótulo	app/pagina/lugares.js:162
+LOGO_MODO	opção	app/pagina/lugares.js:162
+LOGO_DIA	opção	app/pagina/lugares.js:163
+LOGO_NOITE	opção	app/pagina/lugares.js:164
+Gira a cada	rótulo	app/pagina/lugares.js:165
+LOGO_INTERVALO	opção	app/pagina/lugares.js:165
+Girar sozinho	rótulo	app/pagina/lugares.js:166
+LOGO_ROTACAO	opção	app/pagina/lugares.js:166
+Pôr agora	rótulo	app/pagina/lugares.js:167
+Pôr	rótulo	app/pagina/lugares.js:167
+Recarregar na virada	rótulo	app/pagina/lugares.js:168
+LOGO_RECICLAR	opção	app/pagina/lugares.js:168
+Próximo mascote	rótulo	app/pagina/lugares.js:169
+Mascote agora	rótulo	app/pagina/lugares.js:170
+No terminal	rótulo	app/pagina/lugares.js:172
+Ao abrir	rótulo	app/pagina/lugares.js:173
+FASTFETCH_LOGO	opção	app/pagina/lugares.js:173
+Qual	rótulo	app/pagina/lugares.js:174
+FASTFETCH_LOGO_MODO	opção	app/pagina/lugares.js:174
+Fixo	rótulo	app/pagina/lugares.js:175
+FASTFETCH_LOGO_GATO	opção	app/pagina/lugares.js:175
+FASTFETCH_LOGO_DIA	opção	app/pagina/lugares.js:176
+FASTFETCH_LOGO_NOITE	opção	app/pagina/lugares.js:177
+Tamanho	rótulo	app/pagina/lugares.js:178
+FASTFETCH_LOGO_COLUNAS	opção	app/pagina/lugares.js:178
+Altura do desenho	rótulo	app/pagina/lugares.js:179
+FASTFETCH_LOGO_LINHAS	opção	app/pagina/lugares.js:179
+Abrir um tema	rótulo	app/pagina/lugares.js:18
+Linhas antes	rótulo	app/pagina/lugares.js:180
+FASTFETCH_LOGO_QUEBRAS	opção	app/pagina/lugares.js:180
+Texto ao lado	rótulo	app/pagina/lugares.js:181
+FASTFETCH_LOGO_ALINHAR	opção	app/pagina/lugares.js:181
+Título	rótulo	app/pagina/lugares.js:182
+FASTFETCH_TITULO	opção	app/pagina/lugares.js:182
+Espaço ao lado	rótulo	app/pagina/lugares.js:183
+FASTFETCH_LOGO_RECUO	opção	app/pagina/lugares.js:183
+Proporção da letra	rótulo	app/pagina/lugares.js:184
+FASTFETCH_LOGO_CELULA	opção	app/pagina/lugares.js:184
+Detalhe	rótulo	app/pagina/lugares.js:185
+FASTFETCH_LOGO_BLOCOS	opção	app/pagina/lugares.js:185
+Corrigir o Fastfetch	rótulo	app/pagina/lugares.js:186
+FASTFETCH_LOGO_CONF	opção	app/pagina/lugares.js:186
+No programa	rótulo	app/pagina/lugares.js:188
+Logo do programa	rótulo	app/pagina/lugares.js:189
+LOGO_PROGRAMA	opção	app/pagina/lugares.js:189
+Dia e noite	rótulo	app/pagina/lugares.js:192
+Começa	rótulo	app/pagina/lugares.js:195
+NOITE_INICIO	opção	app/pagina/lugares.js:195
+Termina	rótulo	app/pagina/lugares.js:196
+NOITE_FIM	opção	app/pagina/lugares.js:196
+Claro e escuro	rótulo	app/pagina/lugares.js:198
+Escuro começa	rótulo	app/pagina/lugares.js:199
+MODO_AUTO_CLARO_ATE	opção	app/pagina/lugares.js:199
+Escuro termina	rótulo	app/pagina/lugares.js:200
+MODO_AUTO_CLARO_DE	opção	app/pagina/lugares.js:200
+Modo de leitura	rótulo	app/pagina/lugares.js:202
+Ligar no horário	rótulo	app/pagina/lugares.js:203
+LEITURA_AGENDA	opção	app/pagina/lugares.js:203
+Quão quente	rótulo	app/pagina/lugares.js:204
+LEITURA_TEMPERATURA	opção	app/pagina/lugares.js:204
+Textura de papel	rótulo	app/pagina/lugares.js:205
+LEITURA_TEXTURA	opção	app/pagina/lugares.js:205
+Entrar devagar	rótulo	app/pagina/lugares.js:206
+LEITURA_RAMPA_MIN	opção	app/pagina/lugares.js:206
+LEITURA_HORARIO_INICIO	opção	app/pagina/lugares.js:207
+LEITURA_HORARIO_FIM	opção	app/pagina/lugares.js:208
+Botão na barra	rótulo	app/pagina/lugares.js:209
+LEITURA_APPLET	opção	app/pagina/lugares.js:209
+Cor de destaque	rótulo	app/pagina/lugares.js:21
+ACCENT	opção	app/pagina/lugares.js:21
+Esquentar agora	rótulo	app/pagina/lugares.js:210
+Aplicar	rótulo	app/pagina/lugares.js:210
+Desligar agora	rótulo	app/pagina/lugares.js:211
+Desligar	rótulo	app/pagina/lugares.js:211
+Leitura agora	rótulo	app/pagina/lugares.js:212
+Papel da noite	rótulo	app/pagina/lugares.js:214
+Imagens escuras	rótulo	app/pagina/lugares.js:215
+WALLPAPER_NOITE	opção	app/pagina/lugares.js:215
+Quão escura	rótulo	app/pagina/lugares.js:216
+WALLPAPER_LIMIAR_LUZ	opção	app/pagina/lugares.js:216
+WALLPAPER_NOITE_INICIO	opção	app/pagina/lugares.js:217
+WALLPAPER_NOITE_FIM	opção	app/pagina/lugares.js:218
+Claro ou escuro	rótulo	app/pagina/lugares.js:22
+MODO	opção	app/pagina/lugares.js:22
+Programas	rótulo	app/pagina/lugares.js:221
+Lançador	rótulo	app/pagina/lugares.js:223
+Arrumar o lançador	rótulo	app/pagina/lugares.js:224
+LANCADOR_SISTEMA	opção	app/pagina/lugares.js:224
+Escondidos	rótulo	app/pagina/lugares.js:225
+LANCADOR_OCULTAR	opção	app/pagina/lugares.js:225
+Jogos	rótulo	app/pagina/lugares.js:227
+No lançador	rótulo	app/pagina/lugares.js:229
+Arrumar os jogos	rótulo	app/pagina/lugares.js:230
+Arrumar	rótulo	app/pagina/lugares.js:230
+Jogos do Heroic	rótulo	app/pagina/lugares.js:231
+Pôr um jogo	rótulo	app/pagina/lugares.js:232
+Tirar um jogo	rótulo	app/pagina/lugares.js:233
+Conferir jogos	rótulo	app/pagina/lugares.js:234
+Conferir Heroic	rótulo	app/pagina/lugares.js:235
+Ao ligar	rótulo	app/pagina/lugares.js:237
+Não abrem sozinhos	rótulo	app/pagina/lugares.js:238
+AUTOSTART_BLOQUEADOS	opção	app/pagina/lugares.js:238
+Outro computador	rótulo	app/pagina/lugares.js:249
+Guardar ajustes	rótulo	app/pagina/lugares.js:250
+Trazer ajustes	rótulo	app/pagina/lugares.js:251
+Atualizar	rótulo	app/pagina/lugares.js:253
+Atualizar a máquina	rótulo	app/pagina/lugares.js:254
+O que muda	rótulo	app/pagina/lugares.js:255
+Limpar	rótulo	app/pagina/lugares.js:256
+Instalar de novo	rótulo	app/pagina/lugares.js:258
+Instalar tudo	rótulo	app/pagina/lugares.js:259
+Sozinho	rótulo	app/pagina/lugares.js:263
+Conferir todo dia	rótulo	app/pagina/lugares.js:264
+AUTO_REPARO	opção	app/pagina/lugares.js:264
+Avisar o conserto	rótulo	app/pagina/lugares.js:265
+AUTO_REPARO_NOTIFICAR	opção	app/pagina/lugares.js:265
+Cortar o repetido	rótulo	app/pagina/lugares.js:266
+VIZINHOS_DESATIVAR	opção	app/pagina/lugares.js:266
+Mascote novo entra	rótulo	app/pagina/lugares.js:267
+ASSETS_VIGIA	opção	app/pagina/lugares.js:267
+Avisar o mascote	rótulo	app/pagina/lugares.js:268
+ASSETS_VIGIA_NOTIFICAR	opção	app/pagina/lugares.js:268
+Ícones após atualizar	rótulo	app/pagina/lugares.js:269
+FLATPAK_VIGIA	opção	app/pagina/lugares.js:269
+Cores	rótulo	app/pagina/lugares.js:27
+Avisar os ícones	rótulo	app/pagina/lugares.js:270
+FLATPAK_VIGIA_NOTIFICAR	opção	app/pagina/lugares.js:270
+Jogo desinstalado sai	rótulo	app/pagina/lugares.js:271
+STEAM_VIGIA	opção	app/pagina/lugares.js:271
+Jogo do Heroic	rótulo	app/pagina/lugares.js:272
+HEROIC_VIGIA	opção	app/pagina/lugares.js:272
+Consertos de sistema	rótulo	app/pagina/lugares.js:273
+PONTE_ROOT	opção	app/pagina/lugares.js:273
+Quanto fala	rótulo	app/pagina/lugares.js:276
+LOG_NIVEL	opção	app/pagina/lugares.js:276
+Cópias guardadas	rótulo	app/pagina/lugares.js:277
+BACKUPS_MANTIDOS	opção	app/pagina/lugares.js:277
+Guardar o tema	rótulo	app/pagina/lugares.js:28
+Guardar	rótulo	app/pagina/lugares.js:28
+Nome do tema	rótulo	app/pagina/lugares.js:282
+NOME_TEMA_ICONES	opção	app/pagina/lugares.js:282
+Tema instalado	rótulo	app/pagina/lugares.js:283
+Desenhos	rótulo	app/pagina/lugares.js:284
+ICONES_DRACULA	opção	app/pagina/lugares.js:284
+Desenhos em traço	rótulo	app/pagina/lugares.js:285
+Logo do Hefesto	rótulo	app/pagina/lugares.js:287
+ICONES_LOGO_HEFESTO	opção	app/pagina/lugares.js:287
+Ícones resgatados	rótulo	app/pagina/lugares.js:288
+ICONES_RESGATADOS	opção	app/pagina/lugares.js:288
+Tema de ícones	rótulo	app/pagina/lugares.js:289
+Ícones	rótulo	app/pagina/lugares.js:29
+Reconstruir os ícones	rótulo	app/pagina/lugares.js:290
+Reconstruir	rótulo	app/pagina/lugares.js:290
+Tema de antes	rótulo	app/pagina/lugares.js:294
+Desinstalar	rótulo	app/pagina/lugares.js:295
+Desinstalar e guardar	rótulo	app/pagina/lugares.js:296
+Instalar do repositório	rótulo	app/pagina/lugares.js:303
+Atualizar do repositório	rótulo	app/pagina/lugares.js:305
+Pôr no painel	rótulo	app/pagina/lugares.js:308
+Aplicativos	rótulo	app/pagina/lugares.js:31
+Extensões instaladas	rótulo	app/pagina/lugares.js:311
+EXTENSOES	opção	app/pagina/lugares.js:311
+Compositor	rótulo	app/pagina/lugares.js:316
+COMPOSITOR	opção	app/pagina/lugares.js:316
+Aprimoramentos gráficos	rótulo	app/pagina/lugares.js:317
+GRAFICOS	opção	app/pagina/lugares.js:317
+Ícone do aplicativo	rótulo	app/pagina/lugares.js:32
+Usar	rótulo	app/pagina/lugares.js:32
+Aplicar em todos	rótulo	app/pagina/lugares.js:327
+Gerar ícone	rótulo	app/pagina/lugares.js:33
+APPS_ATIVOS	opção	app/pagina/lugares.js:330
+Pôr no lugar	rótulo	app/pagina/lugares.js:331
+Tirar o tema	rótulo	app/pagina/lugares.js:332
+Pôr a correção no lugar	rótulo	app/pagina/lugares.js:333
+Correções do Flatpak	rótulo	app/pagina/lugares.js:334
+FLATPAK_CORRECOES	opção	app/pagina/lugares.js:334
+Extensão do pack	rótulo	app/pagina/lugares.js:335
+Pintor do Spotify	rótulo	app/pagina/lugares.js:336
+Baixar o spicetify	rótulo	app/pagina/lugares.js:336
+Loja do Spotify	rótulo	app/pagina/lugares.js:339
+SPOTIFY_MARKETPLACE	opção	app/pagina/lugares.js:339
+Desenhos do acervo	rótulo	app/pagina/lugares.js:34
+Vencord no Discord	rótulo	app/pagina/lugares.js:340
+DISCORD_VENCORD	opção	app/pagina/lugares.js:340
+Terminal	rótulo	app/pagina/lugares.js:343
+Cores do tema	rótulo	app/pagina/lugares.js:346
+TERMINAL_ESQUEMA	opção	app/pagina/lugares.js:346
+Cor do agente	rótulo	app/pagina/lugares.js:347
+TERMINAL_CURSOR	opção	app/pagina/lugares.js:347
+Linha de comando	rótulo	app/pagina/lugares.js:349
+Trazer .svg	rótulo	app/pagina/lugares.js:35
+Linha colorida	rótulo	app/pagina/lugares.js:350
+PROMPT_STARSHIP	opção	app/pagina/lugares.js:350
+Fonte	rótulo	app/pagina/lugares.js:352
+Fonte do terminal	rótulo	app/pagina/lugares.js:353
+Trazer fonte	rótulo	app/pagina/lugares.js:353
+Cor das pastas	rótulo	app/pagina/lugares.js:36
+ICONES_PASTAS	opção	app/pagina/lugares.js:36
+Pastas	opção	app/pagina/lugares.js:36
+Procurar um ajuste	rótulo	app/pagina/lugares.js:361
+Rodar de verdade	rótulo	app/pagina/lugares.js:368
+Pastas especiais	rótulo	app/pagina/lugares.js:37
+PASTAS_XDG	opção	app/pagina/lugares.js:37
+Variante dos ícones	rótulo	app/pagina/lugares.js:38
+ICONES_FLAVOR	opção	app/pagina/lugares.js:38
+Cor da marca	rótulo	app/pagina/lugares.js:39
+ICONES_COR_MARCA	opção	app/pagina/lugares.js:39
+Tema	rótulo	app/pagina/lugares.js:4
+Desenhos do pack	rótulo	app/pagina/lugares.js:40
+Desenhos do tema	opção	app/pagina/lugares.js:40
+Desenhos autorais	rótulo	app/pagina/lugares.js:41
+Salvar	rótulo	app/pagina/lugares.js:41
+Papel de parede	rótulo	app/pagina/lugares.js:43
+Imagens	rótulo	app/pagina/lugares.js:45
+Trazer imagens	rótulo	app/pagina/lugares.js:46
+Usar agora	rótulo	app/pagina/lugares.js:47
+De dia	rótulo	app/pagina/lugares.js:48
+Dia	rótulo	app/pagina/lugares.js:48
+De noite	rótulo	app/pagina/lugares.js:49
+Noite	rótulo	app/pagina/lugares.js:49
+Personalizar	rótulo	app/pagina/lugares.js:5
+Medir a luz	rótulo	app/pagina/lugares.js:50
+Medir	rótulo	app/pagina/lugares.js:50
+Apagar	rótulo	app/pagina/lugares.js:51
+Sons	rótulo	app/pagina/lugares.js:53
+Som do volume	rótulo	app/pagina/lugares.js:55
+SOM	opção	app/pagina/lugares.js:55
+Primeira nota	rótulo	app/pagina/lugares.js:56
+SOM_FUNDAMENTAL	opção	app/pagina/lugares.js:56
+Segunda nota	rótulo	app/pagina/lugares.js:57
+SOM_HARMONICO	opção	app/pagina/lugares.js:57
+Duração	rótulo	app/pagina/lugares.js:58
+SOM_DECAIMENTO	opção	app/pagina/lugares.js:58
+Peso da primeira	rótulo	app/pagina/lugares.js:59
+SOM_PESO_FUNDAMENTAL	opção	app/pagina/lugares.js:59
+Definir	rótulo	app/pagina/lugares.js:6
+Peso da segunda	rótulo	app/pagina/lugares.js:60
+SOM_PESO_HARMONICO	opção	app/pagina/lugares.js:60
+Ouvir o instalado	rótulo	app/pagina/lugares.js:61
+Ouvir	rótulo	app/pagina/lugares.js:61
+Regravar o som	rótulo	app/pagina/lugares.js:62
+Regravar	rótulo	app/pagina/lugares.js:62
+Disponibilizar	rótulo	app/pagina/lugares.js:64
+Baixar o tema	rótulo	app/pagina/lugares.js:66
+Painel e dock	rótulo	app/pagina/lugares.js:72
+Recarregar o painel	rótulo	app/pagina/lugares.js:73
+Forma	rótulo	app/pagina/lugares.js:75
+Solta da borda	rótulo	app/pagina/lugares.js:76
+Em pastilha	rótulo	app/pagina/lugares.js:77
+Distância da borda	rótulo	app/pagina/lugares.js:78
+Cantos	rótulo	app/pagina/lugares.js:79
+Espaço entre ícones	rótulo	app/pagina/lugares.js:80
+Folga interna	rótulo	app/pagina/lugares.js:81
+Vidro	rótulo	app/pagina/lugares.js:82
+Tamanho dos ícones	rótulo	app/pagina/lugares.js:84
+Ponta esquerda	rótulo	app/pagina/lugares.js:85
+Meio	rótulo	app/pagina/lugares.js:86
+Ponta direita	rótulo	app/pagina/lugares.js:87
+Barra de cima	rótulo	app/pagina/lugares.js:89
+Modificações	rótulo	app/pagina/lugares.js:9
+Segundos no relógio	rótulo	app/pagina/lugares.js:90
+RELOGIO_SEGUNDOS	opção	app/pagina/lugares.js:90
+Vidro ao maximizar	rótulo	app/pagina/lugares.js:91
+VIDRO_AO_MAXIMIZAR	opção	app/pagina/lugares.js:91
+Música tocando	rótulo	app/pagina/lugares.js:92
+MIDIA	opção	app/pagina/lugares.js:92
+Cor da música	rótulo	app/pagina/lugares.js:93
+MIDIA_COR_TITULO	opção	app/pagina/lugares.js:93
+Cor da banda	rótulo	app/pagina/lugares.js:94
+MIDIA_COR_ARTISTA	opção	app/pagina/lugares.js:94
+Capa do disco	rótulo	app/pagina/lugares.js:95
+MIDIA_CAPA	opção	app/pagina/lugares.js:95
+Tocar e pular	rótulo	app/pagina/lugares.js:96
+MIDIA_CONTROLES	opção	app/pagina/lugares.js:96
+Largura da música	rótulo	app/pagina/lugares.js:97
+MIDIA_LARGURA	opção	app/pagina/lugares.js:97
+Letra da música	rótulo	app/pagina/lugares.js:98
+MIDIA_FONTE	opção	app/pagina/lugares.js:98
+Cor da capa	rótulo	app/pagina/lugares.js:99
+MIDIA_COR_ALBUM	opção	app/pagina/lugares.js:99
+Abrir	texto	app/pagina/modificacoes.js:190
+Opções	dica	app/pagina/modificacoes.js:200
+Escolher arquivo	botão	app/pagina/modificacoes.js:235
+baixa da internet	texto	app/pagina/modificacoes.js:239
+Adicionar tema	texto	app/pagina/modificacoes.js:242
+Programa	texto	app/pagina/modificacoes.js:243
+Arquivo	texto	app/pagina/modificacoes.js:244
+Guardando	texto	app/pagina/modificacoes.js:248
+Nenhum programa com tema	texto	app/pagina/modificacoes.js:381
+Escolha um desenho	aviso	app/pagina/oficina.js:124
+Volta ao traço de antes	dica	app/pagina/oficina.js:136
+Volta ao de antes	dica	app/pagina/oficina.js:144
+Levar para o tema	botão	app/pagina/oficina.js:151
+Tirar do tema	botão	app/pagina/oficina.js:162
+Apps	botão	app/pagina/oficina.js:170
+Nada novo no editor	aviso	app/pagina/oficina.js:258
+Voltou do editor	aviso	app/pagina/oficina.js:265
+Guardado no pack	texto	app/pagina/oficina.js:278
+Partida	texto	app/pagina/oficina.js:288
+Desfazer edição	botão	app/pagina/oficina.js:314
+Refazer	botão	app/pagina/oficina.js:320
+SVG	texto	app/pagina/oficina.js:327
+Filtrar	opção	app/pagina/oficina.js:35
+Ajuste	texto	app/pagina/oficina.js:352
+Aro	texto	app/pagina/oficina.js:355
+Tamanho do glifo	texto	app/pagina/oficina.js:358
+Original	texto	app/pagina/oficina.js:378
+Guardado	opção	app/pagina/oficina.js:381
+Do pack	opção	app/pagina/oficina.js:382
+Salvo	opção	app/pagina/oficina.js:383
+Reler	botão	app/pagina/oficina.js:426
+…: guardado no pack	aviso	app/pagina/oficina.js:529
+…: tirado do pack	aviso	app/pagina/oficina.js:540
+Salvar no tema	botão	app/pagina/oficina.js:615
+…: salvo no …	aviso	app/pagina/oficina.js:621
+No carrossel	opção	app/pagina/oficina.js:629
+Apagar …?	rótulo	app/pagina/oficina.js:660
+Mais imagens	botão	app/pagina/oficina.js:671
+Apagar os arquivos	botão	app/pagina/oficina.js:721
+Apagar os arquivos de …?	rótulo	app/pagina/oficina.js:722
+Procurar desenho	opção	app/pagina/oficina.js:79
+Ícones da máquina	título	app/pagina/paginas.js:1005
+Prévia do 	opção	app/pagina/paginas.js:101
+No ar	dica	app/pagina/paginas.js:109
+Um .meowpack ou um .csv de cores	dica	app/pagina/paginas.js:163
+Criar o meu tema	texto	app/pagina/paginas.js:204
+Meu tema	rótulo	app/pagina/paginas.js:237
+…: guardado	aviso	app/pagina/paginas.js:284
+… · … sem as imagens	dica	app/pagina/paginas.js:367
+Baixar o …?	rótulo	app/pagina/paginas.js:370
+Baixar	opção	app/pagina/paginas.js:370
+…: baixado	aviso	app/pagina/paginas.js:386
+Contraste com o fundo	dica	app/pagina/paginas.js:427
+Começar de	título	app/pagina/paginas.js:437
+Prévia da área de trabalho	opção	app/pagina/paginas.js:44
+Editando 	texto	app/pagina/paginas.js:557
+Biblioteca	título	app/pagina/paginas.js:568
+Tudo em ordem	rótulo	app/pagina/paginas.js:63
+…: trocado	aviso	app/pagina/paginas.js:672
+Sem ponte	texto	app/pagina/paginas.js:703
+Toca no COSMIC	título	app/pagina/paginas.js:716
+Os sons não abriram	texto	app/pagina/paginas.js:717
+Ponte fora	texto	app/pagina/paginas.js:723
+Carregador e bateria tocam o som do Pop	texto	app/pagina/paginas.js:724
+Tocar o sino	dica	app/pagina/paginas.js:740
+Sino do volume	título	app/pagina/paginas.js:746
+Temas de apps	título	app/pagina/paginas.js:774
+Aprimorar	botão	app/pagina/paginas.js:782
+Tema novo	título	app/pagina/paginas.js:813
+Aprimorar 	título	app/pagina/paginas.js:815
+Prévia do tema	opção	app/pagina/paginas.js:846
+Mesmo horário	texto	app/pagina/paginas.js:902
+Um .conf para a máquina nova	dica	app/pagina/paginas.js:973
+Esta é a página exportada: não há servidor por trás dela. 	opção	app/pagina/standalone.js:17
+Usar este pack	rótulo	app/servidor.py:3622
+Remover este pack	rótulo	app/servidor.py:3632
+Aplicar ajuste	rótulo	app/servidor.py:3651
+Ouvir o som	rótulo	app/servidor.py:3660
+Conferir a máquina	rótulo	app/servidor.py:3680
+Consertar	rótulo	app/servidor.py:3691
+Desinstalar o MeowSystem	rótulo	app/servidor.py:3700
+Liberar espaço	rótulo	app/servidor.py:3718
+Ver o registro	rótulo	app/servidor.py:3728
+Limpar as sobras	rótulo	app/servidor.py:3760
+Pôr o mascote	rótulo	app/servidor.py:3831
+O carrossel agora	rótulo	app/servidor.py:3852
+Imagem de dia	rótulo	app/servidor.py:3915
+Imagem de noite	rótulo	app/servidor.py:3924
+Painel agora	rótulo	app/servidor.py:3986
+Instalar a extensão	rótulo	app/servidor.py:4045
+Atualizar a extensão	rótulo	app/servidor.py:4063
+Refazer a extensão	rótulo	app/servidor.py:4081
+Remover a extensão	rótulo	app/servidor.py:4090
+Trocar pelo novo	rótulo	app/servidor.py:4108
+Refazer os builds	rótulo	app/servidor.py:4117
+Programas com tema	rótulo	app/servidor.py:4135
+Aplicar nos programas	rótulo	app/servidor.py:4143
+Conferir os jogos	rótulo	app/servidor.py:4201
+Conferir o Heroic	rótulo	app/servidor.py:4221
+Acompanha o tema	rótulo	app/servidor.py:819
+Acompanha o destaque	rótulo	app/servidor.py:830

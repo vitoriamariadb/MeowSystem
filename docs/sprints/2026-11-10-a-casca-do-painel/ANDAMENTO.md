@@ -34,4 +34,4 @@ C e D têm arquivos disjuntos entre si.
 
 ## Próximo passo
 
-Rodar a varredura da P184 e levar a tabela para quem usa aprovar.
+Varredura feita (`relatorios/textos-da-tela.tsv`, 582 textos; script `relatorios/textos_da_tela.py`). `GLOSSARIO.md` com 97 linhas propostas espera a aprovação de quem usa.
