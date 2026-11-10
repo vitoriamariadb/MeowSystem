@@ -51,7 +51,7 @@ Quem aplica:
 
 | bloco | worktree | branch | agentes |
 | --- | --- | --- | --- |
-| B casca + glossário | `~/Desenvolvimento/.meow-wt-casca` | `bloco/casca` | implementa (agente high), confere e corrige (agente high) |
+| B casca + glossário | `~/Desenvolvimento/.meow-wt-casca` | `bloco/casca` | um implementa, outro confere e corrige |
 
 ## Próximo passo
 
