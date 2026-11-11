@@ -40,7 +40,8 @@ a máquina gerou.
 | escala das saídas | **quem usa**; o `install.sh` aplica `ESCALA_TELA` só quando pedido |
 | `CosmicPanel.*/v1/plugins_{wings,center}` | **quem usa**; o `extensoes_build.sh` só avisa quando falta a linha |
 | ciclo de vida do `cosmic-panel` e o painel vivo que não desenha (`lib/painel.sh`) | **Meow** (`meow-painel.service`) |
-| `CosmicTk/v1/icon_theme`, `icon_theme`, `font` e `mono_font` das quatro casas `CosmicTheme.{Dark,Light}{,.Builder}` (onde a libcosmic nova os lê), `~/.local/share/icons/MeowSystem-Icons`, `hicolor/index.theme` | **Meow** |
+| `CosmicTk/v1/icon_theme`, `icon_theme` e `mono_font` das quatro casas `CosmicTheme.{Dark,Light}{,.Builder}` (onde a libcosmic nova os lê), `~/.local/share/icons/MeowSystem-Icons`, `hicolor/index.theme` | **Meow** |
+| `font` das quatro casas do tema | **quem usa** (o Configurações grava a escolha ali); o `instalar_fontes.sh` só semeia com a `interface_font` do Tk onde falta |
 | `/usr/share/icons/hicolor/.../CosmicAppLibrary.svg`, `~/.config/cosmic/logos/` | **Meow** |
 | `~/.local/share/applications/` (lançador, sombras dos applets da casa, uma por extensão) | **Meow**; `NoDisplay`, nunca `Hidden=true`, para não matar o handler de MIME |
 | `/usr/share/applications/*` (`NoDisplay`, nome curto) | **Meow**, pela ponte root |

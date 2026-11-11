@@ -484,10 +484,10 @@ case $? in
 esac
 
 if [ -f "$TK/interface_font" ]; then
-  meow_tema_gravar font "$(cat "$TK/interface_font")"
+  meow_tema_semear font "$(cat "$TK/interface_font")"
   case $? in
-    0) meow_ok "font do tema já copia a interface_font do Tk" ;;
-    1) meow_muda "font do tema -> a interface_font do Tk"; mudou=1 ;;
+    0) meow_ok "font do tema presente nas quatro casas (a escolha da fonte da interface é de quem usa)" ;;
+    1) meow_muda "font do tema semeada com a interface_font do Tk onde faltava"; mudou=1 ;;
     *) meow_erro "não consegui gravar font no tema do COSMIC"; exit "$MEOW_ERRO" ;;
   esac
 else

@@ -511,6 +511,20 @@ meow_tema_gravar() {
   return "$rc"
 }
 
+meow_tema_semear() {
+  local casa rc=0 r
+  while IFS= read -r casa; do
+    [ -f "$casa/$1" ] && continue
+    meow_escrever "$casa/$1" "$2" 644; r=$?
+    case "$r" in
+      0) ;;
+      1) rc=1 ;;
+      *) return "$MEOW_ERRO" ;;
+    esac
+  done < <(meow_tema_casas)
+  return "$rc"
+}
+
 meow_tema_ler() {
   local casa="$1"
   [ -f "$casa/$2" ] || return 1
