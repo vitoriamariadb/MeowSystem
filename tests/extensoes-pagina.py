@@ -287,7 +287,7 @@ def main():
             checa(os.path.isfile(os.path.join(casa.CASA, ".local", "bin", "meowsystem-casa-um")), "o binário está na casa")
             checa("casa-um" in (conf("EXTENSOES") or "").split(","), f"o EXTENSOES ganha o id ({conf('EXTENSOES')!r})")
             checa(eventual(lambda: pilula(pag, "casa-um") == "Instalada, fora da barra"), f"o cartão diz «{pilula(pag, 'casa-um')}»")
-            checa(eventual(lambda: botoes(pag, "casa-um") == ["Adicionar à barra", "Remover Casa Um"]), f"e oferece pôr e remover ({botoes(pag, 'casa-um')})")
+            checa(eventual(lambda: botoes(pag, "casa-um") == ["Adicionar à barra", "Recompilar", "Remover Casa Um"]), f"e oferece pôr e remover ({botoes(pag, 'casa-um')})")
 
             print("3. pôr no painel acrescenta no fim, sem mexer na ordem do resto")
             antes = asas()
@@ -475,14 +475,20 @@ def main():
             pag.set_viewport_size({"width": 1550, "height": 860})
             esperar(pag)
             checa(max(transbordas) <= 0, f"a versão longa do pacote fica dentro do cartão, em 1500 e 390 px ({transbordas})")
-            rotulos = pag.locator("[data-aba-corpo='builds'] .linha .rot b").all_inner_texts()
-            checa(rotulos == ["Casa Um", "Casa Dois", "Casa Três"], f"as linhas dos applets ({rotulos})")
+            rotulos = pag.locator("[data-aba-corpo='builds'] .linha .rot").all_inner_texts()
+            checa(rotulos == ["Recompilar ao entrar"] and pag.locator("[data-aba-corpo='builds'] [data-applet]").count() == 0,
+                  f"a aba Builds não tem applet, só as peças da casa e a chave ({rotulos})")
+            checa(pag.locator("[data-aba-corpo='builds']").inner_text().count("~/.local") == 0, "e não mostra caminho nem commit")
             checa(pag.locator("[data-controle='build:tudo']").count() == 1, "«Recompilar tudo» existe")
             antes_cargo = open(os.path.join(TESTE, "cargo.log"), encoding="utf-8").read().count("build")
-            pag.locator("[data-controle='build:extensao:casa-um']").click()
+            ir(pag, "extensoes")
+            checa(eventual(lambda: pilula(pag, "casa-um") != "") and "Recompilar" in botoes(pag, "casa-um"),
+                  f"o estado e o gesto de compilar do applet moram no cartão dele, na aba Applets ({pilula(pag, 'casa-um')}, {botoes(pag, 'casa-um')})")
+            cartao(pag, "casa-um").get_by_role("button", name="Recompilar").click()
             fim_do_trabalho(pag)
             depois_cargo = open(os.path.join(TESTE, "cargo.log"), encoding="utf-8").read().count("build")
             checa(depois_cargo > antes_cargo, "«Recompilar» do applet roda o cargo de novo")
+            ir(pag, "extensoes/builds")
             chave = pag.locator("[data-controle='build:ao-entrar']")
             checa(chave.get_attribute("aria-checked") == "true" and (conf("BUILDS_AO_ENTRAR") or "sim") == "sim",
                   "«Recompilar ao entrar» vem ligado")
