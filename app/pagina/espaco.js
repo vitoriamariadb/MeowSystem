@@ -44,7 +44,7 @@ function cabecaDoEspaco(d) {
   const nada = d.liberavel <= 0;
   const parado = nada || d.ocupado;
   const preco = nada ? null : elemento("span", { class: "preco", "data-preco": true,
-    texto: tamanhoEmTexto(d.liberavel) + (d.refazer ? " · ~" + d.refazer + " min" : "") });
+    texto: tamanhoEmTexto(d.liberavel) + (d.refazer ? " · recompila em ~" + d.refazer + " min" : "") });
   const liberar = botao("Apagar arquivos recriáveis", { class: "bt principal", icone: "lixo", disabled: parado,
     controle: "espaco:liberar", onclick: () => rodar(ACAO.get("espaco_liberar"), "", { verbo: "Apagar arquivos recriáveis",
       depois: () => { ESP.quando = 0; carregarEspaco(); } }) }, [preco]);
