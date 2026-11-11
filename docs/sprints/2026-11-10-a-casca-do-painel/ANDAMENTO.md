@@ -51,11 +51,20 @@ Quem aplica:
 
 | bloco | worktree | branch | agentes |
 | --- | --- | --- | --- |
-| B casca + glossário | `~/Desenvolvimento/.meow-wt-casca` | `bloco/casca` | um implementa, outro confere e corrige |
+| B2 resultado na linha | `~/Desenvolvimento/.meow-wt-linha` | `bloco/linha` | P200: um implementa, outro confere e corrige |
+| A personalizar | `~/Desenvolvimento/.meow-wt-personalizar` | `bloco/personalizar` | P185–P188 + as linhas «sai» do A: um implementa, outro confere e corrige |
 
 ## Próximo passo
 
-Bloco B em voo. Quando o conferente voltar: integrar `bloco/casca` no master, depois A, C e D (no máximo dois em voo).
+11/11: B integrado no master (235d7fec, conferente APROVADO, suíte 149/150) e P199 (o `restaurar.sh` verde de novo,
+f60a4c11). Em voo: B2 (P200) e A. Quando cada conferente voltar: integrar no master; depois C e D juntos.
+Vermelho antigo não se aceita: vira sprint e conserto. Suíte longa de agente: o agente espera em primeiro plano,
+em pedaços de até 9 min, nunca encerra o turno «esperando».
+
+Anotações para depois (não são escopo de bloco nenhum ainda):
+- `tests/glossario.sh` lê `GLOSSARIO.md` e `textos_da_tela.py` de dentro desta leva: levar para fora de `docs/sprints` antes de arquivar.
+- «Painel agora» (`painel_estado`) e «Pôr o mascote» (`logo_trocar`) no `rotulo` do servidor ainda usam palavra que saiu da tela.
+- Código morto anterior ao B: `Manipulador._svg_vazado` e o `seco` do `/api/jogo-fora`.
 
 ## Para os blocos A, C e D
 
@@ -70,8 +79,9 @@ O bloco B aplicou toda troca de nome do glossário. As linhas «sai» de tela al
 
 Leituras do B onde a resposta de quem usa era ambígua (conferir na revisão):
 - «Carrossel agora · Próxima imagem» (resposta «não: Carrossel de Imagens»): «Carrossel agora» virou «Carrossel de Imagens»;
-  «Próxima imagem» fica, porque o «não» recusou a proposta «Trocar o papel agora» (pergunta aberta para quem usa).
-- «Voltar a girar · Girar» (resposta «Girar»): ficou como estava.
+  «Próxima imagem» fica (sim de 11/11: «Só a linha»).
+- «Voltar a girar · Girar»: a linha se chama «Girar» (sim de 11/11), na P200.
+- «Pôr agora»: só o botão «Aplicar», sem nome de linha (sim de 11/11), na P200.
 - «Ao ligar · Não abrem sozinhos» (proposta «Bloquear ao iniciar»): o bloco virou «Ao iniciar» e a linha «Bloquear ao iniciar».
 - «Regravar o som» virou «Gerar Sons» (texto dela); a P188 propunha «Salvar o sino».
 - O `rotulo` das ações no `servidor.py` aparece na tela (título da confirmação e nome na linha de progresso), então é o
