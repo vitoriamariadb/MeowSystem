@@ -253,11 +253,11 @@ function pararVigiaEditor() {
   if (OFICINA.editorRelogio) clearInterval(OFICINA.editorRelogio);
   OFICINA.editorRelogio = null;
 }
-async function espiarEditor(pedido) {
+async function espiarEditor() {
   const r = await api("/api/app-desenho", { method: "POST",
     body: JSON.stringify({ app: OFICINA.app, acao: "editor-ler", mtime: OFICINA.editorMtime }) });
-  if (r.erro) { pararVigiaEditor(); if (pedido) torrada(r.erro, "erro"); return; }
-  if (!r.tem || !r.mudou) { if (pedido) torrada("Nada novo no editor"); return; }
+  if (r.erro) { pararVigiaEditor(); return; }
+  if (!r.tem || !r.mudou) return;
   novoPasso();
   OFICINA.editorMtime = r.mtime;
   OFICINA.svg = r.svg || "";
@@ -424,8 +424,7 @@ function oficinaDeDesenho(app, relerLista) {
     if (!OFICINA.editor || !OFICINA.editor.tem) return;
     editor.append(
       botao(OFICINA.editor.nome ? `Abrir no ${OFICINA.editor.nome}` : "Abrir no editor", { class: "bt leve pequeno",
-        controle: "oficina:editor", disabled: !String(OFICINA.svg || "").trim() || OFICINA.dopack, onclick: abrirNoEditor }),
-      botao("Reler", { class: "bt leve pequeno", controle: "oficina:reler", icone: "girar", onclick: () => espiarEditor(true) }));
+        controle: "oficina:editor", disabled: !String(OFICINA.svg || "").trim() || OFICINA.dopack, onclick: abrirNoEditor }));
   }
   function pintarPe() {
     const tem = !!(OFICINA.noPack && OFICINA.noPack.tem);
@@ -512,7 +511,7 @@ function oficinaDeDesenho(app, relerLista) {
     let espiadas = 0;
     OFICINA.editorRelogio = setInterval(() => {
       if (!document.querySelector(".desenho-gerar") || ++espiadas > 450) { pararVigiaEditor(); return; }
-      espiarEditor(false);
+      espiarEditor();
     }, 2000);
   }
   usar.addEventListener("click", async (e) => {
