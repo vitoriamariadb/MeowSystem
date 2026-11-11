@@ -16,7 +16,7 @@ raiz, leva = Path(sys.argv[1]), sys.argv[2]
 glossario = (raiz / leva / "GLOSSARIO.md").read_text(encoding="utf-8")
 
 AINDA_NA_TELA_DE_OUTRO_BLOCO = {
-    "Vale para", "Versão do ponteiro",
+    "Vale para",
     "Escolhida dura", "Versão do acervo", "Mascote novo entra",
 }
 A_RESPOSTA_TROCOU_SO_O_OUTRO_TERMO_DA_LINHA = {"Próxima imagem"}

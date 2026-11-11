@@ -111,7 +111,6 @@ const AJUSTES = [
         { c: "ESCALA_TELA", r: "Escala da tela" },
         { c: "GPU_COMPOSITOR", r: "GPU do compositor" },
         { c: "CURSOR", r: "Ponteiro", larga: true },
-        { c: "CURSOR_VERSAO", r: "Versão do ponteiro", sub: true },
         { g: "acervo:cursor", r: "Trazer ponteiro", b: "Trazer .zip" },
       ] },
       { titulo: "Áreas de trabalho", linhas: [
