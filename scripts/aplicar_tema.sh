@@ -219,7 +219,7 @@ while IFS= read -r -d '' arq; do
   for ficha in "${FICHAS[@]}"; do [ "$rel" = "$ficha" ] && continue 2; done
   destino="$COSMIC/$rel"
 
-  if { e_chave_dela "$rel" || e_chave_do_meow "$rel"; } && [ -f "$destino" ]; then
+  if e_chave_do_meow "$rel" || { e_chave_dela "$rel" && [ -f "$destino" ]; }; then
     iguais=$((iguais+1)); continue
   fi
 
