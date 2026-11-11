@@ -417,7 +417,8 @@ function padraoDe(item) {
 }
 function foraDeFabrica(item) {
   const agora = Number(item.valendo_agora);
-  return item.valendo_agora != null && Number.isFinite(agora) && agora !== Number(item.fabrica_cosmic);
+  const teto = item.teto && item.teto.trava ? Number(item.teto.valor) : Infinity;
+  return item.valendo_agora != null && Number.isFinite(agora) && agora !== Math.min(Number(item.fabrica_cosmic), teto);
 }
 function temOQueRestaurar(item, valor) {
   if (item.fabrica_cosmic != null && foraDeFabrica(item)) return true;

@@ -142,6 +142,13 @@ def main():
                   f"a faixa diz {FABRICA['Dock']['border_radius']} ({saida_da_faixa(pag, 'FORMA_RAIO_DOCK')}), e não o fim da escala ({topo})")
             checa(numero_da_faixa(pag, "FORMA_RAIO_DOCK") == topo, f"e o botão da faixa fica no fim dela ({numero_da_faixa(pag, 'FORMA_RAIO_DOCK')})")
             checa(pag.locator('[data-controle="padrao:FORMA_RAIO_DOCK"]').count() == 0, "e sem ↶, porque já está de fábrica")
+            print("5. sem o patch do compositor, o teto de segurança é o mais perto da fábrica que dá, e o ↶ some")
+            def sem_patch(agora):
+                pag.evaluate("""(v) => { const i = CHAVE.get('FORMA_RAIO_DOCK');
+                    i.teto = { valor: 0, trava: true, estado: 'sem' }; i.valendo_agora = v; render(); }""", agora)
+                return pag.locator('[data-controle="padrao:FORMA_RAIO_DOCK"]').count()
+            checa(sem_patch("0") == 0, "no teto (0), sem ↶")
+            checa(sem_patch("5") == 1, "acima do teto (5), o ↶ volta")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:
