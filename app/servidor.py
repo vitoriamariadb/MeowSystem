@@ -3695,6 +3695,7 @@ ACOES = {
     },
 
     "sistema_ver": {
+        "resumo": True,
         "rotulo": "O que muda",
         "grupo": "Atualização",
         "natureza": "mostrar",
@@ -3746,6 +3747,7 @@ ACOES = {
         "ambiente": {"MEOW_SIM": "1"},
     },
     "icones": {
+        "resumo": True,
         "rotulo": "Tema de ícones",
         "grupo": "Ícones",
         "natureza": "mostrar",
@@ -3781,6 +3783,7 @@ ACOES = {
                  "passo que faz um desenho do pack escolhido aqui aparecer.",
     },
     "logo_listar": {
+        "resumo": True,
         "rotulo": "Mascote agora",
         "grupo": "Logo do sistema",
         "natureza": "mostrar",
@@ -3810,6 +3813,7 @@ ACOES = {
                  "botão fica apagado e diz onde mudar.",
     },
     "wallpaper": {
+        "resumo": True,
         "rotulo": "O carrossel agora",
         "grupo": "Papel de parede",
         "natureza": "mostrar",
@@ -3899,6 +3903,7 @@ ACOES = {
         "ajuda": "Tira a escolha e deixa o brilho medido da imagem decidir.",
     },
     "areas_ver": {
+        "resumo": True,
         "rotulo": "Áreas agora",
         "grupo": "Áreas de trabalho",
         "natureza": "mostrar",
@@ -3944,6 +3949,7 @@ ACOES = {
         "ambiente": {"MEOW_SIM": "1"},
     },
     "painel_estado": {
+        "resumo": True,
         "rotulo": "Painel agora",
         "grupo": "Painel e dock",
         "natureza": "mostrar",
@@ -3952,6 +3958,7 @@ ACOES = {
         "ajuda": "O estado do painel, da dock e do serviço que cuida dos dois.",
     },
     "painel_teto": {
+        "resumo": True,
         "rotulo": "Arredondamento máximo",
         "grupo": "Painel e dock",
         "natureza": "mostrar",
@@ -3970,6 +3977,7 @@ ACOES = {
                  "aparecer na hora.",
     },
     "leitura": {
+        "resumo": True,
         "rotulo": "Leitura agora",
         "grupo": "Modo de leitura",
         "natureza": "mostrar",
@@ -3995,6 +4003,7 @@ ACOES = {
         "ajuda": "Zera temperatura e textura, e desarma o agendamento.",
     },
     "files_menu": {
+        "resumo": True,
         "rotulo": "Menu agora",
         "grupo": "Papel de parede",
         "natureza": "mostrar",
@@ -4093,6 +4102,7 @@ ACOES = {
         "ajuda": "Reabre o painel e a Dock desta sessão, para o applet trocado aparecer.",
     },
     "apps": {
+        "resumo": True,
         "rotulo": "Programas com tema",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
@@ -4159,6 +4169,7 @@ ACOES = {
                  "abertura do editor.",
     },
     "jogos": {
+        "resumo": True,
         "rotulo": "Conferir os jogos",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
@@ -4179,6 +4190,7 @@ ACOES = {
                  "só, e nunca com a Steam aberta.",
     },
     "jogos_heroic": {
+        "resumo": True,
         "rotulo": "Conferir o Heroic",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
@@ -5367,6 +5379,7 @@ def _trabalho_json(trabalho, acao_id, seco=False):
             "escreve": escreve(ACOES[acao_id]),
             "seco": bool(seco),
             "conserta_com": ACOES[acao_id].get("conserta_com"),
+            "resumo": bool(ACOES[acao_id].get("resumo")),
             "nomes": NOME_DA_CONFERENCIA if acao_id == "doctor" else None,
             "fim": fim_da_acao(acao_id, seco)}
 

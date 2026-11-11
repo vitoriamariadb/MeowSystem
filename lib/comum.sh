@@ -27,6 +27,7 @@ meow_passo()  { meow_quieto && return 0
                        "$C_DIM" "$(printf '%.0s─' {1..52})" "$C_ZERO"; }
 meow_info()   { meow_quieto && return 0
                 printf '  %s>>%s %s\n' "$C_AZUL" "$C_ZERO" "$*"; }
+meow_frase()  { printf '  %s->%s %s\n' "$C_AZUL" "$C_ZERO" "$*"; }
 meow_ok()     { meow_quieto && return 0
                 printf '  %sok%s   %s\n' "$C_VERDE" "$C_ZERO" "$*"; }
 meow_muda()   { printf '  %s~~%s   %s\n' "$C_AMARELO" "$C_ZERO" "$*"; }

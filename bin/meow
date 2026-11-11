@@ -2024,6 +2024,14 @@ cmd_logo() {
   return "$rc"
 }
 
+frase_dos_icones() {
+  case "$1" in
+    0) meow_frase "Os ícones $2 estão em dia." ;;
+    1) meow_frase "Os ícones $2 estão desatualizados: o botão Refazer os ícones conserta." ;;
+    *) meow_frase "Não foi possível conferir os ícones $2." ;;
+  esac
+}
+
 cmd_icones() {
   carregar_conf || return "$MEOW_ERRO"
   case "${1:-}" in
@@ -2049,7 +2057,13 @@ cmd_icones() {
         *) base="${ICONES_BASE:-Papirus-Dark}" ;;
       esac
       meow_titulo "Ícones"
-      campo "tema"      "$(cat "$COSMIC/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/icon_theme" 2>/dev/null || printf '(nenhum)')"
+      local tema_em_uso; tema_em_uso="$(cat "$COSMIC/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/icon_theme" 2>/dev/null)"
+      if [ -n "$tema_em_uso" ]; then
+        meow_frase "O tema de ícones em uso é $tema_em_uso."
+      else
+        meow_frase "Nenhum tema de ícones está em uso."
+      fi
+      campo "tema"      "${tema_em_uso:-(nenhum)}"
       campo "diretório" "$dir"
       campo "base"      "$base"
       campo "pastas"    "${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}"
@@ -2061,8 +2075,10 @@ cmd_icones() {
       local saida rc
       local LOG_NIVEL=info; export LOG_NIVEL
       saida="$(chk_icones)"; rc=$?
+      frase_dos_icones "$rc" "dos aplicativos"
       printf '  %s %s %s\n' "$(rotulo_rc "$rc")" "$(pad "ícones" 10)" "$(primeira_linha "$saida")"
       saida="$(chk_pastas)"; local rc2=$?
+      frase_dos_icones "$rc2" "das pastas"
       printf '  %s %s %s\n\n' "$(rotulo_rc "$rc2")" "$(pad "pastas" 10)" "$(primeira_linha "$saida")"
       return "$(pior_de "$rc" "$rc2")" ;;
     importar)
@@ -2244,9 +2260,17 @@ cmd_apps() {
       meow_titulo "Aplicativos"
       printf '  %s%s %s %s %s%s\n' "$C_DIM" "$(pad "programa" 18)" "$(pad "instalado" 10)" "$(pad "tema" 10)" "nomes no meow.conf" "$C_ZERO"
       local pasta slugs det conf motivo rc_geral=0
-      local t_inst c_inst t_tema c_tema
+      local t_inst c_inst t_tema c_tema pendentes="" sep_p="" slug_p
+      local -a lista_p=()
       while IFS=$'\t' read -r pasta slugs det conf motivo; do
         [ -n "$pasta" ] || continue
+        if [ "$conf" = 1 ] && [ "$det" = 0 ]; then
+          IFS=', ' read -ra lista_p <<< "$slugs"
+          for slug_p in "${lista_p[@]}"; do
+            [ -n "$slug_p" ] || continue
+            pendentes="$pendentes$sep_p${slug_p^}"; sep_p=", "
+          done
+        fi
         case "$det" in
           0) t_inst="sim"; c_inst="$C_VERDE" ;;
           *) t_inst="não"; c_inst="$C_DIM" ;;
@@ -2265,6 +2289,11 @@ cmd_apps() {
           && printf '  %s %s%s%s\n' "$(pad "" 18)" "$C_DIM" "$motivo" "$C_ZERO"
       done < <(APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
         SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
+      if [ -n "$pendentes" ]; then
+        meow_frase "Programas instalados com tema pendente: $pendentes."
+      else
+        meow_frase "Os temas dos programas instalados estão em dia."
+      fi
       printf '\n  %snome sem programa ainda não é falha: aparece só quando alguém escrever o manifesto.%s\n' \
              "$C_DIM" "$C_ZERO"
       printf '  %smeow apps aplicar [nome] tematiza; sem nome, todos.%s\n\n' "$C_DIM" "$C_ZERO"

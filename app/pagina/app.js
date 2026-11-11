@@ -1083,7 +1083,7 @@ function iniciarProgresso(trabalho, depois = null) {
   if (TRABALHO && TRABALHO.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve, rotulo: maiuscula(trabalho.rotulo),
                acao: trabalho.acao || null, fim: trabalho.fim || {}, mudou: false, depois, saida: [],
-               consertaCom: trabalho.conserta_com || null, nomes: trabalho.nomes || null, rota: location.hash };
+               consertaCom: trabalho.conserta_com || null, nomes: trabalho.nomes || null, resumo: !!trabalho.resumo, rota: location.hash };
   if (TRABALHO.acao) esquecerResultado(TRABALHO.acao);
   const barra = $("#progresso");
   barra.dataset.estado = "correndo";
@@ -1104,6 +1104,11 @@ const MAX_DO_RESULTADO = 6;
 function semCaminho(texto) {
   return texto.replace(/(^|[\s'"(])(?:~|\/)[^\s'")]*\/([^\s'"/)]+)/g, "$1$2");
 }
+const NAO_LEGIVEL = /[A-Z_]{4,}=|=<|\[[A-Z]{4,}\]|`|\.desktop|\.theme|\bpid\b|(^|[\s'"(])(~|\/)[^\s'")]*\//i;
+function fraseLegivel(frase) {
+  const limpa = frase.replace(/\s{2,}/g, " ").trim();
+  return limpa && !NAO_LEGIVEL.test(limpa) ? maiuscula(limpa) : "";
+}
 function resumirSaida(linhas, nomes = null) {
   const itens = [];
   let anteriorMarcada = false;
@@ -1123,24 +1128,31 @@ function resumirSaida(linhas, nomes = null) {
         texto = texto.split(" — ")[0];
       }
     }
+    let dica = "";
     if (nomes) {
       const area = m && /^(\S+)\s/.exec(bruta.slice(m[0].length));
       texto = (area && Object.hasOwn(nomes, area[1]) && nomes[area[1]]) || "";
+      if (texto) dica = fraseLegivel(bruta.slice(m[0].length).replace(/^\S+\s+/, ""));
     }
     texto = semCaminho(texto).replace(/\s{2,}/g, " ").trim();
     if (!texto) continue;
     anteriorMarcada = !!m;
-    itens.push({ texto: maiuscula(texto), classe });
+    itens.push({ texto: maiuscula(texto), classe, dica });
   }
   return itens;
 }
+function frasesDoResumo(linhas) {
+  return linhas.map((l) => /^\s*->\s+(\S.*)$/.exec(l)).filter(Boolean)
+    .map((m) => ({ texto: maiuscula(m[1].trim()), classe: "" }));
+}
 function guardarResultado(t, rc, frase) {
-  const itens = resumirSaida(t.saida, t.nomes);
+  const frases = t.resumo ? frasesDoResumo(t.saida) : [];
+  const itens = frases.length ? frases : resumirSaida(t.saida, t.nomes);
   const divergem = itens.filter((i) => i.classe === "mudou" || i.classe === "erro");
   const contagem = divergem.length === 1 ? "1 coisa diverge" : `${divergem.length} coisas divergem`;
   const confere = !!t.consertaCom;
   const mostrar = confere || (rc === 1 && divergem.length) ? divergem : itens;
-  const cabeca = divergem.length && (confere || rc === 1) ? contagem
+  const cabeca = frases.length ? "" : divergem.length && (confere || rc === 1) ? contagem
     : !confere && rc === 0 && itens.length ? "" : maiuscula(frase);
   RESULTADOS.set(t.acao, {
     rota: t.rota, estado: rc === 0 ? "ok" : rc === 1 ? "divergente" : "erro", cabeca,
@@ -1158,7 +1170,7 @@ function noDoResultado(id, r) {
   return elemento("div", { class: "resultado", "data-resultado": id, "data-estado": r.estado, role: "status" }, [
     r.cabeca ? elemento("p", { class: "resultado-cabeca", texto: r.cabeca }) : null,
     r.itens.length ? elemento("ul", { class: "resultado-linhas" }, [
-      ...r.itens.map((i) => elemento("li", { class: i.classe || null, texto: i.texto })),
+      ...r.itens.map((i) => elemento("li", { class: i.classe || null, texto: i.texto, dica: i.dica || null })),
       r.sobram ? elemento("li", { class: "sobra", texto: `E mais ${r.sobram}` }) : null,
     ]) : null,
     consertar ? botao("Consertar", { class: "bt pequeno principal", controle: "resultado:consertar",
