@@ -273,6 +273,11 @@ let TRABALHOS_A_CAMINHO = 0;
 let FILA_DE_GRAVACAO = Promise.resolve();
 let ACOMPANHANDO = false;
 
+function voltarAoDeFabrica(item) {
+  gravarAgora({ [item.chave]: "" }, { fabrica: true });
+  return true;
+}
+
 function escolher(chave, valor) {
   const item = CHAVE.get(chave);
   if (!item) return false;
@@ -328,7 +333,7 @@ function gravarAgora(lote, opc = {}) {
 async function enviarLote(lote, antes, chaves, opc, numero) {
   const so = chaves.length === 1;
   const r = so
-    ? await api("/api/definir", { method: "POST", body: JSON.stringify({ chave: chaves[0], valor: String(lote[chaves[0]]) }) })
+    ? await api("/api/definir", { method: "POST", body: JSON.stringify({ chave: chaves[0], valor: String(lote[chaves[0]]), fabrica: opc.fabrica === true }) })
     : await api("/api/salvar", { method: "POST", body: JSON.stringify({ mudancas: lote }) });
   EM_VOO--;
   for (const c of chaves) if (ULTIMO_LOTE_DA_CHAVE.get(c) === numero) { MUDANCAS.delete(c); ULTIMO_LOTE_DA_CHAVE.delete(c); }
@@ -410,7 +415,12 @@ function padraoDe(item) {
   if (item.padrao_do_pack != null) return String(item.padrao_do_pack);
   return item.padrao == null ? "" : String(item.padrao);
 }
+function foraDeFabrica(item) {
+  const agora = Number(item.valendo_agora);
+  return item.valendo_agora != null && Number.isFinite(agora) && agora !== Number(item.fabrica_cosmic);
+}
 function temOQueRestaurar(item, valor) {
+  if (item.fabrica_cosmic != null && foraDeFabrica(item)) return true;
   return String(valor) !== String(padraoDe(item));
 }
 function botaoPadrao(item, aplica, coluna) {
@@ -419,8 +429,9 @@ function botaoPadrao(item, aplica, coluna) {
   return elemento("button", {
     type: "button", class: "padrao", controle: "padrao:" + item.chave,
     "aria-label": "Voltar ao padrão" + de,
-    dica: (fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item)) + de,
-    onclick: () => aplica(fabrica),
+    dica: (item.fabrica_cosmic != null ? "Volta ao de fábrica do COSMIC: " + item.fabrica_cosmic
+      : fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item)) + de,
+    onclick: () => (item.fabrica_cosmic != null ? voltarAoDeFabrica(item) : aplica(fabrica)),
   }, [icone("desfazer")]);
 }
 
@@ -542,8 +553,9 @@ function controleFaixa(item, aplica) {
   const teto = item.teto && item.teto.trava ? Number(item.teto.valor) : null;
   const topo = teto == null ? hi : Math.max(Number(lo), Math.min(Number(hi), teto));
   const valor = valorEmVigor(item);
-  const base = valor !== "" ? valor : (item.valendo_agora ?? item.vazio_vale ?? item.padrao ?? lo);
-  const numero = /^-?\d+(\.\d+)?$/.test(String(base)) ? Number(base) : Number(lo);
+  const base = valor !== "" ? valor : (item.valendo_agora ?? item.fabrica_cosmic ?? item.vazio_vale ?? item.padrao ?? lo);
+  const lido = /^-?\d+(\.\d+)?$/.test(String(base)) ? Number(base) : Number(lo);
+  const numero = Math.max(Number(lo), Math.min(topo, lido));
   const slider = elemento("input", {
     type: "range", min: lo, max: topo, step: passo, value: String(numero),
     "aria-label": item.titulo || item.chave, controle: "chave:" + item.chave, dica: primeiraFrase(item.frase),

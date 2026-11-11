@@ -1193,6 +1193,25 @@ def _forma_de_numero(padrao):
     return ""
 
 
+_DE_FABRICA = {}
+for _suf, _pasta in _BARRAS:
+    for _chave, _arquivo in (("FORMA_MARGEM_", "margin"), ("FORMA_RAIO_", "border_radius"),
+                             ("FORMA_ESPACO_", "spacing"), ("FORMA_RECHEIO_", "padding"),
+                             ("VIDRO_OPACIDADE_", "opacity")):
+        _DE_FABRICA[_chave + _suf] = _pasta + _arquivo
+
+
+def _fabrica_cosmic(chave):
+    arquivo = _DE_FABRICA.get(chave)
+    if not arquivo:
+        return None
+    try:
+        with open(os.path.join(COSMIC_SISTEMA, arquivo), encoding="utf-8") as fh:
+            return _numero_cru(fh.read().strip())
+    except OSError:
+        return None
+
+
 def _vazio_vale(inline):
     m = re.search(r"\(vazio\s*=\s*(-?\d+(?:\.\d+)?)\s*\)", inline or "")
     return m.group(1) if m else None
@@ -1390,6 +1409,7 @@ def ler_esquema():
             "dominada_por": _dominada_por(chave),
             "vestigio_de_pack": _vestigio_de_pack(chave),
             "valendo_agora": _valendo_agora(chave),
+            "fabrica_cosmic": _fabrica_cosmic(chave),
             "desligado_agora": chave in _LEITURA_ZERO_DESLIGA and _leitura_desligada(
                 chave, (_cosmic_ler(PASTA_COMP + chave.lower())
                         or "").strip('"')),
@@ -2240,7 +2260,7 @@ def _pendencia_de_aplicar(frase):
         pass
 
 
-_APLICAR = {"fila": [], "completo": False, "correndo": False, "falhou": False}
+_APLICAR = {"fila": [], "completo": False, "correndo": False, "falhou": False, "fabrica": set()}
 _APLICAR_TRAVA = threading.Lock()
 
 
@@ -2256,13 +2276,17 @@ def _aplicador():
                 _APLICAR["correndo"] = False
                 return
             completo, etapas = _APLICAR["completo"], list(_APLICAR["fila"])
+            fabrica = sorted(_APLICAR["fabrica"])
             _APLICAR["fila"], _APLICAR["completo"] = [], False
+            _APLICAR["fabrica"] = set()
         extra = [] if completo else ["--etapa", ",".join(etapas)]
+        de_fabrica = {"MEOW_DE_FABRICA": ",".join(fabrica)} if fabrica else None
         trabalho, erro = None, None
         for _tentativa in range(3600):
             while _ESPERANDO_O_SLOT[0] > 0:
                 time.sleep(0.1)
-            trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra, por_dentro=True)
+            trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra, por_dentro=True,
+                                     ambiente_extra=de_fabrica)
             if trabalho is not None or "já há um trabalho" not in str(erro):
                 break
             time.sleep(0.5)
@@ -2288,7 +2312,7 @@ def _esperar_aplicar_vivo(limite=300):
         time.sleep(0.3)
 
 
-def aplicar_depois_de_gravar(chaves):
+def aplicar_depois_de_gravar(chaves, de_fabrica=()):
     plano = plano_de_aplicacao(chaves)
     if plano["nada"]:
         return {"aplicando": False}
@@ -2296,6 +2320,7 @@ def aplicar_depois_de_gravar(chaves):
         _pendencia_de_aplicar("Um ajuste foi gravado e falta a ponte para aplicar")
         return {"aplicando": False, "sem_ponte": True}
     with _APLICAR_TRAVA:
+        _APLICAR["fabrica"].update(de_fabrica)
         if plano["completo"]:
             _APLICAR["completo"] = True
         for nome in plano["etapas"]:
@@ -5454,25 +5479,25 @@ _ESPERANDO_TRAVA = threading.Lock()
 
 
 def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
-            antes=None, extra_argv=None, por_dentro=False):
+            antes=None, extra_argv=None, por_dentro=False, ambiente_extra=None):
     if ACOES.get(acao_id, {}).get("interna") and not por_dentro:
         return (None, "«%s» só roda depois de gravar um ajuste" % ACOES[acao_id]["rotulo"])
     if acao_id == "aplicar":
         return _iniciar_agora(acao_id, argumento, confirmado, seco, pasta_de_ensaio,
-                              antes, extra_argv)
+                              antes, extra_argv, ambiente_extra)
     with _ESPERANDO_TRAVA:
         _ESPERANDO_O_SLOT[0] += 1
     try:
         _esperar_aplicar_vivo()
         return _iniciar_agora(acao_id, argumento, confirmado, seco, pasta_de_ensaio,
-                              antes, extra_argv)
+                              antes, extra_argv, ambiente_extra)
     finally:
         with _ESPERANDO_TRAVA:
             _ESPERANDO_O_SLOT[0] -= 1
 
 
 def _iniciar_agora(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
-                   antes=None, extra_argv=None):
+                   antes=None, extra_argv=None, ambiente_extra=None):
     global TRABALHO_ATUAL
     acao = ACOES.get(acao_id)
     if acao is None:
@@ -5522,6 +5547,7 @@ def _iniciar_agora(acao_id, argumento, confirmado=False, seco=False, pasta_de_en
     ambiente = _ambiente_do_painel(seco)
     ambiente.update(conf)
     ambiente.update(amb_acao)
+    ambiente.update(ambiente_extra or {})
     if conf_do_ensaio:
         ambiente["MEOW_CONF"] = conf_do_ensaio
         pasta_dela = os.path.dirname(CONF)
@@ -8684,8 +8710,10 @@ class Manipulador(BaseHTTPRequestHandler):
             resposta = {"rc": rc, "saida": texto_na_tela(saida),
                         "chave": chave, "valor": valor}
             gravadas = [c for c, r, _s in feitos if r == 1]
-            if gravadas:
-                resposta.update(aplicar_depois_de_gravar(gravadas))
+            de_fabrica = [chave] if (corpo.get("fabrica") is True and valor == ""
+                                     and item.get("fabrica_cosmic") is not None and rc != 2) else []
+            if gravadas or de_fabrica:
+                resposta.update(aplicar_depois_de_gravar(gravadas or de_fabrica, de_fabrica))
             return self._json(resposta)
 
         if caminho == "/api/salvar":

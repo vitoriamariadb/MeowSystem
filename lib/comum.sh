@@ -490,6 +490,13 @@ meow_cosmic_v() {
   printf 'v%s' "${n:-${2:-1}}"
 }
 
+meow_de_fabrica() {
+  local f
+  case ",${MEOW_DE_FABRICA:-}," in *",$1,"*) ;; *) printf '%s' "$4"; return 0 ;; esac
+  f="$(cat "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/com.system76.CosmicPanel.$2/$(meow_cosmic_v "com.system76.CosmicPanel.$2")/$3" 2>/dev/null)"
+  printf '%s' "${f:-$4}"
+}
+
 meow_libcosmic_de() {
   local sha="${2##*~}" rev
   [ "${MEOW_SEM_REDE:-0}" = "1" ] && return 1
