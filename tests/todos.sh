@@ -158,6 +158,7 @@ MAQUINA=(
   logo-do-pack-pessoal-pagina.py
   zapzap-tema-de-conversa.py
   graficos-fonte-real.sh
+  icone-e-fonte-no-tema.sh
 )
 
 SEM_PULO=(
