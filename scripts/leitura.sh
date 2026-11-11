@@ -403,9 +403,9 @@ cmd_estado() {
   if _leitura_resolver_agenda; then
     _leitura_avisar_chaves
     _leitura_dizer_fonte info
-    meow_frase "O modo de leitura liga das $(_leitura_hhmm "$LEITURA_INI") às $(_leitura_hhmm "$LEITURA_FIM")$([ "$LEITURA_FONTE" = "padrao" ] || [ -z "$LEITURA_FONTE" ] && echo ", o horário padrão do MeowSystem, porque o applet ainda não gravou um" || echo ", o horário que você escolheu no applet")."
+    meow_frase "O modo de leitura liga das $(_leitura_hhmm "$LEITURA_INI") às $(_leitura_hhmm "$LEITURA_FIM")$([ "$LEITURA_FONTE" = "padrao" ] || [ -z "$LEITURA_FONTE" ] && echo ", o horário padrão do MeowSystem, porque nenhum horário foi escolhido no botão da barra" || echo ", o horário que você escolheu no botão da barra")."
     case "$LEITURA_APPLET_DIZ" in
-      nao) meow_frase "Quem manda na cor da tela agora são os controles do applet, que desligaram o agendamento." ;;
+      nao) meow_frase "Quem manda na cor da tela agora são os controles do botão da barra, que desligaram o agendamento." ;;
       *)   meow_frase "Quem manda na cor da tela agora é o relógio." ;;
     esac
     case "$LEITURA_APPLET_DIZ" in

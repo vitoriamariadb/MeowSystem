@@ -829,7 +829,7 @@ cmd_estado() {
   _areas_ler || return $?
 
   if [ "${#AREAS_NOME[@]}" -eq 0 ]; then
-    meow_frase "Nenhuma área está fixada: sem isso, o painel mostra a posição das áreas, não o nome."
+    meow_frase "Nenhuma área está fixada: sem isso, a barra mostra a posição das áreas, não o nome."
     meow_aviso "nenhuma área alfinetada em $AREAS_ALVO"
     meow_aviso "sem alfinete as áreas não têm nome: o painel mostra a POSIÇÃO delas."
     return "$MEOW_OK"

@@ -145,22 +145,22 @@ reciclar() {
 frases_do_estado() {
   local espera
   if meow_painel_fantasma; then
-    meow_frase "A barra está parada: o painel está vivo, mas sem desenhar. O vigia a reinicia sozinho."
+    meow_frase "A barra está parada: o programa dela está aberto, mas não desenha. O vigia a reinicia sozinho."
   else
     meow_frase "A barra está desenhando normalmente."
   fi
   espera="$(meow_painel_espera_supervisor)"
   if [ "$espera" = "nao-medida" ]; then
-    meow_frase "O sistema já reiniciou a barra neste boot, e o tempo de espera até a próxima vez não pôde ser medido."
+    meow_frase "O sistema já reiniciou a barra desde que o computador ligou, e o tempo de espera até a próxima vez não pôde ser medido."
   elif [ -n "$espera" ]; then
     local seg=$(( (espera + 999) / 1000 ))
     if [ "$seg" -le 1 ]; then
-      meow_frase "O sistema já reiniciou a barra neste boot; se ela cair de novo, ele a repõe em até 1 segundo."
+      meow_frase "O sistema já reiniciou a barra desde que o computador ligou; se ela cair de novo, ele a repõe em até 1 segundo."
     else
-      meow_frase "O sistema já reiniciou a barra neste boot; se ela cair de novo, ele espera $seg segundos antes de repô-la."
+      meow_frase "O sistema já reiniciou a barra desde que o computador ligou; se ela cair de novo, ele espera $seg segundos antes de repô-la."
     fi
   else
-    meow_frase "A barra nunca caiu neste boot."
+    meow_frase "A barra nunca caiu desde que o computador ligou."
   fi
   if [ "$(systemctl --user is-active meow-painel.service 2>/dev/null)" = "active" ]; then
     meow_frase "O vigia da barra está ligado: se ela cair, ele a repõe em segundos."
