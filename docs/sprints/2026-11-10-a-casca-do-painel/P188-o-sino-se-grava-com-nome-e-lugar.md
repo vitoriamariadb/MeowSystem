@@ -33,7 +33,11 @@ sino em Ogg (ffmpeg) em `sons/stereo/<contexto>/<evento>.oga` do pack em ediçã
 nome e «Do pack» na linha do evento. Para o volume ele roda também o `som_aplicar`, que mantém o som instalado na máquina.
 O grupo é «Nativo do COSMIC»; o dos apps perde o título («Toca nos apps» sai, como no glossário).
 
-Leituras minhas: o «nome» é um rótulo guardado no pack (o arquivo segue com o nome do evento); sem ffmpeg a gravação
-recusa com aviso (o Ogg não nasce da biblioteca padrão do Python).
+Leituras minhas: o «nome» é um rótulo guardado no pack (o arquivo segue com o nome do evento). O Ogg não nasce da
+biblioteca padrão do Python: o `ffmpeg` entrou nos pacotes do install, da ponte e do `.deb`, e o doctor o instala.
 
-Prova: `tests/personalizar-pagina.py` (grupo, destino padrão, Ogg gravado, nome, linha «Do pack»), `tests/p113-navegador.py`.
+No Personalizar, gravar o sino em qualquer evento (e o «Trocar» de um som) roda o `som_aplicar`: o som novo já entra na
+máquina, sem esperar o «Aplicar tema».
+
+Prova: `tests/personalizar-pagina.py` (grupo, destino padrão, Ogg gravado, nome, linha «Do pack», o som instalado na
+máquina depois do «Gerar Sons» e do «Trocar»), `tests/p113-navegador.py`.
