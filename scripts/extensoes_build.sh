@@ -518,7 +518,7 @@ _aplicar() {
         return "$MEOW_SEM_DEPENDENCIA"
       fi
       _marcar_falha
-      meow_erro "o cargo falhou — $(meow_motivo_do_cargo "$log")"
+      meow_erro "$(_nome) não compilou: $(meow_motivo_do_cargo "$log")"
       meow_info "  o registro está em $log"
       meow_info "  o binário anterior, se houver, segue instalado e funcionando; nada foi trocado"
       return "$MEOW_ERRO"

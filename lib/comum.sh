@@ -361,7 +361,7 @@ meow_motivo_do_cargo() {
   elif grep -q 'Could not run `"pkg-config"\|pkg-config: not found\|failed to run.*pkg-config' "$log" 2>/dev/null; then
     printf 'falta o pkg-config'
   else
-    printf 'o cargo não compilou'
+    printf 'o compilador do Rust parou com erro'
   fi
 }
 
