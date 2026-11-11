@@ -94,27 +94,69 @@ def p185(pag):
             f"e o ícone do Arquivos fica instalado no tema ({nome})")
 
 
+def abrir_aba(pag, aba):
+    pag.locator(f'[data-controle="icones:aba={aba}"]').click()
+    pag.wait_for_function("() => ACERVO && !ACERVO.carregando && document.querySelector('[data-controle=\"trocar:desenho\"]')",
+                          timeout=60000)
+    pag.wait_for_timeout(600)
+
+
+def abrir_ficha(pag, nome):
+    pag.locator(f'[data-controle="trocar:desenho"][data-nome="{nome}"]').first.click()
+    pag.wait_for_selector(f'[data-trocar="{nome}"]', timeout=30000)
+
+
+def esperar_trocado(pag):
+    pag.wait_for_function("() => [...document.querySelectorAll('#torradas .torrada')].some((t) => t.textContent.includes('trocado'))"
+                          " && !document.querySelector('[data-trocar]') && ACERVO && !ACERVO.carregando", timeout=30000)
+    pag.evaluate("() => { for (const t of document.querySelectorAll('#torradas .torrada')) t.remove(); }")
+    pag.wait_for_timeout(600)
+
+
 def p186(pag, svg):
     ir(pag, "criar/icones")
-    for aba, tipo in (("sistema", "sistema"), ("biblioteca", "biblioteca")):
-        pag.locator(f'[data-controle="icones:aba={aba}"]').click()
-        pag.wait_for_function("() => !document.querySelector('[aria-busy=\"true\"]')", timeout=30000)
-        pag.wait_for_timeout(800)
-        cartoes = pag.locator('[data-controle="trocar:desenho"]')
-        confere(cartoes.count() > 0 and cartoes.first.get_attribute("aria-disabled") is None,
-                f"{aba}: cada cartão é um botão que troca o ícone ({cartoes.count()})")
-        nome = cartoes.first.get_attribute("data-nome")
+    dracula = os.path.join(casa.RAIZ_B, "packs", "dracula", "icones")
+    for aba, alvo, origem, arquivo in (
+            ("sistema", "connection-secure-symbolic", "airplane-mode-symbolic", "channel-secure-symbolic.svg"),
+            ("biblioteca", None, None, None)):
+        abrir_aba(pag, aba)
+        cartoes = pag.locator('[data-controle="trocar:desenho"]:not([disabled])')
+        confere(cartoes.count() > 0, f"{aba}: cada cartão livre é um botão que troca o ícone ({cartoes.count()})")
+        if alvo is None:
+            alvo = cartoes.nth(0).get_attribute("data-nome")
+            origem = cartoes.nth(5).get_attribute("data-nome")
+            arquivo = alvo + ".svg"
+        de_origem = open(os.path.join(dracula, aba, origem + ".svg"), encoding="utf-8").read()
+        antes = open(os.path.join(dracula, aba, arquivo), encoding="utf-8").read()
+        cartao = f'[data-controle="trocar:desenho"][data-nome="{alvo}"] img'
+        src_antes = pag.locator(cartao).first.get_attribute("src")
+        abrir_ficha(pag, alvo)
+        usar = pag.locator('[data-controle="trocar:usar"]')
+        confere(usar.get_attribute("aria-disabled") == "true", f"{aba}: a ficha abre com o «Usar» à vista, desabilitado")
+        pag.locator(f'[data-controle="trocar:opcao"][data-nome="{origem}"]').first.click()
+        confere(usar.get_attribute("aria-disabled") is None
+                and pag.locator(f'[data-controle="trocar:opcao"][data-nome="{origem}"]').first.get_attribute("aria-pressed") == "true",
+                f"{aba}: um clique num desenho do acervo escolhe e habilita o «Usar»")
+        foto(pag, f"p186-{aba}-acervo.png")
+        usar.click()
+        esperar_trocado(pag)
+        depois = open(os.path.join(dracula, aba, arquivo), encoding="utf-8").read()
+        confere(depois == de_origem and depois != antes,
+                f"{aba}: o desenho {origem} do acervo vira o {arquivo} que o tema usa para {alvo}")
+        abrir_ficha(pag, alvo)
         with pag.expect_file_chooser() as escolha:
-            cartoes.first.click()
+            pag.locator('[data-controle="trocar:svg"]').click()
         escolha.value.set_files(svg)
-        pag.wait_for_function("(n) => [...document.querySelectorAll('#torradas .torrada')].some((t) => t.textContent.includes('trocado'))", arg=nome, timeout=30000)
-        pag.wait_for_timeout(1200)
-        destino = os.path.join(casa.RAIZ_B, "packs", "dracula", "icones", tipo, nome + ".svg")
-        confere(os.path.isfile(destino) and "#ff0000" in open(destino, encoding="utf-8").read(),
-                f"{aba}: o SVG novo vira {nome}.svg no pack em edição")
-        src = pag.locator(f'[data-controle="trocar:desenho"][data-nome="{nome}"] img').first.get_attribute("src")
-        confere("dracula" in src and f"{tipo}%2F{nome}.svg" in src, f"{aba}: o cartão passa a mostrar o desenho novo")
+        esperar_trocado(pag)
+        confere("#ff0000" in open(os.path.join(dracula, aba, arquivo), encoding="utf-8").read(),
+                f"{aba}: o «Trazer .svg» da ficha grava o SVG dela no mesmo {arquivo}")
+        confere(pag.locator(cartao).first.get_attribute("src") != src_antes, f"{aba}: o cartão passa a mostrar o desenho novo")
         foto(pag, f"p186-{aba}.png")
+    abrir_aba(pag, "sistema")
+    herdado = pag.locator('[data-controle="trocar:desenho"][data-nome="application-certificate"]').first
+    confere(herdado.is_disabled() and "MeowSystem" in (herdado.get_attribute("data-dica") or ""),
+            "um ícone que o tema herda de outro não finge: fica desabilitado e a dica diz de quem é",
+            herdado.get_attribute("data-dica"))
     ir(pag, "novo/icones")
     pag.locator('[data-controle="icones:aba=sistema"]').click()
     pag.wait_for_timeout(1500)

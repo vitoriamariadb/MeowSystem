@@ -520,9 +520,83 @@ function trocarDesenhoDoTema(pasta, nome) {
       aprimorar: !emNovo(), conteudo: await lerComoBase64(arq) }) });
     if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
     torrada(`${maiuscula(nome.replace(/[-_]+/g, " "))}: trocado`, "ok");
+    DESENHO_ABERTO = null;
     await carregarAcervo();
   });
   campo.click();
+}
+let DESENHO_ABERTO = null;
+let DESENHO_ESCOLHIDO = null;
+const GRUPOS_DE_SISTEMA = [["barra", "Barra e bandeja"], ["configuracoes", "Configurações"], ["botoes", "Botões e janelas"],
+  ["pastas", "Pastas"], ["tipos", "Tipos de arquivo"]];
+function fichaDoDesenho(pasta, alvo) {
+  const chave = (i) => `${i.de}|${i.nome}`;
+  const termo = semAcento(BUSCA_ACERVO.trim());
+  const itens = ACERVO[pasta].filter((i) => i.nome !== alvo.nome
+    && (!termo || semAcento(i.rotulo || i.nome).includes(termo) || semAcento(i.nome).includes(termo)));
+  const escolhido = itens.find((i) => chave(i) === DESENHO_ESCOLHIDO) || null;
+  const lupa = elemento("div", { class: "oficina-lupa" });
+  const dock = elemento("div", { class: "oficina-dock", "aria-hidden": "true" });
+  const pintar = (url) => {
+    lupa.replaceChildren(elemento("img", { src: url, alt: "", width: "200", height: "200" }));
+    dock.replaceChildren(...[48, 32, 22].map((px) => elemento("img", { src: url, alt: "", width: String(px), height: String(px) })));
+  };
+  pintar((escolhido || alvo).url);
+  const usar = botao("Usar", { class: "bt principal", controle: "trocar:usar", disabled: !escolhido,
+    "aria-disabled": escolhido ? null : "true", dica: escolhido ? "Usar este desenho neste ícone" : "Escolha um desenho",
+    onclick: async () => {
+      const x = itens.find((i) => chave(i) === DESENHO_ESCOLHIDO);
+      if (!x) return;
+      const id = rascunho().pack;
+      const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo: pasta, nome: alvo.nome, levar: true,
+        aprimorar: !emNovo(), de: x.levado ? id : x.de, origem: x.nome }) });
+      if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+      torrada(`${maiuscula(alvo.rotulo || alvo.nome)}: trocado`, "ok");
+      DESENHO_ABERTO = null;
+      DESENHO_ESCOLHIDO = null;
+      await carregarAcervo();
+    } });
+  const tira = elemento("div", { class: "tira-glifos" });
+  const escolher = (i, b) => {
+    DESENHO_ESCOLHIDO = chave(i);
+    for (const x of tira.querySelectorAll("button[aria-pressed]")) x.setAttribute("aria-pressed", String(x === b));
+    pintar(i.url);
+    usar.disabled = false;
+    usar.removeAttribute("aria-disabled");
+    usar.dataset.dica = "Usar este desenho neste ícone";
+  };
+  const botaoDe = (i) => {
+    const b = elemento("button", { type: "button", controle: "trocar:opcao", "data-nome": i.nome,
+      "aria-pressed": String(chave(i) === DESENHO_ESCOLHIDO), dica: maiuscula(i.rotulo || i.nome),
+      onclick: () => escolher(i, b) }, [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { texto: i.rotulo || i.nome })]);
+    return b;
+  };
+  for (const [id, titulo] of pasta === "sistema" ? GRUPOS_DE_SISTEMA : [["", "Biblioteca"]]) {
+    const deles = itens.filter((i) => !id || i.grupo === id);
+    if (!deles.length) continue;
+    const d = elemento("details", { class: "pasta-acervo" }, [
+      elemento("summary", { controle: "icone:pasta" }, [elemento("span", { texto: titulo })]),
+      elemento("div", { class: "grade-glifos" }, deles.map(botaoDe))]);
+    const aberta = "trocar:" + id;
+    d.open = PASTAS_ABERTAS.has(aberta) ? PASTAS_ABERTAS.get(aberta) : !id || id === alvo.grupo || !!termo;
+    d.addEventListener("toggle", () => PASTAS_ABERTAS.set(aberta, d.open));
+    tira.append(d);
+  }
+  const cabecalho = elemento("header", {}, [
+    botao(pasta === "sistema" ? "Sistema" : "Biblioteca", { class: "bt leve pequeno", controle: "trocar:volta", icone: "voltar",
+      onclick: () => { DESENHO_ABERTO = null; DESENHO_ESCOLHIDO = null; render(); } }),
+    elemento("img", { src: alvo.url, alt: "" }),
+    elemento("h2", { texto: maiuscula(alvo.rotulo || alvo.nome) }),
+  ]);
+  return elemento("div", { class: "escolha-icone desenho", id: "desenho", "data-trocar": alvo.nome }, [
+    cabecalho,
+    elemento("div", { class: "desenho-corpo" }, [elemento("div", { class: "desenho-olho" }, [lupa, dock]),
+      elemento("div", { class: "desenho-mao" }, [tira])]),
+    elemento("footer", { class: "desenho-pe" }, [
+      botao("Trazer .svg", { class: "bt", icone: "subir", controle: "trocar:svg", dica: "Trocar por um SVG seu",
+        onclick: () => trocarDesenhoDoTema(pasta, alvo.nome) }),
+      usar]),
+  ]);
 }
 function gradeDoAcervo(pasta, grupo) {
   if (!ACERVO || ACERVO.chave !== chaveDoAcervo()) carregarAcervo();
@@ -542,11 +616,12 @@ function gradeDoAcervo(pasta, grupo) {
   const pack = rascunho().pack && PACKS.find((x) => x.id === rascunho().pack);
   const semTrocar = !pack ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
   for (const i of itens) {
+    const trava = semTrocar || (i.trava ? maiuscula(i.trava) : "");
     const miolo = [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })];
     const cartao = elemento("button", { type: "button", class: "app", "data-nome": i.nome, controle: "trocar:desenho",
-      "data-levado": i.levado ? "" : null, dica: semTrocar || "Trocar por um SVG seu",
-      disabled: !!semTrocar, "aria-disabled": semTrocar ? "true" : null,
-      onclick: () => trocarDesenhoDoTema(pasta, i.nome) }, miolo);
+      "data-levado": i.levado ? "" : null, dica: trava || "Trocar este ícone",
+      disabled: !!trava, "aria-disabled": trava ? "true" : null,
+      onclick: () => { DESENHO_ABERTO = { pasta, nome: i.nome }; DESENHO_ESCOLHIDO = null; render(); } }, miolo);
     if (i.levado && !semTrocar) {
       cartao.append(elemento("span", { class: "estado-pilula", "data-estado": "ok", texto: "Trocado" }));
     }
@@ -579,7 +654,7 @@ function passoIcones() {
   const seg = elemento("div", { class: "seg", role: "group", "aria-label": "Que ícones" },
     abas.map(([id, nome]) => elemento("button", { type: "button", "aria-pressed": String(id === ABA_ICONES),
       "data-sub": id, controle: "icones:aba=" + id,
-      onclick: () => { ABA_ICONES = id; BUSCA_ACERVO = ""; render(); } }, [nome])));
+      onclick: () => { ABA_ICONES = id; BUSCA_ACERVO = ""; DESENHO_ABERTO = null; render(); } }, [nome])));
   const filtro = elemento("input", { type: "search", class: "campo", value: BUSCA_ACERVO, placeholder: "Filtrar",
     "aria-label": "Filtrar ícones", controle: "acervo:filtro" });
   filtro.addEventListener("input", () => { BUSCA_ACERVO = filtro.value; render(); });
@@ -588,10 +663,11 @@ function passoIcones() {
   const cabeca = elemento("div", { class: "sub-abas" }, [seg,
     ABA_ICONES === "apps" ? null : filtro,
     elemento("span", { class: "editando", "data-editando": packEmEdicao(), texto: "Editando " + editando })]);
+  const alvo = DESENHO_ABERTO && DESENHO_ABERTO.pasta === ABA_ICONES && ACERVO && !ACERVO.carregando
+    && ACERVO.chave === chaveDoAcervo() && (ACERVO[ABA_ICONES] || []).find((i) => i.nome === DESENHO_ABERTO.nome);
+  if (alvo) return [cabeca, fichaNaJanela(fichaDoDesenho(ABA_ICONES, alvo))];
   if (ABA_ICONES === "sistema") {
-    const grupos = [["barra", "Barra e bandeja"], ["configuracoes", "Configurações"], ["botoes", "Botões e janelas"],
-      ["pastas", "Pastas"], ["tipos", "Tipos de arquivo"]];
-    const grades = grupos.map(([id, titulo]) => [titulo, gradeDoAcervo("sistema", id)]);
+    const grades = GRUPOS_DE_SISTEMA.map(([id, titulo]) => [titulo, gradeDoAcervo("sistema", id)]);
     const cheias = grades.filter(([, g]) => g.querySelector(".app"));
     const pronto = ACERVO && !ACERVO.carregando;
     const mostrar = cheias.length ? cheias : [[pronto ? "Sistema" : grades[0][0], grades[0][1]]];

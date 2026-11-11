@@ -4920,6 +4920,23 @@ def previa_do_pack(ident, flavor, cores=None):
     return {"dock": dock, "pasta": pasta or None}
 
 
+def trava_de_sistema(dir_pack, arq):
+    real = os.path.realpath(arq)
+    if os.path.dirname(real) == os.path.realpath(os.path.join(dir_pack, "icones", "sistema")):
+        return ""
+    dono = _pack_de(real)
+    return f"vem do tema {campo(dono, 'nome', dono)}"
+
+
+def desenho_de_sistema(ident, nome):
+    dir_pack = pack_da_pessoa(ident)
+    achado = next((arq for n, arq, *_ in sistema_do_pack(dir_pack) if n == nome), None)
+    _exigir(achado, f"{nome}: o tema não usa este ícone")
+    trava = trava_de_sistema(dir_pack, achado)
+    _exigir(not trava, f"{nome}: {trava}")
+    return os.path.basename(os.path.realpath(achado))[:-4]
+
+
 def levar_icone(ident, pasta, caminho, nome="", texto=None):
     dir_pack = pack_da_pessoa(ident)
     _exigir(pasta in PASTAS_QUE_SE_LEVAM, f"{pasta!r}: só {', '.join(PASTAS_QUE_SE_LEVAM)}")

@@ -8205,6 +8205,7 @@ class Manipulador(BaseHTTPRequestHandler):
             except mod.Recusa as e:
                 return self._json({"erro": texto_na_tela(str(e))}, 404)
         icones = {}
+        dir_editado = mod.achar(base) if not ident and base else None
         for pasta in mod.PASTAS_QUE_SE_LEVAM:
             icones[pasta] = []
             try:
@@ -8220,15 +8221,17 @@ class Manipulador(BaseHTTPRequestHandler):
                     _ICONES_DECLARADOS.add(os.path.normpath(i["arq"]))
                     url = "/previa?tipo=arquivo&id=" + quote(i["arq"], safe="")
                     try:
+                        url += "&m=%d" % os.stat(i["arq"]).st_mtime_ns
                         with open(i["arq"], encoding="utf-8", errors="replace") as fh:
                             cores_do_desenho = _cores_do_traco(fh.read(300000))
                     except OSError:
                         cores_do_desenho = []
                 if i["levado"] and ident:
                     url = self._url_do_levado(mod, ident, pasta, i["nome"], cores) or url
+                trava = mod.trava_de_sistema(dir_editado, i["arq"]) if pasta == "sistema" and dir_editado else ""
                 icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
                                       "grupo": i.get("grupo", ""), "levado": i["levado"], "url": url,
-                                      "cores": cores_do_desenho})
+                                      "cores": cores_do_desenho, "trava": texto_na_tela(trava) if trava else ""})
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:
@@ -8275,7 +8278,17 @@ class Manipulador(BaseHTTPRequestHandler):
                     feito = mod.nome_da_foto(ident, nome)
                     mod.tirar_foto(ident, feito)
             elif tipo in mod.PASTAS_QUE_SE_LEVAM:
-                if levar and corpo.get("conteudo"):
+                destino = mod.desenho_de_sistema(ident, nome) if levar and tipo == "sistema" \
+                    and corpo.get("aprimorar") is True else nome
+                if levar and corpo.get("origem"):
+                    de, origem = str(corpo.get("de", "")), os.path.basename(str(corpo.get("origem", "")))
+                    if de not in _packs_no_disco():
+                        return self._json({"erro": "não conheço o pack «%s»" % de}, 404)
+                    achado = next((i for i in mod.acervo_para_levar(None, tipo, de) if i["nome"] == origem), None)
+                    if not achado:
+                        return self._json({"erro": "não achei esse ícone no pack «%s»" % de}, 404)
+                    feito = mod.levar_icone(ident, tipo, achado["arq"], destino)
+                elif levar and corpo.get("conteudo"):
                     try:
                         dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
                     except Exception:
@@ -8284,7 +8297,7 @@ class Manipulador(BaseHTTPRequestHandler):
                         texto = dados.decode("utf-8")
                     except UnicodeDecodeError:
                         return self._json({"erro": "isso não parece um SVG"}, 400)
-                    feito = mod.levar_icone(ident, tipo, nome, nome, texto)
+                    feito = mod.levar_icone(ident, tipo, nome, destino, texto)
                 elif levar:
                     de = str(corpo.get("de", ""))
                     achado = next((i for i in mod.acervo_para_levar(
