@@ -127,6 +127,7 @@ preferences-desktop-wallpaper-symbolic	status	configuracoes	Papel de parede	sett
 preferences-dock-symbolic	status	configuracoes	Dock	settings
 preferences-input-devices-symbolic	status	configuracoes	Teclado e mouse	settings
 preferences-network-and-wireless-symbolic	status	configuracoes	Rede e Wi-Fi	settings
+preferences-other-symbolic	status	configuracoes	Outros ajustes	settings
 preferences-panel-symbolic	status	configuracoes	Painel	settings
 preferences-power-and-battery-symbolic	status	configuracoes	Energia e bateria	settings
 preferences-region-and-language-symbolic	status	configuracoes	Região e idioma	settings
@@ -142,6 +143,7 @@ preferences-workspaces-symbolic	status	configuracoes	Áreas de trabalho	settings
 printer-network-symbolic	devices	configuracoes	Impressora	applets,settings
 scanner-symbolic	devices	configuracoes	Scanner	settings
 smartphone-symbolic	devices	configuracoes	Celular	applets,settings
+software-update-available-symbolic	status	configuracoes	Atualização disponível	settings
 speaker-symbolic	devices	configuracoes	Alto-falante	settings
 starred-symbolic	status	barra	Favorito	applets
 system-lock-screen-symbolic	status	barra	Bloquear	applets,osd,settings

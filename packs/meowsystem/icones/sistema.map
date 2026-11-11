@@ -129,6 +129,7 @@ preferences-desktop-wallpaper-symbolic:gallery
 preferences-dock-symbolic:preferences-dock
 preferences-input-devices-symbolic:keyboard
 preferences-network-and-wireless-symbolic:wifi
+preferences-other-symbolic:view-more-horizontal:alias
 preferences-panel-symbolic:taskbar
 preferences-power-and-battery-symbolic:battery
 preferences-region-and-language-symbolic:translate
@@ -144,6 +145,7 @@ preferences-workspaces-symbolic:preferences-workspaces
 printer-network-symbolic:printer-network
 scanner-symbolic:scanner
 smartphone-symbolic:smartphone
+software-update-available-symbolic:view-refresh:alias
 speaker-symbolic:speaker
 starred-symbolic:starred
 system-lock-screen-symbolic:lock-traco:alias

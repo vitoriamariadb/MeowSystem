@@ -129,6 +129,7 @@ preferences-desktop-wallpaper-symbolic:preferences-desktop-wallpaper-symbolic
 preferences-dock-symbolic:preferences-ubuntu-panel-symbolic
 preferences-input-devices-symbolic:preferences-desktop-keyboard-symbolic
 preferences-network-and-wireless-symbolic:preferences-system-network-symbolic
+preferences-other-symbolic:view-more-symbolic:alias
 preferences-panel-symbolic:focus-top-bar-symbolic
 preferences-power-and-battery-symbolic:battery-good-symbolic
 preferences-region-and-language-symbolic:preferences-desktop-locale-symbolic
@@ -144,6 +145,7 @@ preferences-workspaces-symbolic:preferences-workspaces-symbolic
 printer-network-symbolic:printer-network-symbolic
 scanner-symbolic:scanner-symbolic
 smartphone-symbolic:smartphone-symbolic
+software-update-available-symbolic:view-refresh-symbolic:alias
 speaker-symbolic:audio-speakers-symbolic:alias
 starred-symbolic:starred-symbolic
 system-lock-screen-symbolic:system-lock-screen-symbolic
