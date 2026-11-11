@@ -199,8 +199,7 @@ else:
     print("ok: o ensaio é pedido por gesto, e não guardado num interruptor")
 
 _pecas = [("a cópia descartável do ensaio", "_conf_de_ensaio", _py),
-          ("o MEOW_CONF do ensaio", 'ambiente["MEOW_CONF"]', _py),
-          ("o seco no /api/rodar", 'corpo.get("seco")', _py)]
+          ("o MEOW_CONF do ensaio", 'ambiente["MEOW_CONF"]', _py)]
 _faltam = ["%s (%s)" % (nome, marca) for nome, marca, onde in _pecas if marca not in onde]
 _html = open(os.path.join(raiz, "app/pagina/index.html"), encoding="utf-8").read()
 _voltou = [m for m in ("confirmar-ensaio", "faixa-ensaio", "ensaio-rodar", 'id="resultado"') if m in _js or m in _html]
@@ -335,25 +334,8 @@ conf = os.environ["MEOW_CONF"]
 os.makedirs(os.path.dirname(conf))
 with open(os.path.join(raiz, "meow.conf.exemplo"), encoding="utf-8") as fh:
     exemplo = fh.read()
-vazia = 'WALLPAPER_FONTES_PERMITIDAS=""'
-if vazia not in exemplo:
-    print("FALHOU: o meow.conf.exemplo não tem mais a linha %s" % vazia, file=sys.stderr)
-    sys.exit(1)
-sentinela = "meow-teste-sentinela"
-base_velha = 'WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"'
-if base_velha not in exemplo:
-    print("FALHOU: o meow.conf.exemplo não tem mais a linha %s" % base_velha, file=sys.stderr)
-    sys.exit(1)
-fora = os.path.join(os.path.dirname(casa), "disco", sentinela, "wallpapers")
-os.makedirs(os.path.join(fora, "ativos"))
-with open(os.path.join(fora, "ativos", "gato.png"), "wb") as fh:
-    fh.write(bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
-                           "1f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4"
-                           "8f0000000049454e44ae426082"))
 with open(conf, "w", encoding="utf-8") as fh:
-    fh.write(exemplo.replace(vazia, 'WALLPAPER_FONTES_PERMITIDAS="$HOME/Imagens:/run/media/%s/HD"'
-                             % sentinela)
-             .replace(base_velha, 'WALLPAPER_BASE="%s"' % fora))
+    fh.write(exemplo)
 sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor
 
@@ -377,20 +359,10 @@ for vizinho in (casa + "zinho/x", "'%szinho/x'" % casa):
         erros.append("a casa comeu o vizinho: %r virou %r"
                      % (vizinho, servidor.texto_na_tela(vizinho)))
 
-html, _ = servidor.Manipulador.__new__(servidor.Manipulador)._exportar_pagina()
-if sentinela in html:
-    erros.append("a página exportada leva o nome de usuário de uma fonte fora da casa "
-                 "%d vez(es)" % html.count(sentinela))
-if casa in html:
-    erros.append("a página exportada leva a casa %d vez(es)" % html.count(casa))
-if "$WALLPAPER_BASE/ativos/gato.png" not in html:
-    erros.append("a foto do acervo de fora sumiu da página, em vez de sair sem a pasta")
-
 if erros:
     print("FALHOU: " + "; ".join(erros), file=sys.stderr)
     sys.exit(1)
-print("ok: o comando da gaveta cola com a casa entre aspas, e a página exportada não "
-      "leva caminho de fora da casa")
+print("ok: o caminho da casa na tela cola com a casa entre aspas")
 PY
 rm -rf "$_tmp11"
 

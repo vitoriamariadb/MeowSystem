@@ -24,7 +24,6 @@
 .cartao-novo { display: grid; place-content: center; justify-items: center; gap: var(--e-2); min-height: 196px; border-radius: var(--raio-lg); border: 1.5px dashed var(--linha-forte); background: transparent; color: var(--tinta-2); font-weight: 600; }
 .cartao-novo:hover { border-color: var(--accent); color: var(--tinta); }
 .cartao-novo svg.i { width: 26px; height: 26px; }
-.cartao-acao .registro { padding: 0; }
 
 .troca { display: flex; align-items: center; gap: var(--e-2); min-width: 0; }
 .troca img, .troca .lugar-applet { width: 28px; height: 28px; flex: none; }
@@ -58,7 +57,6 @@
 dialog .campo { width: 100%; }
 dialog .registro { padding: 0; }
 dialog .pilha-campo { display: grid; gap: var(--e-2); }
-
 
 #adicionar:not([data-passo="url"]):not([data-passo="erro-url"]) .p-url,
 #adicionar:not([data-passo="erro-url"]) .p-erro-url,

@@ -13,7 +13,6 @@ import re
 import secrets
 import select
 import struct
-import shlex
 import signal
 import shutil
 import subprocess
@@ -2986,19 +2985,6 @@ def _ext_mantidas():
         return set()
 
 
-def _ext_registro(ident):
-    for nome in ("compilar.log", "clone.log"):
-        try:
-            with open(os.path.join(ESTADO, "extensoes", ident, nome), encoding="utf-8",
-                      errors="replace") as fh:
-                texto = fh.read()
-        except OSError:
-            continue
-        if texto.strip():
-            return texto_na_tela("\n".join(texto.splitlines()[-30:]))
-    return ""
-
-
 def _ext_ocupado():
     with TRABALHO_TRAVA:
         atual = TRABALHO_ATUAL
@@ -3035,7 +3021,6 @@ def _ext_cartoes():
             "falhou": estado.get("falhou") == "sim",
             "troca": troca, "troca_nome": _ext_nome_do_antigo(troca) if troca else "",
             "commit_instalado": (estado.get("commit_instalado") or "")[:7],
-            "registro": _ext_registro(ident) if estado.get("falhou") == "sim" else "",
         })
     return cartoes
 
@@ -3415,23 +3400,6 @@ def _na_casa(caminho):
     return None
 
 
-def comando_na_tela(argv):
-    meow = os.path.join(RAIZ, "bin", "meow")
-    partes = []
-    for p in argv:
-        casa = _na_casa(p)
-        if p == meow:
-            partes.append("meow")
-        elif p.startswith(RAIZ + os.sep):
-            partes.append(shlex.quote("./" + p[len(RAIZ) + 1:]))
-        elif casa:
-            resto = casa[1].lstrip(os.sep)
-            partes.append("~/" + shlex.quote(resto) if resto else "~")
-        else:
-            partes.append(shlex.quote(p))
-    return " ".join(partes)
-
-
 def texto_na_tela(texto):
     for casa in _casas():
         borda = r"(?<![\w/.~-])"
@@ -3439,26 +3407,6 @@ def texto_na_tela(texto):
                        lambda m: "~/" + m.group(1) if m.group(2) else "~", texto)
         texto = re.sub(borda + re.escape(casa) + r"(?![\w.-])", "~", texto)
     return texto
-
-
-def sem_casa_nem_raiz(valor, outras=()):
-    if isinstance(valor, dict):
-        return {sem_casa_nem_raiz(k, outras): sem_casa_nem_raiz(v, outras)
-                for k, v in valor.items()}
-    if isinstance(valor, list):
-        return [sem_casa_nem_raiz(v, outras) for v in valor]
-    if not isinstance(valor, str) or valor.startswith("data:"):
-        return valor
-    for forma in (str, lambda s: quote(s, safe="")):
-        raiz = forma(RAIZ)
-        valor = "" if valor == raiz else valor.replace(forma(RAIZ + "/"), "")
-        for casa in _casas():
-            valor = re.sub(r"(?<![\w/.~-])" + re.escape(forma(casa)) + r"(?![\w.-])",
-                           "~", valor)
-        for caminho, rotulo in outras:
-            valor = re.sub(r"(?<![\w/.~-])" + re.escape(forma(caminho)) + r"(?![\w.-])",
-                           lambda _m, r=forma(rotulo): r, valor)
-    return valor
 
 
 _PELA_PONTE = frozenset({"sistema_atualizar", "sistema_limpar"})
@@ -5019,25 +4967,6 @@ def _esquecer_restauro(acao_id, pasta):
             del dados[acao_id]
             _gravar_restauros(dados)
         shutil.rmtree(pasta, ignore_errors=True)
-
-
-def _nome_de_arquivo(texto):
-    import unicodedata
-    plano = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode()
-    return re.sub(r"[^a-z0-9]+", "-", plano.lower()).strip("-") or "acao"
-
-
-def guardar_log(trabalho):
-    pasta = os.path.join(ESTADO, "logs")
-    os.makedirs(pasta, exist_ok=True)
-    nome = "%s-%s.log" % (time.strftime("%Y-%m-%d-%H%M%S", time.localtime(trabalho.comeco)),
-                          _nome_de_arquivo(trabalho.rotulo))
-    linhas, _ = trabalho.desde(0)
-    caminho = os.path.join(pasta, nome)
-    with open(caminho, "w", encoding="utf-8") as fh:
-        fh.write("# %s\n# %s\n# saiu %s\n\n" % (trabalho.rotulo, comando_na_tela(trabalho.argv), trabalho.rc))
-        fh.write("\n".join(linhas) + "\n")
-    return caminho
 
 
 def escreve(acao):
@@ -8164,10 +8093,6 @@ class Manipulador(BaseHTTPRequestHandler):
             texto, nome = exportar_conf()
             return self._baixar(texto, nome, "text/plain; charset=utf-8")
 
-        if caminho == "/api/exportar/pagina":
-            texto, nome = self._exportar_pagina()
-            return self._baixar(texto, nome, TIPOS[".html"])
-
         if caminho == "/api/pack-exportar":
             return self._api_pack_exportar(consulta)
 
@@ -8430,195 +8355,12 @@ class Manipulador(BaseHTTPRequestHandler):
             extras={"Content-Disposition":
                     'attachment; filename="%s"' % nome.replace('"', "")})
 
-    AMOSTRA_POR_TIPO = {"parede": 30, "icone": 0, "cursor": 0, "gato": 0}
-    AMOSTRA_APPS = 36
-    AMOSTRA_JOGOS = 12
-    TETO_IMAGEM = 160 << 10
-    TETO_TOTAL = 12 << 20
-
     def _svg_vazado(self):
         return ("data:image/svg+xml;charset=utf-8," + quote(
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">'
             '<rect x="1" y="1" width="46" height="46" rx="6" fill="none" '
             'stroke="currentColor" stroke-opacity=".35" stroke-dasharray="4 3"/>'
             '</svg>', safe=""))
-
-    def _embutir(self, caminho, sacola, gasto):
-        try:
-            tamanho = os.path.getsize(caminho)
-        except OSError:
-            return None, gasto
-        if tamanho > self.TETO_IMAGEM or gasto + tamanho > self.TETO_TOTAL:
-            return None, gasto
-        try:
-            with open(caminho, "rb") as fh:
-                bruto = fh.read()
-        except OSError:
-            return None, gasto
-        ext = os.path.splitext(caminho)[1].lower()
-        mime = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg",
-                ".jpeg": "image/jpeg", ".webp": "image/webp"}.get(ext)
-        if mime is None:
-            return None, gasto
-        uri = "data:%s;base64,%s" % (mime, base64.b64encode(bruto).decode("ascii"))
-        return uri, gasto + tamanho
-
-    def _imagens_da_amostra(self, esquema, apps, jogos):
-        mapa, gasto = {}, 0
-
-        corpo_logo = self._logo_do_painel()
-        if corpo_logo:
-            mapa["/logo.svg"] = "data:image/svg+xml;base64," + base64.b64encode(
-                corpo_logo).decode("ascii")
-            gasto += len(corpo_logo)
-
-        for tipo, limite in self.AMOSTRA_POR_TIPO.items():
-            dados = previas(tipo) or {}
-            itens = dados.get("itens", [])
-            if limite:
-                itens = itens[:limite]
-            for item in itens:
-                if not item.get("pronta"):
-                    continue
-                bytes_e_tipo = previa_bytes(tipo, item["id"])
-                if not bytes_e_tipo:
-                    continue
-                bruto, mime = bytes_e_tipo
-                if len(bruto) > self.TETO_IMAGEM or gasto + len(bruto) > self.TETO_TOTAL:
-                    continue
-                mapa[item["url"]] = "data:%s;base64,%s" % (
-                    mime, base64.b64encode(bruto).decode("ascii"))
-                gasto += len(bruto)
-
-        for lista, quantos in ((apps.get("apps", []), self.AMOSTRA_APPS),
-                               (jogos.get("jogos", []), self.AMOSTRA_JOGOS)):
-            entraram = 0
-            for item in lista:
-                if entraram >= quantos:
-                    break
-                url = item.get("url") or ""
-                if not url or url in mapa:
-                    continue
-                consulta_img = parse_qs(urlparse(url).query)
-                alvo = consulta_img.get("id", [""])[0]
-                if not alvo:
-                    continue
-                uri, novo = self._embutir(alvo, mapa, gasto)
-                if uri:
-                    mapa[url] = uri
-                    gasto = novo
-                    entraram += 1
-        return mapa, gasto
-
-    def _exportar_pagina(self):
-        esquema = self._dados_esquema()
-        apps = self._dados_apps({})
-        jogos = self._dados_jogos({})
-        previas_congeladas = {}
-        for tipo in PREVIA_FONTES:
-            dados = previas(tipo) or {}
-            previas_congeladas[tipo] = dados
-            for grupo in PREVIA_GRUPOS.get(tipo, ()):
-                previas_congeladas["%s/%s" % (tipo, grupo)] = previas(tipo, grupo) or {}
-        imagens, gasto = self._imagens_da_amostra(esquema, apps, jogos)
-
-        valores = valores_efetivos(["FLAVOR", "ACCENT", "MODO"])
-        flavor = _flavor_do_conf(valores)
-        flavor = _flavor_da_pagina(flavor, valores)
-        paleta = paleta_css(flavor, _acento_da_pagina(flavor, valores))
-
-        def ler(nome):
-            try:
-                with open(os.path.join(PAGINA, nome), "r", encoding="utf-8") as fh:
-                    return fh.read()
-            except OSError:
-                return ""
-
-        pagina = ler("index.html")
-        corpo = pagina
-        if "<body" in corpo:
-            corpo = corpo[corpo.index("<body"):]
-        corpo = corpo.replace('data-token="@TOKEN@"', 'data-token="" data-standalone="1"')
-        scripts_da_pagina = re.findall(r'<script src="/([A-Za-z0-9_.-]+\.js)"></script>', corpo)
-        corpo = re.sub(r'<script src="/[A-Za-z0-9_.-]+\.js"></script>', "", corpo)
-        corpo = corpo.replace("</body>", "").replace("</html>", "")
-
-        dados = {
-            "esquema": esquema, "apps": apps, "jogos": jogos,
-            "previas": previas_congeladas, "imagens": imagens,
-            "exportado_em": time.strftime("%d/%m/%Y às %H:%M"),
-            "maquina": {"flavor": flavor, "accent": valores.get("ACCENT") or "mauve",
-                        "modo": valores.get("MODO") or ""},
-            "amostra": {"imagens": len(imagens), "bytes": gasto},
-        }
-        outras = []
-        for item in esquema.get("chaves", []):
-            if any(re.search(r"(?:^|[\s:=,])(?:/(?!/)|~(?:/|$)|\$\{?HOME\b)",
-                             item.get(campo) or "")
-                   for campo in ("valor", "efetivo")):
-                efetivo = item.get("efetivo") or os.path.expandvars(item.get("valor") or "")
-                for pedaco in efetivo.split(":"):
-                    pedaco = os.path.expanduser(pedaco.strip()).rstrip(os.sep)
-                    if not pedaco.startswith(os.sep) or pedaco.startswith("//"):
-                        continue
-                    for forma in dict.fromkeys((pedaco, os.path.realpath(pedaco))):
-                        if forma != RAIZ and not _na_casa(forma) \
-                                and not forma.startswith(RAIZ + os.sep):
-                            outras.append((forma, "$" + item["chave"]))
-                item["valor"] = item.get("padrao", "")
-                item["efetivo"] = ""
-        outras.sort(key=lambda par: -len(par[0]))
-        dados = sem_casa_nem_raiz(dados, outras)
-
-        partes = [
-            "<!DOCTYPE html>",
-            "<!--",
-            "  A PÁGINA DO MEOWSYSTEM, INTEIRA, NUM ARQUIVO SÓ.",
-            "",
-            "  Exportada em %s. Nada aqui fala com servidor nenhum: os dados" % dados["exportado_em"],
-            "  estão congelados no <script id=\"meow-dados\"> lá embaixo, e as",
-            "  imagens são uma amostra do acervo desta máquina (%d delas)." % len(imagens),
-            "",
-            "  PARA QUEM VAI REDESENHAR",
-            "    O que volta para o projeto é o conteúdo de",
-            "    <style id=\"folha-do-painel\"> — ele é o app/pagina/estilo.css",
-            "    inteiro, e é copiado de volta sem tradução nenhuma. Mexa nele",
-            "    à vontade.",
-            "",
-            "    O contrato são os NOMES DE CLASSE: .cartao, .trilho, .btn,",
-            "    .pastilha, .gaveta e companhia são gerados por JavaScript e",
-            "    também consumidos por ele. Mudar a aparência de uma classe é",
-            "    grátis; renomear ou apagar uma classe quebra a página. Se o",
-            "    desenho pedir estrutura nova, descreva a mudança em texto no",
-            "    fim do arquivo, num comentário — é mais rápido de aplicar do",
-            "    que adivinhar a intenção a partir do HTML.",
-            "-->",
-            '<html lang="pt-BR">',
-            "<head>",
-            '<meta charset="utf-8">',
-            '<meta name="viewport" content="width=device-width, initial-scale=1">',
-            "<title>MeowSystem — página para redesenho</title>",
-            '<style id="paleta-do-painel">\n%s\n</style>' % paleta,
-            '<style id="folha-do-painel">\n%s\n</style>' % ler("estilo.css"),
-            '<style id="folha-do-tema">\n%s\n</style>' % ler("tema.css"),
-            '<style id="folha-do-manter">\n%s\n</style>' % ler("manter.css"),
-            '<style id="folha-da-oficina">\n%s\n</style>' % ler("oficina.css"),
-            '<style id="folha-dos-sons">\n%s\n</style>' % ler("sons.css"),
-            '<style id="folha-das-extensoes">\n%s\n</style>' % ler("extensoes.css"),
-            '<style id="folha-das-modificacoes">\n%s\n</style>' % ler("modificacoes.css"),
-            '<style id="folha-do-standalone">\n%s\n</style>' % ler("standalone.css"),
-            "</head>",
-            corpo,
-            '<script id="meow-dados" type="application/json">%s</script>'
-            % json.dumps(dados, ensure_ascii=False).replace("</", "<\\/"),
-            "<script>\n%s\n</script>" % ler("standalone.js"),
-        ] + [
-            "<script>\n%s\n</script>" % ler(nome) for nome in scripts_da_pagina
-        ] + [
-            "</body>",
-            "</html>",
-        ]
-        return "\n".join(partes), "meowsystem-painel-%s.html" % _carimbo()
 
     @_numa_leitura
     def _dados_esquema(self):
@@ -8857,13 +8599,11 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/rodar":
             acao = str(corpo.get("acao", ""))
             argumento = str(corpo.get("argumento", "") or "")
-            seco = bool(corpo.get("seco"))
             trabalho, erro = iniciar(acao, argumento,
-                                     confirmado=bool(corpo.get("confirmado")),
-                                     seco=seco)
+                                     confirmado=bool(corpo.get("confirmado")))
             if erro:
                 return self._json(erro if isinstance(erro, dict) else {"erro": erro}, 409)
-            return self._json(_trabalho_json(trabalho, acao, seco=seco))
+            return self._json(_trabalho_json(trabalho, acao))
 
         if caminho == "/api/criar":
             return self._no_pack_aprimorado(corpo.get("aprimorar") is True, self._api_criar, corpo)
@@ -8901,16 +8641,6 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json({"erro": "trabalho desconhecido"}, 404)
             return self._json({"parado": trabalho.parar()})
 
-        if caminho == "/api/guardar-log":
-            try:
-                trabalho = TRABALHOS[int(corpo.get("id", -1))]
-            except (KeyError, ValueError, TypeError):
-                return self._json({"erro": "trabalho desconhecido"}, 404)
-            try:
-                caminho_log = guardar_log(trabalho)
-            except OSError as erro:
-                return self._json({"erro": "não consegui guardar o log: %s" % erro}, 500)
-            return self._json({"caminho": texto_na_tela(caminho_log)})
         return self._recusar(404, "não existe aqui")
 
     def _folhas(self):
