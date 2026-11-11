@@ -105,7 +105,6 @@ const AJUSTES = [
     blocos: [
       { titulo: "Janelas", linhas: [
         { c: "JANELAS_TILING", r: "Lado a lado" },
-        { c: "JANELAS_TILING_ESCOPO", r: "Vale para", sub: true },
       ] },
       { titulo: "Tela", linhas: [
         { c: "ESCALA_TELA", r: "Escala da tela" },
@@ -139,7 +138,6 @@ const AJUSTES = [
         { c: "WALLPAPER_ORDEM", r: "Ordem" },
         { c: "WALLPAPER_AJUSTE", r: "Ajuste da imagem" },
         { c: "WALLPAPER_NOTIFICAR", r: "Avisar a troca" },
-        { c: "WALLPAPER_FIXO_TTL", r: "Escolhida dura" },
         { c: "FILES_MENU", r: "Menu do Arquivos" },
         { c: "FILES_MENU_AUTOBUILD", r: "Recompilar automaticamente", sub: true },
         { a: "files_menu", r: "Menu agora", b: "Ver" },
@@ -148,7 +146,6 @@ const AJUSTES = [
         { c: "WALLPAPER_BASE", r: "Pasta do carrossel" },
         { c: "WALLPAPER_FONTES_PERMITIDAS", r: "Seus papéis de parede" },
         { c: "WALLPAPER_DRACULA_REPO", r: "Acervo do Dracula" },
-        { c: "WALLPAPER_DRACULA_COMMIT", r: "Versão do acervo", sub: true },
       ] },
     ] },
   { id: "mascote", nome: "Mascote", icone: "gato",
@@ -261,7 +258,6 @@ const LUGAR_CUIDAR = {
       { c: "AUTO_REPARO", r: "Rotina" },
       { c: "AUTO_REPARO_NOTIFICAR", r: "Avisar quando consertar", sub: true },
       { c: "VIZINHOS_DESATIVAR", r: "Desligar o que conflita", sub: true },
-      { c: "ASSETS_VIGIA", r: "Mascote novo entra" },
       { c: "ASSETS_VIGIA_NOTIFICAR", r: "Avisar o mascote", sub: true },
       { c: "FLATPAK_VIGIA", r: "Refazer ícones após atualizar" },
       { c: "FLATPAK_VIGIA_NOTIFICAR", r: "Avisar os ícones", sub: true },
