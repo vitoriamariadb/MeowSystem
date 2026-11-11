@@ -202,6 +202,31 @@ def main():
                   "a linha e o botão se chamam «Girar»")
             checa(pag.locator('[data-controle="acao:wallpaper_proximo"]').inner_text().strip() == "Próxima imagem", "«Próxima imagem» fica")
 
+            print("6. o ladrilho do Manter mostra rodando, feito e erro")
+            ir(pag, "cuidar")
+            pag.evaluate("""() => { window.__estados = [];
+              new MutationObserver(() => {
+                const t = document.querySelector('#conteudo .ladrilho[data-controle="acao:sistema_ver"]');
+                const e = (t && t.dataset.estado) || '';
+                if (window.__estados[window.__estados.length - 1] !== e) window.__estados.push(e);
+              }).observe(document.getElementById('conteudo'), { subtree: true, attributes: true, childList: true }); }""")
+            pag.locator('#conteudo [data-controle="acao:sistema_ver"]').click()
+            eventual(lambda: pag.evaluate(RESULTADO, "sistema_ver") is not None)
+            checa(eventual(lambda: pag.evaluate("() => window.__estados.at(-1)") == ""), "o feito some sozinho")
+            vistos = pag.evaluate("() => window.__estados.filter(Boolean)")
+            checa(vistos[:2] == ["carregando", "feito"], f"rodando e depois feito ({vistos})")
+            pag.route("**/api/trabalho*", lambda rota: rota.fulfill(
+                content_type="application/json", body='{"vivo": false, "rc": 2, "linhas": [], "proximo": 0}'))
+            pag.locator('#conteudo [data-controle="acao:sistema_ver"]').click()
+            checa(eventual(lambda: pag.evaluate(
+                "() => document.querySelector('#conteudo .ladrilho[data-controle=\"acao:sistema_ver\"]').dataset.estado") == "erro", 20),
+                "o erro fica no ladrilho")
+            pag.unroute("**/api/trabalho*")
+            ir(pag, "ajustes/painel")
+            ir(pag, "cuidar")
+            checa(pag.evaluate("() => !document.querySelector('#conteudo .ladrilho[data-estado]')"),
+                  "sair da tela e voltar não traz o erro velho")
+
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:

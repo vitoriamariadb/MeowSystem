@@ -1101,6 +1101,7 @@ function iniciarProgresso(trabalho, depois = null) {
   barra.dataset.estado = "correndo";
   $("#progresso-nome").textContent = TRABALHO.rotulo || "Trabalho";
   barra.hidden = false;
+  estadoDoLadrilho(TRABALHO.acao, "carregando", TRABALHO.rota);
   TRABALHO.timer = setInterval(puxar, 400);
   puxar();
 }
@@ -1110,6 +1111,31 @@ function fimDoProgresso(estado) {
   barra.hidden = true;
 }
 const RESULTADOS = new Map();
+const ESTADO_DO_LADRILHO = new Map();
+const FEITO_DO_LADRILHO_MS = 2400;
+function marcarLadrilhos() {
+  for (const [id, e] of [...ESTADO_DO_LADRILHO]) {
+    if (e.rota !== location.hash && e.estado !== "carregando") ESTADO_DO_LADRILHO.delete(id);
+  }
+  for (const t of document.querySelectorAll('#conteudo .ladrilho[data-controle^="acao:"]')) {
+    const e = ESTADO_DO_LADRILHO.get(t.dataset.controle.slice(5));
+    if (e && e.rota === location.hash) t.dataset.estado = e.estado;
+    else delete t.dataset.estado;
+  }
+}
+function estadoDoLadrilho(id, estado, rota) {
+  if (!id) return;
+  const marca = { estado, rota };
+  if (estado) ESTADO_DO_LADRILHO.set(id, marca);
+  else ESTADO_DO_LADRILHO.delete(id);
+  marcarLadrilhos();
+  if (estado !== "feito") return;
+  setTimeout(() => {
+    if (ESTADO_DO_LADRILHO.get(id) !== marca) return;
+    ESTADO_DO_LADRILHO.delete(id);
+    marcarLadrilhos();
+  }, FEITO_DO_LADRILHO_MS);
+}
 const MARCA_DA_SAIDA = /^\s*(ok|~~|--|!!|>>|erro|FALHOU|falhou)(?=\s|$)\s*/;
 const MAX_DO_RESULTADO = 6;
 
@@ -1204,6 +1230,7 @@ function pintarResultados() {
     if (dono) dono.append(no);
     else gatilho.parentElement.after(no);
   }
+  marcarLadrilhos();
 }
 
 async function puxar() {
@@ -1212,7 +1239,7 @@ async function puxar() {
   const desde = t.proximo;
   const r = await api(`/api/trabalho?id=${t.id}&desde=${desde}`);
   if (TRABALHO !== t || t.proximo !== desde) return;
-  if (r.erro) { clearInterval(t.timer); t.timer = null; TRABALHO = null; fimDoProgresso("erro"); return; }
+  if (r.erro) { clearInterval(t.timer); t.timer = null; TRABALHO = null; fimDoProgresso("erro"); estadoDoLadrilho(t.acao, "erro", t.rota); return; }
   t.proximo = r.proximo;
   for (const l of r.linhas || []) if (l.trimStart().startsWith("~~")) t.mudou = true;
   t.saida.push(...(r.linhas || []));
@@ -1224,6 +1251,7 @@ async function puxar() {
   const tabela = t.fim || {};
   const [classe, frase] = (r.rc === 0 && t.mudou && tabela["0~"]) || tabela[String(r.rc)] || ["erro", `Saiu ${r.rc}`];
   fimDoProgresso(classe === "erro" ? "erro" : "ok");
+  estadoDoLadrilho(t.acao, classe === "erro" ? "erro" : classe === "pula" ? "" : "feito", t.rota);
   if (classe === "erro") torrada(`${t.rotulo}: ${frase}`, "erro");
   TRABALHOS_A_CAMINHO++;
   TRABALHO = null;
