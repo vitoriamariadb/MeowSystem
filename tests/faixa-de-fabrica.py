@@ -136,6 +136,12 @@ def main():
             esperar(pag)
             checa(saida_da_faixa(pag, "FORMA_ESPACO_PAINEL") == FABRICA["Panel"]["spacing"],
                   f"a faixa mostra {FABRICA['Panel']['spacing']} e não 0 ({saida_da_faixa(pag, 'FORMA_ESPACO_PAINEL')})")
+            print("4. o canto da dock de fábrica passa do fim da escala, e a faixa diz o número real")
+            topo = pag.evaluate("() => document.querySelector('[data-controle=\"chave:FORMA_RAIO_DOCK\"]').max")
+            checa(saida_da_faixa(pag, "FORMA_RAIO_DOCK") == FABRICA["Dock"]["border_radius"],
+                  f"a faixa diz {FABRICA['Dock']['border_radius']} ({saida_da_faixa(pag, 'FORMA_RAIO_DOCK')}), e não o fim da escala ({topo})")
+            checa(numero_da_faixa(pag, "FORMA_RAIO_DOCK") == topo, f"e o botão da faixa fica no fim dela ({numero_da_faixa(pag, 'FORMA_RAIO_DOCK')})")
+            checa(pag.locator('[data-controle="padrao:FORMA_RAIO_DOCK"]').count() == 0, "e sem ↶, porque já está de fábrica")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:

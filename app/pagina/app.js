@@ -561,7 +561,7 @@ function controleFaixa(item, aplica) {
     "aria-label": item.titulo || item.chave, controle: "chave:" + item.chave, dica: primeiraFrase(item.frase),
   });
   ligarPreenchimento(slider);
-  const saida = elemento("output", { texto: String(numero) });
+  const saida = elemento("output", { texto: String(lido) });
   const caixa = elemento("div", { class: "faixa" }, [slider, saida]);
   slider.addEventListener("input", () => {
     saida.textContent = slider.value;
