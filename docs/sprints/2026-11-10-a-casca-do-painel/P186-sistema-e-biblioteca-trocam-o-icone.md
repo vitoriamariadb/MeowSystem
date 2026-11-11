@@ -21,3 +21,16 @@ Texto de quem usa: «eu não consigo alterar os ícones do sistema e nem os íco
   mostra o novo.
 
 Tamanho: 2 a 3 h. Depende da P185 (mesmo componente): mesmo bloco, depois dela.
+
+## Execução
+
+Causa medida: os cartões de Sistema e Biblioteca (`gradeDoAcervo`) eram `div` sem clique, e o `/api/criar` só sabia levar
+desenho de outro pack (`de` + `nome`), nunca um arquivo de quem usa. O destino existe: `icones/sistema/<nome>.svg` e
+`icones/biblioteca/<nome>.svg` do pack em edição.
+
+Cura: cada cartão é um botão (`trocar:desenho`) que abre o seletor de SVG e grava pelo `levar_icone`; o cartão passa a
+mostrar o desenho novo (no tema novo, o do pack, com «Trocado»). Sem tema guardado o botão fica desabilitado com o motivo.
+Leitura minha: «alterar» é trocar por um SVG da pessoa; escolher entre os desenhos do acervo para um ícone de sistema não
+foi feito.
+
+Prova: `tests/personalizar-pagina.py` (as duas abas; o arquivo do pack muda e o cartão mostra o novo).
