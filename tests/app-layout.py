@@ -293,20 +293,25 @@ def main():
                 texto = pag.evaluate("() => document.getElementById('conteudo').innerText")
                 for termo in termos:
                     checa(termo not in texto, f"{rota}: «{termo}» fora da tela")
-            print("== Manter: cartões com o desenho ao lado")
-            for (w, h) in [(1920, 1080), (1280, 800)]:
+            print("== Manter: ladrilhos em duas colunas, uma no estreito")
+            for (w, h, colunas) in [(1920, 1080, 2), (1280, 800, 2), (900, 800, 2), (800, 800, 1)]:
                 pag.set_viewport_size({"width": w, "height": h})
                 ir(pag, "cuidar")
-                cartoes = pag.evaluate("""() => [...document.querySelectorAll('.cartao-acao')].map((c) => {
-                  const r = (e) => e && e.getBoundingClientRect();
-                  const cr = r(c), ic = r(c.querySelector('.icone, svg')), t = r(c.querySelector('h2')), f = r(c.querySelector('.fila'));
-                  return { n: c.querySelector('h2') && c.querySelector('h2').textContent, ladoAlado: !!(ic && t && ic.right <= t.left + 1),
-                           dentro: !!(f && f.right <= cr.right + 1 && f.left >= cr.left - 1 && t.right <= cr.right + 1) };
+                lad = pag.evaluate("""() => [...document.querySelectorAll('.grade-ladrilhos .ladrilho')].map((c) => {
+                  const cr = c.getBoundingClientRect(), g = c.closest('.grade-ladrilhos').getBoundingClientRect();
+                  const ic = c.querySelector('.icone').getBoundingClientRect(), t = c.querySelector('b').getBoundingClientRect();
+                  return { n: c.querySelector('b').textContent, x: Math.round(cr.left), h: Math.round(cr.height),
+                           lado: ic.right <= t.left + 1, dentro: cr.left >= g.left - 1 && cr.right <= g.right + 1 && t.right <= cr.right + 1,
+                           botoesDentro: c.querySelectorAll('button, a').length };
                 })""")
-                checa(len(cartoes) >= 3 and all(c["ladoAlado"] and c["dentro"] for c in cartoes), f"{w}: três cartões, desenho à esquerda e botões dentro ({cartoes})")
-                pag.evaluate("() => document.querySelector('.cartao-acao').scrollIntoView({ block: 'center' })")
+                nomes = [c["n"] for c in lad]
+                checa(nomes == ["Exportar ajustes", "Importar ajustes", "Atualizar a máquina", "O que muda", "Limpar as sobras",
+                                "Reinstalar o MeowSystem"], f"{w}: os seis ladrilhos com o nome da ação ({nomes})")
+                checa(all(c["lado"] and c["dentro"] and c["botoesDentro"] == 0 for c in lad), f"{w}: ícone ao lado do nome e tudo dentro ({lad})")
+                checa(len({c["x"] for c in lad}) == colunas, f"{w}: {colunas} coluna(s) de ladrilhos ({sorted({c['x'] for c in lad})})")
+                pag.evaluate("() => document.querySelector('.grade-ladrilhos').scrollIntoView({ block: 'center' })")
                 pag.wait_for_timeout(200)
-                foto(pag, f"{w}x{h}-cartoes")
+                foto(pag, f"{w}x{h}-ladrilhos")
 
             print("== a ficha do ícone, uma caixa e um «Usar»")
             for (w, h) in LARGURAS:

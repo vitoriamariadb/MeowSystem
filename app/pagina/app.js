@@ -32,6 +32,7 @@ const IC = {
   som: '<path d="M11 5 6 9H2v6h4l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
   computador: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
   girar: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  olho: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   lixo: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
   disco: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
   ponte: '<path d="M2 18h20M4 18V9M20 18V9M4 9c4 4 12 4 16 0M9 13v5M15 13v5"/>',
@@ -1174,7 +1175,7 @@ function pintarResultados() {
     for (const velho of document.querySelectorAll(`[data-resultado="${id}"]`)) velho.remove();
     const gatilho = document.querySelector(`#conteudo [data-controle="acao:${id}"]`);
     if (!gatilho) continue;
-    const dono = gatilho.closest("li.linha, .cabeca-mod, .estado-maquina, .cartao-acao");
+    const dono = gatilho.closest("li.linha, .cabeca-mod, .estado-maquina, .cartao-acao, .ladrilho-no");
     const no = noDoResultado(id, r);
     if (dono) dono.append(no);
     else gatilho.parentElement.after(no);

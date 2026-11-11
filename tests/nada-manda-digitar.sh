@@ -111,7 +111,7 @@ LOG="$CASA/.local/state/meowsystem/meow.log"
 saida="$(pendencia starship-ausente "O starship falta" "./scripts/prompt.sh instalar-starship")"
 pendencia starship-ausente "O starship falta" "./scripts/prompt.sh instalar-starship" >/dev/null
 sem_lugar="$(pendencia coisa-sem-lugar "Algo ficou de fora" "./scripts/qualquer.sh consertar")"
-if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Reinstalar», em Manutenção › Reinstalar o MeowSystem' <<< "$saida" \
+if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Reinstalar o MeowSystem», em Manutenção › Reinstalar o MeowSystem' <<< "$saida" \
    && ! grep -qE 'resolve|scripts/' <<< "$sem_lugar" \
    && [ "$(grep -c 'ficou para depois: O starship falta$' "$LOG" 2>/dev/null)" = 1 ] \
    && ! grep -q 'Pendências' <<< "$saida"; then

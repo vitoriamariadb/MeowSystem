@@ -1098,28 +1098,39 @@ function faixaDoEstado() {
       [elemento("b", { texto: nome }), elemento("span", { texto: valor || "Padrão" })])));
 }
 
-function cartaoDeCuidar(c) {
-  const botoes = [];
-  for (const l of c.linhas) {
-    if (l.a) {
-      const a = ACAO.get(l.a);
-      if (a) botoes.push(...controleDeAcao(a, l.b, ""));
-    } else if (l.g === "exportar-conf") {
-      botoes.push(elemento("a", { class: "bt", href: "/api/exportar/conf", download: true, controle: "cuidar:exportar",
-        dica: "Um .conf para a máquina nova" }, [icone("baixar"), elemento("span", { texto: l.b })]));
-    } else if (l.g === "importar") {
-      const campo = elemento("input", { type: "file", accept: ".conf,text/plain", hidden: true });
-      campo.addEventListener("change", () => { const a = campo.files && campo.files[0]; campo.value = ""; importarArquivo(a); });
-      botoes.push(botao(l.b, { class: "bt", icone: "subir", controle: "cuidar:importar", onclick: () => campo.click() }), campo);
-    }
+function ladrilhoDeCuidar(l) {
+  const miolo = (nome) => [elemento("span", { class: "icone" }, [icone(l.i)]), elemento("b", { texto: nome })];
+  if (l.a) {
+    const a = ACAO.get(l.a);
+    if (!a) return null;
+    const [tile, ...resto] = controleDeAcao(a, l.b, "");
+    tile.className = "bloco ladrilho" + (a.destrutivo ? " perigo" : "");
+    tile.replaceChildren(...miolo(l.b));
+    return elemento("div", { class: "ladrilho-no" }, [tile, ...resto]);
   }
-  const primeiro = botoes.find((b) => b.classList && b.classList.contains("bt"));
-  if (primeiro && !primeiro.classList.contains("perigo")) primeiro.classList.add("principal");
-  return elemento("section", { class: "bloco cartao-acao terco", "data-bloco": c.titulo }, [
-    elemento("span", { class: "icone" }, [icone(c.icone)]),
-    elemento("h2", { texto: c.titulo }),
-    elemento("div", { class: "fila" }, botoes),
-  ]);
+  if (l.g === "exportar-conf") {
+    return elemento("div", { class: "ladrilho-no" }, [
+      elemento("a", { class: "bloco ladrilho", href: "/api/exportar/conf", download: true, controle: "cuidar:exportar",
+        dica: "Um .conf para a máquina nova" }, miolo(l.b))]);
+  }
+  if (l.g === "importar") {
+    const campo = elemento("input", { type: "file", accept: ".conf,text/plain", hidden: true });
+    campo.addEventListener("change", () => { const a = campo.files && campo.files[0]; campo.value = ""; importarArquivo(a); });
+    return elemento("div", { class: "ladrilho-no" }, [
+      elemento("button", { type: "button", class: "bloco ladrilho", controle: "cuidar:importar",
+        dica: "Traz um .conf de outra máquina e grava na hora", onclick: () => campo.click() }, miolo(l.b)), campo]);
+  }
+  return null;
+}
+
+function gradeDeAcoesDeCuidar() {
+  const filhos = [];
+  for (const c of LUGAR_CUIDAR.cartoes) {
+    filhos.push(elemento("div", { class: "grupo-nome", "aria-hidden": c.semNome ? "true" : null },
+      [c.semNome ? null : elemento("h2", { texto: c.titulo })]));
+    for (const l of c.linhas) filhos.push(ladrilhoDeCuidar(l));
+  }
+  return elemento("section", { class: "grade-ladrilhos inteiro", "aria-label": "Ações de manutenção" }, filhos.filter(Boolean));
 }
 
 function paginaCuidar() {
@@ -1143,7 +1154,7 @@ function paginaCuidar() {
   return [
     elemento("div", { class: "grade-cuidar" }, [
       topo,
-      ...LUGAR_CUIDAR.cartoes.map(cartaoDeCuidar),
+      gradeDeAcoesDeCuidar(),
       blocos[0],
       maquina,
       blocos[1],
