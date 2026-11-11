@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import importlib.util
 import os
+import re
 import shutil
 import sys
 
@@ -302,9 +303,11 @@ def main():
                   const ic = c.querySelector('.icone').getBoundingClientRect(), t = c.querySelector('b').getBoundingClientRect();
                   return { n: c.querySelector('b').textContent, x: Math.round(cr.left), h: Math.round(cr.height),
                            lado: ic.right <= t.left + 1, dentro: cr.left >= g.left - 1 && cr.right <= g.right + 1 && t.right <= cr.right + 1,
-                           botoesDentro: c.querySelectorAll('button, a').length };
+                           botoesDentro: c.querySelectorAll('button, a').length, dica: c.dataset.dica || "" };
                 })""")
                 nomes = [c["n"] for c in lad]
+                jargao = [c["dica"] for c in lad if not c["dica"] or re.search(r"\b(apt|flatpak|cargo|crates|Rust)\b|\.conf\b|\{", c["dica"])]
+                checa(not jargao, f"{w}: a dica de cada ladrilho se explica sozinha ({jargao})")
                 checa(nomes == ["Exportar ajustes", "Importar ajustes", "Atualizar a máquina", "O que muda", "Limpar as sobras",
                                 "Reinstalar o MeowSystem"], f"{w}: os seis ladrilhos com o nome da ação ({nomes})")
                 checa(all(c["lado"] and c["dentro"] and c["botoesDentro"] == 0 for c in lad), f"{w}: ícone ao lado do nome e tudo dentro ({lad})")

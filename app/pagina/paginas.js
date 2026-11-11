@@ -1111,14 +1111,14 @@ function ladrilhoDeCuidar(l) {
   if (l.g === "exportar-conf") {
     return elemento("div", { class: "ladrilho-no" }, [
       elemento("a", { class: "bloco ladrilho", href: "/api/exportar/conf", download: true, controle: "cuidar:exportar",
-        dica: "Um .conf para a máquina nova" }, miolo(l.b))]);
+        dica: "Baixa um arquivo com os seus ajustes, para levar a outro computador" }, miolo(l.b))]);
   }
   if (l.g === "importar") {
     const campo = elemento("input", { type: "file", accept: ".conf,text/plain", hidden: true });
     campo.addEventListener("change", () => { const a = campo.files && campo.files[0]; campo.value = ""; importarArquivo(a); });
     return elemento("div", { class: "ladrilho-no" }, [
       elemento("button", { type: "button", class: "bloco ladrilho", controle: "cuidar:importar",
-        dica: "Traz um .conf de outra máquina e grava na hora", onclick: () => campo.click() }, miolo(l.b)), campo]);
+        dica: "Lê o arquivo de ajustes de outro computador e aplica aqui na hora", onclick: () => campo.click() }, miolo(l.b)), campo]);
   }
   return null;
 }

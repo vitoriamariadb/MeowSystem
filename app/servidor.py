@@ -3638,8 +3638,8 @@ ACOES = {
         "natureza": "instalar",
         "argv": [os.path.join(RAIZ, "install.sh")],
         "escreve": True, "sudo": True, "confirma": True, "rede": True,
-        "ajuda": "Passa {as_etapas}. Rodar de novo numa máquina já pronta "
-                 "não escreve um byte.",
+        "ajuda": "Refaz a instalação inteira do MeowSystem ({as_etapas}); numa "
+                 "máquina já pronta, nada muda.",
     },
     "aplicar": {
         "rotulo": "Aplicar ajuste",
@@ -3728,9 +3728,8 @@ ACOES = {
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
         "escreve": False, "sudo": False, "confirma": False,
         "par": "sistema_atualizar",
-        "ajuda": "Os pacotes com versão nova e os programas em Rust "
-                 "desatualizados. Não escreve e não pede senha, mas consulta "
-                 "o índice do crates.io para saber o que está velho.",
+        "ajuda": "Os programas do sistema que têm versão nova. Não muda nada e "
+                 "não pede senha, mas consulta a internet para saber o que está velho.",
     },
     "sistema_atualizar": {
         "rotulo": "Atualizar a máquina",
@@ -3739,9 +3738,9 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "aplicar"],
         "escreve": True, "sudo": True, "confirma": True, "rede": True,
-        "ajuda": "Atualiza apt, flatpak e cargo, e logo depois faz a conferência "
-                 "— que diz o que a atualização desfez do MeowSystem. Demora, e o "
-                 "apt mantém os arquivos de configuração que já estão no disco.",
+        "ajuda": "Atualiza os programas do sistema e confere o que a atualização "
+                 "desfez do MeowSystem. Demora, e as configurações que já estão no "
+                 "disco ficam como estão.",
     },
     "sistema_limpar": {
         "rotulo": "Limpar as sobras",
@@ -3750,8 +3749,8 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "limpar"],
         "escreve": True, "sudo": True, "confirma": True,
-        "ajuda": "Pacotes órfãos e os pacotes que o apt já baixou. Diz quantos "
-                 "megabytes saíram.",
+        "ajuda": "Apaga os pacotes que já foram baixados e os que ficaram sobrando. "
+                 "Diz quanto espaço liberou.",
     },
     "restaurar": {
         "rotulo": "Restaurar",
