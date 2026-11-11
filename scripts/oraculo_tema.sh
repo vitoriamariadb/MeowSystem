@@ -14,7 +14,17 @@ _ot_revisao() {
   local v
   v="$(dpkg-query -W -f='${Version}' cosmic-settings 2>/dev/null)" || return 1
   [ -n "$v" ] || return 1
+  if [ -s "$OT_TRABALHO/revisao-$v" ]; then
+    cat "$OT_TRABALHO/revisao-$v"
+    return 0
+  fi
   meow_libcosmic_de cosmic-settings "$v"
+}
+
+_ot_guardar_revisao() {
+  local v
+  v="$(dpkg-query -W -f='${Version}' cosmic-settings 2>/dev/null)" || return 0
+  mkdir -p "$OT_TRABALHO" && printf '%s\n' "$1" > "$OT_TRABALHO/revisao-$v"
 }
 
 _ot_mesma_derivacao() {
@@ -38,6 +48,7 @@ cmd_construir() {
   local rev bin trabalho log
   rev="$(_ot_revisao)" || { meow_pula "sem a revisão do libcosmic instalado (sem rede?) — fica a cópia em Python"; return "$MEOW_SEM_DEPENDENCIA"; }
   bin="$(_ot_binario "$rev")"
+  meow_seco || _ot_guardar_revisao "$rev"
   if [ -x "$bin" ]; then
     meow_ok "o oráculo do libcosmic ${rev:0:7} já existe"
     return "$MEOW_OK"
@@ -114,10 +125,51 @@ cmd_conferir() {
   return "$MEOW_OK"
 }
 
+_ot_familia_do_tk() {
+  local arq; arq="$(meow_cosmic_dir)/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/$1"
+  [ -f "$arq" ] || return 0
+  sed -n 's/^[[:space:]]*family:[[:space:]]*"\(.*\)",\?$/\1/p' "$arq" | head -n1
+}
+
+cmd_efeito() {
+  local icones="${NOME_TEMA_ICONES:-MeowSystem-Icons}" fonte mono bin tmp l saida origem
+  local -a jsons=() casas=()
+  fonte="$(_ot_familia_do_tk interface_font)"
+  mono="$(_ot_familia_do_tk monospace_font)"
+  tmp="$(mktemp -d)" || return "$MEOW_ERRO"
+  if [ -n "${OT_EFEITO_JSON:-}" ] && [ -f "$OT_EFEITO_JSON" ]; then
+    jsons=("$OT_EFEITO_JSON")
+    origem="o oráculo"
+  elif bin="$(cmd_caminho 2>/dev/null)"; then
+    for l in dark light; do
+      "$bin" "$l" "$(meow_cosmic_dir)" > "$tmp/$l.json" 2>/dev/null && jsons+=("$tmp/$l.json")
+    done
+    origem="o oráculo"
+  fi
+  local rc=0
+  if [ "${#jsons[@]}" -gt 0 ]; then
+    saida="$(python3 "$MEOW_RAIZ/scripts/oraculo_tema.py" efeito "$icones" "$fonte" "$mono" json "${jsons[@]}")" || rc=$?
+  else
+    mapfile -t casas < <(meow_tema_casas)
+    saida="$(python3 "$MEOW_RAIZ/scripts/oraculo_tema.py" efeito "$icones" "$fonte" "$mono" disco "${casas[@]}")" || rc=$?
+    origem="a cópia em Python"
+  fi
+  rm -rf "$tmp"
+  [ "$rc" = "2" ] && { meow_erro "não consegui ler o tema ($saida)"; return "$MEOW_ERRO"; }
+  if [ "$rc" = "0" ]; then
+    meow_ok "$origem lê do tema o ícone '$icones' e as fontes do pack"
+    return "$MEOW_OK"
+  fi
+  meow_muda "o tema que o COSMIC monta não diz o que o pack pede ($origem)"
+  printf '%s\n' "$saida" | sed 's/^/        /'
+  return "$MEOW_DIVERGENTE"
+}
+
 case "${1:-conferir}" in
+  efeito)    cmd_efeito ;;
   revisao)   cmd_revisao ;;
   construir) cmd_construir ;;
   conferir)  shift; cmd_conferir "$@" ;;
   caminho)   cmd_caminho ;;
-  *) meow_erro "uso: oraculo_tema.sh {revisao|construir|conferir [captura…]|caminho}"; exit "$MEOW_ERRO" ;;
+  *) meow_erro "uso: oraculo_tema.sh {revisao|construir|conferir [captura…]|caminho|efeito}"; exit "$MEOW_ERRO" ;;
 esac

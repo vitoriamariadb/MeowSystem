@@ -1250,6 +1250,11 @@ chk_fontes() {
   return "$rc"
 }
 
+chk_efeito() {
+  MEOW_DRY_RUN=1 NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/oraculo_tema.sh" efeito 2>&1
+}
+
 chk_logo() {
   MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" LOGO="$LOGO" "$RAIZ/scripts/logo.sh" --conferir 2>&1
 }
@@ -1497,6 +1502,15 @@ fix_pacotes() {
 fix_rust()      { "$RAIZ/scripts/rust.sh" aplicar 2>&1; }
 fix_upstream()  { "$RAIZ/scripts/baixar_upstream.sh" 2>&1; }
 fix_fontes()    { "$RAIZ/scripts/instalar_fontes.sh" 2>&1; }
+fix_efeito() {
+  local rc_i rc_f
+  fix_icones; rc_i=$?
+  fix_fontes; rc_f=$?
+  [ "$rc_i" -ge 2 ] && return "$rc_i"
+  [ "$rc_f" -ge 2 ] && return "$rc_f"
+  [ "$rc_i" = "1" ] || [ "$rc_f" = "1" ] && return "$MEOW_DIVERGENTE"
+  return "$MEOW_OK"
+}
 fix_cli() {
   local rc mudou=0
   meow_escrever "$HOME/.local/bin/meow" "$(cat "$RAIZ/bin/meow")" 755; rc=$?
@@ -1542,7 +1556,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches graficos relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart arquivosfilhos atalho lancador autoreparo cli escala fontes estadovelho vizinhos logo indice)
+VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches graficos relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart arquivosfilhos atalho lancador autoreparo cli escala fontes estadovelho vizinhos efeito logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 
 declare -A SEM_CONSERTO_RAZAO=(
