@@ -5131,7 +5131,7 @@ def inventario_do_painel():
 
     def pus(l, porta, pagina, bloco):
         base = {"porta": porta, "pagina": pagina, "bloco": bloco,
-                "rotulo": l.get("r"), "botao": l.get("b")}
+                "rotulo": l.get("r") or l.get("n"), "botao": l.get("b")}
         for tipo, campo in (("chave", "c"), ("acao", "a"), ("gesto", "g")):
             if campo in l:
                 for ident in (l[campo] if isinstance(l[campo], list) else [l[campo]]):
