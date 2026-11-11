@@ -1,6 +1,9 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- 11/11, 16:50, Meow-portatil: P185 em voo, em `bloco/p185` (worktree `~/Desenvolvimento/.meow-wt-p185`). O apt de 11/11 trouxe
+  a libcosmic com o `4c853eb` (o tema de ícones e as fontes saíram do Tk para o tema) e a dock caiu nos ícones coloridos.
+  Dois agentes: implementa (agente) e confere e corrige (agente). Depois: suíte, `master`, install com o HOME real e push.
 - 08/11, madrugada: P184 pela metade, no GitHub. Curados e pushados: a margem, o apt (kernel 7.2.15 no ar), a lista única
   de pacotes que o CI instala, o zstd, o contrato-cosmic, o fontconfig sem rastro no modo só leitura, o icones_absolutos com
   GTK 4, o `todos.sh --so=`. Suíte 149/150 (1 pulado), install com o HOME real `rc=0`, `meow levantamento` sem achado.
