@@ -34,6 +34,7 @@ _heroic_lista_trocar() {
 }
 
 meow_tem python3 || {
+  meow_frase "Sem o Python, não dá para ler a biblioteca do Heroic."
   meow_pula "sem python3 — não dá para ler a biblioteca do Heroic (é JSON)"
   exit "$MEOW_SEM_DEPENDENCIA"
 }
@@ -49,6 +50,7 @@ heroic_conf() {
 }
 
 CONF="$(heroic_conf)" || {
+  meow_frase "O Heroic não está instalado, ou nunca foi aberto: não há jogos dele para conferir."
   meow_pula "Heroic não instalado (ou nunca aberto) — nada a fazer"
   exit "$MEOW_OK"
 }
@@ -373,17 +375,25 @@ _notas_finais() {
 }
 [ "$sem_arte" -gt 0 ] && trap _notas_finais EXIT
 
+_pl() { if [ "$1" -eq 1 ]; then printf '%s %s' "$1" "$2"; else printf '%s %s' "$1" "$3"; fi; }
+
 if [ "$jogos" -eq 0 ] && [ "$mudou" = "0" ]; then
+  meow_frase "O Heroic está instalado, mas ainda não tem nenhum jogo instalado."
   meow_pula "Heroic instalado, nenhum jogo instalado — nada a criar"
   exit "$MEOW_OK"
 fi
 
 if [ "$mudou" = "0" ]; then
+  meow_frase "Os jogos do Heroic já estão certos no lançador: $(_pl "$jogos" jogo jogos), cada um com a capa que o Heroic baixou."
   meow_ok "$jogos jogo(s) do Heroic no lançador, com a capa que ele baixou"
   exit "$MEOW_OK"
 fi
 
 if meow_seco; then
+  [ "$escritos" -gt 0 ] && meow_frase "$(_pl "$escritos" "jogo do Heroic ainda não está" "jogos do Heroic ainda não estão") no lançador."
+  [ "$removidos" -gt 0 ] && meow_frase "$(_pl "$removidos" "jogo que saiu do Heroic ainda tem" "jogos que saíram do Heroic ainda têm") atalho no lançador."
+  [ "$duplicatas" -gt 0 ] && meow_frase "$(_pl "$duplicatas" "jogo aparece" "jogos aparecem") duas vezes no lançador."
+  meow_frase "O botão Aplicar, na linha Jogos do Heroic, arruma isso."
   meow_muda "$jogos jogo(s) do Heroic: $escritos atalho(s) a escrever, $removidos a remover, $duplicatas cartão(ões) duplicado(s) a tirar do lançador"
   exit "$MEOW_DIVERGENTE"
 fi

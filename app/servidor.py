@@ -1193,6 +1193,25 @@ def _forma_de_numero(padrao):
     return ""
 
 
+_DE_FABRICA = {}
+for _suf, _pasta in _BARRAS:
+    for _chave, _arquivo in (("FORMA_MARGEM_", "margin"), ("FORMA_RAIO_", "border_radius"),
+                             ("FORMA_ESPACO_", "spacing"), ("FORMA_RECHEIO_", "padding"),
+                             ("VIDRO_OPACIDADE_", "opacity")):
+        _DE_FABRICA[_chave + _suf] = _pasta + _arquivo
+
+
+def _fabrica_cosmic(chave):
+    arquivo = _DE_FABRICA.get(chave)
+    if not arquivo:
+        return None
+    try:
+        with open(os.path.join(COSMIC_SISTEMA, arquivo), encoding="utf-8") as fh:
+            return _numero_cru(fh.read().strip())
+    except OSError:
+        return None
+
+
 def _vazio_vale(inline):
     m = re.search(r"\(vazio\s*=\s*(-?\d+(?:\.\d+)?)\s*\)", inline or "")
     return m.group(1) if m else None
@@ -1390,6 +1409,7 @@ def ler_esquema():
             "dominada_por": _dominada_por(chave),
             "vestigio_de_pack": _vestigio_de_pack(chave),
             "valendo_agora": _valendo_agora(chave),
+            "fabrica_cosmic": _fabrica_cosmic(chave),
             "desligado_agora": chave in _LEITURA_ZERO_DESLIGA and _leitura_desligada(
                 chave, (_cosmic_ler(PASTA_COMP + chave.lower())
                         or "").strip('"')),
@@ -2240,7 +2260,7 @@ def _pendencia_de_aplicar(frase):
         pass
 
 
-_APLICAR = {"fila": [], "completo": False, "correndo": False, "falhou": False}
+_APLICAR = {"fila": [], "completo": False, "correndo": False, "falhou": False, "fabrica": set()}
 _APLICAR_TRAVA = threading.Lock()
 
 
@@ -2256,13 +2276,17 @@ def _aplicador():
                 _APLICAR["correndo"] = False
                 return
             completo, etapas = _APLICAR["completo"], list(_APLICAR["fila"])
+            fabrica = sorted(_APLICAR["fabrica"])
             _APLICAR["fila"], _APLICAR["completo"] = [], False
+            _APLICAR["fabrica"] = set()
         extra = [] if completo else ["--etapa", ",".join(etapas)]
+        de_fabrica = {"MEOW_DE_FABRICA": ",".join(fabrica)} if fabrica else None
         trabalho, erro = None, None
         for _tentativa in range(3600):
             while _ESPERANDO_O_SLOT[0] > 0:
                 time.sleep(0.1)
-            trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra, por_dentro=True)
+            trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra, por_dentro=True,
+                                     ambiente_extra=de_fabrica)
             if trabalho is not None or "já há um trabalho" not in str(erro):
                 break
             time.sleep(0.5)
@@ -2288,7 +2312,7 @@ def _esperar_aplicar_vivo(limite=300):
         time.sleep(0.3)
 
 
-def aplicar_depois_de_gravar(chaves):
+def aplicar_depois_de_gravar(chaves, de_fabrica=()):
     plano = plano_de_aplicacao(chaves)
     if plano["nada"]:
         return {"aplicando": False}
@@ -2296,6 +2320,7 @@ def aplicar_depois_de_gravar(chaves):
         _pendencia_de_aplicar("Um ajuste foi gravado e falta a ponte para aplicar")
         return {"aplicando": False, "sem_ponte": True}
     with _APLICAR_TRAVA:
+        _APLICAR["fabrica"].update(de_fabrica)
         if plano["completo"]:
             _APLICAR["completo"] = True
         for nome in plano["etapas"]:
@@ -3613,8 +3638,8 @@ ACOES = {
         "natureza": "instalar",
         "argv": [os.path.join(RAIZ, "install.sh")],
         "escreve": True, "sudo": True, "confirma": True, "rede": True,
-        "ajuda": "Passa {as_etapas}. Rodar de novo numa máquina já pronta "
-                 "não escreve um byte.",
+        "ajuda": "Refaz a instalação inteira do MeowSystem ({as_etapas}); numa "
+                 "máquina já pronta, nada muda.",
     },
     "aplicar": {
         "rotulo": "Aplicar ajuste",
@@ -3695,6 +3720,7 @@ ACOES = {
     },
 
     "sistema_ver": {
+        "resumo": True,
         "rotulo": "O que muda",
         "grupo": "Atualização",
         "natureza": "mostrar",
@@ -3702,9 +3728,8 @@ ACOES = {
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "ver"],
         "escreve": False, "sudo": False, "confirma": False,
         "par": "sistema_atualizar",
-        "ajuda": "Os pacotes com versão nova e os programas em Rust "
-                 "desatualizados. Não escreve e não pede senha, mas consulta "
-                 "o índice do crates.io para saber o que está velho.",
+        "ajuda": "Os programas do sistema que têm versão nova. Não muda nada e "
+                 "não pede senha, mas consulta a internet para saber o que está velho.",
     },
     "sistema_atualizar": {
         "rotulo": "Atualizar a máquina",
@@ -3713,9 +3738,9 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "aplicar"],
         "escreve": True, "sudo": True, "confirma": True, "rede": True,
-        "ajuda": "Atualiza apt, flatpak e cargo, e logo depois faz a conferência "
-                 "— que diz o que a atualização desfez do MeowSystem. Demora, e o "
-                 "apt mantém os arquivos de configuração que já estão no disco.",
+        "ajuda": "Atualiza os programas do sistema e confere o que a atualização "
+                 "desfez do MeowSystem. Demora, e as configurações que já estão no "
+                 "disco ficam como estão.",
     },
     "sistema_limpar": {
         "rotulo": "Limpar as sobras",
@@ -3724,8 +3749,8 @@ ACOES = {
         "bloco": "Sistema",
         "argv": [os.path.join(RAIZ, "scripts", "atualizar_sistema.sh"), "limpar"],
         "escreve": True, "sudo": True, "confirma": True,
-        "ajuda": "Pacotes órfãos e os pacotes que o apt já baixou. Diz quantos "
-                 "megabytes saíram.",
+        "ajuda": "Apaga os pacotes que já foram baixados e os que ficaram sobrando. "
+                 "Diz quanto espaço liberou.",
     },
     "restaurar": {
         "rotulo": "Restaurar",
@@ -3746,6 +3771,7 @@ ACOES = {
         "ambiente": {"MEOW_SIM": "1"},
     },
     "icones": {
+        "resumo": True,
         "rotulo": "Tema de ícones",
         "grupo": "Ícones",
         "natureza": "mostrar",
@@ -3781,6 +3807,7 @@ ACOES = {
                  "passo que faz um desenho do pack escolhido aqui aparecer.",
     },
     "logo_listar": {
+        "resumo": True,
         "rotulo": "Mascote agora",
         "grupo": "Logo do sistema",
         "natureza": "mostrar",
@@ -3810,6 +3837,7 @@ ACOES = {
                  "botão fica apagado e diz onde mudar.",
     },
     "wallpaper": {
+        "resumo": True,
         "rotulo": "O carrossel agora",
         "grupo": "Papel de parede",
         "natureza": "mostrar",
@@ -3899,6 +3927,7 @@ ACOES = {
         "ajuda": "Tira a escolha e deixa o brilho medido da imagem decidir.",
     },
     "areas_ver": {
+        "resumo": True,
         "rotulo": "Áreas agora",
         "grupo": "Áreas de trabalho",
         "natureza": "mostrar",
@@ -3944,6 +3973,7 @@ ACOES = {
         "ambiente": {"MEOW_SIM": "1"},
     },
     "painel_estado": {
+        "resumo": True,
         "rotulo": "Painel agora",
         "grupo": "Painel e dock",
         "natureza": "mostrar",
@@ -3952,6 +3982,7 @@ ACOES = {
         "ajuda": "O estado do painel, da dock e do serviço que cuida dos dois.",
     },
     "painel_teto": {
+        "resumo": True,
         "rotulo": "Arredondamento máximo",
         "grupo": "Painel e dock",
         "natureza": "mostrar",
@@ -3970,6 +4001,7 @@ ACOES = {
                  "aparecer na hora.",
     },
     "leitura": {
+        "resumo": True,
         "rotulo": "Leitura agora",
         "grupo": "Modo de leitura",
         "natureza": "mostrar",
@@ -3995,6 +4027,7 @@ ACOES = {
         "ajuda": "Zera temperatura e textura, e desarma o agendamento.",
     },
     "files_menu": {
+        "resumo": True,
         "rotulo": "Menu agora",
         "grupo": "Papel de parede",
         "natureza": "mostrar",
@@ -4093,6 +4126,7 @@ ACOES = {
         "ajuda": "Reabre o painel e a Dock desta sessão, para o applet trocado aparecer.",
     },
     "apps": {
+        "resumo": True,
         "rotulo": "Programas com tema",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
@@ -4159,6 +4193,7 @@ ACOES = {
                  "abertura do editor.",
     },
     "jogos": {
+        "resumo": True,
         "rotulo": "Conferir os jogos",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
@@ -4179,6 +4214,7 @@ ACOES = {
                  "só, e nunca com a Steam aberta.",
     },
     "jogos_heroic": {
+        "resumo": True,
         "rotulo": "Conferir o Heroic",
         "grupo": "Lançadores e jogos",
         "natureza": "conferir",
@@ -5367,6 +5403,7 @@ def _trabalho_json(trabalho, acao_id, seco=False):
             "escreve": escreve(ACOES[acao_id]),
             "seco": bool(seco),
             "conserta_com": ACOES[acao_id].get("conserta_com"),
+            "resumo": bool(ACOES[acao_id].get("resumo")),
             "nomes": NOME_DA_CONFERENCIA if acao_id == "doctor" else None,
             "fim": fim_da_acao(acao_id, seco)}
 
@@ -5441,25 +5478,25 @@ _ESPERANDO_TRAVA = threading.Lock()
 
 
 def iniciar(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
-            antes=None, extra_argv=None, por_dentro=False):
+            antes=None, extra_argv=None, por_dentro=False, ambiente_extra=None):
     if ACOES.get(acao_id, {}).get("interna") and not por_dentro:
         return (None, "«%s» só roda depois de gravar um ajuste" % ACOES[acao_id]["rotulo"])
     if acao_id == "aplicar":
         return _iniciar_agora(acao_id, argumento, confirmado, seco, pasta_de_ensaio,
-                              antes, extra_argv)
+                              antes, extra_argv, ambiente_extra)
     with _ESPERANDO_TRAVA:
         _ESPERANDO_O_SLOT[0] += 1
     try:
         _esperar_aplicar_vivo()
         return _iniciar_agora(acao_id, argumento, confirmado, seco, pasta_de_ensaio,
-                              antes, extra_argv)
+                              antes, extra_argv, ambiente_extra)
     finally:
         with _ESPERANDO_TRAVA:
             _ESPERANDO_O_SLOT[0] -= 1
 
 
 def _iniciar_agora(acao_id, argumento, confirmado=False, seco=False, pasta_de_ensaio=None,
-                   antes=None, extra_argv=None):
+                   antes=None, extra_argv=None, ambiente_extra=None):
     global TRABALHO_ATUAL
     acao = ACOES.get(acao_id)
     if acao is None:
@@ -5509,6 +5546,7 @@ def _iniciar_agora(acao_id, argumento, confirmado=False, seco=False, pasta_de_en
     ambiente = _ambiente_do_painel(seco)
     ambiente.update(conf)
     ambiente.update(amb_acao)
+    ambiente.update(ambiente_extra or {})
     if conf_do_ensaio:
         ambiente["MEOW_CONF"] = conf_do_ensaio
         pasta_dela = os.path.dirname(CONF)
@@ -8671,8 +8709,10 @@ class Manipulador(BaseHTTPRequestHandler):
             resposta = {"rc": rc, "saida": texto_na_tela(saida),
                         "chave": chave, "valor": valor}
             gravadas = [c for c, r, _s in feitos if r == 1]
-            if gravadas:
-                resposta.update(aplicar_depois_de_gravar(gravadas))
+            de_fabrica = [chave] if (corpo.get("fabrica") is True and valor == ""
+                                     and item.get("fabrica_cosmic") is not None and rc != 2) else []
+            if gravadas or de_fabrica:
+                resposta.update(aplicar_depois_de_gravar(gravadas or de_fabrica, de_fabrica))
             return self._json(resposta)
 
         if caminho == "/api/salvar":

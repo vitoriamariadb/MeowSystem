@@ -819,8 +819,7 @@ _areas_recusar_vazio() {
 }
 
 _areas_so_no_login() {
-  meow_info "vale no PRÓXIMO INÍCIO DE SESSÃO: o cosmic-comp lê este arquivo uma"
-  meow_info "vez, ao iniciar. Nada muda na barra agora, e isso não é defeito."
+  meow_info "vale no PRÓXIMO INÍCIO DE SESSÃO: o cosmic-comp lê este arquivo uma vez, ao iniciar. Nada muda na barra agora, e isso não é defeito."
 }
 
 _areas_col() { printf '%-14s' "$1"; }
@@ -830,6 +829,7 @@ cmd_estado() {
   _areas_ler || return $?
 
   if [ "${#AREAS_NOME[@]}" -eq 0 ]; then
+    meow_frase "Nenhuma área está fixada: sem isso, a barra mostra a posição das áreas, não o nome."
     meow_aviso "nenhuma área alfinetada em $AREAS_ALVO"
     meow_aviso "sem alfinete as áreas não têm nome: o painel mostra a POSIÇÃO delas."
     return "$MEOW_OK"
@@ -837,6 +837,17 @@ cmd_estado() {
 
   local i nu dono modo="independentes"
   [ "$(_areas_modo_no_disco)" = "Global" ] && modo="juntas"
+  local lista_frase="" sep_frase=""
+  for i in "${!AREAS_NOME[@]}"; do
+    lista_frase="$lista_frase$sep_frase$(_areas_sem_folga "${AREAS_NOME[$i]}")"
+    sep_frase=", "
+  done
+  if [ "$modo" = "juntas" ]; then
+    meow_frase "Áreas fixadas: $lista_frase. São as mesmas em todos os monitores."
+  else
+    meow_frase "Áreas fixadas: $lista_frase. Cada monitor tem as suas."
+  fi
+  meow_frase "A barra só muda no próximo início de sessão: o compositor lê as áreas uma vez, ao iniciar."
   meow_info "áreas $modo, alfinetadas na ordem em que nascem:"
   for i in "${!AREAS_NOME[@]}"; do
     nu="$(_areas_sem_folga "${AREAS_NOME[$i]}")"
@@ -858,6 +869,7 @@ cmd_estado() {
 
   _areas_so_no_login
   local pid; pid="$(pgrep -x cosmic-comp 2>/dev/null | head -1)"
+  [ -n "$pid" ] || meow_frase "O compositor não está rodando: nada disto está valendo agora."
   [ -n "$pid" ] || meow_aviso "cosmic-comp NÃO está rodando — nada disto está valendo agora"
   return "$MEOW_OK"
 }

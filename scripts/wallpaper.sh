@@ -917,9 +917,24 @@ cmd_aplicar() {
   return "$MEOW_DIVERGENTE"
 }
 
+duracao_dita() {
+  local s="$1"
+  if [ $((s % 3600)) -eq 0 ]; then
+    [ "$((s / 3600))" -eq 1 ] && echo "1 hora" || echo "$((s / 3600)) horas"
+  elif [ $((s % 60)) -eq 0 ]; then
+    [ "$((s / 60))" -eq 1 ] && echo "1 minuto" || echo "$((s / 60)) minutos"
+  else
+    echo "$s segundos"
+  fi
+}
+
 cmd_estado() {
   local n; n="$(quantas)"
   local alvo="$ATIVOS"
+  local ordem_dita="aleatória"
+  [ "$(metodo_de "$ORDEM")" = "Alphanumeric" ] && ordem_dita="alfabética"
+  [ "$n" -eq 1 ] && meow_frase "O carrossel tem 1 imagem, em ordem $ordem_dita, e troca a cada $(duracao_dita "$(segundos_de "$INTERVALO")")." \
+    || meow_frase "O carrossel tem $n imagens, em ordem $ordem_dita, e troca a cada $(duracao_dita "$(segundos_de "$INTERVALO")")."
   echo "pasta:     $ATIVOS"
   echo "imagens:   $n"
   echo "intervalo: $INTERVALO ($(segundos_de "$INTERVALO")s)"
@@ -932,6 +947,7 @@ cmd_estado() {
       if e_noite 2>/dev/null; then agora="NOITE"; alvo="$NOITE_DIR"
       else                         agora="DIA";   alvo="$DIA_DIR"; fi
       echo "noite:     ligada, das $NOITE_INICIO às $NOITE_FIM — agora é $agora"
+      meow_frase "O carrossel usa as imagens escuras à noite, das $NOITE_INICIO às $NOITE_FIM, e as claras de dia; agora é $([ "$agora" = "NOITE" ] && echo noite || echo dia)."
 
       ler_lado
       local esc_dia=0 esc_noite=0 nome_l por_medicao
@@ -946,6 +962,7 @@ cmd_estado() {
       fi
       por_medicao=$(( escuras + claras - esc_dia - esc_noite ))
       [ "$por_medicao" -lt 0 ] && por_medicao=0
+      [ $((escuras + claras)) -gt 0 ] && meow_frase "Pelo brilho, $escuras são escuras e $claras são claras."
       echo "limiar:    $LIMIAR_LUZ de luminância ($escuras escuras | $claras claras, contadas no disco; escolha sua: $esc_noite noite | $esc_dia dia · medição: $por_medicao)"
       if [ -d "$alvo" ]; then
         echo "rotação:   $alvo"
@@ -955,6 +972,7 @@ cmd_estado() {
       fi
       ;;
     *)
+      meow_frase "O carrossel não separa dia e noite: usa todas as imagens o tempo todo."
       echo "noite:     desligada (WALLPAPER_NOITE=\"$NOITE\") — a rotação é o acervo inteiro" ;;
   esac
   local mesma; mesma="$(cat "$BG/same-on-all" 2>/dev/null)"
@@ -973,7 +991,12 @@ cmd_estado() {
     echo "estado:    $(basename "$arq") aponta para outro lugar ($fonte)"
     fora=1
   done
-  [ "$fora" = "0" ] && echo "estado:    carrossel ATIVO"
+  if [ "$fora" = "0" ]; then
+    meow_frase "O carrossel está ativo."
+    echo "estado:    carrossel ATIVO"
+  else
+    meow_frase "O carrossel não está apontando para as imagens certas; o botão Girar refaz a ligação."
+  fi
   echo "atual:     (o cosmic-bg não expõe qual imagem está em exibição)"
 }
 

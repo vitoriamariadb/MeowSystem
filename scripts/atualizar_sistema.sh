@@ -20,27 +20,38 @@ cmd_ver() {
     lista="$(apt list --upgradable 2>/dev/null | tail -n +2)"
     if [ -n "$lista" ]; then
       n=$(printf '%s\n' "$lista" | grep -c .)
+      if [ "$n" -eq 1 ]; then meow_frase "1 pacote do sistema tem versão nova."; else meow_frase "$n pacotes do sistema têm versão nova."; fi
       meow_muda "$n pacote(s) com versão nova já conhecida"
       printf '%s\n' "$lista" | head -20 | sed 's/^/      /'
       [ "$n" -gt 20 ] && meow_info "  … e mais $((n - 20))"
     else
+      meow_frase "Nenhum pacote do sistema precisa de atualização."
       meow_ok "nenhum pacote pendente na lista atual"
     fi
+    meow_frase "A lista pode estar velha: ao atualizar, o MeowSystem baixa a lista nova antes."
     meow_info "  a lista pode estar velha; o \`aplicar\` roda \`apt update\` antes"
   else
+    meow_frase "Este computador não usa o gerenciador de pacotes do sistema."
     meow_pula "sem apt nesta máquina"
   fi
 
   meow_passo "2/3 Programas em Rust"
   if _as_tem cargo-install-update; then
-    cargo install-update --list 2>/dev/null | sed 's/^/      /' || true
+    local rust_lista rust_n
+    rust_lista="$(cargo install-update --list 2>/dev/null || true)"
+    rust_n="$(printf '%s\n' "$rust_lista" | awk '$NF == "Yes"' | grep -c .)"
+    if [ "$rust_n" -eq 0 ]; then meow_frase "Os programas em Rust estão em dia."
+    elif [ "$rust_n" -eq 1 ]; then meow_frase "1 programa em Rust tem versão nova."
+    else meow_frase "$rust_n programas em Rust têm versão nova."; fi
+    printf '%s\n' "$rust_lista" | sed 's/^/      /'
   else
+    meow_frase "Os programas em Rust não foram conferidos: falta a ferramenta que lista as atualizações deles."
     meow_pula "cargo-install-update não está instalado"
   fi
 
   meow_passo "3/3 O que o MeowSystem teria de refazer"
-  meow_info "depois de atualizar, o \`aplicar\` roda \`meow doctor\` e diz o que"
-  meow_info "  a atualização desfez — é a metade que o comando à mão não tem"
+  meow_frase "Depois de atualizar, o MeowSystem confere e diz o que a atualização desfez dele."
+  meow_info "depois de atualizar, o \`aplicar\` roda \`meow doctor\` e diz o que a atualização desfez — é a metade que o comando à mão não tem"
   return "$MEOW_OK"
 }
 

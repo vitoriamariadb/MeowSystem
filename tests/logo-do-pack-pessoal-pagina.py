@@ -41,9 +41,11 @@ async (id) => {
 """
 PINTURA_JS = """
 async (sel) => {
-  const img = document.querySelector(sel);
-  if (!img) return "";
-  if (!img.complete) await new Promise((ok) => { img.onload = img.onerror = ok; });
+  const opcao = document.querySelector(sel);
+  if (!opcao) return "";
+  const img = new Image();
+  img.src = opcao.currentSrc || opcao.src;
+  try { await img.decode(); } catch { return ""; }
   const tela = document.createElement("canvas");
   tela.width = tela.height = 48;
   tela.getContext("2d").drawImage(img, 0, 0, 48, 48);
@@ -253,7 +255,6 @@ def main():
             alvo = f'[data-controle="chave:LOGO_PROGRAMA={ID}"] img'
             pag.evaluate("() => { location.hash = '#ajustes/mascote'; }")
             esperar(pag, 600)
-            pag.locator(alvo).scroll_into_view_if_needed()
             pintura_antes = pag.evaluate(PINTURA_JS, alvo)
             pag.evaluate("() => { location.hash = '#tema'; }")
             esperar(pag, 600)
@@ -263,7 +264,6 @@ def main():
             eventual(lambda: not pag.evaluate("() => document.getElementById('logo-do-pack').open"))
             pag.evaluate("() => { location.hash = '#ajustes/mascote'; }")
             esperar(pag, 600)
-            pag.locator(alvo).scroll_into_view_if_needed()
             checa(bool(pintura_antes) and eventual(lambda: pag.evaluate(PINTURA_JS, alvo) != pintura_antes, 8),
                   "a opção do pack pessoal em Definir mostra a logo nova")
 

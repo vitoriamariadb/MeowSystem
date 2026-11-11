@@ -240,17 +240,17 @@ const LUGAR_CUIDAR = {
     { a: "doctor", r: "Verificar o sistema", b: "Verificar o sistema" },
   ],
   cartoes: [
-    { id: "outro", titulo: "Exportar", icone: "computador", linhas: [
-      { g: "exportar-conf", r: "Exportar ajustes", b: "Exportar ajustes" },
-      { g: "importar", r: "Importar ajustes", b: "Importar ajustes" },
+    { id: "outro", titulo: "Exportar", linhas: [
+      { g: "exportar-conf", r: "Exportar ajustes", b: "Exportar ajustes", i: "subir" },
+      { g: "importar", r: "Importar ajustes", b: "Importar ajustes", i: "baixar" },
     ] },
-    { id: "atualizar", titulo: "Atualizar", icone: "girar", linhas: [
-      { a: "sistema_atualizar", r: "Atualizar a máquina", b: "Atualizar" },
-      { a: "sistema_ver", r: "O que muda", b: "Ver" },
-      { a: "sistema_limpar", r: "Limpar", b: "Limpar" },
+    { id: "atualizar", titulo: "Atualizar", linhas: [
+      { a: "sistema_atualizar", r: "Atualizar a máquina", b: "Atualizar a máquina", i: "girar" },
+      { a: "sistema_ver", r: "O que muda", b: "O que muda", i: "olho" },
+      { a: "sistema_limpar", r: "Limpar as sobras", b: "Limpar as sobras", i: "lixo" },
     ] },
-    { id: "instalar", titulo: "Reinstalar o MeowSystem", icone: "baixar", linhas: [
-      { a: "instalar", r: "Reinstalar o MeowSystem", b: "Reinstalar" },
+    { id: "instalar", titulo: "Reinstalar o MeowSystem", semNome: true, linhas: [
+      { a: "instalar", r: "Reinstalar o MeowSystem", b: "Reinstalar o MeowSystem", i: "baixar" },
     ] },
   ],
   blocos: [

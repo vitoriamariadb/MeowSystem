@@ -32,6 +32,7 @@ const IC = {
   som: '<path d="M11 5 6 9H2v6h4l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
   computador: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
   girar: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  olho: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   lixo: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
   disco: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
   ponte: '<path d="M2 18h20M4 18V9M20 18V9M4 9c4 4 12 4 16 0M9 13v5M15 13v5"/>',
@@ -272,6 +273,11 @@ let TRABALHOS_A_CAMINHO = 0;
 let FILA_DE_GRAVACAO = Promise.resolve();
 let ACOMPANHANDO = false;
 
+function voltarAoDeFabrica(item) {
+  gravarAgora({ [item.chave]: "" }, { fabrica: true });
+  return true;
+}
+
 function escolher(chave, valor) {
   const item = CHAVE.get(chave);
   if (!item) return false;
@@ -327,7 +333,7 @@ function gravarAgora(lote, opc = {}) {
 async function enviarLote(lote, antes, chaves, opc, numero) {
   const so = chaves.length === 1;
   const r = so
-    ? await api("/api/definir", { method: "POST", body: JSON.stringify({ chave: chaves[0], valor: String(lote[chaves[0]]) }) })
+    ? await api("/api/definir", { method: "POST", body: JSON.stringify({ chave: chaves[0], valor: String(lote[chaves[0]]), fabrica: opc.fabrica === true }) })
     : await api("/api/salvar", { method: "POST", body: JSON.stringify({ mudancas: lote }) });
   EM_VOO--;
   for (const c of chaves) if (ULTIMO_LOTE_DA_CHAVE.get(c) === numero) { MUDANCAS.delete(c); ULTIMO_LOTE_DA_CHAVE.delete(c); }
@@ -409,7 +415,13 @@ function padraoDe(item) {
   if (item.padrao_do_pack != null) return String(item.padrao_do_pack);
   return item.padrao == null ? "" : String(item.padrao);
 }
+function foraDeFabrica(item) {
+  const agora = Number(item.valendo_agora);
+  const teto = item.teto && item.teto.trava ? Number(item.teto.valor) : Infinity;
+  return item.valendo_agora != null && Number.isFinite(agora) && agora !== Math.min(Number(item.fabrica_cosmic), teto);
+}
 function temOQueRestaurar(item, valor) {
+  if (item.fabrica_cosmic != null && foraDeFabrica(item)) return true;
   return String(valor) !== String(padraoDe(item));
 }
 function botaoPadrao(item, aplica, coluna) {
@@ -418,8 +430,9 @@ function botaoPadrao(item, aplica, coluna) {
   return elemento("button", {
     type: "button", class: "padrao", controle: "padrao:" + item.chave,
     "aria-label": "Voltar ao padrão" + de,
-    dica: (fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item)) + de,
-    onclick: () => aplica(fabrica),
+    dica: (item.fabrica_cosmic != null ? "Volta ao de fábrica do COSMIC: " + item.fabrica_cosmic
+      : fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item)) + de,
+    onclick: () => (item.fabrica_cosmic != null ? voltarAoDeFabrica(item) : aplica(fabrica)),
   }, [icone("desfazer")]);
 }
 
@@ -541,14 +554,15 @@ function controleFaixa(item, aplica) {
   const teto = item.teto && item.teto.trava ? Number(item.teto.valor) : null;
   const topo = teto == null ? hi : Math.max(Number(lo), Math.min(Number(hi), teto));
   const valor = valorEmVigor(item);
-  const base = valor !== "" ? valor : (item.valendo_agora ?? item.vazio_vale ?? item.padrao ?? lo);
-  const numero = /^-?\d+(\.\d+)?$/.test(String(base)) ? Number(base) : Number(lo);
+  const base = valor !== "" ? valor : (item.valendo_agora ?? item.fabrica_cosmic ?? item.vazio_vale ?? item.padrao ?? lo);
+  const lido = /^-?\d+(\.\d+)?$/.test(String(base)) ? Number(base) : Number(lo);
+  const numero = Math.max(Number(lo), Math.min(topo, lido));
   const slider = elemento("input", {
     type: "range", min: lo, max: topo, step: passo, value: String(numero),
     "aria-label": item.titulo || item.chave, controle: "chave:" + item.chave, dica: primeiraFrase(item.frase),
   });
   ligarPreenchimento(slider);
-  const saida = elemento("output", { texto: String(numero) });
+  const saida = elemento("output", { texto: String(lido) });
   const caixa = elemento("div", { class: "faixa" }, [slider, saida]);
   slider.addEventListener("input", () => {
     saida.textContent = slider.value;
@@ -1082,12 +1096,13 @@ function iniciarProgresso(trabalho, depois = null) {
   if (TRABALHO && TRABALHO.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve, rotulo: maiuscula(trabalho.rotulo),
                acao: trabalho.acao || null, fim: trabalho.fim || {}, mudou: false, depois, saida: [],
-               consertaCom: trabalho.conserta_com || null, nomes: trabalho.nomes || null, rota: location.hash };
+               consertaCom: trabalho.conserta_com || null, nomes: trabalho.nomes || null, resumo: !!trabalho.resumo, rota: location.hash };
   if (TRABALHO.acao) esquecerResultado(TRABALHO.acao);
   const barra = $("#progresso");
   barra.dataset.estado = "correndo";
   $("#progresso-nome").textContent = TRABALHO.rotulo || "Trabalho";
   barra.hidden = false;
+  estadoDoLadrilho(TRABALHO.acao, "carregando", TRABALHO.rota);
   TRABALHO.timer = setInterval(puxar, 400);
   puxar();
 }
@@ -1097,11 +1112,41 @@ function fimDoProgresso(estado) {
   barra.hidden = true;
 }
 const RESULTADOS = new Map();
+const ESTADO_DO_LADRILHO = new Map();
+const FEITO_DO_LADRILHO_MS = 2400;
+function marcarLadrilhos() {
+  for (const [id, e] of [...ESTADO_DO_LADRILHO]) {
+    if (e.rota !== location.hash && e.estado !== "carregando") ESTADO_DO_LADRILHO.delete(id);
+  }
+  for (const t of document.querySelectorAll('#conteudo .ladrilho[data-controle^="acao:"]')) {
+    const e = ESTADO_DO_LADRILHO.get(t.dataset.controle.slice(5));
+    if (e && e.rota === location.hash) t.dataset.estado = e.estado;
+    else delete t.dataset.estado;
+  }
+}
+function estadoDoLadrilho(id, estado, rota) {
+  if (!id) return;
+  const marca = { estado, rota };
+  if (estado) ESTADO_DO_LADRILHO.set(id, marca);
+  else ESTADO_DO_LADRILHO.delete(id);
+  marcarLadrilhos();
+  if (estado !== "feito") return;
+  setTimeout(() => {
+    if (ESTADO_DO_LADRILHO.get(id) !== marca) return;
+    ESTADO_DO_LADRILHO.delete(id);
+    marcarLadrilhos();
+  }, FEITO_DO_LADRILHO_MS);
+}
 const MARCA_DA_SAIDA = /^\s*(ok|~~|--|!!|>>|erro|FALHOU|falhou)(?=\s|$)\s*/;
 const MAX_DO_RESULTADO = 6;
 
 function semCaminho(texto) {
   return texto.replace(/(^|[\s'"(])(?:~|\/)[^\s'")]*\/([^\s'"/)]+)/g, "$1$2");
+}
+const NAO_LEGIVEL = /[A-Z_]{4,}=|=<|\[[A-Z]{4,}\]|`|\.desktop|\.theme|\bpid\b|(^|[\s'"(])(~|\/)[^\s'")]*\//i;
+function fraseLegivel(frase) {
+  const limpa = frase.replace(/\s{2,}/g, " ").trim();
+  return limpa && !NAO_LEGIVEL.test(limpa) ? maiuscula(limpa) : "";
 }
 function resumirSaida(linhas, nomes = null) {
   const itens = [];
@@ -1122,24 +1167,31 @@ function resumirSaida(linhas, nomes = null) {
         texto = texto.split(" — ")[0];
       }
     }
+    let dica = "";
     if (nomes) {
       const area = m && /^(\S+)\s/.exec(bruta.slice(m[0].length));
       texto = (area && Object.hasOwn(nomes, area[1]) && nomes[area[1]]) || "";
+      if (texto) dica = fraseLegivel(bruta.slice(m[0].length).replace(/^\S+\s+/, ""));
     }
     texto = semCaminho(texto).replace(/\s{2,}/g, " ").trim();
     if (!texto) continue;
     anteriorMarcada = !!m;
-    itens.push({ texto: maiuscula(texto), classe });
+    itens.push({ texto: maiuscula(texto), classe, dica });
   }
   return itens;
 }
+function frasesDoResumo(linhas) {
+  return linhas.map((l) => /^\s*->\s+(\S.*)$/.exec(l)).filter(Boolean)
+    .map((m) => ({ texto: maiuscula(m[1].trim()), classe: "" }));
+}
 function guardarResultado(t, rc, frase) {
-  const itens = resumirSaida(t.saida, t.nomes);
+  const frases = t.resumo ? frasesDoResumo(t.saida) : [];
+  const itens = frases.length ? frases : resumirSaida(t.saida, t.nomes);
   const divergem = itens.filter((i) => i.classe === "mudou" || i.classe === "erro");
   const contagem = divergem.length === 1 ? "1 coisa diverge" : `${divergem.length} coisas divergem`;
   const confere = !!t.consertaCom;
   const mostrar = confere || (rc === 1 && divergem.length) ? divergem : itens;
-  const cabeca = divergem.length && (confere || rc === 1) ? contagem
+  const cabeca = frases.length ? "" : divergem.length && (confere || rc === 1) ? contagem
     : !confere && rc === 0 && itens.length ? "" : maiuscula(frase);
   RESULTADOS.set(t.acao, {
     rota: t.rota, estado: rc === 0 ? "ok" : rc === 1 ? "divergente" : "erro", cabeca,
@@ -1157,7 +1209,7 @@ function noDoResultado(id, r) {
   return elemento("div", { class: "resultado", "data-resultado": id, "data-estado": r.estado, role: "status" }, [
     r.cabeca ? elemento("p", { class: "resultado-cabeca", texto: r.cabeca }) : null,
     r.itens.length ? elemento("ul", { class: "resultado-linhas" }, [
-      ...r.itens.map((i) => elemento("li", { class: i.classe || null, texto: i.texto })),
+      ...r.itens.map((i) => elemento("li", { class: i.classe || null, texto: i.texto, dica: i.dica || null })),
       r.sobram ? elemento("li", { class: "sobra", texto: `E mais ${r.sobram}` }) : null,
     ]) : null,
     consertar ? botao("Consertar", { class: "bt pequeno principal", controle: "resultado:consertar",
@@ -1174,11 +1226,12 @@ function pintarResultados() {
     for (const velho of document.querySelectorAll(`[data-resultado="${id}"]`)) velho.remove();
     const gatilho = document.querySelector(`#conteudo [data-controle="acao:${id}"]`);
     if (!gatilho) continue;
-    const dono = gatilho.closest("li.linha, .cabeca-mod, .estado-maquina, .cartao-acao");
+    const dono = gatilho.closest("li.linha, .cabeca-mod, .estado-maquina, .cartao-acao, .ladrilho-no");
     const no = noDoResultado(id, r);
     if (dono) dono.append(no);
     else gatilho.parentElement.after(no);
   }
+  marcarLadrilhos();
 }
 
 async function puxar() {
@@ -1187,7 +1240,7 @@ async function puxar() {
   const desde = t.proximo;
   const r = await api(`/api/trabalho?id=${t.id}&desde=${desde}`);
   if (TRABALHO !== t || t.proximo !== desde) return;
-  if (r.erro) { clearInterval(t.timer); t.timer = null; TRABALHO = null; fimDoProgresso("erro"); return; }
+  if (r.erro) { clearInterval(t.timer); t.timer = null; TRABALHO = null; fimDoProgresso("erro"); estadoDoLadrilho(t.acao, "erro", t.rota); return; }
   t.proximo = r.proximo;
   for (const l of r.linhas || []) if (l.trimStart().startsWith("~~")) t.mudou = true;
   t.saida.push(...(r.linhas || []));
@@ -1199,6 +1252,7 @@ async function puxar() {
   const tabela = t.fim || {};
   const [classe, frase] = (r.rc === 0 && t.mudou && tabela["0~"]) || tabela[String(r.rc)] || ["erro", `Saiu ${r.rc}`];
   fimDoProgresso(classe === "erro" ? "erro" : "ok");
+  estadoDoLadrilho(t.acao, classe === "erro" ? "erro" : classe === "pula" ? "" : "feito", t.rota);
   if (classe === "erro") torrada(`${t.rotulo}: ${frase}`, "erro");
   TRABALHOS_A_CAMINHO++;
   TRABALHO = null;

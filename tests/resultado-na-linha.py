@@ -29,6 +29,10 @@ conferidas = [0]
 ROTAS = ["ajustes/painel", "ajustes/janelas", "ajustes/papel", "ajustes/mascote", "ajustes/dia-e-noite",
          "ajustes/programas", "cuidar", "modificacoes"]
 
+DOZE = ["painel_estado", "painel_teto", "areas_ver", "wallpaper", "files_menu", "logo_listar", "leitura",
+        "jogos", "jogos_heroic", "sistema_ver", "icones", "apps"]
+JARGAO = re.compile(r"[A-Z_]{4,}=|=<|\[[A-Z]{4,}\]|`|\.desktop|\.theme|\bpid\b|\bms\b|(^|[\s'\"(])(~|/)[^\s'\")]*/", re.I)
+
 LEITURAS = """
 () => [...document.querySelectorAll('#conteudo [data-controle^="acao:"]')]
   .map((b) => b.dataset.controle.slice(5))
@@ -132,7 +136,13 @@ def main():
                         checa(r["dentro"] and r["pre"] == 0, f"«{acao}»: na tela, sem pre nem registro")
                         checa(r["linhas"] <= 7, f"«{acao}»: sem rolagem infinita ({r['linhas']} linhas)")
                         checa("/home/" not in r["texto"] and "/tmp/" not in r["texto"], f"«{acao}»: sem caminho de arquivo cru")
+                        if acao in DOZE:
+                            achado = JARGAO.search(r["texto"])
+                            checa(not achado, f"«{acao}»: a frase se explica sozinha, sem chave, id nem tabela ({achado and achado.group(0)!r})")
+                            checa(all(len(l.strip()) > 12 and l.strip()[-1] in ".:" for l in r["texto"].split("\n") if l.strip()),
+                                  f"«{acao}»: cada linha é uma frase inteira ({r['texto'][:80]!r})")
                     eventual(lambda: not pag.evaluate("() => !!TRABALHO && !!TRABALHO.timer"))
+            checa(set(DOZE) <= set(vistas), f"o gate passou pelas doze ações ({sorted(set(DOZE) - set(vistas))} faltam)")
             checa(len(vistas) >= 8, f"o gate achou as ações que só leem ({len(vistas)}: {vistas})")
             checa(pag.locator("#resultado").count() == 0, "e não existe janela de resultado")
 
@@ -157,6 +167,9 @@ def main():
             checa(r.get("linhas", 0) >= 1, "e quais, uma por linha")
             itens = pag.locator('[data-resultado="doctor"] .resultado-linhas li:not(.sobra)').all_inner_texts()
             checa(itens and all(i in nomes.values() for i in itens), f"cada uma pelo nome curto, não pela frase do doctor ({itens})")
+            dicas = pag.locator('[data-resultado="doctor"] .resultado-linhas li:not(.sobra)').evaluate_all(
+                "(lis) => lis.map((l) => l.dataset.dica || '')")
+            checa(all(not JARGAO.search(d) for d in dicas), f"a dica de cada conferência é legível ou não existe ({dicas})")
             if FOTOS:
                 pag.screenshot(path=os.path.join(FOTOS, "p200-verificar-depois.png"))
             antes = len(posts)
@@ -188,6 +201,31 @@ def main():
             checa(linha.locator(".rot").inner_text().strip() == "Girar" and linha.locator("button").inner_text().strip() == "Girar",
                   "a linha e o botão se chamam «Girar»")
             checa(pag.locator('[data-controle="acao:wallpaper_proximo"]').inner_text().strip() == "Próxima imagem", "«Próxima imagem» fica")
+
+            print("6. o ladrilho do Manter mostra rodando, feito e erro")
+            ir(pag, "cuidar")
+            pag.evaluate("""() => { window.__estados = [];
+              new MutationObserver(() => {
+                const t = document.querySelector('#conteudo .ladrilho[data-controle="acao:sistema_ver"]');
+                const e = (t && t.dataset.estado) || '';
+                if (window.__estados[window.__estados.length - 1] !== e) window.__estados.push(e);
+              }).observe(document.getElementById('conteudo'), { subtree: true, attributes: true, childList: true }); }""")
+            pag.locator('#conteudo [data-controle="acao:sistema_ver"]').click()
+            eventual(lambda: pag.evaluate(RESULTADO, "sistema_ver") is not None)
+            checa(eventual(lambda: pag.evaluate("() => window.__estados.at(-1)") == ""), "o feito some sozinho")
+            vistos = pag.evaluate("() => window.__estados.filter(Boolean)")
+            checa(vistos[:2] == ["carregando", "feito"], f"rodando e depois feito ({vistos})")
+            pag.route("**/api/trabalho*", lambda rota: rota.fulfill(
+                content_type="application/json", body='{"vivo": false, "rc": 2, "linhas": [], "proximo": 0}'))
+            pag.locator('#conteudo [data-controle="acao:sistema_ver"]').click()
+            checa(eventual(lambda: pag.evaluate(
+                "() => document.querySelector('#conteudo .ladrilho[data-controle=\"acao:sistema_ver\"]').dataset.estado") == "erro", 20),
+                "o erro fica no ladrilho")
+            pag.unroute("**/api/trabalho*")
+            ir(pag, "ajustes/painel")
+            ir(pag, "cuidar")
+            checa(pag.evaluate("() => !document.querySelector('#conteudo .ladrilho[data-estado]')"),
+                  "sair da tela e voltar não traz o erro velho")
 
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()

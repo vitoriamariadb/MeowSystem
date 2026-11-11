@@ -27,6 +27,7 @@ meow_passo()  { meow_quieto && return 0
                        "$C_DIM" "$(printf '%.0s─' {1..52})" "$C_ZERO"; }
 meow_info()   { meow_quieto && return 0
                 printf '  %s>>%s %s\n' "$C_AZUL" "$C_ZERO" "$*"; }
+meow_frase()  { printf '  %s->%s %s\n' "$C_AZUL" "$C_ZERO" "$*"; }
 meow_ok()     { meow_quieto && return 0
                 printf '  %sok%s   %s\n' "$C_VERDE" "$C_ZERO" "$*"; }
 meow_muda()   { printf '  %s~~%s   %s\n' "$C_AMARELO" "$C_ZERO" "$*"; }
@@ -487,6 +488,13 @@ meow_cosmic_v() {
   local n
   n="$(ls -1 "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/$1" 2>/dev/null | sed -n 's/^v\([0-9][0-9]*\)$/\1/p' | sort -n | tail -1)"
   printf 'v%s' "${n:-${2:-1}}"
+}
+
+meow_de_fabrica() {
+  local f
+  case ",${MEOW_DE_FABRICA:-}," in *",$1,"*) ;; *) printf '%s' "$4"; return 0 ;; esac
+  f="$(cat "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/com.system76.CosmicPanel.$2/$(meow_cosmic_v "com.system76.CosmicPanel.$2")/$3" 2>/dev/null)"
+  printf '%s' "${f:-$4}"
 }
 
 meow_libcosmic_de() {

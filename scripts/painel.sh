@@ -74,7 +74,22 @@ conferir() {
   return "$MEOW_DIVERGENTE"
 }
 
+frase_do_teto() {
+  if meow_painel_compositor_clampa; then
+    meow_frase "O arredondamento máximo não limita a barra: o canto vale o que você escolheu."
+  elif meow_painel_patch_pendente; then
+    meow_frase "O compositor novo só vale no próximo login; até lá o arredondamento máximo protege a barra."
+  else
+    meow_frase "O arredondamento máximo protege a barra: sem ele, um canto redondo demais a faz sumir."
+  fi
+}
+
 teto() {
+  frase_do_teto
+  teto_detalhe
+}
+
+teto_detalhe() {
   local barra dir
   for barra in Panel Dock; do
     dir="$BASE/com.system76.CosmicPanel.$barra/$(meow_cosmic_v "com.system76.CosmicPanel.$barra")"
@@ -85,13 +100,6 @@ teto() {
       "$(meow_painel_teto "$dir" 2>/dev/null || echo '?')" \
       "$(cat "$dir/border_radius" 2>/dev/null)"
   done
-  if meow_painel_compositor_clampa; then
-    printf 'compositor: CLAMPA (o teto acima não se aplica — o raio é seu)\n'
-  elif meow_painel_patch_pendente; then
-    printf 'compositor: patch instalado, vale no PRÓXIMO LOGIN (o teto acima vale até lá)\n'
-  else
-    printf 'compositor: sem o patch — o teto acima é o que separa a barra do sumiço\n'
-  fi
 }
 
 reciclar() {
@@ -134,8 +142,37 @@ reciclar() {
   return "$MEOW_OK"
 }
 
+frases_do_estado() {
+  local espera
+  if meow_painel_fantasma; then
+    meow_frase "A barra está parada: o programa dela está aberto, mas não desenha. O vigia a reinicia sozinho."
+  else
+    meow_frase "A barra está desenhando normalmente."
+  fi
+  espera="$(meow_painel_espera_supervisor)"
+  if [ "$espera" = "nao-medida" ]; then
+    meow_frase "O sistema já reiniciou a barra desde que o computador ligou, e o tempo de espera até a próxima vez não pôde ser medido."
+  elif [ -n "$espera" ]; then
+    local seg=$(( (espera + 999) / 1000 ))
+    if [ "$seg" -le 1 ]; then
+      meow_frase "O sistema já reiniciou a barra desde que o computador ligou; se ela cair de novo, ele a repõe em até 1 segundo."
+    else
+      meow_frase "O sistema já reiniciou a barra desde que o computador ligou; se ela cair de novo, ele espera $seg segundos antes de repô-la."
+    fi
+  else
+    meow_frase "A barra nunca caiu desde que o computador ligou."
+  fi
+  if [ "$(systemctl --user is-active meow-painel.service 2>/dev/null)" = "active" ]; then
+    meow_frase "O vigia da barra está ligado: se ela cair, ele a repõe em segundos."
+  else
+    meow_frase "O vigia da barra está desligado: se ela cair, ninguém a repõe."
+  fi
+  frase_do_teto
+}
+
 estado() {
   local sup nossos espera
+  frases_do_estado
   printf 'compositor  : pid %s\n' "$(pgrep -x cosmic-comp | head -1)"
   sup="$(meow_painel_do_supervisor || true)"
   nossos="$(meow_painel_nossos | tr '\n' ' ' || true)"
@@ -154,7 +191,7 @@ estado() {
     printf 'supervisor  : nunca falhou neste boot\n'
   fi
   printf 'laço        : %s\n' "$(systemctl --user is-active meow-painel.service 2>/dev/null; true)"
-  teto
+  teto_detalhe
 }
 
 _sair() {
