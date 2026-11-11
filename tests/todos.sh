@@ -125,6 +125,8 @@ PORTATIL=(
   espaco.sh
   levantamento.sh
   glossario.sh
+  pacotes-numa-lista.sh
+  comum-carrega-limpo.sh
 )
 
 MAQUINA=(
@@ -178,10 +180,12 @@ case "${1:-}" in
   ''|--tudo)   MODO="tudo" ;;
   --portatil)  MODO="portatil" ;;
   --maquina)   MODO="maquina" ;;
+  --so=?*)     MODO="so"; SO_LISTA="${1#--so=}" ;;
   -h|--ajuda|--help)
     printf './tests/todos.sh              tudo, que é o que se roda na bancada dela\n'
     printf './tests/todos.sh --portatil   só o que roda em máquina sem COSMIC (o CI)\n'
     printf './tests/todos.sh --maquina    só o que exige a máquina dela\n'
+    printf './tests/todos.sh --so=a.sh,b.sh  só esses, com os mesmos falsos e o mesmo HOME de mentira\n'
     exit 0 ;;
   *) printf 'uso: %s [--tudo|--portatil|--maquina]\n' "$(basename "$0")" >&2; exit 2 ;;
 esac
@@ -215,6 +219,12 @@ case "$MODO" in
   tudo)     ALVOS=("${PORTATIL[@]}" "${MAQUINA[@]}"); QUAL="todos os $(( ${#PORTATIL[@]} + ${#MAQUINA[@]} ))" ;;
   portatil) ALVOS=("${PORTATIL[@]}");                 QUAL="os ${#PORTATIL[@]} portáteis (sem COSMIC, sem Papirus, sem navegador)" ;;
   maquina)  ALVOS=("${MAQUINA[@]}");                  QUAL="os ${#MAQUINA[@]} que exigem a máquina dela" ;;
+  so)
+    IFS=, read -ra ALVOS <<< "$SO_LISTA"
+    for i in "${ALVOS[@]}"; do
+      conhecido "$i" || { printf 'FALHOU: %s não está no PORTATIL nem no MAQUINA\n' "$i" >&2; exit 2; }
+    done
+    QUAL="os ${#ALVOS[@]} pedidos" ;;
 esac
 
 printf '== suíte MeowSystem: %s ==\n' "$QUAL"

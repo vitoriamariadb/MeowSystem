@@ -3,7 +3,7 @@ Version: @VERSAO@
 Architecture: all
 Maintainer: @MANTENEDOR@
 Installed-Size: @TAMANHO@
-Depends: bash (>= 4.3), python3, python3-numpy, git, curl, xz-utils, unzip, librsvg2-bin, imagemagick, libgtk-3-bin, fontconfig, libglib2.0-bin, desktop-file-utils, libnotify-bin, procps, psmisc, systemd, papirus-icon-theme, btop, bat, ffmpeg
+Depends: bash (>= 4.3), python3, python3-numpy, git, curl, xz-utils, unzip, librsvg2-bin, imagemagick, libgtk-3-bin, fontconfig, libglib2.0-bin, desktop-file-utils, libnotify-bin, procps, psmisc, systemd, papirus-icon-theme, btop, bat, zstd, ffmpeg
 Recommends: sudo, fzf, flatpak, pipewire-bin, pop-fonts, software-properties-common, @COMPILAR@
 Suggests: fastfetch
 Section: misc

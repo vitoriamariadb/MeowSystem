@@ -35,6 +35,21 @@ antes="$(md5sum < "$C/com.system76.CosmicPanel.Panel/v1/margin")"
 forma >/dev/null
 [ "$antes" = "$(md5sum < "$C/com.system76.CosmicPanel.Panel/v1/margin")" ] && ok "a segunda passada não escreve" || falha "a segunda passada escreveu"
 
+printf '\na margem acima do teto que mora no meow.conf desce na conf também, e o aviso não volta\n'
+CONF="$T/home/.config/meow/meow.conf"; mkdir -p "${CONF%/*}"
+printf 'FORMA_MARGEM_PAINEL="20"\nFORMA_MARGEM_DOCK="20"\nOUTRA="fica"\n' > "$CONF"
+echo 0 > "$C/com.system76.CosmicPanel.Panel/v1/margin"; echo 0 > "$C/com.system76.CosmicPanel.Dock/v1/margin"
+antes="$(md5sum < "$CONF")"
+forma MEOW_DRY_RUN=1 FORMA_MARGEM_PAINEL=20 FORMA_MARGEM_DOCK=20 >/dev/null; rc=$?
+[ "$rc" = 1 ] && [ "$antes" = "$(md5sum < "$CONF")" ] && ok "o conferir diverge e não toca na conf" || falha "o conferir saiu $rc ou mexeu na conf"
+saida="$(forma FORMA_MARGEM_PAINEL=20 FORMA_MARGEM_DOCK=20)"
+grep -qx 'FORMA_MARGEM_PAINEL="8"' "$CONF" && grep -qx 'FORMA_MARGEM_DOCK="8"' "$CONF" && grep -qx 'OUTRA="fica"' "$CONF" \
+  && ok "a conf passa a dizer 8 nas duas barras, e o resto dela fica" || falha "a conf ficou: $(cat "$CONF")"
+[ "$(margem Panel)" = 8 ] && [ "$(margem Dock)" = 8 ] && ok "e a tela fica em 8" || falha "a tela ficou em $(margem Panel)/$(margem Dock)"
+saida="$(forma FORMA_MARGEM_PAINEL=8 FORMA_MARGEM_DOCK=8)"; rc=$?
+[ "$rc" = 0 ] && ! grep -q 'derruba' <<< "$saida" && grep -q 'margem 8' <<< "$saida" \
+  && ok "a passada seguinte sai 0, sem aviso, e diz a margem que está na tela" || falha "rc $rc: $saida"
+
 printf '\na faixa do painel acompanha o teto\n'
 grep -qE '^FORMA_MARGEM_PAINEL=.*# 0 a 8 px' "$RAIZ/meow.conf.exemplo" && ok "o exemplo oferece de 0 a 8" || falha "o exemplo ainda oferece outra faixa"
 

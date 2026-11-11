@@ -1,6 +1,11 @@
 # Leva central e gerador (27/10/2026) — andamento
 
 ## Agora
+- 08/11, madrugada: P184 pela metade, no GitHub. Curados e pushados: a margem, o apt (kernel 7.2.15 no ar), a lista única
+  de pacotes que o CI instala, o zstd, o contrato-cosmic, o fontconfig sem rastro no modo só leitura, o icones_absolutos com
+  GTK 4, o `todos.sh --so=`. Suíte 149/150 (1 pulado), install com o HOME real `rc=0`, `meow levantamento` sem achado.
+  PRÓXIMO (sessão nova): os vermelhos do CI listados no fim da P184; medir pelo `todos.sh --so=` no contêiner `meow-ci-novo`
+  (`~/.cache/meow-ci-imagem`), consertar a lista inteira, uma suíte, push. O CI do push de 08/11 dirá quais sobraram.
 - 07/11, noite: install com o HOME real (askpass) e todos os builds. Os 12 `cosmic-*` atualizáveis subiram (o kernel e o resto
   não). Compositor, menu do Arquivos, portal e os três applets presos (Modo performance, Soneca, Ajustes rápidos) em `ok`; a
   segunda passagem do install: `rc=0`, nada a escrever. P182 aberta e curada (portal do rebuild local, menu fora do `/tmp`,

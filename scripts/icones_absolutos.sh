@@ -21,7 +21,9 @@ TROCAR=(
 
 PY_SISTEMA=""
 for c in /usr/bin/python3.12 /usr/bin/python3; do
-  if [ -x "$c" ] && "$c" -c 'import gi' 2>/dev/null; then PY_SISTEMA="$c"; break; fi
+  if [ -x "$c" ] && "$c" -c 'import gi; gi.require_version("Gtk", "4.0"); from gi.repository import Gtk' 2>/dev/null; then
+    PY_SISTEMA="$c"; break
+  fi
 done
 
 _resolve() {

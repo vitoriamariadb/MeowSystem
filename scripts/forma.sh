@@ -116,8 +116,20 @@ aplicar_barra() {
     [[ "$margem" =~ ^[0-9]+$ ]] && [ "$margem" -gt "$FORMA_TETO_MARGEM" ] || margem=""
   fi
   if [ -n "$margem" ] && [ "$margem" -gt "$FORMA_TETO_MARGEM" ]; then
-    meow_aviso "$barra: margem $margem acima de $FORMA_TETO_MARGEM derruba o cosmic-panel — fica em $FORMA_TETO_MARGEM"
+    local chave_margem="FORMA_MARGEM_PAINEL"
+    [ "$barra" = Dock ] && chave_margem="FORMA_MARGEM_DOCK"
+    if [ "$(meow_conf_valor "$chave_margem" 2>/dev/null)" = "$margem" ]; then
+      meow_conf_definir "$chave_margem" "$FORMA_TETO_MARGEM"; rc=$?
+      case "$rc" in
+        1) mudou=1
+           meow_muda "$barra: a margem $margem do meow.conf passa do teto de $FORMA_TETO_MARGEM, acima do qual o cosmic-panel cai — a conf passa a dizer $FORMA_TETO_MARGEM" ;;
+        2) meow_erro "$barra: a margem $FORMA_TETO_MARGEM não ficou guardada na configuração"; return 2 ;;
+      esac
+    else
+      meow_aviso "$barra: margem $margem acima de $FORMA_TETO_MARGEM derruba o cosmic-panel — fica em $FORMA_TETO_MARGEM"
+    fi
     margem="$FORMA_TETO_MARGEM"
+    printf -v "$chave_margem" '%s' "$FORMA_TETO_MARGEM"
   fi
   [ -z "$espaco" ]  || { espaco="$(_int  "espaço do $barra"  "$espaco")"  || return 2; }
   [ -z "$recheio" ] || { recheio="$(_int "recheio do $barra" "$recheio")" || return 2; }

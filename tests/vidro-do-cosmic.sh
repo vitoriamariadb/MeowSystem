@@ -485,7 +485,7 @@ servico >/dev/null; rc=$?
 [ "$rc" = "9" ] && ok "com VIDRO_AO_MAXIMIZAR=\"nao\" o ExecCondition pula o serviço" \
   || falha "o ExecCondition deixou o serviço rodar com VIDRO_AO_MAXIMIZAR=nao (rc=$rc)"
 
-sobra="$(find "$TMPV" -mindepth 1 -maxdepth 1 2>/dev/null)"
+sobra="$(find "$TMPV" -mindepth 1 -maxdepth 1 ! -name "meow-fontconfig-$(id -u)" 2>/dev/null)"
 [ -z "$sobra" ] \
   && ok "a cópia de trabalho do vidro some com o script (TMPDIR vazio)" \
   || falha "sobrou cópia de trabalho no TMPDIR" "$sobra"
