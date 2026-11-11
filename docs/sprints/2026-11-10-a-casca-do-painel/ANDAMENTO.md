@@ -69,11 +69,11 @@ O bloco B aplicou toda troca de nome do glossário. As linhas «sai» de tela al
 | D manter | Mascote novo entra |
 
 Leituras do B onde a resposta de quem usa era ambígua (conferir na revisão):
-- «Carrossel agora · Próxima imagem» (resposta «Carrossel de Imagens»): «Carrossel agora» virou «Carrossel de Imagens»;
-  «Próxima imagem» virou «Trocar o papel agora» (a proposta).
+- «Carrossel agora · Próxima imagem» (resposta «não: Carrossel de Imagens»): «Carrossel agora» virou «Carrossel de Imagens»;
+  «Próxima imagem» fica, porque o «não» recusou a proposta «Trocar o papel agora» (pergunta aberta para quem usa).
 - «Voltar a girar · Girar» (resposta «Girar»): ficou como estava.
 - «Ao ligar · Não abrem sozinhos» (proposta «Bloquear ao iniciar»): o bloco virou «Ao iniciar» e a linha «Bloquear ao iniciar».
 - «Regravar o som» virou «Gerar Sons» (texto dela); a P188 propunha «Salvar o sino».
-- Nome curto (até 3 palavras) das ações no `servidor.py`, exigido pelo `tests/app.sh`: onde o glossário passa disso, a
-  tela diz o nome do glossário e o servidor diz a forma curta («Tema original», «Separar tons», «Ligar leitura agora»).
+- O `rotulo` das ações no `servidor.py` aparece na tela (título da confirmação e nome na linha de progresso), então é o
+  nome do glossário inteiro; o teto do `tests/app.sh` e do `tests/app-uso-real.py` é de seis palavras.
 - «Painel e dock» virou «Barra e dock» (regra de família: painel não aparece mais na tela).

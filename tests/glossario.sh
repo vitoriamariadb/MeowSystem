@@ -19,6 +19,7 @@ AINDA_NA_TELA_DE_OUTRO_BLOCO = {
     "Reler", "Toca nos apps", "Ouvir o instalado", "Vale para", "Versão do ponteiro",
     "Escolhida dura", "Versão do acervo", "Mascote novo entra",
 }
+A_RESPOSTA_TROCOU_SO_O_OUTRO_TERMO_DA_LINHA = {"Próxima imagem"}
 TERMOS_QUE_OUTRO_CONTROLE_USA = {
     "Voltar", "Conferir", "Ver", "Refazer", "Aplicar", "Registro", "Detalhe", "Girar", "Manter",
 }
@@ -53,7 +54,8 @@ for linha in glossario.splitlines():
 
 falhas = 0
 for termo in trocados:
-    if termo in AINDA_NA_TELA_DE_OUTRO_BLOCO or termo in TERMOS_QUE_OUTRO_CONTROLE_USA:
+    if termo in AINDA_NA_TELA_DE_OUTRO_BLOCO or termo in TERMOS_QUE_OUTRO_CONTROLE_USA \
+            or termo in A_RESPOSTA_TROCOU_SO_O_OUTRO_TERMO_DA_LINHA:
         continue
     onde = na_tela.get(termo.casefold())
     if onde:

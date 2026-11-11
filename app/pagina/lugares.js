@@ -129,7 +129,7 @@ const AJUSTES = [
       ] },
     ] },
   { id: "papel", nome: "Papel de parede", icone: "imagem",
-    cabeca: [{ a: "wallpaper_proximo", r: "Trocar o papel agora", b: "Trocar o papel agora" }],
+    cabeca: [{ a: "wallpaper_proximo", r: "Próxima imagem", b: "Próxima imagem" }],
     blocos: [
       { titulo: "Imagens", linhas: [
         { a: "wallpaper_anterior", r: "Imagem anterior", b: "Anterior" },

@@ -476,7 +476,7 @@ if onde != "«Aplicar», em Modificações":
     erros.append("--onde da pendência de tema de terceiro de %s não leva ao «Aplicar» da Modificações: %r"
                  % (com_modulo, onde))
 def curto(t):
-    return bool(t) and len(t.split()) <= 3 and t[0].isupper()
+    return bool(t) and len(t.split()) <= 6 and t[0].isupper()
 longos = ["%s: %r" % (k, a["rotulo"]) for k, a in servidor.ACOES.items() if not curto(a["rotulo"])]
 assert servidor.PENDENCIAS.startswith(casa), servidor.PENDENCIAS
 os.makedirs(os.path.dirname(servidor.PENDENCIAS), exist_ok=True)
@@ -543,7 +543,7 @@ os.remove(binario_spice)
 os.remove(servidor.PENDENCIAS)
 os.environ["PATH"] = caminho_antes
 if longos:
-    erros.append("12c: nome ou botão com mais de três palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))
+    erros.append("12c: nome ou botão com mais de seis palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))
 if servidor.onde_na_tela("sem-modulo-nenhum" + servidor.SUFIXO_TEMA_DE_TERCEIRO):
     erros.append("--onde cita os botões do tema de terceiro para um app sem módulo")
 porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel doctor_consertar',

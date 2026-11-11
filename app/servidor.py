@@ -3706,7 +3706,7 @@ ACOES = {
                  "os backups, e diz quanto liberou. Não apaga a coleção de imagens.",
     },
     "desinstalar_guardando": {
-        "rotulo": "Desinstalar mantendo backups",
+        "rotulo": "Desinstalar mantendo os backups",
         "grupo": "Instalação",
         "natureza": "tirar",
         "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall", "--guardar-backups"],
@@ -3768,7 +3768,7 @@ ACOES = {
         "ajuda": "Volta ao estado de antes da última vez que esta ação rodou.",
     },
     "desfazer": {
-        "rotulo": "Tema original",
+        "rotulo": "Voltar ao tema original",
         "grupo": "Instalação",
         "natureza": "devolver",
         "argv": _meow("desfazer"),
@@ -3850,7 +3850,7 @@ ACOES = {
                  "fixada.",
     },
     "wallpaper_proximo": {
-        "rotulo": "Trocar papel agora",
+        "rotulo": "Próxima imagem",
         "grupo": "Papel de parede",
         "natureza": "trocar",
         "argv": _meow("wallpaper", "proximo"),
@@ -3922,7 +3922,7 @@ ACOES = {
                  "O “Deixar a medição decidir” desfaz.",
     },
     "wallpaper_lado_auto": {
-        "rotulo": "Separar tons",
+        "rotulo": "Separar tons de cores",
         "grupo": "Papel de parede",
         "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "auto"), "arg": "paredes_ativas",
@@ -3948,7 +3948,7 @@ ACOES = {
                  "uma vez, ao iniciar. Nada muda no painel agora, e isso não é defeito.",
     },
     "areas_alfinetar_primeira": {
-        "rotulo": "Fixar primeira área",
+        "rotulo": "Fixar a primeira área",
         "grupo": "Áreas de trabalho",
         "natureza": "gravar",
         "argv": _meow("areas", "alfinetar-primeira"),
@@ -4010,7 +4010,7 @@ ACOES = {
                  "compositor sabe ler os dois números.",
     },
     "leitura_aplicar": {
-        "rotulo": "Ligar leitura agora",
+        "rotulo": "Ligar o modo de leitura agora",
         "grupo": "Modo de leitura",
         "natureza": "aplicar",
         "argv": _meow("leitura", "aplicar"),
@@ -4097,7 +4097,7 @@ ACOES = {
         "ajuda": "Acrescenta o applet ao fim da barra de cima. A ordem dos outros não muda.",
     },
     "extensao_trocar": {
-        "rotulo": "Atualizar pela nova",
+        "rotulo": "Atualizar para a nova",
         "grupo": "Extensões",
         "natureza": "trocar",
         "argv": [EXT_GESTO, "trocar", "@ARG@"], "arg": "extensoes_todas",
