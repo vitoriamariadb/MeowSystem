@@ -3639,7 +3639,7 @@ ACOES = {
                  "ar não muda; para tê-lo de novo, importe o arquivo dele outra vez.",
     },
     "instalar": {
-        "rotulo": "Instalar tudo",
+        "rotulo": "Reinstalar o MeowSystem",
         "grupo": "Instalação",
         "natureza": "instalar",
         "argv": [os.path.join(RAIZ, "install.sh")],
@@ -3666,7 +3666,7 @@ ACOES = {
                  "nosso, toca o de fábrica — assim dá para comparar os dois.",
     },
     "som_aplicar": {
-        "rotulo": "Regravar o som",
+        "rotulo": "Gerar Sons",
         "grupo": "Manutenção",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "som.sh"), "aplicar"],
@@ -3677,7 +3677,7 @@ ACOES = {
                  "devolve o som de fábrica.",
     },
     "doctor": {
-        "rotulo": "Conferir a máquina",
+        "rotulo": "Verificar o sistema",
         "grupo": "Instalação",
         "natureza": "conferir",
         "argv": _meow("doctor"),
@@ -3706,7 +3706,7 @@ ACOES = {
                  "os backups, e diz quanto liberou. Não apaga a coleção de imagens.",
     },
     "desinstalar_guardando": {
-        "rotulo": "Desinstalar e guardar",
+        "rotulo": "Desinstalar mantendo backups",
         "grupo": "Instalação",
         "natureza": "tirar",
         "argv": [os.path.join(RAIZ, "install.sh"), "--uninstall", "--guardar-backups"],
@@ -3715,7 +3715,7 @@ ACOES = {
                  "~/.local/state/meowsystem/backups.",
     },
     "espaco_liberar": {
-        "rotulo": "Liberar espaço",
+        "rotulo": "Apagar arquivos recriáveis",
         "grupo": "Extensões",
         "natureza": "tirar",
         "argv": _meow("espaco", "liberar"),
@@ -3768,7 +3768,7 @@ ACOES = {
         "ajuda": "Volta ao estado de antes da última vez que esta ação rodou.",
     },
     "desfazer": {
-        "rotulo": "Tema de antes",
+        "rotulo": "Tema original",
         "grupo": "Instalação",
         "natureza": "devolver",
         "argv": _meow("desfazer"),
@@ -3785,7 +3785,7 @@ ACOES = {
         "ajuda": "Qual está selecionado e quantos arquivos ele tem.",
     },
     "icones_reconstruir": {
-        "rotulo": "Reconstruir os ícones",
+        "rotulo": "Refazer os ícones",
         "grupo": "Ícones",
         "natureza": "aplicar",
         "argv": _meow("icones", "reconstruir"),
@@ -3794,7 +3794,7 @@ ACOES = {
                  "tela.",
     },
     "icones_traco": {
-        "rotulo": "Desenhos em traço",
+        "rotulo": "Ícones em traço",
         "grupo": "Ícones",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "icones_apps_arcticons.sh")],
@@ -3850,7 +3850,7 @@ ACOES = {
                  "fixada.",
     },
     "wallpaper_proximo": {
-        "rotulo": "Próxima imagem",
+        "rotulo": "Trocar papel agora",
         "grupo": "Papel de parede",
         "natureza": "trocar",
         "argv": _meow("wallpaper", "proximo"),
@@ -3922,7 +3922,7 @@ ACOES = {
                  "O “Deixar a medição decidir” desfaz.",
     },
     "wallpaper_lado_auto": {
-        "rotulo": "Medir a luz",
+        "rotulo": "Separar tons",
         "grupo": "Papel de parede",
         "natureza": "gravar",
         "argv": _meow("wallpaper", "lado", "@ARG@", "auto"), "arg": "paredes_ativas",
@@ -3938,7 +3938,7 @@ ACOES = {
         "ajuda": "Nome, ordem e encaixe de cada área. Não escreve nada.",
     },
     "areas_aplicar": {
-        "rotulo": "Gravar as áreas",
+        "rotulo": "Salvar as áreas",
         "grupo": "Áreas de trabalho",
         "natureza": "gravar",
         "argv": _meow("areas", "aplicar"),
@@ -3948,7 +3948,7 @@ ACOES = {
                  "uma vez, ao iniciar. Nada muda no painel agora, e isso não é defeito.",
     },
     "areas_alfinetar_primeira": {
-        "rotulo": "Primeira área",
+        "rotulo": "Fixar primeira área",
         "grupo": "Áreas de trabalho",
         "natureza": "gravar",
         "argv": _meow("areas", "alfinetar-primeira"),
@@ -3958,7 +3958,7 @@ ACOES = {
                  "com o primeiro nome da sua lista. Vale no próximo início de sessão.",
     },
     "areas_reverter": {
-        "rotulo": "Áreas de antes",
+        "rotulo": "Desfazer as áreas",
         "grupo": "Áreas de trabalho",
         "natureza": "devolver",
         "argv": _meow("areas", "reverter"),
@@ -3966,7 +3966,7 @@ ACOES = {
         "ajuda": "Devolve o arquivo como estava antes da primeira gravação daqui.",
     },
     "areas_desalfinetar": {
-        "rotulo": "Tirar uma área",
+        "rotulo": "Remover uma área",
         "grupo": "Áreas de trabalho",
         "natureza": "tirar",
         "argv": _meow("areas", "desalfinetar", "@ARG@"), "arg": "areas",
@@ -3983,7 +3983,7 @@ ACOES = {
         "ajuda": "O estado do painel, da dock e do serviço que cuida dos dois.",
     },
     "painel_teto": {
-        "rotulo": "Teto dos cantos",
+        "rotulo": "Arredondamento máximo",
         "grupo": "Painel e dock",
         "natureza": "mostrar",
         "argv": _meow("painel", "teto"),
@@ -3992,7 +3992,7 @@ ACOES = {
                  "se o compositor corta o excesso em vez de derrubar o painel.",
     },
     "painel_reciclar": {
-        "rotulo": "Recarregar o painel",
+        "rotulo": "Reiniciar a barra",
         "grupo": "Painel e dock",
         "natureza": "reciclar",
         "argv": _meow("painel", "reciclar"),
@@ -4010,7 +4010,7 @@ ACOES = {
                  "compositor sabe ler os dois números.",
     },
     "leitura_aplicar": {
-        "rotulo": "Esquentar agora",
+        "rotulo": "Ligar leitura agora",
         "grupo": "Modo de leitura",
         "natureza": "aplicar",
         "argv": _meow("leitura", "aplicar"),
@@ -4070,7 +4070,7 @@ ACOES = {
         "ajuda": "Lê o commit mais novo do repositório que você adicionou, compila e instala.",
     },
     "extensao_refazer": {
-        "rotulo": "Refazer a extensão",
+        "rotulo": "Recompilar a extensão",
         "grupo": "Extensões",
         "natureza": "baixar",
         "argv": [EXT_GESTO, "refazer", "@ARG@"], "arg": "extensoes_todas",
@@ -4088,7 +4088,7 @@ ACOES = {
         "ajuda": "Tira o binário, o atalho e a árvore de build. A configuração dela fica.",
     },
     "extensao_por_no_painel": {
-        "rotulo": "Pôr no painel",
+        "rotulo": "Adicionar à barra",
         "grupo": "Extensões",
         "natureza": "aplicar",
         "argv": [EXT_GESTO, "por", "@ARG@"], "arg": "extensoes_todas",
@@ -4097,7 +4097,7 @@ ACOES = {
         "ajuda": "Acrescenta o applet ao fim da barra de cima. A ordem dos outros não muda.",
     },
     "extensao_trocar": {
-        "rotulo": "Trocar pelo novo",
+        "rotulo": "Atualizar pela nova",
         "grupo": "Extensões",
         "natureza": "trocar",
         "argv": [EXT_GESTO, "trocar", "@ARG@"], "arg": "extensoes_todas",
@@ -4106,7 +4106,7 @@ ACOES = {
         "ajuda": "Põe o applet novo na posição do antigo, na barra.",
     },
     "builds_refazer_tudo": {
-        "rotulo": "Refazer os builds",
+        "rotulo": "Recompilar tudo",
         "grupo": "Extensões",
         "natureza": "baixar",
         "argv": [EXT_GESTO, "refazer-tudo"],
@@ -4115,7 +4115,7 @@ ACOES = {
         "ajuda": "Refaz o compositor, o menu do Arquivos e cada applet instalado.",
     },
     "extensao_reiniciar_painel": {
-        "rotulo": "Reiniciar o painel",
+        "rotulo": "Reiniciar a barra",
         "grupo": "Extensões",
         "natureza": "aplicar",
         "argv": [EXT_GESTO, "reiniciar-painel"],
@@ -4142,7 +4142,7 @@ ACOES = {
                  "derruba o resto.",
     },
     "modificacao_aplicar": {
-        "rotulo": "Pôr no lugar",
+        "rotulo": "Aplicar",
         "grupo": "Modificações",
         "natureza": "aplicar",
         "argv": _meow("apps", "aplicar", "@ARG@"), "arg": "modulos_de_app",
@@ -4151,7 +4151,7 @@ ACOES = {
         "ajuda": "Aplica de novo o tema deste programa.",
     },
     "modificacao_reverter": {
-        "rotulo": "Tirar o tema",
+        "rotulo": "Remover o tema",
         "grupo": "Modificações",
         "natureza": "tirar",
         "argv": _meow("apps", "reverter", "@ARG@"), "arg": "modulos_de_app",
@@ -4159,7 +4159,7 @@ ACOES = {
         "ajuda": "Desfaz o que o tema escreveu neste programa.",
     },
     "modificacao_corrigir": {
-        "rotulo": "Pôr no lugar",
+        "rotulo": "Aplicar a correção",
         "grupo": "Modificações",
         "natureza": "consertar",
         "argv": _meow("apps", "corrigir", "@ARG@"), "arg": "correcoes_de_app",
@@ -4199,7 +4199,7 @@ ACOES = {
                  "Não escreve nada.",
     },
     "jogos_aplicar": {
-        "rotulo": "Arrumar os jogos",
+        "rotulo": "Organizar os jogos",
         "grupo": "Lançadores e jogos",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_steam.sh")],
@@ -4229,7 +4229,7 @@ ACOES = {
                  "já baixou. Some o do jogo desinstalado.",
     },
     "jogos_heroic_tirar": {
-        "rotulo": "Tirar um jogo",
+        "rotulo": "Remover jogo",
         "grupo": "Lançadores e jogos",
         "natureza": "tirar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
@@ -4238,7 +4238,7 @@ ACOES = {
         "ajuda": "O cartão do jogo sai do lançador; o jogo continua no Heroic.",
     },
     "jogos_heroic_por": {
-        "rotulo": "Pôr um jogo",
+        "rotulo": "Adicionar jogo",
         "grupo": "Lançadores e jogos",
         "natureza": "aplicar",
         "argv": [os.path.join(RAIZ, "scripts", "jogos_heroic.sh"), "--aplicar"],
@@ -5067,7 +5067,7 @@ NOME_DA_PENDENCIA = {
     "libreoffice-sistema": "LibreOffice do sistema",
     "aplicar-ajuste": "Ajuste pendente",
     "spicetify-tema-ausente": "Tema do Spotify",
-    "spicetify-ausente": "Pintor do Spotify",
+    "spicetify-ausente": "Tema no Spotify",
     "cosmic-comp-de-fabrica": "Compositor de fábrica",
 }
 
@@ -5225,17 +5225,17 @@ def inventario_do_painel():
             for l in b["linhas"]:
                 pus(l, "ajustes", p["nome"], b["titulo"])
     for l in cuidar["estado"]:
-        pus(l, "cuidar", "Manter", "Estado")
+        pus(l, "cuidar", "Manutenção", "Estado")
     for cartao in cuidar["cartoes"]:
         for l in cartao["linhas"]:
-            pus(l, "cuidar", "Manter", cartao["titulo"])
+            pus(l, "cuidar", "Manutenção", cartao["titulo"])
     for b in cuidar["blocos"]:
         for l in b["linhas"]:
-            pus(l, "cuidar", "Manter", b["titulo"])
+            pus(l, "cuidar", "Manutenção", b["titulo"])
     for l in cuidar["maquina"]:
-        pus(l, "cuidar", "Manter", "Ícones da máquina")
+        pus(l, "cuidar", "Manutenção", "Ícones da máquina")
     for l in cuidar["perigo"]:
-        pus(l, "cuidar", "Manter", "Zona de perigo")
+        pus(l, "cuidar", "Manutenção", "Zona de perigo")
     for l in c["LUGAR_EXTENSOES"]["applets"]:
         pus(l, "extensoes", "Applets", "Applets")
     for l in c["LUGAR_EXTENSOES"]["builds"]:
@@ -6711,7 +6711,7 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "não consegui gravar o mapa: %s" % e}, 500)
         return self._json({"ok": True, "appid": appid, "acao": "" if remover else acao,
                            "removido": remover,
-                           "depois": "vale depois de \"Arrumar os jogos no lançador\""})
+                           "depois": "vale depois de \"Organizar os jogos no lançador\""})
 
     def _ensaio_dos_jogos(self, mapa):
         pasta, erro = _conf_de_ensaio([])

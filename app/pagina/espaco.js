@@ -2,7 +2,7 @@
 
 const ESP = { dados: null, quando: 0, pedindo: false, religar: null };
 const CATEGORIA_ESPACO = {
-  "reconstruível": { nome: "Reconstruível", cor: "accent" },
+  "reconstruível": { nome: "Recriável", cor: "accent" },
   backup: { nome: "Backups", cor: "alerta" },
   "de quem usa": { nome: "Seus dados", cor: "mudo" },
 };
@@ -45,8 +45,8 @@ function cabecaDoEspaco(d) {
   const parado = nada || d.ocupado;
   const preco = nada ? null : elemento("span", { class: "preco", "data-preco": true,
     texto: tamanhoEmTexto(d.liberavel) + (d.refazer ? " · ~" + d.refazer + " min" : "") });
-  const liberar = botao("Liberar", { class: "bt principal", icone: "lixo", disabled: parado,
-    controle: "espaco:liberar", onclick: () => rodar(ACAO.get("espaco_liberar"), "", { verbo: "Liberar",
+  const liberar = botao("Apagar arquivos recriáveis", { class: "bt principal", icone: "lixo", disabled: parado,
+    controle: "espaco:liberar", onclick: () => rodar(ACAO.get("espaco_liberar"), "", { verbo: "Apagar arquivos recriáveis",
       depois: () => { ESP.quando = 0; carregarEspaco(); } }) }, [preco]);
   const dica = d.ocupado ? "Há um build em curso" : nada ? "Nada para liberar"
     : "Tira o que o MeowSystem reconstrói sozinho. O próximo build compila de novo, e leva ~" + d.refazer + " min.";

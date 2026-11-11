@@ -2,7 +2,7 @@
 
 Uma página local que faz pela tela tudo o que se faz editando o `~/.config/meow/meow.conf` ou
 digitando `meow`. As 132 chaves, com o valor escolhido, o de fábrica e o porquê atrás do **?**; e
-69 ações, com a saída aparecendo ao vivo enquanto rodam.
+68 ações, com a saída aparecendo ao vivo enquanto rodam.
 
 ```bash
 ./app/run.sh        # ou: meow abrir, ou o ícone MeowSystem no lançador
@@ -34,13 +34,13 @@ app/
 | porta | o que tem |
 |---|---|
 | **Tema** | um cartão por pack instalado: logo, paleta, o que é próprio e o que herda. **Aplicar tema**, **Remover**, **Abrir um tema** (`.meowpack` ou `.csv` de cores) |
-| **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Disponibilizar (**Baixar o tema**) |
-| **Definir** | painel e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
-| **Manter** | o doctor e o **Consertar**, as pendências, **Guardar ajustes** e **Trazer ajustes** |
-| **Extensões** | as abas **Applets** (um cartão por applet: Instalar, Pôr no painel, Remover) e **Builds** (compositor, menu do Arquivos e cada applet, com **Refazer**), e **Adicionar repositório** |
+| **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Usar e compartilhar (**Baixar o tema**) |
+| **Ajustes** | barra e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
+| **Manutenção** | o doctor e o **Consertar**, as pendências, **Exportar ajustes** e **Importar ajustes** |
+| **Extensões** | as abas **Applets** (um cartão por applet: Instalar, Adicionar à barra, Remover) e **Builds** (compositor, menu do Arquivos e cada applet, com **Recompilar**), e **Adicionar repositório** |
 
-Cada controle grava ao soltar e aplica só o que a chave governa. A barra de cima tem a conta das
-últimas mudanças com **Desfazer**, **Procurar um ajuste**, **Créditos** e **Esta tela num arquivo**.
+Cada controle grava ao soltar e aplica só o que a chave governa. A barra de cima tem
+**Desfazer**, **Buscar** e **Reiniciar a barra**.
 
 ## O catálogo é derivado
 

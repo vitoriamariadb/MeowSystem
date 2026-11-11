@@ -56,3 +56,24 @@ Quem aplica:
 ## Próximo passo
 
 Bloco B em voo. Quando o conferente voltar: integrar `bloco/casca` no master, depois A, C e D (no máximo dois em voo).
+
+## Para os blocos A, C e D
+
+O bloco B aplicou toda troca de nome do glossário. As linhas «sai» de tela alheia seguem na tela e estão em
+`AINDA_NA_TELA_DE_OUTRO_BLOCO` no `tests/glossario.sh`; quem remover a linha tira o termo dessa lista no mesmo commit.
+
+| bloco | linhas que saem |
+| --- | --- |
+| A personalizar | Reler · Toca nos apps · Ouvir o instalado |
+| C definir | Vale para · Versão do ponteiro · Escolhida dura · Versão do acervo |
+| D manter | Mascote novo entra |
+
+Leituras do B onde a resposta de quem usa era ambígua (conferir na revisão):
+- «Carrossel agora · Próxima imagem» (resposta «Carrossel de Imagens»): «Carrossel agora» virou «Carrossel de Imagens»;
+  «Próxima imagem» virou «Trocar o papel agora» (a proposta).
+- «Voltar a girar · Girar» (resposta «Girar»): ficou como estava.
+- «Ao ligar · Não abrem sozinhos» (proposta «Bloquear ao iniciar»): o bloco virou «Ao iniciar» e a linha «Bloquear ao iniciar».
+- «Regravar o som» virou «Gerar Sons» (texto dela); a P188 propunha «Salvar o sino».
+- Nome curto (até 3 palavras) das ações no `servidor.py`, exigido pelo `tests/app.sh`: onde o glossário passa disso, a
+  tela diz o nome do glossário e o servidor diz a forma curta («Tema original», «Separar tons», «Ligar leitura agora»).
+- «Painel e dock» virou «Barra e dock» (regra de família: painel não aparece mais na tela).

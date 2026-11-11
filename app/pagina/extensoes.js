@@ -72,8 +72,8 @@ function botoesDoCartao(e, parado) {
     "aria-label": "Remover " + e.nome, dica: "Remover", controle: "extensao:remover:" + e.id,
     onclick: () => gestoDeExtensao("extensao_remover", e, "Remover") });
   if (e.falhou) {
-    return [b("Tentar de novo", { icone: "girar", principal: true, controle: "extensao:refazer:" + e.id },
-      () => gestoDeExtensao("extensao_refazer", e, "Tentar de novo")), e.instalada ? remover : null];
+    return [b("Recompilar", { icone: "girar", principal: true, controle: "extensao:refazer:" + e.id },
+      () => gestoDeExtensao("extensao_refazer", e, "Recompilar")), e.instalada ? remover : null];
   }
   if (!e.instalada) {
     return [b("Instalar", { icone: "baixar", principal: true, controle: "extensao:instalar:" + e.id },
@@ -85,8 +85,8 @@ function botoesDoCartao(e, parado) {
       () => gestoDeExtensao(idDaAcao(e, "extensao_atualizar", "extensao_atualizar_repo"), e, "Atualizar")));
   }
   if (!e.na_barra) {
-    fila.push(b("Pôr no painel", { icone: "mais", controle: "extensao:por:" + e.id },
-      () => gestoDeExtensao("extensao_por_no_painel", e, "Pôr no painel")));
+    fila.push(b("Adicionar à barra", { icone: "mais", controle: "extensao:por:" + e.id },
+      () => gestoDeExtensao("extensao_por_no_painel", e, "Adicionar à barra")));
   }
   fila.push(remover);
   return fila;
@@ -120,7 +120,7 @@ function botoesDoBuildDaCasa(e, parado) {
   return [
     b("Instalar", "baixar", "instalar", "extensao_instalar", ligar, ligar),
     b("Atualizar", "subir", "atualizar", "extensao_atualizar", e.atualizacao, e.atualizacao),
-    b("Refazer", "girar", "refazer", "extensao_refazer", true, false),
+    b("Recompilar", "girar", "refazer", "extensao_refazer", true, false),
     botao("", { class: "bt leve pequeno so-icone", icone: "lixo", disabled: parado || !e.ativa,
       "aria-label": "Remover " + e.nome, dica: "Remover", controle: "extensao:remover:" + e.id,
       onclick: () => gestoDeExtensao("extensao_remover", e, "Remover") }),
@@ -130,7 +130,7 @@ function botoesDoBuildDaCasa(e, parado) {
 function cartaoDoBuildDaCasa(e, ocupado, construindo, remendos) {
   const [estado, texto] = pilulaDoBuildDaCasa(e, ocupado, construindo);
   const detalhes = [e.versao ? (BINARIO_DO_TIPO[tipoDe(e)] || e.id) + " " + e.versao : "",
-    tipoDe(e) === "compositor" && remendos ? remendos + " remendos" : ""].filter(Boolean).join(" · ");
+    tipoDe(e) === "compositor" && remendos ? remendos + " patches" : ""].filter(Boolean).join(" · ");
   return elemento("article", { class: "bloco cartao-acao", "data-build": e.id, "data-nome": e.nome }, [
     elemento("div", { class: "cartao-cabeca" }, [
       elemento("span", { class: "icone" }, [iconeDaExtensao(e)]),
@@ -212,15 +212,15 @@ function blocoDeBuilds(dados) {
       return linhaDeBuild({
         rotulo: e.nome, imagem: iconeDaExtensao(e), estado: es, texto: te,
         detalhes: [[e.versao, e.commit].filter(Boolean).join(" · ") + " · " + onde],
-        botaoRefazer: botao(e.instalada ? "Refazer" : "Compilar", { class: "bt pequeno", icone: "girar", disabled: parado,
-          controle: "build:extensao:" + e.id, onclick: () => gestoDeExtensao("extensao_refazer", e, "Refazer") }),
+        botaoRefazer: botao("Recompilar", { class: "bt pequeno", icone: "girar", disabled: parado,
+          controle: "build:extensao:" + e.id, onclick: () => gestoDeExtensao("extensao_refazer", e, "Recompilar") }),
       });
     }),
   ];
   return elemento("section", { class: "bloco", "data-bloco": "Builds" }, [
     elemento("header", {}, [elemento("h2", { texto: "Builds" }),
-      botao("Refazer tudo", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "build:tudo",
-        onclick: () => { EXT.quando = 0; rodar(ACAO.get("builds_refazer_tudo"), "", { verbo: "Refazer tudo",
+      botao("Recompilar tudo", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "build:tudo",
+        onclick: () => { EXT.quando = 0; rodar(ACAO.get("builds_refazer_tudo"), "", { verbo: "Recompilar tudo",
           depois: depoisDoGesto }); } })]),
     daCasa.length ? elemento("div", { class: "grade-extensoes grade-builds" },
       daCasa.map((e) => cartaoDoBuildDaCasa(e, ocupado, b.construindo, b.remendos))) : null,
@@ -238,7 +238,7 @@ function pilulaDeBuild(e, ocupado) {
 function chaveDeBuilds(dados) {
   const ligada = !!(dados.builds && dados.builds.ao_entrar);
   const chave = elemento("button", { class: "chave", type: "button", role: "switch", "aria-checked": String(ligada),
-    "aria-label": "Refazer ao entrar na sessão", controle: "build:ao-entrar" });
+    "aria-label": "Recompilar ao entrar", controle: "build:ao-entrar" });
   chave.addEventListener("click", async () => {
     const nova = chave.getAttribute("aria-checked") !== "true";
     chave.disabled = true;
@@ -251,7 +251,7 @@ function chaveDeBuilds(dados) {
     else if (ROTA.porta === "extensoes") render();
   });
   return elemento("section", { class: "bloco" }, [elemento("ul", { class: "linhas" }, [
-    elemento("li", { class: "linha" }, [elemento("span", { class: "rot", texto: "Refazer ao entrar na sessão" }),
+    elemento("li", { class: "linha" }, [elemento("span", { class: "rot", texto: "Recompilar ao entrar" }),
       elemento("span", { class: "ctl" }, [chave])])])]);
 }
 
@@ -277,10 +277,10 @@ function abasDeExtensoes(sub) {
 function linhaDeReiniciar(parado) {
   return elemento("li", { class: "linha", "data-reiniciar": true }, [
     elemento("span", { class: "rot troca" }, [elemento("span", { class: "lugar-applet" }, [icone("girar")]),
-      elemento("b", { texto: "Painel" })]),
+      elemento("b", { texto: "Barra" })]),
     elemento("span", { class: "ctl" }, [
-      botao("Reiniciar o painel", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "extensao:reiniciar-painel",
-        onclick: () => { EXT.quando = 0; return rodar(ACAO.get("extensao_reiniciar_painel"), "", { verbo: "Reiniciar o painel",
+      botao("Reiniciar a barra", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "extensao:reiniciar-painel",
+        onclick: () => { EXT.quando = 0; return rodar(ACAO.get("extensao_reiniciar_painel"), "", { verbo: "Reiniciar a barra",
           depois: () => { EXT.trocou = false; depoisDoGesto(); } }); } }),
     ]),
   ]);
@@ -349,7 +349,7 @@ function dialogoAdicionar() {
   d = elemento("dialog", { id: "adicionar", "aria-labelledby": "adicionar-t", "data-passo": "url" }, [
     elemento("div", { class: "dentro" }, [
       elemento("h2", { id: "adicionar-t", texto: "Adicionar repositório" }),
-      elemento("label", { class: "pilha-campo p-url" }, [elemento("span", { texto: "Endereço" }), campo]),
+      elemento("label", { class: "pilha-campo p-url" }, [elemento("span", { texto: "Endereço do repositório" }), campo]),
       elemento("p", { class: "oficina-erro p-erro-url", id: "adicionar-queixa", role: "alert" }),
       ficha,
       elemento("span", { class: "selo p-ficha", texto: "baixa e compila" }),
@@ -364,7 +364,7 @@ function dialogoAdicionar() {
         botao("Instalar", { class: "bt principal p-ficha", id: "adicionar-instalar", icone: "baixar", controle: "adicionar:instalar",
           onclick: instalarRepositorio }),
         botao("Parar", { class: "bt p-compilando", id: "adicionar-parar", controle: "adicionar:parar", onclick: pararRepositorio }),
-        botao("Tentar de novo", { class: "bt principal p-erro", id: "adicionar-de-novo", icone: "girar", controle: "adicionar:de-novo",
+        botao("Recompilar", { class: "bt principal p-erro", id: "adicionar-de-novo", icone: "girar", controle: "adicionar:de-novo",
           onclick: () => rodarRepositorio() }),
         botao("OK", { class: "bt principal p-pronto", id: "adicionar-ok", controle: "adicionar:ok", onclick: () => d.close() }),
       ]),

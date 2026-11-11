@@ -173,7 +173,7 @@ async function api(rota, opcoes = {}) {
     });
   } catch (e) {
     faixaSemServidor(true);
-    return { erro: "Sem servidor", sem_servidor: true };
+    return { erro: "Não aplicado: MeowSystem desconectado", sem_servidor: true };
   }
   faixaSemServidor(false);
   const texto = await resposta.text();
@@ -188,7 +188,7 @@ function faixaSemServidor(mostrar) {
   if (!mostrar) { if (faixa) faixa.remove(); return; }
   if (faixa) return;
   faixa = elemento("div", { id: "faixa-sem-servidor", class: "torrada erro", role: "alert",
-    dica: "As escolhas que esperam continuam nesta aba" }, [icone("alerta"), " Sem servidor"]);
+    dica: "As escolhas que esperam continuam nesta aba" }, [icone("alerta"), " Não aplicado: MeowSystem desconectado"]);
   faixa.style.cssText = "position:fixed;left:50%;top:72px;transform:translateX(-50%);z-index:45;display:flex;gap:8px;align-items:center";
   document.body.append(faixa);
 }
@@ -353,8 +353,8 @@ async function enviarLote(lote, antes, chaves, opc, numero) {
     HISTORICO.length = Math.min(HISTORICO.length, HISTORICO_MAX);
   }
   if (r.sem_ponte) {
-    torrada("Gravado; falta a ponte para aplicar", "erro");
-    mostrarGravando("erro", "Falta a ponte para aplicar");
+    torrada("Salvo; falta permissão de sistema", "erro");
+    mostrarGravando("erro", "Salvo; falta permissão de sistema");
   } else if (r.aplicando) {
     mostrarGravando("gravando");
     acompanharAplicacao();
@@ -1038,7 +1038,7 @@ function lerRestauros() {
 const deRoot = (a) => !!(a && (a.sudo || a.pela_ponte));
 
 async function semPonte() {
-  const ok = await perguntar({ titulo: "Falta a ponte", ok: "Consertar a ponte" });
+  const ok = await perguntar({ titulo: "Sem permissão de sistema", ok: "Reativar permissão de sistema" });
   if (ok) rodar(ACAO.get("doctor_consertar"), "");
 }
 
@@ -1173,10 +1173,10 @@ async function importarArquivo(arquivo) {
 }
 
 function indiceDaBusca() {
-  const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Manter"
+  const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Manutenção"
     : l.porta === "criar" ? "Personalizar · " + l.pagina
     : l.porta === "modificacoes" ? ["Modificações", l.pagina || l.bloco].filter(Boolean).join(" · ")
-    : "Definir · " + l.pagina);
+    : "Ajustes · " + l.pagina);
   const visto = new Set();
   const saida = [];
   for (const l of inventarioDoPainel()) {

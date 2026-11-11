@@ -12,7 +12,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 GESTOS_DE_ANTES = [
     ("Descartar (só na página)", "Topo: Descartar", "descartar"),
-    ("Busca (só na página)", "Topo: Buscar um ajuste ou uma ação", "busca"),
+    ("Busca (só na página)", "Topo: Buscar", "busca"),
     ("GET /api/exportar/conf", "Topo: Exportar › Meus ajustes", "exportar-conf"),
     ("POST /api/importar", "Topo: Importar", "importar"),
     ("Recarregar o painel (só na página)", "Topo: Reiniciar a barra", "reiniciar-barra"),
@@ -184,9 +184,9 @@ def gerar():
         falhas.append("o comentário do meow_onde_no_painel (lib/comum.sh) ainda fala em aba")
     if any(l["porta"] == "cuidar" and l.get("bloco") == "Pendências" for l in srv["inventario"]):
         falhas.append("o lugares.js ainda tem o bloco «Pendências» no Manter")
-    quer = {"doctor_consertar": "«Consertar a ponte», em Manter Nova › Estado",
-            "LANCADOR_SISTEMA": "«Arrumar o lançador», em Definir Nova › Programas › Lançador",
-            "inicio": "", "areas-sem-alfinete": "«Criar», em Definir Nova › Janelas e tela › Áreas de trabalho"}
+    quer = {"doctor_consertar": "«Reativar permissão de sistema», em Manutenção Nova › Estado",
+            "LANCADOR_SISTEMA": "«Organizar o lançador», em Ajustes Nova › Programas › Lançador",
+            "inicio": "", "areas-sem-alfinete": "«Fixar», em Ajustes Nova › Janelas e tela › Áreas de trabalho"}
     if srv["renomeado"] != quer:
         falhas.append("o --onde não lê o nome das portas do lugares.js (segunda tabela no servidor): %r"
                       % srv["renomeado"])

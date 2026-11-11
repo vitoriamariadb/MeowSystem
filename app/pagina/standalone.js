@@ -95,8 +95,8 @@
     const antes = location.hash;
     const rotas = [["#tema", "Tema"],
       ...PASSOS.map((p) => ["#criar/" + p.id, "Personalizar · " + p.nome]),
-      ...AJUSTES.map((p) => ["#ajustes/" + p.id, "Definir · " + p.nome]),
-      ["#cuidar", "Manter"]];
+      ...AJUSTES.map((p) => ["#ajustes/" + p.id, "Ajustes · " + p.nome]),
+      ["#cuidar", "Manutenção"]];
     for (const [hash, nome] of rotas) {
       location.hash = hash;
       await new Promise((r) => setTimeout(r, 60));

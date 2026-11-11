@@ -58,12 +58,12 @@ OLHAR_JS = r"""
   for (const i of document.querySelectorAll('#conteudo input[placeholder], #topo input[placeholder]')) {
     if (visivel(i) && !comeca(i.placeholder)) defeitos.push(['maiúscula', `campo «${i.placeholder}»`]);
   }
-  // o nome de uma opção, de um bloco ou de um botão cabe em três palavras; o
+  // o nome de uma opção, de um bloco ou de um botão cabe em seis palavras (o glossário de 10/11); o
   // texto que vem do servidor numa pendência é dado, e fica de fora
   for (const el of document.querySelectorAll('#conteudo h1, #conteudo h2, #conteudo .rot > span, #conteudo .bt, dialog[open] .bt')) {
     if (!visivel(el) || dado(el) || el.closest('[data-linha^="pendencia:"], [data-linha^="gente:"]')) continue;
     const t = limpo(el.textContent);
-    if (t.split(' ').length > 3) defeitos.push(['nome longo', `«${t}» passa de três palavras`]);
+    if (t.split(" ").length > 6) defeitos.push(["nome longo", `«${t}» passa de seis palavras`]);
   }
   for (const p of document.querySelectorAll('#conteudo p')) {
     if (visivel(p)) defeitos.push(['parágrafo', `<p> na tela: «${limpo(p.textContent).slice(0, 60)}»`]);

@@ -125,7 +125,7 @@ def main():
             pag.locator('[data-controle="chave:FORMA_PAINEL_SOLTO"]').click()
             assentar(pag)
             rotulos = pag.evaluate("() => HISTORICO.map((e) => e.rotulo)")
-            checa(rotulos == ["Solta da borda (barra de cima)", "Solta da borda (dock)"], f"a lista diz a coluna ({rotulos})")
+            checa(rotulos == ["Flutuante (barra de cima)", "Flutuante (dock)"], f"a lista diz a coluna ({rotulos})")
             detalhes = pag.evaluate("() => HISTORICO.map((e) => e.detalhe)")
             checa(all("→" in d for d in detalhes), f"e o antes e o depois ({detalhes})")
             foto("barra-aberta")
@@ -261,8 +261,8 @@ def main():
             checa(pag.locator('[data-controle="chave:LOG_NIVEL"], [data-controle="acao:log"], [data-bloco="Registro"]').count() == 0,
                   "sem «Quanto fala», sem «Ver o registro» e sem bloco de registro")
             backups = pag.locator('.linha[data-linha~="BACKUPS_MANTIDOS"]')
-            checa(backups.count() == 1 and backups.evaluate("(e) => e.closest('.bloco').dataset.bloco") == "Sozinho",
-                  "«Backups guardados» está no bloco «Sozinho»")
+            checa(backups.count() == 1 and backups.evaluate("(e) => e.closest('.bloco').dataset.bloco") == "Manutenção automática",
+                  "«Backups guardados» está no bloco «Manutenção automática»")
             valor10 = casa.valor_de("BACKUPS_MANTIDOS")
             novo10 = "7" if valor10 != "7" else "8"
             pag.evaluate("([c, v]) => escolher(c, v)", ["BACKUPS_MANTIDOS", novo10])

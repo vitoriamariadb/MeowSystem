@@ -62,7 +62,7 @@ instala sem perguntar. Para tirar: `/usr/share/meowsystem/install.sh --uninstall
 
 ## O painel
 
-`meow abrir`, ou o ícone MeowSystem no lançador. 132 ajustes e 69 ações em seis portas:
+`meow abrir`, ou o ícone MeowSystem no lançador. 132 ajustes e 68 ações em seis portas:
 
 <table>
 <tr>
@@ -70,12 +70,12 @@ instala sem perguntar. Para tirar: `/usr/share/meowsystem/install.sh --uninstall
 <td width="50%"><img src="docs/capturas/readme/criar.png" alt="A porta Personalizar do painel"><br><b>Personalizar</b>: um pack seu, em passos: cores, ícones, papel de parede, sons, e baixar o tema.</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="A porta Definir do painel"><br><b>Definir</b>: painel e dock, janelas, papel de parede, mascote, dia e noite e programas.</td>
-<td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="A porta Manter do painel"><br><b>Manter</b>: o doctor e o Consertar, o Registro e os ajustes para levar a outra máquina.</td>
+<td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="A porta Ajustes do painel"><br><b>Ajustes</b>: barra e dock, janelas, papel de parede, mascote, dia e noite e programas.</td>
+<td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="A porta Manutenção do painel"><br><b>Manutenção</b>: o doctor e o Consertar, a manutenção automática e os ajustes para levar a outra máquina.</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/capturas/readme/extensoes.png" alt="A porta Extensões do painel"><br><b>Extensões</b>: os applets da casa e os de quem usa: instalar, atualizar, pôr no painel, e os builds do compositor.</td>
-<td width="50%"><img src="docs/capturas/readme/modificacoes.png" alt="A porta Modificações do painel"><br><b>Modificações</b>: um cartão por programa que recebe o tema: ligar, desligar, pôr no lugar, e as correções de cada um.</td>
+<td width="50%"><img src="docs/capturas/readme/extensoes.png" alt="A porta Extensões do painel"><br><b>Extensões</b>: os applets da casa e os de quem usa: instalar, atualizar, adicionar à barra, e os builds do compositor.</td>
+<td width="50%"><img src="docs/capturas/readme/modificacoes.png" alt="A porta Modificações do painel"><br><b>Modificações</b>: um cartão por programa que recebe o tema: ligar, desligar, aplicar, e as correções de cada um.</td>
 </tr>
 </table>
 

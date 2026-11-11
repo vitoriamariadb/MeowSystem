@@ -59,7 +59,7 @@ function cabeca(titulo, direita = []) {
 }
 
 function estadoDaMaquina() {
-  if (!ESQUEMA.ponte) return { bom: false, titulo: "Falta a ponte", icone: "alerta" };
+  if (!ESQUEMA.ponte) return { bom: false, titulo: "Sem permissão de sistema", icone: "alerta" };
   return { bom: true, titulo: "Tudo em ordem", icone: "certo" };
 }
 
@@ -700,7 +700,7 @@ function linhaDeSom(s, pack, semTrocar) {
   return elemento("li", { "data-som": s.evento, class: semPonte ? "sem-ponte" : null, "data-ponte": s.ponte ? "" : null }, [
     tocar,
     elemento("span", { class: "som-nome" }, [elemento("b", { texto: s.nome }), elemento("small", { texto: s.quando })]),
-    elemento("span", {}, [origem, semPonte ? elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem ponte" }) : null]),
+    elemento("span", {}, [origem, semPonte ? elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem permissão de sistema" }) : null]),
     botao("Trocar", { class: "bt leve pequeno", controle: "som:trocar", icone: "trocar",
       dica: semTrocar || "Um .oga no lugar deste",
       disabled: !!semTrocar, "aria-disabled": semTrocar ? "true" : null, onclick: () => campo.click() }), campo,
@@ -713,16 +713,16 @@ function sonsDoSistema() {
   const pronto = SONS && SONS.id === id && !SONS.carregando;
   const leitura = packNoAr() && !pack ? packNoAr() : pack;
   const semTrocar = !pack || !LEVA || LEVA.carregando ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
-  if (!pronto) return [bloco("Toca no COSMIC", [elemento("div", { class: "esqueleto fio" })], { class: "fora-erro" })];
-  if (SONS.erro) return [bloco("Toca no COSMIC", [elemento("div", { class: "corpo", texto: "Os sons não abriram" })])];
-  const grupos = [["cosmic", "Toca no COSMIC"], ["apps", "Toca nos apps"]];
+  if (!pronto) return [bloco("Nativo do COSMIC", [elemento("div", { class: "esqueleto fio" })], { class: "fora-erro" })];
+  if (SONS.erro) return [bloco("Nativo do COSMIC", [elemento("div", { class: "corpo", texto: "Os sons não abriram" })])];
+  const grupos = [["cosmic", "Nativo do COSMIC"], ["apps", "Toca nos apps"]];
   const saida = [];
   if (!ESQUEMA.ponte) {
     saida.push(elemento("section", { class: "bloco tracejado", "data-bloco": "ponte" }, [
       elemento("div", { class: "aviso-linha" }, [
-        elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Ponte fora" }),
+        elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem permissão de sistema" }),
         elemento("span", { texto: "Carregador e bateria tocam o som do Pop" }),
-        botao("Consertar a ponte", { class: "bt principal pequeno", icone: "refazer", controle: "som:ponte", onclick: semPonte }),
+        botao("Reativar permissão de sistema", { class: "bt principal pequeno", icone: "refazer", controle: "som:ponte", onclick: semPonte }),
       ]),
     ]));
   }
@@ -779,7 +779,7 @@ function passoMandar() {
   const dica = pouco ? "Pouco contraste entre texto e fundo" : null;
   if (!emNovo()) {
     const motivo = pouco ? dica : motivoDoAprimorar();
-    const aprimorar = botao("Aprimorar", { class: "bt principal", icone: "tema", controle: "criar:aprimorar",
+    const aprimorar = botao("Salvar no tema", { class: "bt principal", icone: "tema", controle: "criar:aprimorar",
       disabled: !!motivo, "aria-disabled": motivo ? "true" : null, dica: motivo || null,
       onclick: async () => {
         const p = packDoAprimorar();
@@ -799,7 +799,7 @@ function passoMandar() {
 }
 
 function nomeDoPasso(p) {
-  return p.id === "mandar" && !emNovo() ? "Aprimorar" : p.nome;
+  return p.id === "mandar" && !emNovo() ? "Salvar no tema" : p.nome;
 }
 function paginaCriar(sub) {
   const r = rascunho();
@@ -812,7 +812,7 @@ function paginaCriar(sub) {
     nome.addEventListener("change", () => { r.nome = maiuscula(nome.value.trim()) || "Meu tema"; guardarRascunho(); render(); });
     titulo = cabeca("Tema novo", [nome]);
   } else {
-    titulo = cabeca("Aprimorar " + (r.nome || ""));
+    titulo = cabeca("Editar " + (r.nome || ""));
   }
   const passos = elemento("ol", { class: "passos" }, PASSOS.map((p, j) => elemento("li", {}, [
     elemento("a", { href: rota + p.id, controle: "passo:" + p.id, "aria-current": j === i ? "step" : null },
@@ -906,7 +906,7 @@ function linhaMesmoHorario() {
 
 function desenharAbas(p, direita) {
   const lista = $("#abas-lista");
-  $("#abas").setAttribute("aria-label", "Definir");
+  $("#abas").setAttribute("aria-label", "Ajustes");
   if (lista.children.length !== AJUSTES.length || !lista.querySelector('[data-controle^="ajuste:"]')) {
     lista.replaceChildren(...AJUSTES.map((x) => elemento("li", {}, [
       elemento("a", { href: "#ajustes/" + x.id, controle: "ajuste:" + x.id },
@@ -952,10 +952,10 @@ function faixaDoEstado() {
   const itens = [
     ["Tema", p ? `${p.nome} · ${rotuloDeValor(flavorEmVigor())}` : rotuloDeValor(flavorEmVigor()), "#tema", "ok"],
     ["Ícones", maiuscula(vale("NOME_TEMA_ICONES")), "#criar/icones", "ok"],
-    ["Painel e dock", ligado(vale("FORMA_DOCK_SOLTO")) ? "Solta" : "Na borda", "#ajustes/painel", "ok"],
+    ["Barra e dock", ligado(vale("FORMA_DOCK_SOLTO")) ? "Flutuante" : "Na borda", "#ajustes/painel", "ok"],
     ["Mascote", rotuloDeValor(ESQUEMA.gato_no_dock || vale("LOGO")), "#ajustes/mascote", "ok"],
     ["Som", ligado(vale("SOM")) ? "Ligado" : "Desligado", "#criar/sons", ligado(vale("SOM")) ? "ok" : "alerta"],
-    ["Ponte", ESQUEMA.ponte ? "Instalada" : "Falta", "#cuidar", ESQUEMA.ponte ? "ok" : "fora"],
+    ["Permissão de sistema", ESQUEMA.ponte ? "Ativa" : "Desativada", "#cuidar", ESQUEMA.ponte ? "ok" : "fora"],
   ];
   return elemento("div", { class: "faixa-estado" }, itens.map(([nome, valor, href, estado]) =>
     elemento("a", { href, "data-estado": estado, controle: "estado:" + nome },

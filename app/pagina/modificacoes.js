@@ -135,7 +135,7 @@ function itensDeTema(t, sozinho) {
       onclick: () => escolherTema(t, "") }));
   }
   if (t.instalado && temaLigado(t) && (t.rc === 1 || t.rc === 2) && ACAO.get("modificacao_aplicar")) {
-    itens.push(itemDoMenu("Pôr no lugar" + nome, { controle: "acao:modificacao_aplicar:" + t.pasta,
+    itens.push(itemDoMenu("Aplicar" + nome, { controle: "acao:modificacao_aplicar:" + t.pasta,
       onclick: () => { fecharMenus(); rodar(ACAO.get("modificacao_aplicar"), t.pasta, { semPerguntar: true, depois: releModificacoes }); } }));
   }
   return itens;
@@ -147,7 +147,7 @@ function linhaDeCorrecao(c) {
   return elemento("li", { class: "item-mod", "data-linha": "correcao:" + c.nome }, [
     elemento("span", { class: "rot-mod" }, [elemento("span", { texto: c.rotulo || c.nome })]),
     elemento("span", { class: "ctl-mod" }, [
-      fora && acao ? botao("Pôr no lugar", { class: "bt pequeno", controle: "acao:modificacao_corrigir:" + c.nome,
+      fora && acao ? botao("Aplicar a correção", { class: "bt pequeno", controle: "acao:modificacao_corrigir:" + c.nome,
         dica: PILULA_DO_ITEM[c.rc][1],
         onclick: () => { fecharMenus(); rodar(acao, c.nome, { semPerguntar: true, depois: releModificacoes }); } })
         : pilula(c.ligado ? PILULA_DO_ITEM[c.rc] || PILULA_DO_ITEM[3] : ["neutro", "Desligado"]),
@@ -169,7 +169,7 @@ function linhaDoSpicetify() {
   const acao = ACAO.get("spicetify_instalar");
   if (!acao) return null;
   return elemento("ul", { class: "itens-mod" }, [elemento("li", { class: "item-mod", "data-linha": "spicetify" }, [
-    elemento("span", { class: "rot-mod" }, [elemento("span", { texto: "Pintor do Spotify" })]),
+    elemento("span", { class: "rot-mod" }, [elemento("span", { texto: "Tema no Spotify" })]),
     elemento("span", { class: "ctl-mod" }, [botao("Baixar o spicetify", { class: "bt pequeno",
       controle: "acao:spicetify_instalar",
       onclick: () => { fecharMenus(); rodar(acao, "", { depois: releModificacoes }); } })]),
@@ -242,7 +242,7 @@ function dialogoAdicionarTema() {
       elemento("h2", { id: "adicionar-tema-t", texto: "Adicionar tema" }),
       elemento("label", { class: "pilha-campo" }, [elemento("span", { texto: "Programa" }), app]),
       elemento("div", { class: "pilha-campo" }, [elemento("span", { texto: "Arquivo" }), botaoArquivo, escolha]),
-      elemento("label", { class: "pilha-campo" }, [elemento("span", { texto: "Endereço" }), url]),
+      elemento("label", { class: "pilha-campo" }, [elemento("span", { texto: "Endereço do repositório" }), url]),
       selo,
       elemento("p", { class: "oficina-erro", id: "adicionar-tema-queixa", role: "alert" }),
       elemento("span", { class: "estado-pilula p-gravando", "data-estado": "correndo", texto: "Guardando" }),

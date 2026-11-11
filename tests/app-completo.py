@@ -798,7 +798,7 @@ class Percurso:
             titulo = self.js("() => document.getElementById('pergunta-titulo').textContent")
             self.checa(titulo[:1].isupper(), f"a pergunta de «{nome}» começa com maiúscula ({titulo!r})")
             self.checa(self.js(TEXTO_RUIM_JS)["senha"] == 0, f"a pergunta de «{nome}» não tem campo de senha")
-            if titulo == "Falta a ponte":
+            if titulo == "Sem permissão de sistema":
                 self.fechar_pergunta()
                 return "ponte"
             self.clicar("pergunta:sim")
@@ -1173,7 +1173,7 @@ class Percurso:
         como = self.depois_do_gesto(nome)
         ponte = self.js("() => ESQUEMA.ponte")
         if acao and acao["sudo"] and not ponte:
-            self.checa(como == "ponte", f"«{nome}» é de root e, sem a ponte, mostra «Falta a ponte» ({como!r})")
+            self.checa(como == "ponte", f"«{nome}» é de root e, sem a ponte, mostra «Sem permissão de sistema» ({como!r})")
         elif acao and acao["confirma"]:
             self.checa(como == "trabalho", f"«{nome}» pergunta e roda ({como!r})")
         else:
@@ -1194,7 +1194,7 @@ class Percurso:
         if nome == "som:ponte":
             self.clicar(nome)
             como = self.depois_do_gesto(nome)
-            self.checa(como == "ponte", f"«Consertar a ponte» abre a pergunta da ponte ({como!r})")
+            self.checa(como == "ponte", f"«Reativar permissão de sistema» abre a pergunta da ponte ({como!r})")
             return
         if nome in ("criar:sino", "som:ouvir"):
             n0 = len(self.falhas)
@@ -1377,7 +1377,7 @@ class Percurso:
                        f"o botão do cartão do Tema diz «Aplicar tema» ({rotulos})")
         else:
             aba = self.js("() => (document.querySelector('[data-controle=\"passo:mandar\"]') || {}).textContent")
-            self.checa((aba or "").endswith("Disponibilizar"), f"a última aba do Tema novo diz «Disponibilizar» ({aba!r})")
+            self.checa((aba or "").endswith("Usar e compartilhar"), f"a última aba do Tema novo diz «Usar e compartilhar» ({aba!r})")
             botao = self.js("() => (document.querySelector('[data-controle=\"criar:vestir\"]') || {}).textContent")
             self.checa((botao or "").strip() == "Aplicar tema", f"o botão do Tema novo diz «Aplicar tema» ({botao!r})")
 
@@ -1605,13 +1605,13 @@ class Percurso:
             self.clicar("acao:" + acao)
             self.assentar()
             titulo = self.js("() => document.getElementById('pergunta-titulo').textContent")
-            if self.checa(self.aberto("pergunta") and titulo == "Falta a ponte",
-                          f"sem a ponte, «{acao}» mostra «Falta a ponte» ({titulo!r})"):
-                self.checa(self.js("() => document.getElementById('pergunta-sim').textContent") == "Consertar a ponte",
-                           "e o botão é «Consertar a ponte»")
+            if self.checa(self.aberto("pergunta") and titulo == "Sem permissão de sistema",
+                          f"sem a ponte, «{acao}» mostra «Sem permissão de sistema» ({titulo!r})"):
+                self.checa(self.js("() => document.getElementById('pergunta-sim').textContent") == "Reativar permissão de sistema",
+                           "e o botão é «Reativar permissão de sistema»")
                 self.clicar("pergunta:sim")
                 self.assentar()
-                if self.checa(self.trabalho_visto(), "«Consertar a ponte» roda"):
+                if self.checa(self.trabalho_visto(), "«Reativar permissão de sistema» roda"):
                     if self.js("() => !!TRABALHO && !!TRABALHO.timer"):
                         self.checa(self.achar("progresso:parar"), "e a linha de progresso traz o Parar")
                     self.esperar_trabalho(teto=300, parar=True)
