@@ -253,7 +253,7 @@ def main():
             alvo = f'[data-controle="chave:LOGO_PROGRAMA={ID}"] img'
             pag.evaluate("() => { location.hash = '#ajustes/mascote'; }")
             esperar(pag, 600)
-            pag.locator(alvo).scroll_into_view_if_needed()
+            eventual(lambda: pag.locator(alvo).scroll_into_view_if_needed() or True)
             pintura_antes = pag.evaluate(PINTURA_JS, alvo)
             pag.evaluate("() => { location.hash = '#tema'; }")
             esperar(pag, 600)
@@ -263,7 +263,7 @@ def main():
             eventual(lambda: not pag.evaluate("() => document.getElementById('logo-do-pack').open"))
             pag.evaluate("() => { location.hash = '#ajustes/mascote'; }")
             esperar(pag, 600)
-            pag.locator(alvo).scroll_into_view_if_needed()
+            eventual(lambda: pag.locator(alvo).scroll_into_view_if_needed() or True)
             checa(bool(pintura_antes) and eventual(lambda: pag.evaluate(PINTURA_JS, alvo) != pintura_antes, 8),
                   "a opção do pack pessoal em Definir mostra a logo nova")
 
