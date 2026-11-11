@@ -131,36 +131,44 @@ _ot_familia_do_tk() {
   sed -n 's/^[[:space:]]*family:[[:space:]]*"\(.*\)",\?$/\1/p' "$arq" | head -n1
 }
 
+_ot_ler_pelo_oraculo() {
+  local bin="$1" casa="$2" saida="$3" arvore modo vb receita k
+  arvore="${casa%/*}"; arvore="${arvore##*/com.system76.CosmicTheme.}"; arvore="${arvore%.Builder}"
+  modo="$(printf '%s' "$arvore" | tr 'A-Z' 'a-z')"
+  vb="$(meow_cosmic_v "com.system76.CosmicTheme.$arvore.Builder" 2)"
+  receita="$saida.d/cosmic/com.system76.CosmicTheme.$arvore.Builder/$vb"
+  mkdir -p "$receita" || return 1
+  for k in icon_theme font mono_font; do
+    [ -f "$casa/$k" ] && cp "$casa/$k" "$receita/$k"
+  done
+  "$bin" "$modo" "$saida.d/cosmic" > "$saida" 2>/dev/null
+}
+
 cmd_efeito() {
-  local icones="${NOME_TEMA_ICONES:-MeowSystem-Icons}" fonte mono bin tmp l saida origem
-  local -a jsons=() casas=()
+  local icones="${NOME_TEMA_ICONES:-MeowSystem-Icons}" fonte mono bin="" tmp casa saida origem="a cópia em Python" i=0 rc=0
+  local -a pares=()
   fonte="$(_ot_familia_do_tk interface_font)"
   mono="$(_ot_familia_do_tk monospace_font)"
   tmp="$(mktemp -d)" || return "$MEOW_ERRO"
-  if [ -n "${OT_EFEITO_JSON:-}" ] && [ -f "$OT_EFEITO_JSON" ]; then
-    jsons=("$OT_EFEITO_JSON")
-    origem="o oráculo"
-  elif bin="$(cmd_caminho 2>/dev/null)"; then
-    for l in dark light; do
-      "$bin" "$l" "$(meow_cosmic_dir)" > "$tmp/$l.json" 2>/dev/null && jsons+=("$tmp/$l.json")
-    done
-    origem="o oráculo"
-  fi
-  local rc=0
-  if [ "${#jsons[@]}" -gt 0 ]; then
-    saida="$(python3 "$MEOW_RAIZ/scripts/oraculo_tema.py" efeito "$icones" "$fonte" "$mono" json "${jsons[@]}")" || rc=$?
-  else
-    mapfile -t casas < <(meow_tema_casas)
-    saida="$(python3 "$MEOW_RAIZ/scripts/oraculo_tema.py" efeito "$icones" "$fonte" "$mono" disco "${casas[@]}")" || rc=$?
-    origem="a cópia em Python"
-  fi
+  [ -n "${OT_EFEITO_JSON:-}" ] && [ -f "$OT_EFEITO_JSON" ] || bin="$(cmd_caminho 2>/dev/null)" || bin=""
+  while IFS= read -r casa; do
+    i=$((i+1))
+    if [ -n "${OT_EFEITO_JSON:-}" ] && [ -f "$OT_EFEITO_JSON" ]; then
+      pares+=("$casa::$OT_EFEITO_JSON"); origem="o oráculo"
+    elif [ -n "$bin" ] && _ot_ler_pelo_oraculo "$bin" "$casa" "$tmp/$i.json"; then
+      pares+=("$casa::$tmp/$i.json"); origem="o oráculo"
+    else
+      pares+=("$casa")
+    fi
+  done < <(meow_tema_casas)
+  saida="$(python3 "$MEOW_RAIZ/scripts/oraculo_tema.py" efeito "$icones" "$fonte" "$mono" "${pares[@]}")" || rc=$?
   rm -rf "$tmp"
   [ "$rc" = "2" ] && { meow_erro "não consegui ler o tema ($saida)"; return "$MEOW_ERRO"; }
   if [ "$rc" = "0" ]; then
-    meow_ok "$origem lê do tema o ícone '$icones' e as fontes do pack"
+    meow_ok "$origem lê das quatro casas do tema o ícone '$icones' e as fontes"
     return "$MEOW_OK"
   fi
-  meow_muda "o tema que o COSMIC monta não diz o que o pack pede ($origem)"
+  meow_muda "o tema que o COSMIC lê não diz o que o pack pede ($origem)"
   printf '%s\n' "$saida" | sed 's/^/        /'
   return "$MEOW_DIVERGENTE"
 }
