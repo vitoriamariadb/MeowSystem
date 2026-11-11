@@ -22,3 +22,9 @@ inteira tá feia. Precisa ser repensada.»
 - Captura antes e depois, larguras 1500 e 900 px.
 
 Tamanho: meio dia, com a ida e volta da maquete.
+
+## A escolha (11/11)
+
+Sim de quem usa: «B: ladrilhos» (`maquete/manter-b.html`). Blocos clicáveis em duas colunas (uma no estreito),
+separados por um fio com o nome do grupo; o bloco inteiro é o gesto, com ícone e nome; sem coluna de botões.
+Os verbos «Atualizar», «Ver», «Limpar» somem: o nome da ação é o gesto. A dica no hover é a frase real da ação.
