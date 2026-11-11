@@ -543,17 +543,14 @@ function controleFaixa(item, aplica) {
   const valor = valorEmVigor(item);
   const base = valor !== "" ? valor : (item.valendo_agora ?? item.vazio_vale ?? item.padrao ?? lo);
   const numero = /^-?\d+(\.\d+)?$/.test(String(base)) ? Number(base) : Number(lo);
-  const vazio = valor === "";
   const slider = elemento("input", {
     type: "range", min: lo, max: topo, step: passo, value: String(numero),
     "aria-label": item.titulo || item.chave, controle: "chave:" + item.chave, dica: primeiraFrase(item.frase),
   });
   ligarPreenchimento(slider);
-  const saida = elemento("output", { texto: vazio ? "Auto" : String(numero) });
+  const saida = elemento("output", { texto: String(numero) });
   const caixa = elemento("div", { class: "faixa" }, [slider, saida]);
-  if (vazio) caixa.setAttribute("data-vazio", "");
   slider.addEventListener("input", () => {
-    caixa.removeAttribute("data-vazio");
     saida.textContent = slider.value;
     repintarPrevia(item.chave, slider.value);
   });

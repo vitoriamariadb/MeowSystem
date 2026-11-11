@@ -258,11 +258,12 @@ def main():
                        noRotulo: !!document.querySelector('.linha.dupla .rot .padrao'),
                        margemDock: m && m.disabled, margemPainel: mp && mp.disabled,
                        vazio: !!document.querySelector('.faixa[data-vazio]'),
+                       semNumero: [...document.querySelectorAll('.faixa output')].filter((o) => !/^-?\\d+(\\.\\d+)?$/.test(o.textContent.trim())).length,
                        segSemDica: [...document.querySelectorAll('.seg button')].filter((b) => !b.dataset.dica).length };
             }""")
             checa(info["padrao"] and info["coluna"] == "Dock" and not info["noRotulo"], f"o ↶ mora na célula da coluna ({info})")
             checa(info["margemDock"] is True and info["margemPainel"] is False, f"com a dock colada, só a distância dela se desliga ({info})")
-            checa(info["vazio"], "o deslizante sem valor mostra o trilho tracejado")
+            checa(not info["vazio"] and info["semNumero"] == 0, f"toda faixa vale sem clique, com o número que vale na saída ({info})")
             checa(info["segSemDica"] == 0, "todo botão XS…XL tem dica")
             print("== Manter: cartões com o desenho ao lado")
             for (w, h) in [(1920, 1080), (1280, 800)]:
