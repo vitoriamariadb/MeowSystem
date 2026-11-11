@@ -630,8 +630,9 @@ function packDoRascunho() {
 async function levarParaOTema(tipo, nome, levar, extra = {}) {
   const id = rascunho().pack;
   const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo, nome, levar, aprimorar: !emNovo(), ...extra }) });
-  if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+  if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return false; }
   await carregarLeva(id);
+  return true;
 }
 function botaoFotoDoTema(pack) {
   const campo = elemento("input", { type: "file", accept: ACERVO_ACEITA.parede, hidden: true, multiple: true });
@@ -694,8 +695,9 @@ function trocarSom(evento) {
   campo.addEventListener("change", async () => {
     const arq = campo.files && campo.files[0];
     if (!arq) return;
-    await levarParaOTema("som", evento, true, { arquivo: arq.name, conteudo: await lerComoBase64(arq) });
+    if (!await levarParaOTema("som", evento, true, { arquivo: arq.name, conteudo: await lerComoBase64(arq) })) return;
     torrada(`${nomeDoSom(evento)}: trocado`, "ok");
+    if (!emNovo()) await rodarAcao("som_aplicar");
   });
   return campo;
 }
@@ -769,7 +771,7 @@ function gravarSino() {
     placeholder: "Nome do som", "aria-label": "Nome do som", controle: "sino:nome" });
   const destino = elemento("select", { class: "campo", "aria-label": "Evento que toca este som", controle: "sino:evento" },
     eventos.map((e) => elemento("option", { value: e.evento, texto: e.nome, selected: e.evento === SINO_DESTINO ? "" : null })));
-  const gravar = botao("Gerar Sons", { class: "bt principal", icone: "tocar", controle: "sino:gravar",
+  const gravar = botao("Gerar Sons", { class: "bt principal", icone: "disco", controle: "sino:gravar",
     disabled: !!semGravar || !SINO_NOME.trim(), "aria-disabled": semGravar || !SINO_NOME.trim() ? "true" : null,
     dica: semGravar || (SINO_NOME.trim() ? "Grava o sino no tema, no evento escolhido" : "Dê um nome ao som"),
     onclick: async () => {
@@ -780,7 +782,7 @@ function gravarSino() {
       torrada(`${SINO_NOME.trim()}: gravado`, "ok");
       SINO_NOME = "";
       await carregarSons(pack.id);
-      if (corpo.evento === "audio-volume-change") await rodarAcao("som_aplicar");
+      if (!emNovo() || corpo.evento === "audio-volume-change") await rodarAcao("som_aplicar");
     } });
   nome.addEventListener("input", () => {
     SINO_NOME = nome.value;

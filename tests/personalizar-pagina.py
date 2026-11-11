@@ -182,6 +182,24 @@ def p188(pag):
     confere("Sino da Vitória" in linha.inner_text() and "Do pack" in linha.inner_text(),
             "a linha do evento mostra o nome e «Do pack»", linha.inner_text())
     foto(pag, "p188-sino.png")
+    estado = casa.fim_do_trabalho(pag)
+    temas = os.path.join(casa.CASA, ".local", "share", "sounds", "MeowSystem-Sons", "stereo")
+    na_maquina = os.path.join(temas, "notification", "message-new-instant.oga")
+    confere(estado == "ok" and os.path.isfile(na_maquina) and open(na_maquina, "rb").read() == depois,
+            f"no Personalizar, o som gravado já entra na máquina, sem outro gesto ({estado})")
+    alvo = os.path.join(casa.RAIZ_B, "packs", "dracula", "sons", "stereo", "notification", "complete.oga")
+    novo = os.path.join(casa.BRINQUEDO, "meu-aviso.oga")
+    with open(novo, "wb") as fh:
+        fh.write(depois)
+    with pag.expect_file_chooser() as escolha:
+        pag.locator('li[data-som="complete"] [data-controle="som:trocar"]').click()
+    escolha.value.set_files(novo)
+    pag.wait_for_function("() => [...document.querySelectorAll('#torradas .torrada')].some((t) => t.textContent.includes('trocado'))", timeout=30000)
+    estado = casa.fim_do_trabalho(pag)
+    na_maquina = os.path.join(temas, "notification", "complete.oga")
+    confere(estado == "ok" and open(alvo, "rb").read() == depois and os.path.isfile(na_maquina)
+            and open(na_maquina, "rb").read() == depois,
+            f"e o «Trocar» de um som também: o pack e a máquina ficam com o som novo ({estado})")
 
 
 def main():
