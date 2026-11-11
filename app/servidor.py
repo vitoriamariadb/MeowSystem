@@ -3768,7 +3768,7 @@ ACOES = {
         "ajuda": "A lista, o mascote em vigor, e qual regra o escolheu.",
     },
     "logo_trocar": {
-        "rotulo": "Pôr o mascote",
+        "rotulo": "Aplicar o mascote",
         "grupo": "Logo do sistema",
         "natureza": "trocar",
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
@@ -3815,7 +3815,7 @@ ACOES = {
         "ajuda": "Volta uma imagem, com a mesma fixação.",
     },
     "wallpaper_carrossel": {
-        "rotulo": "Voltar a girar",
+        "rotulo": "Girar",
         "grupo": "Papel de parede",
         "natureza": "trocar",
         "argv": _meow("wallpaper", "carrossel"),
@@ -3849,7 +3849,7 @@ ACOES = {
         "escreve": True, "sudo": False, "confirma": False, "oculta": True,
         "ajuda": "Fixa esta imagem como o papel de parede de agora. Quanto tempo "
                  "dura é «Quanto tempo dura a imagem escolhida» — com 0, até "
-                 "«Voltar a girar».",
+                 "«Girar».",
     },
     "wallpaper_dia": {
         "rotulo": "Imagem de dia",

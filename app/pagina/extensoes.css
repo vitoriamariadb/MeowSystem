@@ -45,8 +45,6 @@
 .linha .rot .duas { display: grid; min-width: 0; }
 .linha .rot .duas small { color: var(--tinta-3); font: var(--t-xs) var(--f-mono); white-space: normal; overflow-wrap: anywhere; margin-left: 0; }
 .linha .rot .duas b { font-weight: 600; }
-.registro { padding: 0 var(--e-6) var(--e-4); }
-.registro pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .ficha-repo { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: var(--e-4); align-items: center; padding: var(--e-4); border-radius: var(--raio-md); background: var(--fundo); border: 1px solid var(--linha); }
 .ficha-repo .lugar-applet { width: 56px; height: 56px; }
@@ -55,15 +53,13 @@
 .ficha-repo dd { margin: 0; font-family: var(--f-mono); overflow-wrap: anywhere; }
 .selo { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--raio-pilula); background: var(--alerta-suave); color: var(--alerta); font-size: var(--t-xs); font-weight: 600; width: max-content; }
 dialog .campo { width: 100%; }
-dialog .registro { padding: 0; }
 dialog .pilha-campo { display: grid; gap: var(--e-2); }
 
 #adicionar:not([data-passo="url"]):not([data-passo="erro-url"]) .p-url,
 #adicionar:not([data-passo="erro-url"]) .p-erro-url,
 #adicionar:not([data-passo="ficha"]) .p-ficha,
-#adicionar:not([data-passo="compilando"]):not([data-passo="erro"]) .registro.p-compilando,
-#adicionar:not([data-passo="compilando"]) .p-compilando:not(.registro),
-#adicionar:not([data-passo="erro"]) .p-erro:not(.registro),
+#adicionar:not([data-passo="compilando"]) .p-compilando,
+#adicionar:not([data-passo="erro"]) .p-erro,
 #adicionar:not([data-passo="pronto"]) .p-pronto { display: none; }
 #adicionar[data-passo="erro-url"] .campo { border-color: var(--perigo); }
 

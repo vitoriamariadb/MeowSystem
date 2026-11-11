@@ -938,7 +938,7 @@ function linhaDeAcao(l) {
   const acao = ACAO.get(l.a);
   if (!acao) return null;
   return elemento("li", { class: "linha", "data-linha": acao.id }, [
-    elemento("div", { class: "rot" }, [elemento("span", { texto: l.r, dica: primeiraFrase(acao.ajuda) })]),
+    elemento("div", { class: "rot" }, [l.r ? elemento("span", { texto: l.r, dica: primeiraFrase(acao.ajuda) }) : null]),
     elemento("div", { class: "ctl" }, controleDeAcao(acao, l.b)),
   ]);
 }
@@ -1084,7 +1084,9 @@ function fimDoTrabalho() {
 function iniciarProgresso(trabalho, depois = null) {
   if (TRABALHO && TRABALHO.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve, rotulo: maiuscula(trabalho.rotulo),
-               acao: trabalho.acao || null, fim: trabalho.fim || {}, mudou: false, depois };
+               acao: trabalho.acao || null, fim: trabalho.fim || {}, mudou: false, depois, saida: [],
+               consertaCom: trabalho.conserta_com || null, rota: location.hash };
+  if (TRABALHO.acao) esquecerResultado(TRABALHO.acao);
   const barra = $("#progresso");
   barra.dataset.estado = "correndo";
   $("#progresso-nome").textContent = TRABALHO.rotulo || "Trabalho";
@@ -1097,13 +1099,87 @@ function fimDoProgresso(estado) {
   barra.dataset.estado = estado;
   barra.hidden = true;
 }
-function classeDaLinha(l) {
-  const t = l.trimStart();
-  if (/^ok\b/.test(t)) return "ok";
-  if (/^(erro|FALHOU|falhou|!!)/.test(t)) return "erro";
-  if (t.startsWith("~~")) return "mudou";
-  return "";
+const RESULTADOS = new Map();
+const MARCA_DA_SAIDA = /^\s*(ok|~~|--|!!|>>|erro|FALHOU|falhou)(?=\s|$)\s*/;
+const MAX_DO_RESULTADO = 6;
+
+function semCaminho(texto) {
+  return texto.replace(/(^|[\s'"(])(?:~|\/)[^\s'")]*\/([^\s'"/)]+)/g, "$1$2");
 }
+function resumirSaida(linhas) {
+  const itens = [];
+  let anteriorMarcada = false;
+  for (const bruta of linhas) {
+    if (!/[\p{L}\p{N}]/u.test(bruta) || /^\s*(==|#)/.test(bruta)) continue;
+    const m = MARCA_DA_SAIDA.exec(bruta);
+    if (!m && anteriorMarcada && /^\s+/.test(bruta)) continue;
+    if (!m && !/^\s/.test(bruta) && !/:|\s{2,}/.test(bruta)) continue;
+    let texto = m ? bruta.slice(m[0].length) : bruta.trim();
+    let classe = "";
+    if (m) {
+      const marca = m[1];
+      classe = marca === "ok" ? "ok" : marca === "~~" ? "mudou" : /^(erro|FALHOU|falhou|!!)$/.test(marca) ? "erro" : "";
+      if (marca !== ">>") {
+        const area = /^[\w-]+\s{2,}(.*)$/.exec(texto);
+        if (area) texto = area[1];
+        texto = texto.split(" — ")[0];
+      }
+    }
+    texto = semCaminho(texto).replace(/\s{2,}/g, " ").trim();
+    if (!texto) continue;
+    anteriorMarcada = !!m;
+    itens.push({ texto: maiuscula(texto), classe });
+  }
+  return itens;
+}
+function guardarResultado(t, rc, frase) {
+  const itens = resumirSaida(t.saida);
+  const divergem = itens.filter((i) => i.classe === "mudou" || i.classe === "erro");
+  const contagem = divergem.length === 1 ? "1 coisa diverge" : `${divergem.length} coisas divergem`;
+  const confere = !!t.consertaCom;
+  const mostrar = confere || (rc === 1 && divergem.length) ? divergem : itens;
+  const cabeca = divergem.length && (confere || rc === 1) ? contagem
+    : !confere && rc === 0 && itens.length ? "" : maiuscula(frase);
+  RESULTADOS.set(t.acao, {
+    rota: t.rota, estado: rc === 0 ? "ok" : rc === 1 ? "divergente" : "erro", cabeca,
+    itens: mostrar.slice(0, MAX_DO_RESULTADO), sobram: Math.max(0, mostrar.length - MAX_DO_RESULTADO),
+    consertaCom: rc === 1 ? t.consertaCom : null, acao: t.acao,
+  });
+  pintarResultados();
+}
+function esquecerResultado(id) {
+  RESULTADOS.delete(id);
+  for (const velho of document.querySelectorAll(`[data-resultado="${id}"]`)) velho.remove();
+}
+function noDoResultado(id, r) {
+  const consertar = r.consertaCom && ACAO.get(r.consertaCom);
+  return elemento("div", { class: "resultado", "data-resultado": id, "data-estado": r.estado, role: "status" }, [
+    r.cabeca ? elemento("p", { class: "resultado-cabeca", texto: r.cabeca }) : null,
+    r.itens.length ? elemento("ul", { class: "resultado-linhas" }, [
+      ...r.itens.map((i) => elemento("li", { class: i.classe || null, texto: i.texto })),
+      r.sobram ? elemento("li", { class: "sobra", texto: `E mais ${r.sobram}` }) : null,
+    ]) : null,
+    consertar ? botao("Consertar", { class: "bt pequeno principal", controle: "resultado:consertar",
+      onclick: async () => {
+        if (!(await rodar(consertar, "", { semPerguntar: true }))) return;
+        await fimDoTrabalho();
+        rodarAcao(id);
+      } }) : null,
+  ]);
+}
+function pintarResultados() {
+  for (const [id, r] of [...RESULTADOS]) {
+    if (r.rota !== location.hash) { RESULTADOS.delete(id); continue; }
+    for (const velho of document.querySelectorAll(`[data-resultado="${id}"]`)) velho.remove();
+    const gatilho = document.querySelector(`#conteudo [data-controle="acao:${id}"]`);
+    if (!gatilho) continue;
+    const dono = gatilho.closest("li.linha, .cabeca-mod, .estado-maquina, .cartao-acao");
+    const no = noDoResultado(id, r);
+    if (dono) dono.append(no);
+    else gatilho.parentElement.after(no);
+  }
+}
+
 async function puxar() {
   const t = TRABALHO;
   if (!t) return;
@@ -1113,6 +1189,7 @@ async function puxar() {
   if (r.erro) { clearInterval(t.timer); t.timer = null; TRABALHO = null; fimDoProgresso("erro"); return; }
   t.proximo = r.proximo;
   for (const l of r.linhas || []) if (l.trimStart().startsWith("~~")) t.mudou = true;
+  t.saida.push(...(r.linhas || []));
   if (r.vivo) return;
   clearInterval(t.timer);
   t.timer = null;
@@ -1125,6 +1202,7 @@ async function puxar() {
   TRABALHOS_A_CAMINHO++;
   TRABALHO = null;
   try {
+    if (!t.escreve && t.acao && t.rota === location.hash) guardarResultado(t, r.rc, frase);
     if (t.escreve) await depoisDeEscrever();
     if (t.depois && (r.rc === 0 || r.rc === 1)) t.depois();
   } finally {
@@ -1295,6 +1373,7 @@ function render() {
     : ROTA.porta === "modificacoes" ? paginaModificacoes(ROTA.sub) : paginaTema();
   $("#conteudo").replaceChildren(...[].concat(pagina).filter(Boolean));
   $("#conteudo").removeAttribute("aria-busy");
+  pintarResultados();
   reacenderChegada();
   document.title = "MeowSystem · " + (emNovo() ? "Tema novo" : (PORTAS.find((p) => p.id === ROTA.porta) || PORTAS[0]).nome);
   if (foco) {

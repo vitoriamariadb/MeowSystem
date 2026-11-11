@@ -154,6 +154,7 @@ MAQUINA=(
   espaco-pagina.py
   modificacoes-pagina.py
   logo-pagina.py
+  resultado-na-linha.py
   logo-do-pack-pessoal-pagina.py
   zapzap-tema-de-conversa.py
   graficos-fonte-real.sh
@@ -166,6 +167,7 @@ SEM_PULO=(
   espaco-pagina.py
   modificacoes-pagina.py
   logo-pagina.py
+  resultado-na-linha.py
   logo-do-pack-pessoal-pagina.py
 )
 

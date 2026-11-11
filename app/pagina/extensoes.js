@@ -345,7 +345,6 @@ function dialogoAdicionar() {
       elemento("dt", { texto: "Substitui" }), elemento("dd", { id: "ficha-substitui" }),
     ])]),
   ]);
-  const pre = elemento("pre", { id: "adicionar-saida", tabindex: "0", "aria-live": "polite" });
   d = elemento("dialog", { id: "adicionar", "aria-labelledby": "adicionar-t", "data-passo": "url" }, [
     elemento("div", { class: "dentro" }, [
       elemento("h2", { id: "adicionar-t", texto: "Adicionar repositório" }),
@@ -356,7 +355,8 @@ function dialogoAdicionar() {
       elemento("span", { class: "estado-pilula p-compilando", "data-estado": "correndo", texto: "Compilando" }),
       elemento("span", { class: "estado-pilula p-erro", "data-estado": "erro", texto: "Não compilou" }),
       elemento("span", { class: "estado-pilula p-pronto", "data-estado": "ok", texto: "Instalada, fora da barra" }),
-      elemento("details", { class: "registro p-compilando p-erro", open: true }, [elemento("summary", { texto: "Registro" }), pre]),
+      elemento("span", { class: "progresso-linha p-compilando", role: "progressbar", "aria-label": "Compilando" }),
+      elemento("p", { class: "oficina-erro p-erro", id: "adicionar-motivo", role: "alert" }),
       elemento("div", { class: "acoes" }, [
         elemento("button", { class: "bt leve", type: "button", controle: "adicionar:cancelar", texto: "Cancelar",
           onclick: () => d.close() }),
@@ -382,7 +382,7 @@ function abrirAdicionar() {
   const d = dialogoAdicionar();
   ADICIONAR = { ficha: null, timer: null, trabalho: null };
   $("#repo-url").value = "";
-  $("#adicionar-saida").replaceChildren();
+  $("#adicionar-motivo").textContent = "";
   d.dataset.passo = "url";
   if (!d.open) d.showModal();
   $("#repo-url").focus();
@@ -419,7 +419,7 @@ async function instalarRepositorio() {
 }
 
 function falharRepositorio(texto) {
-  $("#adicionar-saida").append(elemento("span", { class: "erro", texto: maiuscula(texto) + "\n" }));
+  $("#adicionar-motivo").textContent = maiuscula(texto);
   $("#adicionar").dataset.passo = "erro";
 }
 
@@ -427,12 +427,12 @@ async function rodarRepositorio() {
   const f = ADICIONAR && ADICIONAR.ficha;
   if (!f) return;
   const d = $("#adicionar");
-  $("#adicionar-saida").replaceChildren();
+  $("#adicionar-motivo").textContent = "";
   d.dataset.passo = "compilando";
   const r = await api("/api/rodar", { method: "POST", body: JSON.stringify({
     acao: "extensao_instalar_repo", argumento: f.id, confirmado: true }) });
   if (r.erro) { falharRepositorio(r.erro); return; }
-  ADICIONAR.trabalho = { id: r.id, proximo: 0 };
+  ADICIONAR.trabalho = { id: r.id, proximo: 0, saida: [] };
   ADICIONAR.timer = setInterval(puxarRepositorio, 500);
   puxarRepositorio();
 }
@@ -446,13 +446,17 @@ async function puxarRepositorio() {
   if (ADICIONAR.trabalho !== t) return;
   if (r.erro) { clearInterval(ADICIONAR.timer); falharRepositorio(r.erro); return; }
   t.proximo = r.proximo;
-  const saida = $("#adicionar-saida");
-  for (const l of r.linhas || []) saida.append(elemento("span", { class: classeDaLinha(l) || null, texto: l + "\n" }));
-  saida.scrollTop = saida.scrollHeight;
+  t.saida.push(...(r.linhas || []));
   if (r.vivo) return;
   clearInterval(ADICIONAR.timer);
   ADICIONAR.timer = null;
-  $("#adicionar").dataset.passo = r.rc === 0 || r.rc === 1 ? "pronto" : "erro";
+  const deuCerto = r.rc === 0 || r.rc === 1;
+  if (!deuCerto) {
+    const itens = resumirSaida(t.saida);
+    const motivo = itens.filter((i) => i.classe === "erro").pop() || itens.pop();
+    $("#adicionar-motivo").textContent = motivo ? motivo.texto : "Não compilou";
+  }
+  $("#adicionar").dataset.passo = deuCerto ? "pronto" : "erro";
   EXT.quando = 0;
   carregarExtensoes();
 }

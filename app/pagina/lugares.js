@@ -133,7 +133,7 @@ const AJUSTES = [
     blocos: [
       { titulo: "Imagens", linhas: [
         { a: "wallpaper_anterior", r: "Imagem anterior", b: "Anterior" },
-        { a: "wallpaper_carrossel", r: "Voltar a girar", b: "Girar" },
+        { a: "wallpaper_carrossel", r: "Girar", b: "Girar" },
         { a: "wallpaper", r: "Carrossel de Imagens", b: "Ver" },
         { a: "wallpaper_aplicar", r: "Regras do carrossel", b: "Reaplicar" },
       ] },
@@ -164,7 +164,7 @@ const AJUSTES = [
         { c: "LOGO_NOITE", r: "De noite", sub: true },
         { c: "LOGO_INTERVALO", r: "Troca a cada", sub: true },
         { c: "LOGO_ROTACAO", r: "Trocar sozinho", sub: true },
-        { a: "logo_trocar", r: "Aplicar agora", b: "Aplicar agora" },
+        { a: "logo_trocar", r: "", n: "Aplicar o mascote", b: "Aplicar" },
         { c: "LOGO_RECICLAR", r: "Trocar na virada do dia", sub: true },
         { a: "logo_girar", r: "Próximo mascote", b: "Girar" },
         { a: "logo_listar", r: "Mascote agora", b: "Ver" },
@@ -362,7 +362,7 @@ const LUGAR_TOPO = [
 function inventarioDoPainel() {
   const saida = [];
   const pus = (l, porta, pagina, bloco) => {
-    const base = { porta, pagina, bloco, rotulo: l.r };
+    const base = { porta, pagina, bloco, rotulo: l.r || l.n };
     if (l.c) for (const c of [].concat(l.c)) saida.push({ ...base, tipo: "chave", id: c });
     else if (l.a) saida.push({ ...base, tipo: "acao", id: l.a });
     else if (l.g) saida.push({ ...base, tipo: "gesto", id: l.g });

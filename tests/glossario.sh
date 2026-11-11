@@ -53,6 +53,11 @@ for linha in glossario.splitlines():
     trocados += termos
 
 falhas = 0
+for termo in ("Voltar a girar", "Aplicar agora"):
+    onde = na_tela.get(termo.casefold())
+    if onde:
+        print(f"FALHOU: «{termo}» saiu da linha na P200 e voltou à tela ({onde})", file=sys.stderr)
+        falhas += 1
 for termo in trocados:
     if termo in AINDA_NA_TELA_DE_OUTRO_BLOCO or termo in TERMOS_QUE_OUTRO_CONTROLE_USA \
             or termo in A_RESPOSTA_TROCOU_SO_O_OUTRO_TERMO_DA_LINHA:

@@ -61,8 +61,8 @@ Coluna «quem usa»: respostas do artifact de 10/11 (`sim` troca pelo proposto; 
 | Em pastilha | Formato pílula | sim |
 | Folga interna | Margem interna | sim |
 | Vidro | Transparência | sim |
-| Carrossel agora · Próxima imagem | Trocar o papel agora | não: Carrossel de Imagens |
-| Voltar a girar · Girar | Retomar a troca automática | não: Girar |
+| Carrossel agora · Próxima imagem | Trocar o papel agora | não: Carrossel de Imagens; «Próxima imagem» fica, só a linha (11/11) |
+| Voltar a girar · Girar | Retomar a troca automática | não: Girar; a linha se chama «Girar», com o botão «Girar» (11/11) |
 | Escolhida dura | Papel escolhido fica por | não: Sem status pra isso |
 | Encaixe (papel) | Ajuste da imagem | sim |
 | Pastas suas | Suas pastas de imagens | não: Seus papéis de parede. |
@@ -71,7 +71,7 @@ Coluna «quem usa»: respostas do artifact de 10/11 (`sim` troca pelo proposto; 
 | Botão direito | «Usar como papel de parede» no Arquivos | Menu do Arquivos (AskUserQuestion 10/11) |
 | Menu se reconstrói | Recompilar o menu sozinho | Recompilar automaticamente. |
 | Gira a cada · Girar sozinho | Troca a cada · Trocar sozinho | Troca a cada |
-| Pôr agora · Pôr | Aplicar agora | não: quem aplica quer aplicar agora. sem texto pra isso. |
+| Pôr agora · Pôr | Aplicar agora | não: só o botão «Aplicar», a linha fica sem nome (11/11) |
 | Recarregar na virada | Trocar na virada do dia | sim |
 | Qual | Qual mascote | sim |
 | Linhas antes | Linhas em branco acima | sim |
