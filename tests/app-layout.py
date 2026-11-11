@@ -265,6 +265,15 @@ def main():
             checa(info["margemDock"] is True and info["margemPainel"] is False, f"com a dock colada, só a distância dela se desliga ({info})")
             checa(not info["vazio"] and info["semNumero"] == 0, f"toda faixa vale sem clique, com o número que vale na saída ({info})")
             checa(info["segSemDica"] == 0, "todo botão XS…XL tem dica")
+            print("== as linhas que saíram da tela não voltam")
+            for rota, termos in [("ajustes/janelas", ["Vale para", "Versão do ponteiro"]),
+                                 ("ajustes/papel", ["Escolhida dura", "Versão do acervo"]),
+                                 ("cuidar", ["Mascote novo entra"])]:
+                ir(pag, rota)
+                pag.evaluate("() => { for (const d of document.querySelectorAll('details.mais')) d.open = true; }")
+                texto = pag.evaluate("() => document.getElementById('conteudo').innerText")
+                for termo in termos:
+                    checa(termo not in texto, f"{rota}: «{termo}» fora da tela")
             print("== Manter: cartões com o desenho ao lado")
             for (w, h) in [(1920, 1080), (1280, 800)]:
                 pag.set_viewport_size({"width": w, "height": h})
