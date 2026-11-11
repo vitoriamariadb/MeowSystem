@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Manter, proposta A</title>
+<title>Manutenção, proposta A</title>
 <style>
 :root {
   --base: #1e1e2e; --mantle: #181825; --crust: #11111b;
@@ -43,25 +43,26 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .acao { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--e-4); padding: var(--e-3) var(--e-6); min-height: 64px; }
 .acao + .acao { border-top: 1px solid var(--linha); }
 .acao b { font-weight: 600; }
-.acao .bt { min-width: 168px; }
-@media (max-width: 600px) { .acao { grid-template-columns: 1fr; } .acao .bt { width: 100%; } }
+.acao .bt, .sozinho .bt { min-width: 168px; }
+.grupo > header.sozinho { padding-bottom: var(--e-4); }
+.sozinho .bt { margin-left: auto; }
+@media (max-width: 600px) { .acao { grid-template-columns: 1fr; } .acao .bt { width: 100%; } .grupo > header.sozinho { flex-wrap: wrap; } .sozinho .bt { width: 100%; } }
 </style></head><body><main>
 <h1>Manutenção</h1>
 <section class="lista" aria-label="Ações de manutenção">
   <div class="grupo">
     <header><span class="icone"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><h2>Exportar</h2></header>
-    <div class="acao"><b>Exportar ajustes</b><button class="bt" title="Grava seus ajustes num arquivo para levar a outro computador"><svg viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg> Exportar</button></div>
-    <div class="acao"><b>Importar ajustes</b><button class="bt" title="Lê um arquivo de ajustes exportado em outro computador"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Importar</button></div>
+    <div class="acao"><b>Exportar ajustes</b><button class="bt" title="Um .conf para a máquina nova"><svg viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg> Exportar</button></div>
+    <div class="acao"><b>Importar ajustes</b><button class="bt"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg> Importar</button></div>
   </div>
   <div class="grupo">
     <header><span class="icone"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5"/></svg></span><h2>Atualizar</h2></header>
-    <div class="acao"><b>Atualizar o sistema</b><button class="bt principal" title="Atualiza apt, flatpak e cargo, e depois verifica o sistema"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5"/></svg> Atualizar</button></div>
-    <div class="acao"><b>Ver atualizações</b><button class="bt" title="Mostra o que a atualização mudaria, sem mudar nada"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg> Ver</button></div>
-    <div class="acao"><b>Limpar pacotes velhos</b><button class="bt" title="Apaga pacotes que nada mais usa"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg> Limpar</button></div>
+    <div class="acao"><b>Atualizar a máquina</b><button class="bt principal" title="Atualiza apt, flatpak e cargo, e logo depois faz a conferência — que diz o que a atualização desfez do MeowSystem."><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5"/></svg> Atualizar</button></div>
+    <div class="acao"><b>O que muda</b><button class="bt" title="Os pacotes com versão nova e os programas em Rust desatualizados."><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg> Ver</button></div>
+    <div class="acao"><b>Limpar as sobras</b><button class="bt" title="Pacotes órfãos e os pacotes que o apt já baixou."><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg> Limpar</button></div>
   </div>
   <div class="grupo">
-    <header><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></span><h2>Reinstalar</h2></header>
-    <div class="acao"><b>Reinstalar o MeowSystem</b><button class="bt" title="Roda o instalador de novo, sem perder seus ajustes"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg> Reinstalar</button></div>
+    <header class="sozinho"><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></span><h2>Reinstalar o MeowSystem</h2><button class="bt" title="Passa as 74 etapas."><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg> Reinstalar</button></header>
   </div>
 </section>
 </main></body></html>

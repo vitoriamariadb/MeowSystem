@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Manter, proposta B</title>
+<title>Manutenção, proposta B</title>
 <style>
 :root {
   --base: #1e1e2e; --mantle: #181825; --crust: #11111b;
@@ -49,13 +49,13 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 <h1>Manutenção</h1>
 <section class="grade" aria-label="Ações de manutenção">
   <div class="grupo-nome"><h2>Exportar</h2></div>
-  <button class="bloco" title="Grava seus ajustes num arquivo para levar a outro computador"><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg></span><b>Exportar ajustes</b></button>
-  <button class="bloco" title="Lê um arquivo de ajustes exportado em outro computador"><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span><b>Importar ajustes</b></button>
+  <button class="bloco" title="Um .conf para a máquina nova"><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg></span><b>Exportar ajustes</b></button>
+  <button class="bloco"><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span><b>Importar ajustes</b></button>
   <div class="grupo-nome"><h2>Atualizar</h2></div>
-  <button class="bloco" title="Atualiza apt, flatpak e cargo, e depois verifica o sistema"><span class="icone"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5"/></svg></span><b>Atualizar o sistema</b></button>
-  <button class="bloco" title="Mostra o que a atualização mudaria, sem mudar nada"><span class="icone"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><b>Ver atualizações</b></button>
-  <button class="bloco" title="Apaga pacotes que nada mais usa"><span class="icone"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span><b>Limpar pacotes velhos</b></button>
-  <div class="grupo-nome"><h2>Reinstalar</h2></div>
-  <button class="bloco" title="Roda o instalador de novo, sem perder seus ajustes"><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></span><b>Reinstalar o MeowSystem</b></button>
+  <button class="bloco" title="Atualiza apt, flatpak e cargo, e logo depois faz a conferência — que diz o que a atualização desfez do MeowSystem."><span class="icone"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5"/></svg></span><b>Atualizar a máquina</b></button>
+  <button class="bloco" title="Os pacotes com versão nova e os programas em Rust desatualizados."><span class="icone"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><b>O que muda</b></button>
+  <button class="bloco" title="Pacotes órfãos e os pacotes que o apt já baixou."><span class="icone"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span><b>Limpar as sobras</b></button>
+  <div class="grupo-nome" aria-hidden="true"></div>
+  <button class="bloco" title="Passa as 74 etapas."><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></span><b>Reinstalar o MeowSystem</b></button>
 </section>
 </main></body></html>
