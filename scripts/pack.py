@@ -2635,8 +2635,8 @@ EXT_DA_BIBLIOTECA = (".svg", ".png")
 
 
 PASTA_FEITOS_A_MAO = "icones/biblioteca/feitos-a-mao/"
-PASTAS_DA_FICHA = ("icones/apps/", PASTA_BIBLIOTECA)
-ROTULO_DA_PASTA = {"icones/apps": "feitos para apps", "icones/biblioteca": "biblioteca",
+PASTAS_DA_FICHA = ("icones/apps/", "icones/sistema/", PASTA_BIBLIOTECA)
+ROTULO_DA_PASTA = {"icones/apps": "feitos para apps", "icones/sistema": "sistema", "icones/biblioteca": "biblioteca",
                    "arcticons": "traço", "feitos-a-mao": "feitos à mão",
                    "versoes": "versões", "projetos": "projetos dela"}
 FORA_DA_FICHA = ("ANTES-E-DEPOIS.png",)

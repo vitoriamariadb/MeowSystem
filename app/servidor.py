@@ -7229,6 +7229,7 @@ class Manipulador(BaseHTTPRequestHandler):
             glifos.append(saida)
         for g in grupos:
             g["achados"] = achados.get(g["id"], 0)
+            g["aba"] = self._aba_do_acervo(g)
             g.pop("pasta", None)
         pack, _desenhos, aviso = self._desenhos_do_pack_no_ar()
         app_ok = bool(re.match(r"^[A-Za-z0-9._+-]{1,120}$", app))
@@ -7238,6 +7239,14 @@ class Manipulador(BaseHTTPRequestHandler):
                  "minha": self._minha_escolha(app) if app_ok else None,
                  "veste": self._o_que_veste(app) if app_ok else None}
         return self._json(dict({"grupos": grupos, "glifos": glifos, "limitado": False}, **extra))
+
+    @staticmethod
+    def _aba_do_acervo(grupo):
+        partes = os.path.normpath(grupo.get("pasta") or "").split(os.sep)
+        for i in range(len(partes) - 1):
+            if partes[i] == "icones" and partes[i + 1] in ("apps", "sistema", "biblioteca"):
+                return partes[i + 1]
+        return "apps" if "autorais" in partes else "biblioteca"
 
     def _arquivo_na_ficha(self, caminho):
         caminho = os.path.normpath(caminho)
@@ -8409,9 +8418,12 @@ class Manipulador(BaseHTTPRequestHandler):
                     and corpo.get("aprimorar") is True else nome
                 if levar and corpo.get("origem"):
                     de, origem = str(corpo.get("de", "")), os.path.basename(str(corpo.get("origem", "")))
+                    pasta_de = str(corpo.get("origem_pasta") or tipo)
+                    if pasta_de not in mod.PASTAS_QUE_SE_LEVAM:
+                        return self._json({"erro": "não conheço a pasta «%s»" % pasta_de}, 400)
                     if de not in _packs_no_disco():
                         return self._json({"erro": "não conheço o pack «%s»" % de}, 404)
-                    achado = next((i for i in mod.acervo_para_levar(None, tipo, de) if i["nome"] == origem), None)
+                    achado = next((i for i in mod.acervo_para_levar(None, pasta_de, de) if i["nome"] == origem), None)
                     if not achado:
                         return self._json({"erro": "não achei esse ícone no pack «%s»" % de}, 404)
                     feito = mod.levar_icone(ident, tipo, achado["arq"], destino)

@@ -6,6 +6,8 @@ let DESENHO_FONTE = "gerar";
 let APP_ABERTO = null;
 let GLIFOS = { termo: null, itens: [], carregando: false };
 const PASTAS_ABERTAS = new Map();
+let ABA_DO_ACERVO = "apps";
+const ABAS_DO_ACERVO = [["apps", "Apps"], ["sistema", "Sistema"], ["biblioteca", "Biblioteca"]];
 
 async function carregarApps() {
   APPS = { carregando: true, apps: [] };
@@ -87,19 +89,18 @@ function escolhaDeIcone(app, recarregar) {
     onclick: () => { if (travaDe(g)) return; GLIFOS.escolhido = chaveDe(g); render(); },
   }, [elemento("img", { src: g.url + "&tinta=texto", alt: "", loading: "lazy" }), elemento("span", { texto: maiuscula(g.rotulo || g.glifo) })]);
   const sugeridos = itens.filter((g) => g.sugerido);
-  const pasta = (id, nome, filhos, aberta) => {
-    const d = elemento("details", { class: "pasta-acervo" }, [
-      elemento("summary", { controle: "icone:pasta" }, [elemento("span", { texto: maiuscula(nome) })]),
-      elemento("div", { class: "grade-glifos" }, filhos),
-    ]);
-    d.open = PASTAS_ABERTAS.has(id) ? PASTAS_ABERTAS.get(id) : aberta;
-    d.addEventListener("toggle", () => PASTAS_ABERTAS.set(id, d.open));
-    return d;
-  };
-  if (sugeridos.length) tira.append(pasta("sugeridos", "Sugeridos", sugeridos.map(botaoDe), true));
-  for (const gr of GLIFOS.grupos || []) {
-    const deles = itens.filter((g) => g.grupo === gr.id);
-    if (deles.length) tira.append(pasta(gr.id, `${gr.acervo} · ${gr.nome}`, deles.map(botaoDe), !!GLIFOS.termo || (!sugeridos.length && gr.no_ar)));
+  if (sugeridos.length) {
+    tira.append(elemento("h3", { texto: "Sugeridos" }), elemento("div", { class: "grade-glifos", "data-acervo": "sugeridos" }, sugeridos.map(botaoDe)));
+  }
+  const abaDe = new Map((GLIFOS.grupos || []).map((gr) => [gr.id, gr.aba || "biblioteca"]));
+  const porAba = (aba) => itens.filter((x) => abaDe.get(x.grupo) === aba);
+  const abas = ABAS_DO_ACERVO.filter(([id]) => porAba(id).length);
+  if (abas.length && !abas.some(([id]) => id === ABA_DO_ACERVO)) ABA_DO_ACERVO = abas[0][0];
+  if (abas.length) {
+    tira.append(elemento("div", { class: "seg mini", role: "group", "aria-label": "Acervo" }, abas.map(([id, nome]) =>
+      elemento("button", { type: "button", "aria-pressed": String(ABA_DO_ACERVO === id), controle: "acervo:aba=" + id,
+        onclick: () => { ABA_DO_ACERVO = id; render(); } }, [`${nome} (${porAba(id).length})`]))),
+      elemento("div", { class: "grade-glifos", "data-acervo": ABA_DO_ACERVO }, porAba(ABA_DO_ACERVO).map(botaoDe)));
   }
 
   const g = escolhido();

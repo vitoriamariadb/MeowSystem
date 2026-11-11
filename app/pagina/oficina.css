@@ -34,7 +34,7 @@
 .desenho-pe .oficina-erro { margin-right: auto; font-weight: 500; }
 .desenho-pe .estado-pilula { margin-right: auto; background: var(--fundo); }
 .desenho-pe [hidden] { display: none; }
-.desenho .grade-glifos { max-height: 420px; overflow: auto; }
+.desenho .tira-glifos, .desenho .grade-glifos { max-height: none; overflow: visible; }
 @media (max-width: 1360px) {
   .desenho-corpo { grid-template-columns: minmax(0, 1fr); }
   .desenho-olho { position: static; grid-template-columns: 180px minmax(0, 1fr); align-items: start; }

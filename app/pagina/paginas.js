@@ -529,10 +529,13 @@ let DESENHO_ABERTO = null;
 let DESENHO_ESCOLHIDO = null;
 const GRUPOS_DE_SISTEMA = [["barra", "Barra e bandeja"], ["configuracoes", "Configurações"], ["botoes", "Botões e janelas"],
   ["pastas", "Pastas"], ["tipos", "Tipos de arquivo"]];
+const OUTRA_PASTA = { sistema: "biblioteca", biblioteca: "sistema" };
+const FICHA_ABA = {};
 function fichaDoDesenho(pasta, alvo) {
-  const chave = (i) => `${i.de}|${i.nome}`;
+  const chave = (i) => `${i.pasta}|${i.de}|${i.nome}`;
   const termo = semAcento(BUSCA_ACERVO.trim());
-  const itens = ACERVO[pasta].filter((i) => i.nome !== alvo.nome
+  const daPasta = (p) => ACERVO[p].map((i) => ({ ...i, pasta: p }));
+  const itens = daPasta(pasta).concat(daPasta(OUTRA_PASTA[pasta])).filter((i) => !(i.pasta === pasta && i.nome === alvo.nome)
     && (!termo || semAcento(i.rotulo || i.nome).includes(termo) || semAcento(i.nome).includes(termo)));
   const escolhido = itens.find((i) => chave(i) === DESENHO_ESCOLHIDO) || null;
   const lupa = elemento("div", { class: "oficina-lupa" });
@@ -549,7 +552,7 @@ function fichaDoDesenho(pasta, alvo) {
       if (!x) return;
       const id = rascunho().pack;
       const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo: pasta, nome: alvo.nome, levar: true,
-        aprimorar: !emNovo(), de: x.levado ? id : x.de, origem: x.nome }) });
+        aprimorar: !emNovo(), de: x.levado ? id : x.de, origem: x.nome, origem_pasta: x.pasta }) });
       if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
       torrada(`${maiuscula(alvo.rotulo || alvo.nome)}: trocado`, "ok");
       DESENHO_ABERTO = null;
@@ -559,28 +562,30 @@ function fichaDoDesenho(pasta, alvo) {
   const tira = elemento("div", { class: "tira-glifos" });
   const escolher = (i, b) => {
     DESENHO_ESCOLHIDO = chave(i);
-    for (const x of tira.querySelectorAll("button[aria-pressed]")) x.setAttribute("aria-pressed", String(x === b));
+    for (const x of tira.querySelectorAll('[data-controle="trocar:opcao"]')) x.setAttribute("aria-pressed", String(x === b));
     pintar(i.url);
     usar.disabled = false;
     usar.removeAttribute("aria-disabled");
     usar.dataset.dica = "Usar este desenho neste ícone";
   };
   const botaoDe = (i) => {
-    const b = elemento("button", { type: "button", controle: "trocar:opcao", "data-nome": i.nome,
+    const b = elemento("button", { type: "button", controle: "trocar:opcao", "data-nome": i.nome, "data-pasta": i.pasta,
       "aria-pressed": String(chave(i) === DESENHO_ESCOLHIDO), dica: maiuscula(i.rotulo || i.nome),
       onclick: () => escolher(i, b) }, [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { texto: i.rotulo || i.nome })]);
     return b;
   };
-  for (const [id, titulo] of pasta === "sistema" ? GRUPOS_DE_SISTEMA : [["", "Biblioteca"]]) {
-    const deles = itens.filter((i) => !id || i.grupo === id);
+  const contagem = (p) => itens.filter((i) => i.pasta === p).length;
+  if (!FICHA_ABA[alvo.nome] || !contagem(FICHA_ABA[alvo.nome])) FICHA_ABA[alvo.nome] = contagem(pasta) ? pasta : OUTRA_PASTA[pasta];
+  const aba = FICHA_ABA[alvo.nome];
+  tira.append(elemento("div", { class: "seg mini", role: "group", "aria-label": "Acervo" }, [["sistema", "Sistema"], ["biblioteca", "Biblioteca"]]
+    .filter(([id]) => contagem(id)).map(([id, nome]) => elemento("button", { type: "button", "aria-pressed": String(aba === id),
+      controle: "trocar:aba=" + id, onclick: () => { FICHA_ABA[alvo.nome] = id; render(); } }, [`${nome} (${contagem(id)})`]))));
+  const secoes = aba === "sistema" ? GRUPOS_DE_SISTEMA : [["", ""]];
+  for (const [id, titulo] of secoes) {
+    const deles = itens.filter((i) => i.pasta === aba && (!id || i.grupo === id));
     if (!deles.length) continue;
-    const d = elemento("details", { class: "pasta-acervo" }, [
-      elemento("summary", { controle: "icone:pasta" }, [elemento("span", { texto: titulo })]),
-      elemento("div", { class: "grade-glifos" }, deles.map(botaoDe))]);
-    const aberta = "trocar:" + id;
-    d.open = PASTAS_ABERTAS.has(aberta) ? PASTAS_ABERTAS.get(aberta) : !id || id === alvo.grupo || !!termo;
-    d.addEventListener("toggle", () => PASTAS_ABERTAS.set(aberta, d.open));
-    tira.append(d);
+    if (titulo) tira.append(elemento("h3", { texto: titulo }));
+    tira.append(elemento("div", { class: "grade-glifos", "data-acervo": aba }, deles.map(botaoDe)));
   }
   const cabecalho = elemento("header", {}, [
     botao(pasta === "sistema" ? "Sistema" : "Biblioteca", { class: "bt leve pequeno", controle: "trocar:volta", icone: "voltar",

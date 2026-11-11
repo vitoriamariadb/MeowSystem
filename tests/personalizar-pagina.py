@@ -70,6 +70,15 @@ def p185(pag):
     livres = pag.locator('[data-controle="icone:desenho"]').count()
     travados = pag.locator('[data-controle="icone:travado"]').count()
     confere(livres > 100 and travados <= 2, f"Arquivos › Do acervo: os desenhos do pack se escolhem ({livres} livres, {travados} travados)")
+    abas = [t.split(" (")[0] for t in pag.locator('[data-controle^="acervo:aba="]').all_inner_texts()]
+    confere(abas == ["Apps", "Sistema", "Biblioteca"], f"o acervo se divide nas três pastas do tema, como as abas ({abas})")
+    confere(pag.locator(".desenho summary").count() == 0, "sem pasta com nome de acervo por cima delas")
+    pag.locator('[data-controle="acervo:aba=sistema"]').click()
+    pag.wait_for_timeout(600)
+    confere(pag.locator('[data-acervo="sistema"] [data-controle="icone:desenho"]').count() > 50,
+            "a aba Sistema do acervo mostra os ícones do sistema do tema")
+    pag.locator('[data-controle="acervo:aba=apps"]').click()
+    pag.wait_for_timeout(600)
     usar = pag.locator('[data-controle="icone:usar"]')
     confere(usar.count() == 1 and usar.is_visible(), "o «Usar» está sempre no cartão")
     confere(usar.get_attribute("aria-disabled") == "true", "e fica desabilitado enquanto nada foi escolhido")
@@ -137,6 +146,8 @@ def p186(pag, svg):
         confere(usar.get_attribute("aria-disabled") is None
                 and pag.locator(f'[data-controle="trocar:opcao"][data-nome="{origem}"]').first.get_attribute("aria-pressed") == "true",
                 f"{aba}: um clique num desenho do acervo escolhe e habilita o «Usar»")
+        confere(pag.locator(f'[data-controle="trocar:aba={aba}"]').get_attribute("aria-pressed") == "true",
+                f"{aba}: escolher um desenho não apaga a aba marcada da ficha")
         foto(pag, f"p186-{aba}-acervo.png")
         usar.click()
         esperar_trocado(pag)
@@ -153,6 +164,25 @@ def p186(pag, svg):
         confere(pag.locator(cartao).first.get_attribute("src") != src_antes, f"{aba}: o cartão passa a mostrar o desenho novo")
         foto(pag, f"p186-{aba}.png")
     abrir_aba(pag, "sistema")
+    alvo, arquivo = "connection-secure-symbolic", "channel-secure-symbolic.svg"
+    abrir_ficha(pag, alvo)
+    rolagens = pag.evaluate("() => [...document.querySelectorAll('#desenho .tira-glifos, #desenho .grade-glifos')]"
+                            ".filter((e) => ['auto', 'scroll'].includes(getComputedStyle(e).overflowY)).length")
+    confere(rolagens == 0, "a ficha tem uma rolagem só: a lista de desenhos não rola dentro de outra rolagem", str(rolagens))
+    da_biblioteca = pag.locator('[data-controle="trocar:aba=biblioteca"]')
+    confere(da_biblioteca.count() == 1, "a ficha de um ícone do Sistema oferece os desenhos da Biblioteca")
+    confere(pag.locator("#desenho summary").count() == 0, "sem pasta que abre e fecha: as duas abas mostram tudo")
+    da_biblioteca.click()
+    pag.wait_for_timeout(600)
+    opcao = pag.locator('[data-controle="trocar:opcao"][data-pasta="biblioteca"]').first
+    origem = opcao.get_attribute("data-nome")
+    de_origem = open(os.path.join(dracula, "biblioteca", origem + ".svg"), encoding="utf-8").read()
+    opcao.click()
+    pag.locator('[data-controle="trocar:usar"]').click()
+    esperar_trocado(pag)
+    confere(open(os.path.join(dracula, "sistema", arquivo), encoding="utf-8").read() == de_origem,
+            f"um desenho da Biblioteca ({origem}) vira o ícone do Sistema {alvo}")
+    foto(pag, "sistema-da-biblioteca.png")
     herdado = pag.locator('[data-controle="trocar:desenho"][data-nome="application-certificate"]').first
     confere(herdado.is_disabled() and "MeowSystem" in (herdado.get_attribute("data-dica") or ""),
             "um ícone que o tema herda de outro não finge: fica desabilitado e a dica diz de quem é",
