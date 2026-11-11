@@ -34,6 +34,7 @@ GESTOS_DE_ANTES = [
 ]
 
 FORA_DA_TELA = {"LOG_NIVEL"}
+ACAO_FORA_DA_TELA = {"som_ouvir", "som_aplicar"}
 
 
 def _node(expr):
@@ -136,10 +137,10 @@ def gerar():
     linhas.append("|---|---|---|---|")
     for ident, grupo, rotulo in acoes:
         lugares = por.get(("acao", ident), [])
-        if not lugares:
+        if not lugares and ident not in ACAO_FORA_DA_TELA:
             sem += 1
             falhas.append("ação sem destino: %s" % ident)
-        agora = "; ".join(sorted({onde(l) for l in lugares})) or "**SEM DESTINO**"
+        agora = "; ".join(sorted({onde(l) for l in lugares})) or ("fora da tela" if ident in ACAO_FORA_DA_TELA else "**SEM DESTINO**")
         nome = "; ".join(sorted({l["rotulo"] for l in lugares}))
         linhas.append("| `%s` | %s · «%s» | %s | %s |" % (ident, grupo or "—", rotulo, agora, nome))
 
