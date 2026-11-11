@@ -62,7 +62,7 @@ Spotify (spicetify)	spicetify|config-xpui
 compositor	cosmic-comp
 terminal	CosmicTerm
 tela de login	cosmic-greeter
-fontes	fc-cache|share/fonts
+fontes	fc-cache|share/fonts|mono_font|monospace_font|interface_font
 tema GTK	gtk-theme|gtk-[34][.]0/gtk[.]css
 sons	sound-theme|share/sounds
 prompt	starship[.]toml

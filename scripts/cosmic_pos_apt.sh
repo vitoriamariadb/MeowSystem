@@ -13,6 +13,8 @@ PA_RUSTUP="${PA_RUSTUP:-rustup}"
 PA_ORACULO="${PA_ORACULO:-$MEOW_RAIZ/scripts/oraculo_tema.sh}"
 PA_CANDIDATO="${PA_CANDIDATO:-$MEOW_ESTADO/cosmic-candidato.tsv}"
 PA_SOM="${PA_SOM:-$MEOW_RAIZ/scripts/som.sh}"
+PA_CONTRATO="${PA_CONTRATO:-$MEOW_RAIZ/assets/contratos/cosmic.tsv}"
+PA_BUSCAR="${PA_BUSCAR:-_pa_buscar_no_github}"
 
 PA_CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
 case ":$PATH:" in
@@ -41,10 +43,38 @@ _pa_guardas() {
   return 0
 }
 
+_pa_buscar_no_github() {
+  curl -sfL --max-time 20 "https://raw.githubusercontent.com/pop-os/libcosmic/$1/$2" 2>/dev/null
+}
+
+_pa_casas_mudaram() {
+  local rev tipo arq hash ref quem atual mudou=1 baixado
+  baixado="$(mktemp)" || return 1
+  rev="$("$PA_ORACULO" revisao 2>/dev/null)" || { rm -f "$baixado"; return 1; }
+  [ -n "$rev" ] || { rm -f "$baixado"; return 1; }
+  while IFS=$'\t' read -r tipo arq hash ref quem; do
+    [ "$tipo" = "casa" ] || continue
+    "$PA_BUSCAR" "$rev" "$arq" > "$baixado" 2>/dev/null
+    [ -s "$baixado" ] || continue
+    atual="$(sha256sum < "$baixado" | cut -d' ' -f1)"
+    [ "$atual" = "$hash" ] && continue
+    meow_info "${arq##*/} mudou no libcosmic ${rev:0:7}: o tema de ícones e as fontes podem ter outra casa"
+    mudou=0
+  done < <(grep -v '^#' "$PA_CONTRATO")
+  rm -f "$baixado"
+  return "$mudou"
+}
+
 passo_cosmic_settings() {
   meow_seco && { meow_muda "conferiria a derivação do tema do cosmic-settings $1 (e compilaria o oráculo se ela mudou)"; return 0; }
   "$PA_ORACULO" construir
-  case $? in 0|1|3) return 0 ;; *) return 1 ;; esac
+  case $? in 0|1|3) ;; *) return 1 ;; esac
+  if _pa_casas_mudaram; then
+    meow_info "refazendo as etapas de ícone e fonte"
+    "$PA_DOCTOR" icones reconstruir >/dev/null 2>&1
+    "$PA_DOCTOR" fontes aplicar >/dev/null 2>&1
+  fi
+  return 0
 }
 
 passo_sons() {
