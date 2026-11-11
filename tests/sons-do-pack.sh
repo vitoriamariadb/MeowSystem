@@ -50,11 +50,11 @@ t="$(som dracula dracula env SOM_FUNDAMENTAL=500 bash "$RAIZ/scripts/som.sh" tim
 confere "trocou de pack: o ajuste do outro pack não vem junto" '[ "$(printf "%s\n" "$t" | sed -n s/^SOM_FUNDAMENTAL=//p)" != "500" ]' "$t"
 rm -f "$ESTADO/som-do-pack"
 
-printf '\n--- 2. um sino só: a prévia, o controle e o Regravar geram os mesmos bytes ---\n'
+printf '\n--- 2. um sino só: a prévia, o controle e o «Gerar Sons» geram os mesmos bytes ---\n'
 conf_do_som meowsystem mocha aplicar >"$T/aplicar.txt" 2>&1
 BELL="$CASA/.local/share/sounds/freedesktop/stereo/audio-volume-change.oga"
 conf_do_som meowsystem mocha gerar "$T/previa.wav" >/dev/null 2>&1
-confere "o que o painel toca (gerar) é byte a byte o que o Regravar grava" 'cmp -s "$T/previa.wav" "$BELL"'
+confere "o que o painel toca (gerar) é byte a byte o que o «Gerar Sons» grava" 'cmp -s "$T/previa.wav" "$BELL"'
 t5="SOM_FUNDAMENTAL=520 SOM_HARMONICO=780 SOM_DECAIMENTO=60"
 conf_do_som meowsystem mocha gerar "$T/previa2.wav" $t5 >/dev/null 2>&1
 printf 'meowsystem\n' > "$ESTADO/som-do-pack"

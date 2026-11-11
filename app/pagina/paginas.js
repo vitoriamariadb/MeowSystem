@@ -725,7 +725,7 @@ function linhaDeSom(s, pack, semTrocar) {
     "data-origem": s.origem, texto: s.origem === "pack" ? "Do pack" : "Do sistema" });
   return elemento("li", { "data-som": s.evento, class: semPonte ? "sem-ponte" : null, "data-ponte": s.ponte ? "" : null }, [
     tocar,
-    elemento("span", { class: "som-nome" }, [elemento("b", { texto: s.nome }), elemento("small", { texto: s.quando })]),
+    elemento("span", { class: "som-nome" }, [elemento("b", { texto: s.nome }), elemento("small", { texto: s.apelido ? `${s.quando} · ${s.apelido}` : s.quando })]),
     elemento("span", {}, [origem, semPonte ? elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem permissão de sistema" }) : null]),
     botao("Trocar", { class: "bt leve pequeno", controle: "som:trocar", icone: "trocar",
       dica: semTrocar || "Um .oga no lugar deste",
@@ -741,7 +741,7 @@ function sonsDoSistema() {
   const semTrocar = !pack || !LEVA || LEVA.carregando ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
   if (!pronto) return [bloco("Nativo do COSMIC", [elemento("div", { class: "esqueleto fio" })], { class: "fora-erro" })];
   if (SONS.erro) return [bloco("Nativo do COSMIC", [elemento("div", { class: "corpo", texto: "Os sons não abriram" })])];
-  const grupos = [["cosmic", "Nativo do COSMIC"], ["apps", "Toca nos apps"]];
+  const grupos = [["cosmic", "Nativo do COSMIC"], ["apps", null]];
   const saida = [];
   if (!ESQUEMA.ponte) {
     saida.push(elemento("section", { class: "bloco tracejado", "data-bloco": "ponte" }, [
@@ -759,6 +759,38 @@ function sonsDoSistema() {
   }
   return saida;
 }
+let SINO_NOME = "";
+let SINO_DESTINO = "audio-volume-change";
+function gravarSino() {
+  const pack = packDoRascunho();
+  const semGravar = !pack ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
+  const eventos = [{ evento: "audio-volume-change", nome: "Volume" }, ...((SONS && SONS.eventos) || [])];
+  const nome = elemento("input", { type: "text", class: "campo", value: SINO_NOME, maxlength: "48",
+    placeholder: "Nome do som", "aria-label": "Nome do som", controle: "sino:nome" });
+  const destino = elemento("select", { class: "campo", "aria-label": "Evento que toca este som", controle: "sino:evento" },
+    eventos.map((e) => elemento("option", { value: e.evento, texto: e.nome, selected: e.evento === SINO_DESTINO ? "" : null })));
+  const gravar = botao("Gerar Sons", { class: "bt principal", icone: "tocar", controle: "sino:gravar",
+    disabled: !!semGravar || !SINO_NOME.trim(), "aria-disabled": semGravar || !SINO_NOME.trim() ? "true" : null,
+    dica: semGravar || (SINO_NOME.trim() ? "Grava o sino no tema, no evento escolhido" : "Dê um nome ao som"),
+    onclick: async () => {
+      const corpo = { id: pack.id, tipo: "sino", nome: SINO_NOME.trim(), evento: SINO_DESTINO, aprimorar: !emNovo(),
+        timbre: Object.fromEntries(CHAVES_DO_SINO.map((c) => [c, vale(c)])) };
+      const r = await api("/api/criar", { method: "POST", body: JSON.stringify(corpo) });
+      if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+      torrada(`${SINO_NOME.trim()}: gravado`, "ok");
+      SINO_NOME = "";
+      await carregarSons(pack.id);
+      if (corpo.evento === "audio-volume-change") await rodarAcao("som_aplicar");
+    } });
+  nome.addEventListener("input", () => {
+    SINO_NOME = nome.value;
+    const vazio = !SINO_NOME.trim();
+    gravar.disabled = !!semGravar || vazio;
+    gravar.setAttribute("aria-disabled", String(!!semGravar || vazio));
+  });
+  destino.addEventListener("change", () => { SINO_DESTINO = destino.value; });
+  return elemento("div", { class: "corpo fila", "data-sino-gravar": "" }, [nome, destino, gravar]);
+}
 function passoSons() {
   const p = PASSOS.find((x) => x.id === "sons");
   const tocou = CHAVES_DO_SINO.some((c) => CHAVE.get(c) && CHAVE.get(c).valor);
@@ -769,7 +801,7 @@ function passoSons() {
     elemento("span", { class: "estado-pilula", "data-estado": tocou ? "neutro" : "ok", "data-origem-sino": "",
       texto: tocou ? "Trocado" : "Do pack" }),
   ]);
-  return [bloco("Sino do volume", [sino, lista(p.linhas)]), ...sonsDoSistema()];
+  return [bloco("Sino do volume", [sino, gravarSino(), lista(p.linhas)]), ...sonsDoSistema()];
 }
 function linhaDoResumo(rotulo, valor, miolo) {
   return elemento("li", { class: "linha", "data-resumo": rotulo }, [

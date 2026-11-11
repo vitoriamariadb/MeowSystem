@@ -1548,6 +1548,27 @@ _SOM_TIMBRE_DE_FABRICA = {"SOM_FUNDAMENTAL": "880.0", "SOM_HARMONICO": "1320.0",
 _SOM_CARIMBO = os.path.join(ESTADO, "som-do-pack")
 
 
+def _pares_do_sino(valores):
+    esquema = {i["chave"]: i for i in ler_esquema()}
+    pares = []
+    for chave in _SOM_TIMBRE_DE_FABRICA:
+        valor = str(valores.get(chave, ""))
+        if valor == "":
+            continue
+        queixa = validar_valor(esquema[chave], valor) if chave in esquema else "fora do meow.conf.exemplo"
+        if queixa:
+            return None, "%s: %s" % (chave, queixa)
+        pares.append("%s=%s" % (chave, valor))
+    return pares, ""
+
+
+def _sino_wav(pares, destino):
+    feito = subprocess.run(
+        ["bash", os.path.join(RAIZ, "scripts", "som.sh"), "gerar", destino, *pares],
+        capture_output=True, timeout=20, env=_ambiente_do_painel())
+    return feito.returncode == 0 and os.path.isfile(destino)
+
+
 @_uma_vez_por_leitura
 def _som_do_pack_ativo():
     mod = modulo_pack()
@@ -5780,22 +5801,12 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/sino":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
-            pares = []
-            esquema = {i["chave"]: i for i in ler_esquema()}
-            for chave in _SOM_TIMBRE_DE_FABRICA:
-                valor = consulta.get(chave, [""])[0]
-                if valor == "":
-                    continue
-                queixa = validar_valor(esquema[chave], valor) if chave in esquema else "fora do meow.conf.exemplo"
-                if queixa:
-                    return self._recusar(400, "%s: %s" % (chave, queixa))
-                pares.append("%s=%s" % (chave, valor))
+            pares, queixa = _pares_do_sino({c: consulta.get(c, [""])[0] for c in _SOM_TIMBRE_DE_FABRICA})
+            if queixa:
+                return self._recusar(400, queixa)
             with tempfile.TemporaryDirectory(prefix="meow-sino-") as pasta:
                 destino = os.path.join(pasta, "sino.wav")
-                feito = subprocess.run(
-                    ["bash", os.path.join(RAIZ, "scripts", "som.sh"), "gerar", destino, *pares],
-                    capture_output=True, timeout=20, env=_ambiente_do_painel())
-                if feito.returncode != 0 or not os.path.isfile(destino):
+                if not _sino_wav(pares, destino):
                     return self._recusar(500, "não consegui gerar o sino")
                 with open(destino, "rb") as fh:
                     return self._responder(fh.read(), tipo="audio/wav")
@@ -8142,7 +8153,9 @@ class Manipulador(BaseHTTPRequestHandler):
         ident = consulta.get("id", [""])[0] or _pack_adotado()
         dir_pack = mod.achar(ident) if ident in _packs_no_disco() else None
         do_pack = {e for _c, e, _a in mod.sons_do_pack(dir_pack)} if dir_pack else set()
-        eventos = [dict(s, origem="pack" if s["evento"] in do_pack else "sistema")
+        apelidos = mod.nomes_dos_sons(dir_pack) if dir_pack else {}
+        eventos = [dict(s, origem="pack" if s["evento"] in do_pack else "sistema",
+                        apelido=apelidos.get(s["evento"], ""))
                    for s in catalogo]
         return self._json({"pack": ident, "eventos": eventos})
 
@@ -8294,6 +8307,24 @@ class Manipulador(BaseHTTPRequestHandler):
                     with open(caminho, "wb") as fh:
                         fh.write(dados)
                     feito = mod.levar_som(ident, caminho, nome)
+            elif tipo == "sino":
+                evento = str(corpo.get("evento", ""))
+                pares, queixa = _pares_do_sino(corpo.get("timbre") if isinstance(corpo.get("timbre"), dict) else {})
+                if queixa:
+                    return self._json({"erro": queixa}, 400)
+                ffmpeg = shutil.which("ffmpeg")
+                if not ffmpeg:
+                    return self._json({"erro": "Falta o ffmpeg para gravar o som no tema"}, 409)
+                with tempfile.TemporaryDirectory(prefix="meow-sino-") as pasta:
+                    wav, ogg = os.path.join(pasta, "sino.wav"), os.path.join(pasta, "sino.oga")
+                    if not _sino_wav(pares, wav):
+                        return self._json({"erro": "não consegui gerar o sino"}, 500)
+                    feito = subprocess.run([ffmpeg, "-y", "-loglevel", "error", "-i", wav, "-c:a", "libvorbis",
+                                            "-f", "ogg", ogg], capture_output=True, timeout=30)
+                    if feito.returncode != 0 or not os.path.isfile(ogg):
+                        return self._json({"erro": "não consegui converter o sino em Ogg"}, 500)
+                    feito = mod.levar_som(ident, ogg, evento)
+                mod.nomear_som(ident, evento, nome)
             elif tipo == "sons":
                 de = str(corpo.get("de", ""))
                 if de not in _packs_no_disco():

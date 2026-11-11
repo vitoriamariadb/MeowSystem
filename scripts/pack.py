@@ -4529,6 +4529,34 @@ def levar_sons_de(ident, ref):
     return len(sons)
 
 
+NOMES_DE_SOM = PASTA_SONS + "nomes.json"
+
+
+def nomes_dos_sons(dir_pack):
+    alvo = os.path.join(dir_pack, NOMES_DE_SOM)
+    try:
+        if os.path.islink(alvo):
+            return {}
+        with open(alvo, encoding="utf-8") as fh:
+            dados = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return {e: n for e, n in dados.items() if isinstance(e, str) and isinstance(n, str)} if isinstance(dados, dict) else {}
+
+
+def nomear_som(ident, evento, nome):
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(isinstance(evento, str) and RE_EVENTO.match(evento), f"{evento!r}: evento que não serve")
+    limpo = re.sub(r"[\x00-\x1f]", "", str(nome or "")).strip()[:48]
+    nomes = nomes_dos_sons(dir_pack)
+    if limpo:
+        nomes[evento] = limpo
+    else:
+        nomes.pop(evento, None)
+    _gravar_no_pack(dir_pack, NOMES_DE_SOM, (json.dumps(nomes, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+    return limpo
+
+
 def levar_som(ident, caminho, evento):
     dir_pack = pack_da_pessoa(ident)
     _exigir(isinstance(evento, str) and RE_EVENTO.match(evento), f"{evento!r}: evento que não serve")

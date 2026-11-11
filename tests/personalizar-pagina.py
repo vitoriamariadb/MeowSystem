@@ -156,6 +156,34 @@ def p187(pag):
     confere(True, "som que falha vira aviso curto, sem ficar mudo")
 
 
+def p188(pag):
+    ir(pag, "criar/sons")
+    nomes_do_grupo = pag.evaluate("() => [...document.querySelectorAll('#conteudo h2')].map((h) => h.textContent.trim())")
+    confere("Nativo do COSMIC" in nomes_do_grupo and not any("Toca no" in n for n in nomes_do_grupo),
+            f"o grupo se chama «Nativo do COSMIC» e «Toca no» não aparece ({nomes_do_grupo})")
+    confere(pag.locator('[data-controle="acao:som_aplicar"]').count() == 0, "a linha «Regravar o som» saiu")
+    destino = pag.locator('[data-controle="sino:evento"]')
+    confere(destino.input_value() == "audio-volume-change", "o destino padrão do sino é o volume")
+    gravar = pag.locator('[data-controle="sino:gravar"]')
+    confere(gravar.get_attribute("aria-disabled") == "true", "sem nome, «Gerar Sons» fica desabilitado")
+    pag.locator('[data-controle="sino:nome"]').fill("Sino da Vitória")
+    confere(gravar.get_attribute("aria-disabled") == "false", "com nome, «Gerar Sons» habilita")
+    destino.select_option("message-new-instant")
+    arq = os.path.join(casa.RAIZ_B, "packs", "dracula", "sons", "stereo", "notification", "message-new-instant.oga")
+    antes = open(arq, "rb").read()
+    gravar.click()
+    pag.wait_for_selector("#torradas .torrada.ok", timeout=60000)
+    pag.wait_for_timeout(1500)
+    depois = open(arq, "rb").read()
+    confere(depois.startswith(b"OggS") and depois != antes, "o sino vira sons/stereo/notification/message-new-instant.oga, em Ogg")
+    nomes = os.path.join(casa.RAIZ_B, "packs", "dracula", "sons", "nomes.json")
+    confere(os.path.isfile(nomes) and "Sino da Vitória" in open(nomes, encoding="utf-8").read(), "e o nome escolhido fica no pack")
+    linha = pag.locator('li[data-som="message-new-instant"]')
+    confere("Sino da Vitória" in linha.inner_text() and "Do pack" in linha.inner_text(),
+            "a linha do evento mostra o nome e «Do pack»", linha.inner_text())
+    foto(pag, "p188-sino.png")
+
+
 def main():
     ambiente = casa.montar_casa()
     pack_dracula_no_ar()
@@ -178,6 +206,7 @@ def main():
             p185(pag)
             p186(pag, svg)
             p187(pag)
+            p188(pag)
             confere(not erros, "nenhum erro de página nem diálogo nativo", erros)
             nav.close()
     finally:

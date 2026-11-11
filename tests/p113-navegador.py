@@ -46,7 +46,7 @@ def sons(pag, url):
           "a página Sons lista os sons do sistema por nome legível (%d)" % len(nomes))
     prova(all(quando) and "O carregador entra" in quando, "cada som diz quando toca")
     prova(pag.locator("h2", has_text="Nativo do COSMIC").count() == 1
-          and pag.locator("h2", has_text="Toca nos apps").count() == 1, "dois blocos: COSMIC e apps")
+          and pag.locator("h2", has_text="Toca nos apps").count() == 0, "o bloco dos apps não leva título")
     prova(pag.locator(".sons li[data-som] [data-origem]").count() == len(nomes), "cada som mostra de onde vem")
     prova(pag.locator(".sons li[data-som='power-plug'] [data-controle='som:trocar']").count() == 1, "cada som tem o Trocar")
     pag.evaluate("() => { ESQUEMA.ponte = false; render(); }")
@@ -63,7 +63,8 @@ def sons(pag, url):
     q = pag.evaluate("() => urlDoSino()")
     corpo_previa = bytes(pag.evaluate("async (q) => Array.from(new Uint8Array(await (await fetch(q)).arrayBuffer()))", q))
     prova(corpo_previa[:4] == b"RIFF", "a prévia do sino vem do gerador do som.sh (WAV)")
-    pag.click("[data-controle='acao:som_aplicar']")
+    pag.fill("[data-controle='sino:nome']", "Sino de teste")
+    pag.click("[data-controle='sino:gravar']")
     destino = os.path.join(casa.CASA, ".local", "share", "sounds", "freedesktop", "stereo", "audio-volume-change.oga")
     for _ in range(60):
         if os.path.isfile(destino) and os.path.getmtime(destino) > tempo:
