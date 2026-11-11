@@ -51,12 +51,13 @@ Quem aplica:
 
 | bloco | worktree | branch | agentes |
 | --- | --- | --- | --- |
-| A personalizar | `~/Desenvolvimento/.meow-wt-personalizar` | `bloco/personalizar` | P185–P188 + as linhas «sai» do A: um implementa, outro confere e corrige |
+| C+D código | `~/Desenvolvimento/.meow-wt-telas` | `bloco/fecho-telas` | P192, P193, P197, P198, linhas «sai» de C e D, maquetes da P196: um implementa, outro confere e corrige |
 
 ## Próximo passo
 
 11/11: B integrado no master (235d7fec, conferente APROVADO, suíte 149/150) e P199 (o `restaurar.sh` verde de novo,
-f60a4c11). B2 (P200) integrado em 11fb4bb7, suíte 151/151. Em voo: A. Próxima conversa com quem usa: os 85
+f60a4c11). B2 (P200) integrado em 11fb4bb7, suíte 151/151. A integrado em 47a097b3; suíte do master com A+B2: 153/153. Em voo: C+D código.
+Revisão com quem usa: https://claude.ai/artifact/QAMczhuH14p61bmUqDww6v (85 nomes do Verificar + 4 perguntas; ler com ArtifactData, coleção `respostas`). Próxima conversa com quem usa: os 85
 nomes curtos do «Verificar o sistema» (`NOME_DA_CONFERENCIA` no `servidor.py`) e a P201. Quando cada conferente voltar: integrar no master; depois C e D juntos.
 Vermelho antigo não se aceita: vira sprint e conserto. Suíte longa de agente: o agente espera em primeiro plano,
 em pedaços de até 9 min, nunca encerra o turno «esperando».
