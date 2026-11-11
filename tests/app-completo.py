@@ -535,7 +535,7 @@ EXTRAS = {
     "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "desenho:*", "autoral:*", "acervo:icone", "trocar:desenho",
                      "acervo:filtro", "icones:aba=*"],
     "criar/papel": ["galeria:*", "papel:*", "acervo:parede"],
-    "criar/sons": ["criar:sino", "som:ouvir", "som:trocar", "som:ponte"],
+    "criar/sons": ["criar:sino", "som:ouvir", "som:trocar", "som:ponte", "sino:*"],
     "criar/mandar": ["criar:aprimorar"],
     "novo/*": ["criar:nome", "passo:*", "criar:voltar", "criar:proximo"],
     "novo/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
