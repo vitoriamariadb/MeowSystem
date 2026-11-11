@@ -120,7 +120,9 @@ def main():
             checa(botao.count() == 1 and botao.is_enabled(), "Liberar está ativo")
             preco = pag.locator("[data-preco]").inner_text()
             esperado_mb = round(dados["liberavel"] / 2 ** 20)
-            checa(f"{esperado_mb} MB" in preco and "~14 min" in preco, f"o preço diz o que sai e quanto leva refazer ({preco})")
+            checa(f"{esperado_mb} MB" in preco and "recompila em ~14 min" in preco, f"o preço diz o que sai e quanto leva refazer ({preco})")
+            checa(botao.inner_text().startswith("Apagar arquivos recriáveis") and "Liberar" not in botao.inner_text(),
+                  f"o botão diz o que apaga, não «Liberar» ({botao.inner_text()!r})")
             checa(pag.locator(".espaco-acao").get_attribute("data-dica").count("min") >= 1, "e a dica do botão explica o custo")
             if FOTOS:
                 pag.screenshot(path=os.path.join(FOTOS, "espaco.png"))

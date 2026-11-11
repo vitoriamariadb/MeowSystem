@@ -61,6 +61,7 @@ RENOMEADAS = {"WALLPAPER_FONTES_DELA": "WALLPAPER_FONTES_PERMITIDAS"}
 
 APOSENTADAS = {
     "ICONES_BASE": "a base de ícones vem do pack, pinada, por decisão de 24/09/2026",
+    "ASSETS_VIGIA": "o mascote novo sempre entra na hora, resposta de 10/11/2026",
 }
 
 BLOCOS_APOSENTADOS = {
@@ -85,6 +86,20 @@ BLOCOS_APOSENTADOS = {
 #   arquivo. O preço: com um pack assim no ar, o `Papirus-Dark` não se escolhe
 #   por aqui, porque escrevê-lo é o mesmo que deixar a chave de fábrica. A regra
 #   inteira está em docs/PACKS.md, "A base de ícones".""",
+    "ASSETS_VIGIA": """# @ Mascote novo entra na hora
+# > Sem esperar o relógio: solte o .svg na pasta e ele aparece.
+# O mascote solto em `packs/meowsystem/mascote/` entra NA HORA, sem esperar o relógio?
+#   Com "sim", o par `meow-assets.path`/`meow-assets.service` vigia a pasta por
+#   inotify: soltou um SVG, ele vai para o disco e entra na rotação; apagou, sai.
+#   Sem isso, a mudança só chega na volta seguinte do `meow-logo.timer` — que
+#   com LOGO_INTERVALO="1d" é um dia inteiro de espera para descobrir se o
+#   arquivo entrou.
+#
+#   O vigia NÃO gira o mascote: acrescentar um arquivo não muda qual está no ar. Quem
+#   gira é o relógio, um por dia, que é a escolha de fábrica.
+#
+#   E ele é do MeowSystem, não do self-heal do Ritual da Aurora: aquele é de outro
+#   projeto e pode ser desligado, e o recurso morreria junto sem dizer por quê.""",
 }
 
 

@@ -20,8 +20,6 @@ DESTINO="$HOME/.config/systemd/user"
 UNIDADES=(meow-assets.service meow-assets.path)
 GATILHO="meow-assets.path"
 
-VIGIA="${ASSETS_VIGIA:-sim}"
-
 CONFERIR=0
 case "${1:-}" in
   --conferir) CONFERIR=1 ;;
@@ -51,25 +49,6 @@ _tem_systemd() {
 _ligado() {
   [ "$(systemctl --user is-enabled "$GATILHO" 2>/dev/null)" = "enabled" ] &&
   [ "$(systemctl --user is-active  "$GATILHO" 2>/dev/null)" = "active" ]
-}
-
-_desligar() {
-  local u restos=0
-  for u in "${UNIDADES[@]}"; do [ -f "$DESTINO/$u" ] && restos=$((restos + 1)); done
-
-  if [ "$restos" = 0 ]; then
-    meow_pula "vigia do acervo desligado (ASSETS_VIGIA=\"$VIGIA\")"
-    return "$MEOW_OK"
-  fi
-  if [ "$CONFERIR" = 1 ]; then
-    meow_muda "ASSETS_VIGIA=\"$VIGIA\" mas o vigia continua instalado — removeria $restos unidade(s)"
-    return "$MEOW_DIVERGENTE"
-  fi
-  _tem_systemd && systemctl --user disable --now "$GATILHO" >/dev/null 2>&1
-  for u in "${UNIDADES[@]}"; do rm -f "$DESTINO/$u"; done
-  _tem_systemd && systemctl --user daemon-reload >/dev/null 2>&1
-  meow_muda "ASSETS_VIGIA=\"$VIGIA\" — vigia do acervo desligado e removido"
-  return "$MEOW_DIVERGENTE"
 }
 
 _pronto() {
@@ -180,7 +159,6 @@ main() {
     --unidade) _texto_de "${2:-$GATILHO}"; return $? ;;
     --disparo) _disparo; return $? ;;
   esac
-  [ "$VIGIA" = "sim" ] || { _desligar; return $?; }
   _pronto || return $?
   if [ "$CONFERIR" = 1 ]; then _conferir; else _aplicar; fi
 }

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manutenção, proposta B</title>
+<style>
+:root {
+  --base: #1e1e2e; --mantle: #181825; --crust: #11111b;
+  --surface0: #313244; --surface1: #45475a; --surface2: #585b70;
+  --text: #cdd6f4; --subtext1: #bac2de; --subtext0: #a6adc8; --mauve: #cba6f7;
+  --fundo: var(--base);
+  --cartao: color-mix(in oklab, var(--surface0) 42%, var(--base));
+  --linha: color-mix(in oklab, var(--surface1) 75%, var(--base));
+  --linha-forte: var(--surface2);
+  --tinta: var(--text); --tinta-2: var(--subtext1); --tinta-3: var(--subtext0);
+  --accent: var(--mauve);
+  --sobre-accent: var(--crust);
+  --accent-suave: color-mix(in oklab, var(--accent) 15%, var(--fundo));
+  --f-corpo: "Fira Sans", system-ui, sans-serif;
+  --t-xs: .75rem; --t-sm: .8125rem; --t-md: .9375rem; --t-lg: 1.125rem; --t-xl: 1.5rem;
+  --e-1: 4px; --e-2: 8px; --e-3: 12px; --e-4: 16px; --e-5: 20px; --e-6: 24px; --e-8: 32px;
+  --raio-md: 12px; --raio-lg: 16px; --raio-pilula: 999px;
+  --h-bt: 40px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+body { margin: 0; background: var(--fundo); color: var(--tinta); font: 400 var(--t-md)/1.5 var(--f-corpo); padding: var(--e-8) var(--e-4); }
+main { max-width: 1100px; margin: 0 auto; }
+h1, h2 { margin: 0; font-weight: 600; line-height: 1.15; letter-spacing: -.01em; overflow-wrap: anywhere; min-width: 0; }
+h1 { font-size: var(--t-xl); margin-bottom: var(--e-6); }
+h2 { font-size: var(--t-lg); }
+svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.icone { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--raio-md); background: var(--accent-suave); color: var(--accent); flex: none; }
+.bt { display: inline-flex; align-items: center; justify-content: center; gap: var(--e-2); height: var(--h-bt); padding: 0 var(--e-5); border-radius: var(--raio-pilula); border: 1px solid var(--linha-forte); background: transparent; color: var(--tinta); font: 600 var(--t-md) var(--f-corpo); cursor: pointer; white-space: nowrap; transition: background 120ms cubic-bezier(.2,.8,.2,1); }
+.bt:hover { background: var(--accent-suave); }
+.bt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bt.principal { background: var(--accent); border-color: var(--accent); color: var(--sobre-accent); }
+.bt.principal:hover { background: color-mix(in oklab, var(--accent) 85%, var(--text)); }
+
+.grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-3); }
+.grupo-nome { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--e-3); margin-top: var(--e-4); }
+.grupo-nome:first-child { margin-top: 0; }
+.grupo-nome h2 { font-size: var(--t-md); color: var(--tinta-2); }
+.grupo-nome::after { content: ""; flex: 1; height: 1px; background: var(--linha); }
+.bloco { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--e-4); min-height: 84px; padding: var(--e-4) var(--e-5); text-align: left; background: var(--cartao); border: 1px solid var(--linha); border-radius: var(--raio-lg); color: inherit; font: inherit; cursor: pointer; transition: border-color 120ms cubic-bezier(.2,.8,.2,1), background 120ms cubic-bezier(.2,.8,.2,1); }
+.bloco:hover { border-color: var(--accent); background: var(--accent-suave); }
+.bloco:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bloco b { font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 700px) { .grade { grid-template-columns: minmax(0, 1fr); } }
+</style></head><body><main>
+<h1>Manutenção</h1>
+<section class="grade" aria-label="Ações de manutenção">
+  <div class="grupo-nome"><h2>Exportar</h2></div>
+  <button class="bloco" title="Um .conf para a máquina nova"><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg></span><b>Exportar ajustes</b></button>
+  <button class="bloco"><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span><b>Importar ajustes</b></button>
+  <div class="grupo-nome"><h2>Atualizar</h2></div>
+  <button class="bloco" title="Atualiza apt, flatpak e cargo, e logo depois faz a conferência — que diz o que a atualização desfez do MeowSystem."><span class="icone"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5"/></svg></span><b>Atualizar a máquina</b></button>
+  <button class="bloco" title="Os pacotes com versão nova e os programas em Rust desatualizados."><span class="icone"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><b>O que muda</b></button>
+  <button class="bloco" title="Pacotes órfãos e os pacotes que o apt já baixou."><span class="icone"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span><b>Limpar as sobras</b></button>
+  <div class="grupo-nome" aria-hidden="true"></div>
+  <button class="bloco" title="Passa as 74 etapas."><span class="icone"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></span><b>Reinstalar o MeowSystem</b></button>
+</section>
+</main></body></html>

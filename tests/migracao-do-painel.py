@@ -33,7 +33,8 @@ GESTOS_DE_ANTES = [
     ("POST /api/parar", "Topo: Parar", "parar"),
 ]
 
-FORA_DA_TELA = {"LOG_NIVEL"}
+FORA_DA_TELA = {"LOG_NIVEL", "CURSOR_VERSAO", "JANELAS_TILING_ESCOPO", "WALLPAPER_FIXO_TTL",
+                "WALLPAPER_DRACULA_COMMIT"}
 ACAO_FORA_DA_TELA = {"som_ouvir", "som_aplicar"}
 
 

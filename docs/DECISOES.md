@@ -39,7 +39,7 @@ prova no código. O texto de antes de cada linha mora no histórico do git.
 | 31 | O Vesktop veste o Discord do pack; o traço do Firefox é `peach` | o azul é do Chrome |
 | 32 | `Hidden=true` nas bases de ícone; o tema exportado herda `Cosmic,Adwaita` antes do `hicolor` | especificação freedesktop |
 | 33 | Trocar de pack devolve ao lançador o que o pack anterior escondia; trocar de pack é um gesto só (`pack_usar`) | o pack decide |
-| 34 | Noite com uma ponta só é recusada na gravação; o valor vazio chama «Automático»; folga e encaixe sem áreas mostram 0 | um nome por valor; sim de 06/11: vale o que o painel mostra |
+| 34 | Noite com uma ponta só é recusada na gravação; o valor vazio chama «Automático», menos na faixa, que sempre vale e mostra o número que vale; folga e encaixe sem áreas mostram 0 | um nome por valor; sim de 06/11: vale o que o painel mostra; sim de 10/11 para a faixa: «todo slider desse jeito deixa ele ativo, sem precisar clicar pra ativar» |
 | 35 | Um `ICONES_DRACULA="nao"` escrito fica, sem migrar | é escolha |
 | 36 | O tema instalado continua `MeowSystem-Icons`; o exportado leva o nome do pack | é o nome que o COSMIC lê |
 | 37 | O pack traz os sons do sistema (`sons/`), e a página Sons lista cada um para ouvir e trocar; carregador e bateria vão para `/usr/share/sounds/Pop` pela ponte root, e o pós-apt os repõe; um `SOM_*` do `meow.conf` só vale para o pack em que ela o mexeu | pedido de 26/10 (QA final, Q1-04) |

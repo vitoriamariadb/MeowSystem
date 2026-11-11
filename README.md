@@ -62,7 +62,7 @@ instala sem perguntar. Para tirar: `/usr/share/meowsystem/install.sh --uninstall
 
 ## O painel
 
-`meow abrir`, ou o ícone MeowSystem no lançador. 132 ajustes e 68 ações em seis portas:
+`meow abrir`, ou o ícone MeowSystem no lançador. 131 ajustes e 68 ações em seis portas:
 
 <table>
 <tr>

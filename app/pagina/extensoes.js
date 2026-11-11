@@ -88,6 +88,8 @@ function botoesDoCartao(e, parado) {
     fila.push(b("Adicionar à barra", { icone: "mais", controle: "extensao:por:" + e.id },
       () => gestoDeExtensao("extensao_por_no_painel", e, "Adicionar à barra")));
   }
+  fila.push(b("Recompilar", { icone: "girar", controle: "extensao:refazer:" + e.id },
+    () => gestoDeExtensao("extensao_refazer", e, "Recompilar")));
   fila.push(remover);
   return fila;
 }
@@ -186,37 +188,11 @@ function previaDeExtensoes(lista) {
   return [previa, barra];
 }
 
-function linhaDeBuild({ rotulo, imagem, detalhes, estado, texto, botaoRefazer }) {
-  return elemento("li", { class: "linha" }, [
-    elemento("span", { class: "rot" }, [
-      imagem || elemento("span", { class: "lugar-applet" }, [icone("terminal")]),
-      elemento("span", { class: "duas" }, [elemento("b", { texto: rotulo }),
-        ...detalhes.filter(Boolean).map((d) => elemento("small", { texto: d }))]),
-    ]),
-    elemento("span", { class: "ctl" }, [
-      elemento("span", { class: "estado-pilula", "data-estado": estado, "data-pilula": true, texto }),
-      botaoRefazer,
-    ]),
-  ]);
-}
-
 function blocoDeBuilds(dados) {
   const b = dados.builds || {};
   const ocupado = dados.ocupado;
   const parado = !!ocupado || !!b.construindo;
   const daCasa = (dados.extensoes || []).filter((e) => !ehApplet(e));
-  const linhas = [
-    ...(dados.extensoes || []).filter(ehApplet).map((e) => {
-      const [es, te] = pilulaDeBuild(e, ocupado);
-      const onde = e.instalada ? "~/.local" : "fora do computador";
-      return linhaDeBuild({
-        rotulo: e.nome, imagem: iconeDaExtensao(e), estado: es, texto: te,
-        detalhes: [[e.versao, e.commit].filter(Boolean).join(" · ") + " · " + onde],
-        botaoRefazer: botao("Recompilar", { class: "bt pequeno", icone: "girar", disabled: parado,
-          controle: "build:extensao:" + e.id, onclick: () => gestoDeExtensao("extensao_refazer", e, "Recompilar") }),
-      });
-    }),
-  ];
   return elemento("section", { class: "bloco", "data-bloco": "Builds" }, [
     elemento("header", {}, [elemento("h2", { texto: "Builds" }),
       botao("Recompilar tudo", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "build:tudo",
@@ -224,15 +200,7 @@ function blocoDeBuilds(dados) {
           depois: depoisDoGesto }); } })]),
     daCasa.length ? elemento("div", { class: "grade-extensoes grade-builds" },
       daCasa.map((e) => cartaoDoBuildDaCasa(e, ocupado, b.construindo, b.remendos))) : null,
-    elemento("ul", { class: "linhas" }, linhas),
   ]);
-}
-
-function pilulaDeBuild(e, ocupado) {
-  if (ocupado && ocupado.id === e.id) return ["correndo", "Compilando"];
-  if (e.falhou) return ["erro", "Falhou"];
-  if (!e.instalada) return ["neutro", "Não instalada"];
-  return e.atualizacao ? ["ensaio", "Atualização"] : ["ok", "Em dia"];
 }
 
 function chaveDeBuilds(dados) {

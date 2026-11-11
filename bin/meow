@@ -903,7 +903,7 @@ chk_nomes() {
 }
 
 chk_assets() {
-  ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" "$RAIZ/scripts/vigia_assets.sh" --conferir 2>&1
+  "$RAIZ/scripts/vigia_assets.sh" --conferir 2>&1
 }
 
 _derivados_pior() {
@@ -1400,8 +1400,7 @@ fix_lancadorapt() {
   meow_aviso "a ponte não repôs o hook de apt"
   return "$MEOW_ERRO"
 }
-fix_assets()    { ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" \
-                    "$RAIZ/scripts/vigia_assets.sh" --aplicar 2>&1; }
+fix_assets()    { "$RAIZ/scripts/vigia_assets.sh" --aplicar 2>&1; }
 fix_derivados() { local r1 r2
                   MEOW_DERIVADOS_ESPERA=0 "$RAIZ/scripts/derivados.sh" --aplicar 2>&1; r1=$?
                   "$RAIZ/scripts/vigia_derivados.sh" --aplicar 2>&1; r2=$?

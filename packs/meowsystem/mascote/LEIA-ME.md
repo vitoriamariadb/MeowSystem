@@ -59,9 +59,6 @@ meow logo listar    # mostra o acervo e quem está no ar
 
 A troca da chave vale **na hora**, sem reiniciar o painel e sem piscar a tela.
 
-Para desligar o vigia: `ASSETS_VIGIA="nao"` no `meow.conf`. Aí o mascote novo volta
-a entrar só na volta do relógio.
-
 > **Hoje ela não muda pixel nenhum, e o motivo não é bug.** O mascote do painel é
 > desenhado pelo applet **Logo Menu** (`dev.cappsy`), que **não está montado em
 > barra nenhuma** nesta máquina. O `meow logo girar` troca a chave corretamente e
