@@ -382,6 +382,7 @@ select.campo { padding-right: var(--e-8); }
 .vinte-seis i { aspect-ratio: 1; border-radius: 6px; background: var(--c); }
 .sino { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--e-5); align-items: center; padding: var(--e-5) var(--e-6); border-bottom: 1px solid var(--linha); }
 .sino .tocar { width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--accent); color: var(--sobre-accent); display: grid; place-items: center; }
+.sino .tocar[data-tocando] { box-shadow: 0 0 0 3px var(--accent-linha); }
 .sino .tocar svg.i { width: 26px; height: 26px; fill: currentColor; }
 
 .grade-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--e-2); }

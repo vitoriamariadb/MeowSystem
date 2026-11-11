@@ -387,16 +387,27 @@ async function exportarPack(id) {
 }
 
 const CHAVES_DO_SINO = ["SOM_FUNDAMENTAL", "SOM_HARMONICO", "SOM_PESO_FUNDAMENTAL", "SOM_PESO_HARMONICO", "SOM_DECAIMENTO"];
-let SINO_TOCANDO = null;
 function urlDoSino() {
   const q = new URLSearchParams();
   for (const c of CHAVES_DO_SINO) { const v = vale(c); if (v !== "") q.set(c, v); }
   return "/sino?" + q.toString();
 }
-function tocarSino() {
-  if (SINO_TOCANDO) SINO_TOCANDO.pause();
-  SINO_TOCANDO = new Audio(urlDoSino());
-  SINO_TOCANDO.play().catch(() => { });
+let AUDIO_TOCANDO = null;
+function tocarAudio(url, botao) {
+  if (AUDIO_TOCANDO) AUDIO_TOCANDO.pause();
+  for (const x of document.querySelectorAll("[data-tocando]")) delete x.dataset.tocando;
+  const audio = new Audio(url);
+  AUDIO_TOCANDO = audio;
+  botao.dataset.tocando = "";
+  const parar = () => { if (AUDIO_TOCANDO === audio) delete botao.dataset.tocando; };
+  const falhou = () => { parar(); torrada("Não consegui tocar este som", "erro"); };
+  audio.addEventListener("ended", parar);
+  audio.addEventListener("pause", parar);
+  audio.addEventListener("error", falhou);
+  audio.play().catch(falhou);
+}
+function tocarSino(botao) {
+  tocarAudio(urlDoSino(), botao);
 }
 
 function passoCores() {
@@ -675,15 +686,8 @@ function nomeDoSom(evento) {
   const s = SONS && (SONS.eventos || []).find((x) => x.evento === evento);
   return s ? s.nome : maiuscula(evento.replace(/-/g, " "));
 }
-let SOM_TOCANDO = null;
 function ouvirSom(pack, evento, b) {
-  if (SOM_TOCANDO) SOM_TOCANDO.pause();
-  for (const x of document.querySelectorAll(".sons [data-tocando]")) delete x.dataset.tocando;
-  const audio = new Audio(`/som?pack=${encodeURIComponent(pack)}&evento=${encodeURIComponent(evento)}`);
-  SOM_TOCANDO = audio;
-  b.dataset.tocando = "";
-  audio.addEventListener("ended", () => { delete b.dataset.tocando; });
-  audio.play().catch(() => { delete b.dataset.tocando; });
+  tocarAudio(`/som?pack=${encodeURIComponent(pack)}&evento=${encodeURIComponent(evento)}`, b);
 }
 function trocarSom(evento) {
   const campo = elemento("input", { type: "file", accept: ".oga,.ogg,audio/ogg", hidden: true });
@@ -760,7 +764,7 @@ function passoSons() {
   const tocou = CHAVES_DO_SINO.some((c) => CHAVE.get(c) && CHAVE.get(c).valor);
   const sino = elemento("div", { class: "sino" }, [
     elemento("button", { type: "button", class: "tocar", "aria-label": "Tocar o sino", dica: "Tocar o sino",
-      controle: "criar:sino", onclick: tocarSino }, [icone("tocar")]),
+      controle: "criar:sino", onclick: (e) => tocarSino(e.currentTarget) }, [icone("tocar")]),
     envelopeDoSino(),
     elemento("span", { class: "estado-pilula", "data-estado": tocou ? "neutro" : "ok", "data-origem-sino": "",
       texto: tocou ? "Trocado" : "Do pack" }),

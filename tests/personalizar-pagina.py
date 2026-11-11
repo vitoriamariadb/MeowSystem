@@ -123,6 +123,39 @@ def p186(pag, svg):
             "num tema ainda não guardado, o cartão não finge: fica desabilitado com o motivo na dica")
 
 
+def p187(pag):
+    ir(pag, "criar/sons")
+    confere(pag.locator('[data-controle="acao:som_ouvir"]').count() == 0 and "Ouvir o instalado" not in pag.inner_text("#conteudo"),
+            "a linha «Ouvir o instalado» saiu da tela")
+    tipos = pag.evaluate("""async () => {
+      const saida = {};
+      for (const s of SONS.eventos.filter((x) => x.origem === 'pack')) {
+        const r = await fetch(`/som?pack=${SONS.pack}&evento=${s.evento}`);
+        saida[s.evento] = [r.status, r.headers.get('content-type'), (await r.arrayBuffer()).byteLength];
+      }
+      return saida;
+    }""")
+    ruins = {e: v for e, v in tipos.items() if v[0] != 200 or v[1] != "audio/ogg" or v[2] < 100}
+    confere(len(tipos) >= 10 and not ruins, f"o /som devolve audio/ogg para cada um dos {len(tipos)} eventos do pack", ruins)
+    pag.evaluate("""() => { window.__audio = []; const O = window.Audio;
+      window.Audio = function (u) { const a = new O(u);
+        for (const ev of ['playing', 'ended', 'error']) a.addEventListener(ev, () => window.__audio.push(ev));
+        return a; }; }""")
+    botao = pag.locator('[data-controle="som:ouvir"]:not([disabled])').first
+    botao.click()
+    pag.wait_for_timeout(300)
+    confere(botao.get_attribute("data-tocando") is not None, "enquanto toca, o botão do evento mostra o estado «tocando»")
+    pag.wait_for_function("() => window.__audio.includes('ended')", timeout=20000)
+    confere("error" not in pag.evaluate("() => window.__audio") and botao.get_attribute("data-tocando") is None,
+            "o som termina com ended e o botão volta ao parado")
+    confere(not pag.evaluate("() => !!document.querySelector('dialog[open]')"),
+            "tocar não abre diálogo")
+    pag.evaluate("() => { const O = window.Audio; window.Audio = function (u) { return new O('/som?pack=dracula&evento=nao-existe'); }; }")
+    pag.locator('[data-controle="som:ouvir"]:not([disabled])').nth(1).click()
+    pag.wait_for_selector("#torradas .torrada.erro", timeout=10000)
+    confere(True, "som que falha vira aviso curto, sem ficar mudo")
+
+
 def main():
     ambiente = casa.montar_casa()
     pack_dracula_no_ar()
@@ -144,6 +177,7 @@ def main():
             esperar(pag, 800)
             p185(pag)
             p186(pag, svg)
+            p187(pag)
             confere(not erros, "nenhum erro de página nem diálogo nativo", erros)
             nav.close()
     finally:
