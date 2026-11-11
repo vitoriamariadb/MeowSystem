@@ -161,6 +161,34 @@ if [ "$ACAO" = "listar" ]; then
 
   _j="$(meow_noite_janela)"
   _ini="${_j%% *}"; _fim="${_j#* }"; _fim="${_fim%% *}"
+  _em_uso=""
+  for i in "${!NOMES[@]}"; do
+    _esta_no_dock "$i" && { _em_uso="${NOMES[$i]}"; break; }
+  done
+  _todos=""; _sep=""
+  for i in "${!NOMES[@]}"; do _todos="$_todos$_sep${NOMES[$i]^}"; _sep=", "; done
+  if [ -n "$_em_uso" ]; then
+    meow_frase "O mascote no ar agora é ${_em_uso^}."
+  else
+    meow_frase "Nenhum mascote do acervo está no ar agora."
+  fi
+  if [ "${#NOMES[@]}" -eq 1 ]; then
+    meow_frase "O acervo tem 1 mascote: $_todos."
+  else
+    meow_frase "O acervo tem ${#NOMES[@]} mascotes: $_todos."
+  fi
+  case "$LOGO_MODO" in
+    hora)    meow_frase "O mascote troca com a hora: ${LOGO_DIA^} de dia e ${LOGO_NOITE^} de noite. Agora é $(meow_fase_da_hora "$_ini" "$_fim")." ;;
+    rotacao) _iv="${LOGO_INTERVALO:-1d}"; _n="${_iv%[smhd]}"
+             case "${_iv#"$_n"}" in
+               d) _un="dia"; [ "$_n" = "1" ] || _un="dias" ;;
+               h) _un="hora"; [ "$_n" = "1" ] || _un="horas" ;;
+               m) _un="minuto"; [ "$_n" = "1" ] || _un="minutos" ;;
+               *) _un="segundos" ;;
+             esac
+             meow_frase "O mascote gira sozinho a cada $_n $_un, quando a sessão encerra." ;;
+    *)       meow_frase "O mascote escolhido, ${LOGO^}, vale sempre, sem trocar." ;;
+  esac
   printf '\n  modo    : %s' "$LOGO_MODO"
   case "$LOGO_MODO" in
     hora)    printf '  (dia=%s · noite=%s)\n' "$LOGO_DIA" "$LOGO_NOITE" ;;

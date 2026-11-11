@@ -169,15 +169,8 @@ def ir(pag, rota):
 
 
 def fim_do_trabalho(pag, fechar=True):
-    pag.wait_for_function("() => document.getElementById('resultado').open", timeout=30000)
-    pag.wait_for_function("() => !TRABALHO || !TRABALHO.timer", timeout=180000)
-    pag.wait_for_timeout(300)
-    estado = pag.evaluate("() => document.getElementById('resultado-estado').dataset.estado")
-    if estado != "ok":
-        print("      registro: " + pag.locator("#saida").text_content().strip().replace("\n", "\n      "))
+    estado = casa.fim_do_trabalho(pag)
     if fechar:
-        pag.locator("#resultado-ok").click()
-        pag.wait_for_function("() => !document.getElementById('resultado').open")
         pag.wait_for_function("() => !EXT.pedindo", timeout=30000)
         pag.wait_for_timeout(500)
     return estado
@@ -294,11 +287,11 @@ def main():
             checa(os.path.isfile(os.path.join(casa.CASA, ".local", "bin", "meowsystem-casa-um")), "o binário está na casa")
             checa("casa-um" in (conf("EXTENSOES") or "").split(","), f"o EXTENSOES ganha o id ({conf('EXTENSOES')!r})")
             checa(eventual(lambda: pilula(pag, "casa-um") == "Instalada, fora da barra"), f"o cartão diz «{pilula(pag, 'casa-um')}»")
-            checa(eventual(lambda: botoes(pag, "casa-um") == ["Pôr no painel", "Remover Casa Um"]), f"e oferece pôr e remover ({botoes(pag, 'casa-um')})")
+            checa(eventual(lambda: botoes(pag, "casa-um") == ["Adicionar à barra", "Recompilar", "Remover Casa Um"]), f"e oferece pôr e remover ({botoes(pag, 'casa-um')})")
 
             print("3. pôr no painel acrescenta no fim, sem mexer na ordem do resto")
             antes = asas()
-            cartao(pag, "casa-um").get_by_role("button", name="Pôr no painel").click()
+            cartao(pag, "casa-um").get_by_role("button", name="Adicionar à barra").click()
             fim_do_trabalho(pag)
             depois = asas()
             checa(depois == antes + ["io.github.teste.CasaUm"], f"o applet entra no fim da ala direita ({depois})")
@@ -347,7 +340,7 @@ def main():
             fim_do_trabalho(pag)
             checa(eventual(lambda: pilula(pag, "casa-um") == "Na barra"), f"depois de atualizar volta a «{pilula(pag, 'casa-um')}»")
 
-            print("6. falha de compilação: o cartão mostra o registro e oferece tentar de novo")
+            print("6. falha de compilação: o cartão não mostra registro e oferece tentar de novo")
             cartao(pag, "casa-tres").get_by_role("button", name="Remover Casa Três").click()
             confirmar(pag)
             fim_do_trabalho(pag)
@@ -358,12 +351,11 @@ def main():
             estado = fim_do_trabalho(pag)
             checa(estado == "erro", f"o trabalho termina em erro ({estado})")
             checa(eventual(lambda: pilula(pag, "casa-tres") == "Falhou"), f"o cartão diz «{pilula(pag, 'casa-tres')}»")
-            checa("linker" in cartao(pag, "casa-tres").locator(".registro").inner_text() or
-                  "linker" in cartao(pag, "casa-tres").locator(".registro").text_content(), "e o registro guarda o erro do cargo")
-            checa(eventual(lambda: "Tentar de novo" in botoes(pag, "casa-tres")), f"e oferece tentar de novo ({botoes(pag, 'casa-tres')})")
+            checa(pag.locator("#conteudo details.registro, #conteudo pre").count() == 0, "e nenhum registro aparece na tela")
+            checa(eventual(lambda: "Recompilar" in botoes(pag, "casa-tres")), f"e oferece tentar de novo ({botoes(pag, 'casa-tres')})")
             foto("extensoes-falhou")
             os.remove(os.path.join(TESTE, "falha"))
-            cartao(pag, "casa-tres").get_by_role("button", name="Tentar de novo").click()
+            cartao(pag, "casa-tres").get_by_role("button", name="Recompilar").click()
             estado = fim_do_trabalho(pag)
             checa(estado == "ok" and eventual(lambda: pilula(pag, "casa-tres") != "Falhou"), f"tentar de novo compila ({estado}, {pilula(pag, 'casa-tres')})")
 
@@ -397,20 +389,20 @@ def main():
                   "o compositor e o menu do Arquivos têm cartão")
             checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Pronto, desligado"),
                   f"build pronto com o shim desligado: «{pilula_de_build(pag, 'compositor')}»")
-            checa(botoes_de_build(pag, "compositor") == ["Instalar", "Atualizar (parado)", "Refazer", "Remover Compositor (parado)"],
+            checa(botoes_de_build(pag, "compositor") == ["Instalar", "Atualizar (parado)", "Recompilar", "Remover Compositor (parado)"],
                   f"o cartão do compositor tem os quatro botões ({botoes_de_build(pag, 'compositor')})")
             checa("cosmic-comp 0.1~t" in cartao_de_build(pag, "compositor").inner_text()
-                  and re.search(r"\b\d+ remendos", cartao_de_build(pag, "compositor").inner_text()), "e diz a versão e os remendos")
+                  and re.search(r"\b\d+ patches", cartao_de_build(pag, "compositor").inner_text()), "e diz a versão e os patches")
             checa(eventual(lambda: pilula_de_build(pag, "menu-arquivos") == "Não instalada"),
                   f"o menu sem build: «{pilula_de_build(pag, 'menu-arquivos')}»")
             checa(cartao_de_build(pag, "graficos").count() == 1
-                  and cartao_de_build(pag, "graficos").locator("h3").inner_text() == "Aprimoramentos gráficos"
+                  and cartao_de_build(pag, "graficos").locator("h3").inner_text() == "Compartilhar tela"
                   and cartao_de_build(pag, "graficos").locator("img").count() == 1,
-                  "o cartão «Aprimoramentos gráficos» está na aba Builds, com ícone próprio")
+                  "o cartão «Compartilhar tela» está na aba Builds, com ícone próprio")
             checa(eventual(lambda: pilula_de_build(pag, "graficos") == "Não instalada")
                   and "portal 1.0~t" in cartao_de_build(pag, "graficos").inner_text(),
                   f"o portal sem build: «{pilula_de_build(pag, 'graficos')}», com a versão do pacote")
-            checa(botoes_de_build(pag, "graficos") == ["Instalar", "Atualizar (parado)", "Refazer", "Remover Aprimoramentos gráficos (parado)"],
+            checa(botoes_de_build(pag, "graficos") == ["Instalar", "Atualizar (parado)", "Recompilar", "Remover Compartilhar tela (parado)"],
                   f"e tem os quatro botões do cartão de build ({botoes_de_build(pag, 'graficos')})")
             foto("extensoes-builds-desligado")
             cartao_de_build(pag, "compositor").get_by_role("button", name="Instalar").click()
@@ -442,7 +434,7 @@ def main():
             pag.evaluate("() => { EXT.quando = 0; render(); }")
             checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Atualização"),
                   f"versão nova do pacote com o build velho guardado: «{pilula_de_build(pag, 'compositor')}»")
-            checa(botoes_de_build(pag, "compositor") == ["Instalar (parado)", "Atualizar", "Refazer", "Remover Compositor"],
+            checa(botoes_de_build(pag, "compositor") == ["Instalar (parado)", "Atualizar", "Recompilar", "Remover Compositor"],
                   f"e oferece Atualizar e Remover, com o shim de pé ({botoes_de_build(pag, 'compositor')})")
             shutil.rmtree(velho)
             os.remove(SHIM)
@@ -483,17 +475,23 @@ def main():
             pag.set_viewport_size({"width": 1550, "height": 860})
             esperar(pag)
             checa(max(transbordas) <= 0, f"a versão longa do pacote fica dentro do cartão, em 1500 e 390 px ({transbordas})")
-            rotulos = pag.locator("[data-aba-corpo='builds'] .linha .rot b").all_inner_texts()
-            checa(rotulos == ["Casa Um", "Casa Dois", "Casa Três"], f"as linhas dos applets ({rotulos})")
-            checa(pag.locator("[data-controle='build:tudo']").count() == 1, "«Refazer tudo» existe")
+            rotulos = pag.locator("[data-aba-corpo='builds'] .linha .rot").all_inner_texts()
+            checa(rotulos == ["Recompilar ao entrar"] and pag.locator("[data-aba-corpo='builds'] [data-applet]").count() == 0,
+                  f"a aba Builds não tem applet, só as peças da casa e a chave ({rotulos})")
+            checa(pag.locator("[data-aba-corpo='builds']").inner_text().count("~/.local") == 0, "e não mostra caminho nem commit")
+            checa(pag.locator("[data-controle='build:tudo']").count() == 1, "«Recompilar tudo» existe")
             antes_cargo = open(os.path.join(TESTE, "cargo.log"), encoding="utf-8").read().count("build")
-            pag.locator("[data-controle='build:extensao:casa-um']").click()
+            ir(pag, "extensoes")
+            checa(eventual(lambda: pilula(pag, "casa-um") != "") and "Recompilar" in botoes(pag, "casa-um"),
+                  f"o estado e o gesto de compilar do applet moram no cartão dele, na aba Applets ({pilula(pag, 'casa-um')}, {botoes(pag, 'casa-um')})")
+            cartao(pag, "casa-um").get_by_role("button", name="Recompilar").click()
             fim_do_trabalho(pag)
             depois_cargo = open(os.path.join(TESTE, "cargo.log"), encoding="utf-8").read().count("build")
-            checa(depois_cargo > antes_cargo, "«Refazer» do applet roda o cargo de novo")
+            checa(depois_cargo > antes_cargo, "«Recompilar» do applet roda o cargo de novo")
+            ir(pag, "extensoes/builds")
             chave = pag.locator("[data-controle='build:ao-entrar']")
             checa(chave.get_attribute("aria-checked") == "true" and (conf("BUILDS_AO_ENTRAR") or "sim") == "sim",
-                  "«Refazer ao entrar na sessão» vem ligado")
+                  "«Recompilar ao entrar» vem ligado")
             chave.click()
             pag.wait_for_function("() => document.querySelector('[data-controle=\"build:ao-entrar\"]').getAttribute('aria-checked') === 'false'")
             pag.wait_for_timeout(300)
@@ -526,9 +524,20 @@ def main():
             checa(not os.path.exists(os.path.join(casa.CASA, ".local", "bin", "meowsystem-novo")), "ler não instalou nada")
             foto("extensoes-ficha")
             ext_antes = conf("EXTENSOES")
+            open(os.path.join(TESTE, "falha"), "w").close()
             pag.locator("#adicionar-instalar").click()
             pag.wait_for_function("() => ['pronto', 'erro'].includes(document.getElementById('adicionar').dataset.passo)", timeout=180000)
+            checa(pag.evaluate("() => document.getElementById('adicionar').dataset.passo") == "erro", "um build que falha leva ao passo de erro")
+            checa(pag.locator("#adicionar pre, #adicionar details").count() == 0, "e o diálogo não tem pre nem registro")
+            motivo = pag.locator("#adicionar-motivo").inner_text().strip()
+            checa(motivo != "" and "\n" not in motivo and len(motivo) < 160, f"o motivo curto aparece ({motivo!r})")
+            checa(pag.locator("#adicionar .estado-pilula:visible").inner_text().strip() == "Não compilou", "ao lado do estado «Não compilou»")
+            foto("extensoes-adicionar-erro")
+            os.remove(os.path.join(TESTE, "falha"))
+            pag.locator("#adicionar-de-novo").click()
+            pag.wait_for_function("() => ['pronto', 'erro'].includes(document.getElementById('adicionar').dataset.passo)", timeout=180000)
             checa(pag.evaluate("() => document.getElementById('adicionar').dataset.passo") == "pronto", "compilou e chegou ao passo pronto")
+            checa(pag.locator("#adicionar pre, #adicionar details").count() == 0, "e o passo pronto também não tem registro")
             checa(os.path.isfile(os.path.join(casa.CASA, ".local", "bin", "meowsystem-novo")), "o binário do repositório está na casa")
             checa(conf("EXTENSOES") == ext_antes, "o EXTENSOES não mudou: repositório de usuário só entra por gesto")
             pag.locator("#adicionar-ok").click()
@@ -542,22 +551,11 @@ def main():
             pag.locator("#pergunta-nao").click()
             checa(os.path.isfile(os.path.join(casa.CASA, ".local", "bin", "meowsystem-novo")), "recusar a pergunta não remove")
 
-            print("10. Créditos: o diálogo do painel, com as duas autorias")
-            pag.locator("#menu summary").click()
-            checa(pag.locator("#menu-corpo [data-controle='menu:creditos']").evaluate("(e) => e.tagName") == "BUTTON", "«Créditos» é um botão do menu")
-            pag.locator("#menu-corpo [data-controle='menu:creditos']").click()
-            pag.wait_for_function("() => document.getElementById('creditos').open")
-            pag.wait_for_function("() => document.querySelectorAll('#creditos-upstreams li').length > 0", timeout=10000)
-            texto = pag.locator("#creditos").inner_text()
-            checa("Vitória Maria" in texto and "autora" in texto and "André Farias" in texto and "coautor" in texto,
-                  "o diálogo traz Vitória Maria (autora) e André Farias (coautor)")
-            href = pag.locator("#creditos [data-controle='creditos:repositorio']").get_attribute("href")
-            rel = pag.locator("#creditos [data-controle='creditos:repositorio']").get_attribute("rel")
-            checa(href == "https://github.com/vitoriamariadb/MeowSystem" and "noopener" in (rel or ""), f"o link da casa é {href}")
-            checa("dona/cosmic-ext-applet-casa-um" in texto, "e cada applet da casa aponta para o upstream")
-            foto("extensoes-creditos")
-            pag.locator("[data-controle='creditos:ok']").click()
-            pag.wait_for_function("() => !document.getElementById('creditos').open")
+            print("10. o header não tem «…», Créditos nem a lista de mudanças, e traz «Reiniciar a barra»")
+            checa(pag.locator("#menu").count() == 0 and pag.locator("#conta").count() == 0 and pag.locator("#creditos").count() == 0,
+                  "nada de menu, contagem ou Créditos")
+            checa(pag.locator("#reiniciar-barra").inner_text().strip() == "Reiniciar a barra", "o botão tem o nome do glossário")
+            foto("extensoes-header")
 
             print("11. os quatro forks do catálogo: um cartão por fork, com nome e ícone")
             pinos_reais = os.path.join(casa.RAIZ, "assets", "extensoes")

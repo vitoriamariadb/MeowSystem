@@ -263,16 +263,23 @@ fi
 registro 10 'grava na hora' && registro 10 'sim de 26/10' && ok "10: o registro diz que o restaurar grava na hora, com o sim de 26/10" \
   || falha "a decisão 10 não diz que grava na hora"
 
-echo "== D18. os ajustes gravam ao soltar; só as ações têm janela de resultado e ensaio"
+echo "== D18. os ajustes gravam ao soltar; toda ação mostra a linha de progresso, sem janela de resultado nem ensaio"
 registro 18 'sim de 26/10' && registro 18 'a barra só desfaz' && ok "18: o registro diz o grava-ao-soltar, com o sim de 26/10" \
   || falha "a decisão 18 não diz o grava-ao-soltar"
+registro 18 'sim de 10/11' && registro 18 'linha de progresso' && ok "18: o registro diz a linha de progresso, com o sim de 10/11" \
+  || falha "a decisão 18 não diz a linha de progresso com o sim de 10/11"
 if grep -q 'id="bt-aplicar"\|id="botao-ensaiar"' "$RAIZ/app/pagina/index.html"; then
   falha "a barra de cima voltou a ter «Aplicar» ou «Ver sem mudar»"
 else
   ok "a barra de cima não tem «Aplicar» nem «Ver sem mudar»"
 fi
-grep -q 'id="confirmar-ensaio"' "$RAIZ/app/pagina/index.html" \
-  && ok "o diálogo da ação continua com o «Ver sem mudar»" || falha "o diálogo da ação perdeu o «Ver sem mudar»"
+if grep -q 'id="resultado"\|id="confirmar-ensaio"\|id="ensaio-rodar"' "$RAIZ/app/pagina/index.html"; then
+  falha "a janela de resultado ou o «Ver sem mudar» voltou ao painel"
+else
+  ok "o painel não tem janela de resultado nem «Ver sem mudar»"
+fi
+grep -q 'id="progresso"' "$RAIZ/app/pagina/index.html" && grep -q 'id="parar"' "$RAIZ/app/pagina/index.html" \
+  && ok "a linha de progresso, com o Parar, está no header" || falha "a linha de progresso ou o Parar sumiu do header"
 
 echo "== D11. a interface nunca pede senha (revoga a caixa do sudo de uma linha, sim de 23/10)"
 registro 11 'a interface nunca pede senha' && ok "11: o registro diz a revogação, com o sim" || falha "a decisão 11 não diz a revogação no registro"

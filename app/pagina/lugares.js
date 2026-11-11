@@ -3,8 +3,8 @@
 const PORTAS = [
   { id: "tema", nome: "Tema", icone: "tema" },
   { id: "criar", nome: "Personalizar", icone: "criar" },
-  { id: "ajustes", nome: "Definir", icone: "ajustes" },
-  { id: "cuidar", nome: "Manter", icone: "cuidar" },
+  { id: "ajustes", nome: "Ajustes", icone: "ajustes" },
+  { id: "cuidar", nome: "Manutenção", icone: "cuidar" },
   { id: "extensoes", nome: "Extensões", icone: "grade" },
   { id: "modificacoes", nome: "Modificações", icone: "pincel" },
 ];
@@ -47,7 +47,7 @@ const PASSOS = [
       { a: "wallpaper_usar", r: "Usar agora", b: "Usar" },
       { a: "wallpaper_dia", r: "De dia", b: "Dia" },
       { a: "wallpaper_noite", r: "De noite", b: "Noite" },
-      { a: "wallpaper_lado_auto", r: "Medir a luz", b: "Medir" },
+      { a: "wallpaper_lado_auto", r: "Separar tons de cores", b: "Separar tons de cores" },
       { a: "wallpaper_banir", r: "Apagar", b: "Apagar" },
     ] },
   { id: "sons", nome: "Sons",
@@ -55,13 +55,11 @@ const PASSOS = [
       { c: "SOM", r: "Som do volume" },
       { c: "SOM_FUNDAMENTAL", r: "Primeira nota" },
       { c: "SOM_HARMONICO", r: "Segunda nota" },
-      { c: "SOM_DECAIMENTO", r: "Duração" },
-      { c: "SOM_PESO_FUNDAMENTAL", r: "Peso da primeira" },
-      { c: "SOM_PESO_HARMONICO", r: "Peso da segunda" },
-      { a: "som_ouvir", r: "Ouvir o instalado", b: "Ouvir" },
-      { a: "som_aplicar", r: "Regravar o som", b: "Regravar" },
+      { c: "SOM_DECAIMENTO", r: "Duração do som" },
+      { c: "SOM_PESO_FUNDAMENTAL", r: "Volume da nota 1" },
+      { c: "SOM_PESO_HARMONICO", r: "Volume da nota 2" },
     ] },
-  { id: "mandar", nome: "Disponibilizar",
+  { id: "mandar", nome: "Usar e compartilhar",
     linhas: [
       { g: "pack-exportar", r: "Baixar o tema", b: "Baixar o tema" },
       { a: "pack_usar", r: "Aplicar tema", b: "Aplicar tema" },
@@ -69,17 +67,17 @@ const PASSOS = [
 ];
 
 const AJUSTES = [
-  { id: "painel", nome: "Painel e dock", icone: "painel",
-    cabeca: [{ a: "painel_reciclar", r: "Recarregar o painel", b: "Recarregar o painel" }],
+  { id: "painel", nome: "Barra e dock", icone: "painel",
+    cabeca: [{ a: "painel_reciclar", r: "Reiniciar a barra", b: "Reiniciar a barra" }],
     blocos: [
       { titulo: "Forma", colunas: ["Barra de cima", "Dock"], linhas: [
-        { c: ["FORMA_PAINEL_SOLTO", "FORMA_DOCK_SOLTO"], r: "Solta da borda" },
-        { c: ["FORMA_PAINEL_ILHA", "FORMA_DOCK_ILHA"], r: "Em pastilha" },
+        { c: ["FORMA_PAINEL_SOLTO", "FORMA_DOCK_SOLTO"], r: "Flutuante" },
+        { c: ["FORMA_PAINEL_ILHA", "FORMA_DOCK_ILHA"], r: "Formato pílula" },
         { c: ["FORMA_MARGEM_PAINEL", "FORMA_MARGEM_DOCK"], r: "Distância da borda" },
         { c: ["FORMA_RAIO_PAINEL", "FORMA_RAIO_DOCK"], r: "Cantos" },
         { c: ["FORMA_ESPACO_PAINEL", "FORMA_ESPACO_DOCK"], r: "Espaço entre ícones" },
-        { c: ["FORMA_RECHEIO_PAINEL", "FORMA_RECHEIO_DOCK"], r: "Folga interna" },
-        { c: ["VIDRO_OPACIDADE_PAINEL", "VIDRO_OPACIDADE_DOCK"], r: "Vidro" },
+        { c: ["FORMA_RECHEIO_PAINEL", "FORMA_RECHEIO_DOCK"], r: "Margem interna" },
+        { c: ["VIDRO_OPACIDADE_PAINEL", "VIDRO_OPACIDADE_DOCK"], r: "Transparência" },
       ] },
       { titulo: "Tamanho dos ícones", colunas: ["Barra de cima", "Dock"], linhas: [
         { c: ["FORMA_ALA_INICIAL_PAINEL", "FORMA_ALA_INICIAL_DOCK"], r: "Ponta esquerda" },
@@ -100,31 +98,29 @@ const AJUSTES = [
       ] },
       { titulo: "Conferir", linhas: [
         { a: "painel_estado", r: "Estado atual", b: "Ver" },
-        { a: "painel_teto", r: "Teto dos cantos", b: "Ver" },
+        { a: "painel_teto", r: "Arredondamento máximo", b: "Ver" },
       ] },
     ] },
   { id: "janelas", nome: "Janelas e tela", icone: "janelas",
     blocos: [
       { titulo: "Janelas", linhas: [
         { c: "JANELAS_TILING", r: "Lado a lado" },
-        { c: "JANELAS_TILING_ESCOPO", r: "Vale para", sub: true },
       ] },
       { titulo: "Tela", linhas: [
-        { c: "ESCALA_TELA", r: "Tamanho de tudo" },
+        { c: "ESCALA_TELA", r: "Escala da tela" },
         { c: "GPU_COMPOSITOR", r: "GPU do compositor" },
         { c: "CURSOR", r: "Ponteiro", larga: true },
-        { c: "CURSOR_VERSAO", r: "Versão do ponteiro", sub: true },
         { g: "acervo:cursor", r: "Trazer ponteiro", b: "Trazer .zip" },
       ] },
       { titulo: "Áreas de trabalho", linhas: [
-        { c: "AREAS_MODO", r: "Nas telas" },
+        { c: "AREAS_MODO", r: "Layout da tela" },
         { c: "AREAS_NOMES", r: "Nomes", larga: true },
-        { c: "AREAS_ENCAIXE", r: "Encaixe por área", larga: true },
-        { c: "AREAS_FOLGA", r: "Folga no nome" },
-        { a: "areas_aplicar", r: "Gravar as áreas", b: "Gravar" },
-        { a: "areas_alfinetar_primeira", r: "Primeira área", b: "Criar" },
-        { a: "areas_desalfinetar", r: "Tirar uma área", b: "Tirar" },
-        { a: "areas_reverter", r: "Áreas de antes", b: "Voltar" },
+        { c: "AREAS_ENCAIXE", r: "Lado a lado por área", larga: true },
+        { c: "AREAS_FOLGA", r: "Espaço em volta do nome" },
+        { a: "areas_aplicar", r: "Salvar as áreas", b: "Salvar" },
+        { a: "areas_alfinetar_primeira", r: "Fixar a primeira área", b: "Fixar" },
+        { a: "areas_desalfinetar", r: "Remover uma área", b: "Remover" },
+        { a: "areas_reverter", r: "Desfazer as áreas", b: "Desfazer" },
         { a: "areas_ver", r: "Áreas agora", b: "Ver" },
       ] },
     ] },
@@ -133,25 +129,23 @@ const AJUSTES = [
     blocos: [
       { titulo: "Imagens", linhas: [
         { a: "wallpaper_anterior", r: "Imagem anterior", b: "Anterior" },
-        { a: "wallpaper_carrossel", r: "Voltar a girar", b: "Girar" },
-        { a: "wallpaper", r: "Carrossel agora", b: "Ver" },
+        { a: "wallpaper_carrossel", r: "Girar", b: "Girar" },
+        { a: "wallpaper", r: "Carrossel de Imagens", b: "Ver" },
         { a: "wallpaper_aplicar", r: "Regras do carrossel", b: "Reaplicar" },
       ] },
       { titulo: "Troca", linhas: [
         { c: "WALLPAPER_INTERVALO", r: "A cada" },
         { c: "WALLPAPER_ORDEM", r: "Ordem" },
-        { c: "WALLPAPER_AJUSTE", r: "Encaixe" },
+        { c: "WALLPAPER_AJUSTE", r: "Ajuste da imagem" },
         { c: "WALLPAPER_NOTIFICAR", r: "Avisar a troca" },
-        { c: "WALLPAPER_FIXO_TTL", r: "Escolhida dura" },
-        { c: "FILES_MENU", r: "Botão direito" },
-        { c: "FILES_MENU_AUTOBUILD", r: "Menu se reconstrói", sub: true },
+        { c: "FILES_MENU", r: "Menu do Arquivos" },
+        { c: "FILES_MENU_AUTOBUILD", r: "Recompilar automaticamente", sub: true },
         { a: "files_menu", r: "Menu agora", b: "Ver" },
       ] },
       { titulo: "Pastas", linhas: [
         { c: "WALLPAPER_BASE", r: "Pasta do carrossel" },
-        { c: "WALLPAPER_FONTES_PERMITIDAS", r: "Pastas suas" },
+        { c: "WALLPAPER_FONTES_PERMITIDAS", r: "Seus papéis de parede" },
         { c: "WALLPAPER_DRACULA_REPO", r: "Acervo do Dracula" },
-        { c: "WALLPAPER_DRACULA_COMMIT", r: "Versão do acervo", sub: true },
       ] },
     ] },
   { id: "mascote", nome: "Mascote", icone: "gato",
@@ -162,28 +156,28 @@ const AJUSTES = [
         { c: "LOGO_MODO", r: "Como escolhe" },
         { c: "LOGO_DIA", r: "De dia", sub: true },
         { c: "LOGO_NOITE", r: "De noite", sub: true },
-        { c: "LOGO_INTERVALO", r: "Gira a cada", sub: true },
-        { c: "LOGO_ROTACAO", r: "Girar sozinho", sub: true },
-        { a: "logo_trocar", r: "Pôr agora", b: "Pôr" },
-        { c: "LOGO_RECICLAR", r: "Recarregar na virada", sub: true },
+        { c: "LOGO_INTERVALO", r: "Troca a cada", sub: true },
+        { c: "LOGO_ROTACAO", r: "Trocar sozinho", sub: true },
+        { a: "logo_trocar", r: "", n: "Aplicar o mascote", b: "Aplicar" },
+        { c: "LOGO_RECICLAR", r: "Trocar na virada do dia", sub: true },
         { a: "logo_girar", r: "Próximo mascote", b: "Girar" },
         { a: "logo_listar", r: "Mascote agora", b: "Ver" },
       ] },
       { titulo: "No terminal", linhas: [
         { c: "FASTFETCH_LOGO", r: "Ao abrir" },
-        { c: "FASTFETCH_LOGO_MODO", r: "Qual", sub: true },
+        { c: "FASTFETCH_LOGO_MODO", r: "Qual mascote", sub: true },
         { c: "FASTFETCH_LOGO_GATO", r: "Fixo", sub: true },
         { c: "FASTFETCH_LOGO_DIA", r: "De dia", sub: true },
         { c: "FASTFETCH_LOGO_NOITE", r: "De noite", sub: true },
         { c: "FASTFETCH_LOGO_COLUNAS", r: "Tamanho", sub: true },
         { c: "FASTFETCH_LOGO_LINHAS", r: "Altura do desenho", sub: true },
-        { c: "FASTFETCH_LOGO_QUEBRAS", r: "Linhas antes", sub: true },
+        { c: "FASTFETCH_LOGO_QUEBRAS", r: "Linhas em branco acima", sub: true },
         { c: "FASTFETCH_LOGO_ALINHAR", r: "Texto ao lado", sub: true },
         { c: "FASTFETCH_TITULO", r: "Título", sub: true },
-        { c: "FASTFETCH_LOGO_RECUO", r: "Espaço ao lado", sub: true },
+        { c: "FASTFETCH_LOGO_RECUO", r: "Recuo do texto", sub: true },
         { c: "FASTFETCH_LOGO_CELULA", r: "Proporção da letra", sub: true },
-        { c: "FASTFETCH_LOGO_BLOCOS", r: "Detalhe", sub: true },
-        { c: "FASTFETCH_LOGO_CONF", r: "Corrigir o Fastfetch", sub: true },
+        { c: "FASTFETCH_LOGO_BLOCOS", r: "Nível de detalhe", sub: true },
+        { c: "FASTFETCH_LOGO_CONF", r: "Consertar o Fastfetch", sub: true },
       ] },
       { titulo: "No programa", linhas: [
         { c: "LOGO_PROGRAMA", r: "Logo do programa", larga: true },
@@ -201,13 +195,13 @@ const AJUSTES = [
       ] },
       { titulo: "Modo de leitura", leitura: true, linhas: [
         { c: "LEITURA_AGENDA", r: "Ligar no horário" },
-        { c: "LEITURA_TEMPERATURA", r: "Quão quente", sub: true },
+        { c: "LEITURA_TEMPERATURA", r: "Temperatura da cor", sub: true },
         { c: "LEITURA_TEXTURA", r: "Textura de papel", sub: true },
-        { c: "LEITURA_RAMPA_MIN", r: "Entrar devagar", sub: true },
+        { c: "LEITURA_RAMPA_MIN", r: "Transição gradual", sub: true },
         { c: "LEITURA_HORARIO_INICIO", r: "Começa", sub: true },
         { c: "LEITURA_HORARIO_FIM", r: "Termina", sub: true },
         { c: "LEITURA_APPLET", r: "Botão na barra" },
-        { a: "leitura_aplicar", r: "Esquentar agora", b: "Aplicar" },
+        { a: "leitura_aplicar", r: "Ligar o modo de leitura agora", b: "Aplicar" },
         { a: "leitura_remover", r: "Desligar agora", b: "Desligar" },
         { a: "leitura", r: "Leitura agora", b: "Ver" },
       ] },
@@ -221,79 +215,74 @@ const AJUSTES = [
   { id: "programas", nome: "Programas", icone: "grade",
     blocos: [
       { titulo: "Lançador", linhas: [
-        { c: "LANCADOR_SISTEMA", r: "Arrumar o lançador" },
-        { c: "LANCADOR_OCULTAR", r: "Escondidos", larga: true },
+        { c: "LANCADOR_SISTEMA", r: "Organizar o lançador" },
+        { c: "LANCADOR_OCULTAR", r: "Apps escondidos", larga: true },
       ] },
       { titulo: "Jogos", jogos: true, linhas: [
         { e: "jogos", r: "Jogos" },
         { g: "jogo-fora", r: "No lançador" },
-        { a: "jogos_aplicar", r: "Arrumar os jogos", b: "Arrumar" },
-        { a: "jogos_heroic_aplicar", r: "Jogos do Heroic", b: "Pôr" },
-        { a: "jogos_heroic_por", r: "Pôr um jogo", b: "Pôr" },
-        { a: "jogos_heroic_tirar", r: "Tirar um jogo", b: "Tirar" },
+        { a: "jogos_aplicar", r: "Organizar os jogos", b: "Organizar" },
+        { a: "jogos_heroic_aplicar", r: "Jogos do Heroic", b: "Aplicar" },
+        { a: "jogos_heroic_por", r: "Adicionar jogo", b: "Adicionar jogo" },
+        { a: "jogos_heroic_tirar", r: "Remover jogo", b: "Remover jogo" },
         { a: "jogos", r: "Conferir jogos", b: "Ver" },
         { a: "jogos_heroic", r: "Conferir Heroic", b: "Ver" },
       ] },
-      { titulo: "Ao ligar", linhas: [
-        { c: "AUTOSTART_BLOQUEADOS", r: "Não abrem sozinhos", larga: true },
+      { titulo: "Ao iniciar", linhas: [
+        { c: "AUTOSTART_BLOQUEADOS", r: "Bloquear ao iniciar", larga: true },
       ] },
     ] },
 ];
 
 const LUGAR_CUIDAR = {
   estado: [
-    { a: "doctor_consertar", r: "Consertar a ponte", b: "Consertar a ponte" },
-    { a: "doctor", r: "Conferir", b: "Conferir" },
+    { a: "doctor_consertar", r: "Reativar permissão de sistema", b: "Reativar permissão de sistema" },
+    { a: "doctor", r: "Verificar o sistema", b: "Verificar o sistema" },
   ],
   cartoes: [
-    { id: "outro", titulo: "Outro computador", icone: "computador", linhas: [
-      { g: "exportar-conf", r: "Guardar ajustes", b: "Guardar ajustes" },
-      { g: "importar", r: "Trazer ajustes", b: "Trazer ajustes" },
+    { id: "outro", titulo: "Exportar", linhas: [
+      { g: "exportar-conf", r: "Exportar ajustes", b: "Exportar ajustes", i: "subir" },
+      { g: "importar", r: "Importar ajustes", b: "Importar ajustes", i: "baixar" },
     ] },
-    { id: "atualizar", titulo: "Atualizar", icone: "girar", linhas: [
-      { a: "sistema_atualizar", r: "Atualizar a máquina", b: "Atualizar" },
-      { a: "sistema_ver", r: "O que muda", b: "Ver" },
-      { a: "sistema_limpar", r: "Limpar", b: "Limpar" },
+    { id: "atualizar", titulo: "Atualizar", linhas: [
+      { a: "sistema_atualizar", r: "Atualizar a máquina", b: "Atualizar a máquina", i: "girar" },
+      { a: "sistema_ver", r: "O que muda", b: "O que muda", i: "olho" },
+      { a: "sistema_limpar", r: "Limpar as sobras", b: "Limpar as sobras", i: "lixo" },
     ] },
-    { id: "instalar", titulo: "Instalar de novo", icone: "baixar", linhas: [
-      { a: "instalar", r: "Instalar tudo", b: "Instalar" },
+    { id: "instalar", titulo: "Reinstalar o MeowSystem", semNome: true, linhas: [
+      { a: "instalar", r: "Reinstalar o MeowSystem", b: "Reinstalar o MeowSystem", i: "baixar" },
     ] },
   ],
   blocos: [
-    { titulo: "Sozinho", linhas: [
-      { c: "AUTO_REPARO", r: "Conferir todo dia" },
-      { c: "AUTO_REPARO_NOTIFICAR", r: "Avisar o conserto", sub: true },
-      { c: "VIZINHOS_DESATIVAR", r: "Cortar o repetido", sub: true },
-      { c: "ASSETS_VIGIA", r: "Mascote novo entra" },
-      { c: "ASSETS_VIGIA_NOTIFICAR", r: "Avisar o mascote", sub: true },
-      { c: "FLATPAK_VIGIA", r: "Ícones após atualizar" },
+    { titulo: "Manutenção automática", linhas: [
+      { c: "AUTO_REPARO", r: "Rotina" },
+      { c: "AUTO_REPARO_NOTIFICAR", r: "Avisar quando consertar", sub: true },
+      { c: "VIZINHOS_DESATIVAR", r: "Desligar o que conflita", sub: true },
+      { c: "ASSETS_VIGIA_NOTIFICAR", r: "Avisar o mascote" },
+      { c: "FLATPAK_VIGIA", r: "Refazer ícones após atualizar" },
       { c: "FLATPAK_VIGIA_NOTIFICAR", r: "Avisar os ícones", sub: true },
-      { c: "STEAM_VIGIA", r: "Jogo desinstalado sai" },
+      { c: "STEAM_VIGIA", r: "Remover jogos desinstalados" },
       { c: "HEROIC_VIGIA", r: "Jogo do Heroic" },
-      { c: "PONTE_ROOT", r: "Consertos de sistema" },
-    ] },
-    { titulo: "Registro", linhas: [
-      { c: "LOG_NIVEL", r: "Quanto fala" },
-      { c: "BACKUPS_MANTIDOS", r: "Cópias guardadas" },
-      { a: "log", r: "Registro", b: "Ver" },
+      { c: "PONTE_ROOT", r: "Permissão de sistema" },
+      { c: "BACKUPS_MANTIDOS", r: "Backups guardados" },
     ] },
   ],
   maquina: [
     { c: "NOME_TEMA_ICONES", r: "Nome do tema" },
     { a: "icones", r: "Tema instalado", b: "Ver" },
-    { c: "ICONES_DRACULA", r: "Desenhos" },
-    { a: "icones_traco", r: "Desenhos em traço", b: "Aplicar" },
+    { c: "ICONES_DRACULA", r: "Ícones do tema" },
+    { a: "icones_traco", r: "Ícones em traço", b: "Aplicar" },
     { a: "icones_pack", r: "Desenhos do pack", b: "Aplicar" },
     { c: "ICONES_LOGO_HEFESTO", r: "Logo do Hefesto" },
     { c: "ICONES_RESGATADOS", r: "Ícones resgatados" },
     { g: "acervo:tema-icones", r: "Tema de ícones", b: "Trazer .zip" },
-    { a: "icones_reconstruir", r: "Reconstruir os ícones", b: "Reconstruir" },
+    { a: "icones_reconstruir", r: "Refazer os ícones", b: "Refazer" },
   ],
   perigo: [
     { a: "restaurar", r: "Restaurar", b: "Restaurar" },
-    { a: "desfazer", r: "Tema de antes", b: "Voltar" },
+    { a: "desfazer", r: "Voltar ao tema original", b: "Voltar ao tema original" },
     { a: "desinstalar", r: "Desinstalar", b: "Desinstalar" },
-    { a: "desinstalar_guardando", r: "Desinstalar e guardar", b: "Desinstalar" },
+    { a: "desinstalar_guardando", r: "Desinstalar mantendo os backups", b: "Desinstalar" },
   ],
 };
 
@@ -303,21 +292,21 @@ const LUGAR_EXTENSOES = {
     { a: "extensao_instalar_repo", r: "Instalar do repositório" },
     { a: "extensao_atualizar", r: "Atualizar" },
     { a: "extensao_atualizar_repo", r: "Atualizar do repositório" },
-    { a: "extensao_refazer", r: "Tentar de novo" },
+    { a: "extensao_refazer", r: "Recompilar" },
     { a: "extensao_remover", r: "Remover" },
-    { a: "extensao_por_no_painel", r: "Pôr no painel" },
+    { a: "extensao_por_no_painel", r: "Adicionar à barra" },
     { a: "extensao_trocar", r: "Trocar" },
-    { a: "extensao_reiniciar_painel", r: "Reiniciar o painel" },
+    { a: "extensao_reiniciar_painel", r: "Reiniciar a barra" },
     { c: "EXTENSOES", r: "Extensões instaladas" },
   ],
   builds: [
-    { a: "builds_refazer_tudo", r: "Refazer tudo" },
-    { c: "BUILDS_AO_ENTRAR", r: "Refazer ao entrar na sessão" },
+    { a: "builds_refazer_tudo", r: "Recompilar tudo" },
+    { c: "BUILDS_AO_ENTRAR", r: "Recompilar ao entrar" },
     { c: "COMPOSITOR", r: "Compositor" },
-    { c: "GRAFICOS", r: "Aprimoramentos gráficos" },
+    { c: "GRAFICOS", r: "Compartilhar tela" },
   ],
   espaco: [
-    { a: "espaco_liberar", r: "Liberar" },
+    { a: "espaco_liberar", r: "Apagar arquivos recriáveis" },
   ],
 };
 
@@ -328,12 +317,12 @@ const LUGAR_MODIFICACOES = {
   ],
   cartao: [
     { c: "APPS_ATIVOS", r: "Tema" },
-    { a: "modificacao_aplicar", r: "Pôr no lugar" },
-    { a: "modificacao_reverter", r: "Tirar o tema" },
-    { a: "modificacao_corrigir", r: "Pôr a correção no lugar" },
+    { a: "modificacao_aplicar", r: "Aplicar" },
+    { a: "modificacao_reverter", r: "Remover o tema" },
+    { a: "modificacao_corrigir", r: "Aplicar a correção" },
     { c: "FLATPAK_CORRECOES", r: "Correções do Flatpak" },
     { a: "vscode_instalar_extensao", r: "Extensão do pack", b: "Instalar" },
-    { a: "spicetify_instalar", r: "Pintor do Spotify", b: "Baixar o spicetify" },
+    { a: "spicetify_instalar", r: "Tema no Spotify", b: "Baixar o spicetify" },
   ],
   chaves: [
     { c: "SPOTIFY_MARKETPLACE", r: "Loja do Spotify", cartao: "spotify", bloco: "Spotify" },
@@ -358,20 +347,15 @@ const LUGAR_MODIFICACOES = {
 
 const LUGAR_TOPO = [
   { g: "descartar", r: "Desfazer" },
-  { g: "busca", r: "Procurar um ajuste" },
-  { g: "creditos", r: "Créditos" },
-  { g: "exportar-pagina", r: "Esta tela num arquivo" },
-];
-const LUGAR_JANELA = [
+  { g: "busca", r: "Buscar" },
+  { g: "reiniciar-barra", r: "Reiniciar a barra" },
   { g: "parar", r: "Parar" },
-  { g: "guardar-log", r: "Guardar" },
-  { g: "ensaio-rodar", r: "Rodar de verdade" },
 ];
 
 function inventarioDoPainel() {
   const saida = [];
   const pus = (l, porta, pagina, bloco) => {
-    const base = { porta, pagina, bloco, rotulo: l.r };
+    const base = { porta, pagina, bloco, rotulo: l.r || l.n };
     if (l.c) for (const c of [].concat(l.c)) saida.push({ ...base, tipo: "chave", id: c });
     else if (l.a) saida.push({ ...base, tipo: "acao", id: l.a });
     else if (l.g) saida.push({ ...base, tipo: "gesto", id: l.g });
@@ -385,11 +369,11 @@ function inventarioDoPainel() {
     for (const l of p.cabeca || []) pus(l, "ajustes", p.nome, p.nome);
     for (const b of p.blocos) for (const l of b.linhas) pus(l, "ajustes", p.nome, b.titulo);
   }
-  for (const l of LUGAR_CUIDAR.estado) pus(l, "cuidar", "Manter", "Estado");
-  for (const c of LUGAR_CUIDAR.cartoes) for (const l of c.linhas) pus(l, "cuidar", "Manter", c.titulo);
-  for (const b of LUGAR_CUIDAR.blocos) for (const l of b.linhas) pus(l, "cuidar", "Manter", b.titulo);
-  for (const l of LUGAR_CUIDAR.maquina) pus(l, "cuidar", "Manter", "Ícones da máquina");
-  for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Manter", "Zona de perigo");
+  for (const l of LUGAR_CUIDAR.estado) pus(l, "cuidar", "Manutenção", "Estado");
+  for (const c of LUGAR_CUIDAR.cartoes) for (const l of c.linhas) pus(l, "cuidar", "Manutenção", c.titulo);
+  for (const b of LUGAR_CUIDAR.blocos) for (const l of b.linhas) pus(l, "cuidar", "Manutenção", b.titulo);
+  for (const l of LUGAR_CUIDAR.maquina) pus(l, "cuidar", "Manutenção", "Ícones da máquina");
+  for (const l of LUGAR_CUIDAR.perigo) pus(l, "cuidar", "Manutenção", "Zona de perigo");
   for (const l of LUGAR_EXTENSOES.applets) pus(l, "extensoes", "Applets", "Applets");
   for (const l of LUGAR_EXTENSOES.builds) pus(l, "extensoes", "Builds", "Builds");
   for (const l of LUGAR_EXTENSOES.espaco) pus(l, "extensoes", "Espaço", "Espaço");
@@ -398,10 +382,9 @@ function inventarioDoPainel() {
   for (const l of LUGAR_MODIFICACOES.chaves) pus(l, "modificacoes", "", l.bloco);
   for (const d of LUGAR_MODIFICACOES.detalhes) for (const b of d.blocos) for (const l of b.linhas) pus(l, "modificacoes", d.nome, b.titulo);
   for (const l of LUGAR_TOPO) pus(l, "topo", "Barra de cima", "Barra de cima");
-  for (const l of LUGAR_JANELA) pus(l, "janela", "Janela do trabalho", "Janela do trabalho");
   return saida;
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_EXTENSOES, LUGAR_MODIFICACOES, LUGAR_TOPO, LUGAR_JANELA, inventarioDoPainel };
+  module.exports = { PORTAS, LUGAR_TEMA, PASSOS, AJUSTES, LUGAR_CUIDAR, LUGAR_EXTENSOES, LUGAR_MODIFICACOES, LUGAR_TOPO, inventarioDoPainel };
 }

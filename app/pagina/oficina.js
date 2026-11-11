@@ -117,9 +117,12 @@ function escolhaDeIcone(app, recarregar) {
   cores.hidden = !(g && g.tipo === "traco");
 
   const botoes = [];
-  let usar = null;
-  if (itens.some((x) => !travaDe(x))) {
-    usar = botao("Usar", { class: "bt principal", controle: "icone:usar", onclick: async () => {
+  const algumLivre = itens.some((x) => !travaDe(x));
+  const motivoGeral = !algumLivre && itens.length ? maiuscula(travaDe(itens[0])) : "";
+  const usar = botao("Usar", { class: "bt principal", controle: "icone:usar",
+      disabled: !g || !!travaDe(g), "aria-disabled": !g || travaDe(g) ? "true" : null,
+      dica: !g ? "Escolha um desenho" : travaDe(g) ? maiuscula(travaDe(g)) : "Usar este desenho neste app",
+      onclick: async () => {
       const x = escolhido();
       if (!x) { torrada("Escolha um desenho", "erro"); return; }
       const corpo = x.tipo !== "traco" ? { app: app.id, arquivo: x.arquivo }
@@ -130,7 +133,6 @@ function escolhaDeIcone(app, recarregar) {
       if (x.tipo === "traco" && r.tirou_escolha) { await rodarAcao("icones_traco"); await fimDoTrabalho(); }
       await depoisDoIcone(app, x.tipo === "traco" ? "icones_traco" : "icones_pack", recarregar);
     } });
-  }
   const minha = GLIFOS.app === app.id ? GLIFOS.minha : null;
   if (app.mapa && app.mapa.meu) {
     botoes.push(botao("Desfazer", { class: "bt pequeno", controle: "icone:desfazer-traco", dica: "Volta ao traço de antes",
@@ -192,7 +194,7 @@ function escolhaDeIcone(app, recarregar) {
     painel.append(cabecalho,
       elemento("div", { class: "desenho-corpo" }, [olho, elemento("div", { class: "desenho-mao", "data-fonte-corpo": "acervo" }, [
         elemento("div", { class: "fila", style: "justify-content:flex-end" }, [busca]), tira, cores])]),
-      elemento("footer", { class: "desenho-pe" }, [...botoes, usar]));
+      elemento("footer", { class: "desenho-pe" }, [motivoGeral ? elemento("span", { class: "oficina-erro", texto: motivoGeral }) : null, ...botoes, usar]));
   } else {
     painel.append(cabecalho, oficinaDeDesenho(app, recarregar));
   }
@@ -251,11 +253,11 @@ function pararVigiaEditor() {
   if (OFICINA.editorRelogio) clearInterval(OFICINA.editorRelogio);
   OFICINA.editorRelogio = null;
 }
-async function espiarEditor(pedido) {
+async function espiarEditor() {
   const r = await api("/api/app-desenho", { method: "POST",
     body: JSON.stringify({ app: OFICINA.app, acao: "editor-ler", mtime: OFICINA.editorMtime }) });
-  if (r.erro) { pararVigiaEditor(); if (pedido) torrada(r.erro, "erro"); return; }
-  if (!r.tem || !r.mudou) { if (pedido) torrada("Nada novo no editor"); return; }
+  if (r.erro) { pararVigiaEditor(); return; }
+  if (!r.tem || !r.mudou) return;
   novoPasso();
   OFICINA.editorMtime = r.mtime;
   OFICINA.svg = r.svg || "";
@@ -285,7 +287,7 @@ function oficinaDeDesenho(app, relerLista) {
   area.value = OFICINA.svg;
   area.addEventListener("input", () => { novoPasso(); OFICINA.svg = area.value; OFICINA.escolhida = "editado"; pintarLupa(); pintarDock(); });
   const secaoVariacoes = elemento("section", { "data-gerador": "" });
-  const secaoPartida = elemento("section", {}, [elemento("h3", { texto: "Partida" })]);
+  const secaoPartida = elemento("section", {}, [elemento("h3", { texto: "Original" })]);
   const partida = elemento("div", { class: "oficina-folha" });
   secaoPartida.append(partida);
   const ajuste = elemento("section", {});
@@ -335,7 +337,7 @@ function oficinaDeDesenho(app, relerLista) {
       ajuste.className = "so-dracula";
       const c = OFICINA.circulo || {};
       const chave = elemento("button", { class: "chave", type: "button", role: "switch", "aria-checked": String(!!c.aro),
-        "aria-label": "Aro", controle: "oficina:aro", onclick: () => {
+        "aria-label": "Borda", controle: "oficina:aro", onclick: () => {
           OFICINA.circulo = { ...OFICINA.circulo, aro: !(OFICINA.circulo && OFICINA.circulo.aro) };
           chave.setAttribute("aria-checked", String(OFICINA.circulo.aro));
           regerar();
@@ -352,14 +354,14 @@ function oficinaDeDesenho(app, relerLista) {
       ajuste.append(elemento("h3", { texto: "Ajuste" }),
         paleta("Disco", "disco", String(c.disco || "").toUpperCase(), (_n, hex) => { OFICINA.circulo = { ...OFICINA.circulo, disco: hex }; regerar(); },
           ["surface0", "surface1", "surface2", "base", "mantle", "crust", "mauve", "pink"]),
-        elemento("div", { class: "oficina-regua" }, [elemento("span", { texto: "Aro" }), chave]),
+        elemento("div", { class: "oficina-regua" }, [elemento("span", { texto: "Borda" }), chave]),
         paleta("Glifo", "tinta", String(c.tinta || "").toUpperCase(), (_n, hex) => { OFICINA.circulo = { ...OFICINA.circulo, tinta: hex }; regerar(); },
           ["green", "yellow", "pink", "teal", "sky", "mauve", "peach", "text"]),
         elemento("label", { class: "oficina-regua" }, [elemento("span", { texto: "Tamanho do glifo" }), tamanho, saida]));
       return;
     }
     ajuste.className = "so-meowsystem";
-    ajuste.append(elemento("h3", { texto: "Ajuste" }), regua("detalhe", "Detalhe"), regua("suavidade", "Suavidade"),
+    ajuste.append(elemento("h3", { texto: "Ajuste" }), regua("detalhe", "Nível de detalhe"), regua("suavidade", "Suavidade"),
       regua("fracas", "Linhas fracas"), regua("minimo", "Traço mínimo"),
       paleta("Cor do traço", "cor", OFICINA.cor, (nome) => { OFICINA.cor = nome; pintarTudo(); }));
   }
@@ -422,8 +424,7 @@ function oficinaDeDesenho(app, relerLista) {
     if (!OFICINA.editor || !OFICINA.editor.tem) return;
     editor.append(
       botao(OFICINA.editor.nome ? `Abrir no ${OFICINA.editor.nome}` : "Abrir no editor", { class: "bt leve pequeno",
-        controle: "oficina:editor", disabled: !String(OFICINA.svg || "").trim() || OFICINA.dopack, onclick: abrirNoEditor }),
-      botao("Reler", { class: "bt leve pequeno", controle: "oficina:reler", icone: "girar", onclick: () => espiarEditor(true) }));
+        controle: "oficina:editor", disabled: !String(OFICINA.svg || "").trim() || OFICINA.dopack, onclick: abrirNoEditor }));
   }
   function pintarPe() {
     const tem = !!(OFICINA.noPack && OFICINA.noPack.tem);
@@ -510,7 +511,7 @@ function oficinaDeDesenho(app, relerLista) {
     let espiadas = 0;
     OFICINA.editorRelogio = setInterval(() => {
       if (!document.querySelector(".desenho-gerar") || ++espiadas > 450) { pararVigiaEditor(); return; }
-      espiarEditor(false);
+      espiarEditor();
     }, 2000);
   }
   usar.addEventListener("click", async (e) => {
@@ -635,7 +636,7 @@ async function rodarNaGaleria(id, argumento) {
   if (!a) return;
   const r = await api("/api/rodar", { method: "POST", body: JSON.stringify({ acao: id, argumento, confirmado: true }) });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirResultado(r);
+  iniciarProgresso(r);
 }
 function montarGaleria() {
   const abas = elemento("div", { class: "seg", role: "group", "aria-label": "Grupo" });
@@ -655,7 +656,7 @@ function montarGaleria() {
         botoes.push(mini("certo", "Usar agora", "wallpaper_usar", alvo));
         botoes.push(mini("sol", "De dia", "wallpaper_dia", alvo));
         botoes.push(mini("lua", "De noite", "wallpaper_noite", alvo));
-        if (i.lado) botoes.push(mini("girar", "Medir a luz", "wallpaper_lado_auto", alvo));
+        if (i.lado) botoes.push(mini("girar", "Separar tons de cores", "wallpaper_lado_auto", alvo));
         botoes.push(mini("lixo", "Apagar", "wallpaper_banir", alvo, { onclick: async () => {
           if (await perguntar({ titulo: `Apagar ${i.rotulo}?`, ok: "Apagar", perigo: true })) rodarNaGaleria("wallpaper_banir", alvo);
         } }));
@@ -686,13 +687,13 @@ async function definirJogo(appid, acao, motivo, remover) {
   if (r.erro) { torrada(r.erro, "erro"); return; }
   JOGO_ABERTO = null;
   const t = await api("/api/rodar", { method: "POST", body: JSON.stringify({ acao: "jogos_aplicar", argumento: "", confirmado: true }) });
-  if (t.erro) torrada(t.erro, "erro"); else abrirResultado(t);
+  if (t.erro) torrada(t.erro, "erro"); else iniciarProgresso(t);
   JOGOS = null;
 }
 async function trocarNoLancador(j, ligar) {
   if (j.heroic) { rodar(ACAO.get(ligar ? "jogos_heroic_por" : "jogos_heroic_tirar"), j.id, { semPerguntar: true }); return; }
-  const ok = await perguntar({ titulo: ligar ? `Pôr ${j.nome} no lançador?` : `Tirar ${j.nome} do lançador?`,
-    ok: ligar ? "Pôr" : "Tirar" });
+  const ok = await perguntar({ titulo: ligar ? `Adicionar ${j.nome} ao lançador?` : `Remover ${j.nome} do lançador?`,
+    ok: ligar ? "Adicionar jogo" : "Remover jogo" });
   if (ok) definirJogo(j.appid, ligar ? "" : "esconder", "", ligar);
 }
 function montarJogos() {

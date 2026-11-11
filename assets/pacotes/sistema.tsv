@@ -9,3 +9,4 @@ curl	curl
 xz	xz-utils
 unzip	unzip
 zstd	zstd
+ffmpeg	ffmpeg

@@ -1,8 +1,8 @@
 # `app/`: o painel
 
 Uma página local que faz pela tela tudo o que se faz editando o `~/.config/meow/meow.conf` ou
-digitando `meow`. As 132 chaves, com o valor escolhido, o de fábrica e o porquê atrás do **?**; e
-69 ações, com a saída aparecendo ao vivo enquanto rodam.
+digitando `meow`. As 131 chaves, com o valor escolhido, o de fábrica e o porquê atrás do **?**; e
+68 ações, com a saída aparecendo ao vivo enquanto rodam.
 
 ```bash
 ./app/run.sh        # ou: meow abrir, ou o ícone MeowSystem no lançador
@@ -26,7 +26,6 @@ app/
     extensoes.js  a porta Extensões: applets, builds e Adicionar repositório
     mesa.js       a prévia da área de trabalho no cartão do pack e em Personalizar
     estilo.css    o visual (nenhum hex nele)
-    standalone.*  só existem dentro do HTML exportado
 ```
 
 ## As portas
@@ -34,13 +33,13 @@ app/
 | porta | o que tem |
 |---|---|
 | **Tema** | um cartão por pack instalado: logo, paleta, o que é próprio e o que herda. **Aplicar tema**, **Remover**, **Abrir um tema** (`.meowpack` ou `.csv` de cores) |
-| **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Disponibilizar (**Baixar o tema**) |
-| **Definir** | painel e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
-| **Manter** | o doctor e o **Consertar**, as pendências, **Guardar ajustes** e **Trazer ajustes** |
-| **Extensões** | as abas **Applets** (um cartão por applet: Instalar, Pôr no painel, Remover) e **Builds** (compositor, menu do Arquivos e cada applet, com **Refazer**), e **Adicionar repositório** |
+| **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Usar e compartilhar (**Baixar o tema**) |
+| **Ajustes** | barra e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
+| **Manutenção** | o doctor e o **Consertar**, as pendências, **Exportar ajustes** e **Importar ajustes** |
+| **Extensões** | as abas **Applets** (um cartão por applet: Instalar, Adicionar à barra, Remover) e **Builds** (compositor, menu do Arquivos e cada applet, com **Recompilar**), e **Adicionar repositório** |
 
-Cada controle grava ao soltar e aplica só o que a chave governa. A barra de cima tem a conta das
-últimas mudanças com **Desfazer**, **Procurar um ajuste**, **Créditos** e **Esta tela num arquivo**.
+Cada controle grava ao soltar e aplica só o que a chave governa. A barra de cima tem
+**Desfazer**, **Buscar** e **Reiniciar a barra**.
 
 ## O catálogo é derivado
 
@@ -58,11 +57,11 @@ no exemplo aparece na página sozinha. O `tests/app.sh` compara as duas leituras
   de aplicação, que roda `./install.sh --etapa` só com as etapas que a tabela
   `assets/contratos/chave-etapa.tsv` liga à chave. Uma escolha recusada barra o lote inteiro, antes
   de qualquer escrita. Se a aplicação falha, vira pendência.
-- **Ver sem mudar** mostra uma ação antes de ela valer, numa janela de resultado com **Parar**,
-  **Guardar** e **Rodar de verdade**. Não há interruptor global de ensaio; um `MEOW_DRY_RUN` herdado
-  do terminal sai do ambiente de tudo que o painel roda.
+- **Toda ação** mostra uma linha de progresso logo abaixo da barra de cima, com **Parar**; fim bom some,
+  erro vira aviso (decisão 18). Não há janela de resultado nem interruptor de ensaio; um `MEOW_DRY_RUN`
+  herdado do terminal sai do ambiente de tudo que o painel roda.
 - **Restaurar** grava o valor de fábrica e só aparece quando o valor difere (decisão 10).
-- **Trazer ajustes** grava o lote na hora e entra na barra para desfazer.
+- **Importar ajustes** grava o lote na hora e entra na barra para desfazer.
 - **Um trabalho por vez.** O `install.sh` e o `meow doctor --consertar` pegam o `flock` de
   `~/.local/state/meowsystem/lock`; o servidor recusa o segundo e diz qual está correndo. A saída
   fica no servidor: a página pode recarregar e voltar ao mesmo trabalho.
@@ -89,12 +88,6 @@ no exemplo aparece na página sozinha. O `tests/app.sh` compara as duas leituras
 O `estilo.css` não tem hex. Quem define `var(--base)`, `var(--accent)` e as outras é o
 `/paleta.css`, que o servidor gera da paleta do pack no ar, no flavor e no modo do `meow.conf`. O
 acento aparece só no que está ligado, selecionado ou é a ação principal.
-
-## Esta tela num arquivo
-
-Baixa a tela inteira num `.html` só, que abre sem Python e sem o projeto. É o `app.js` de verdade
-contra dados congelados: o `standalone.js` troca o `fetch` pelo JSON embutido e as imagens pelos
-`data:`. Nada nele grava: as rotas que escrevem respondem com o aviso.
 
 ## Instalação e conferência
 

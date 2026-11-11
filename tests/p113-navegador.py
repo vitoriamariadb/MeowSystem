@@ -45,14 +45,14 @@ def sons(pag, url):
     prova(len(nomes) >= 25 and "Na tomada" in nomes and "Bateria fraca" in nomes,
           "a página Sons lista os sons do sistema por nome legível (%d)" % len(nomes))
     prova(all(quando) and "O carregador entra" in quando, "cada som diz quando toca")
-    prova(pag.locator("h2", has_text="Toca no COSMIC").count() == 1
-          and pag.locator("h2", has_text="Toca nos apps").count() == 1, "dois blocos: COSMIC e apps")
+    prova(pag.locator("h2", has_text="Nativo do COSMIC").count() == 1
+          and pag.locator("h2", has_text="Toca nos apps").count() == 0, "o bloco dos apps não leva título")
     prova(pag.locator(".sons li[data-som] [data-origem]").count() == len(nomes), "cada som mostra de onde vem")
     prova(pag.locator(".sons li[data-som='power-plug'] [data-controle='som:trocar']").count() == 1, "cada som tem o Trocar")
     pag.evaluate("() => { ESQUEMA.ponte = false; render(); }")
     pag.wait_for_timeout(300)
     prova(pag.locator("[data-controle='som:ponte']").count() == 1
-          and pag.locator(".sons li.sem-ponte").count() == 7, "sem ponte: aviso com «Consertar a ponte» e os 7 sons de carregador e bateria marcados")
+          and pag.locator(".sons li.sem-ponte").count() == 7, "sem ponte: aviso com «Reativar permissão de sistema» e os 7 sons de carregador e bateria marcados")
     foto(pag, "sons-sem-ponte.png")
     pag.evaluate("() => { ESQUEMA.ponte = true; render(); }")
 
@@ -63,14 +63,15 @@ def sons(pag, url):
     q = pag.evaluate("() => urlDoSino()")
     corpo_previa = bytes(pag.evaluate("async (q) => Array.from(new Uint8Array(await (await fetch(q)).arrayBuffer()))", q))
     prova(corpo_previa[:4] == b"RIFF", "a prévia do sino vem do gerador do som.sh (WAV)")
-    pag.click("[data-controle='acao:som_aplicar']")
+    pag.fill("[data-controle='sino:nome']", "Sino de teste")
+    pag.click("[data-controle='sino:gravar']")
     destino = os.path.join(casa.CASA, ".local", "share", "sounds", "freedesktop", "stereo", "audio-volume-change.oga")
     for _ in range(60):
         if os.path.isfile(destino) and os.path.getmtime(destino) > tempo:
             break
         pag.wait_for_timeout(500)
     gravado = open(destino, "rb").read() if os.path.isfile(destino) else b""
-    prova(gravado == corpo_previa, "o «Regravar» grava os mesmos bytes que a prévia tocou (%d bytes)" % len(gravado))
+    prova(gravado == corpo_previa, "o «Gerar Sons» grava os mesmos bytes que a prévia tocou (%d bytes)" % len(gravado))
     pag.reload()
     pag.wait_for_function("() => typeof ESQUEMA !== 'undefined' && ESQUEMA", timeout=60000)
     ir(pag, "criar/sons")
@@ -121,7 +122,7 @@ def mandar_e_rascunho(pag, nav, url):
     ir(pag, "novo/mandar")
     foto(pag, "mandar.png")
     linhas = pag.eval_on_selector_all("[data-resumo]", "(xs) => xs.map((x) => x.dataset.resumo)")
-    prova(linhas[:3] == ["Cores", "Ícones", "Pastas"] and len(linhas) == 7, "Disponibilizar mostra o resumo do tema sem ele ter sido guardado: %s" % linhas)
+    prova(linhas[:3] == ["Cores", "Ícones", "Pastas"] and len(linhas) == 7, "Usar e compartilhar mostra o resumo do tema sem ele ter sido guardado: %s" % linhas)
     prova(pag.evaluate("() => !rascunho().pack"), "o tema ainda não foi guardado")
     prova(pag.locator("[data-controle='criar:baixar']").is_enabled() and pag.locator("[data-controle='criar:vestir']").is_enabled(),
           "as saídas (Baixar o tema, Aplicar tema) já valem")

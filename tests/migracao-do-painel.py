@@ -12,11 +12,10 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 GESTOS_DE_ANTES = [
     ("Descartar (só na página)", "Topo: Descartar", "descartar"),
-    ("Busca (só na página)", "Topo: Buscar um ajuste ou uma ação", "busca"),
+    ("Busca (só na página)", "Topo: Buscar", "busca"),
     ("GET /api/exportar/conf", "Topo: Exportar › Meus ajustes", "exportar-conf"),
-    ("GET /api/exportar/pagina", "Topo: Exportar › Esta tela num arquivo", "exportar-pagina"),
     ("POST /api/importar", "Topo: Importar", "importar"),
-    ("Link do repositório", "Menu: Créditos", "creditos"),
+    ("Recarregar o painel (só na página)", "Topo: Reiniciar a barra", "reiniciar-barra"),
     ("POST /api/pack-importar", "Início: Importar um pack", "pack-importar"),
     ("POST /api/pack-importar (CSV)", "Início: pack de um .csv", "tema-criar"),
     ("GET /api/pack-exportar", "Início: Exportar o pack", "pack-exportar"),
@@ -31,10 +30,13 @@ GESTOS_DE_ANTES = [
     ("GET /api/glifos", "Ícones: Buscar desenho", "glifos"),
     ("POST /api/autorais", "Ícones: Desenhos autorais do pack", "autorais"),
     ("POST /api/jogo-fora", "Lançadores e jogos: o jogo no lançador", "jogo-fora"),
-    ("POST /api/parar", "Janela do trabalho: Parar", "parar"),
-    ("POST /api/guardar-log", "Janela do trabalho: Guardar", "guardar-log"),
-    ("Rodar de verdade (depois do ensaio)", "Janela do trabalho: Rodar de verdade", "ensaio-rodar"),
+    ("POST /api/parar", "Topo: Parar", "parar"),
 ]
+
+FORA_DA_TELA = {"LOG_NIVEL", "CURSOR_VERSAO", "JANELAS_TILING_ESCOPO", "WALLPAPER_FIXO_TTL",
+                "WALLPAPER_DRACULA_COMMIT"}
+ACAO_FORA_DA_TELA = {"som_ouvir", "som_aplicar"}
+
 
 def _node(expr):
     js = ("const L = require(%s); process.stdout.write(JSON.stringify(%s));"
@@ -124,10 +126,10 @@ def gerar():
     linhas.append("|---|---|---|---|")
     for chave, secao, titulo in chaves:
         lugares = por.get(("chave", chave), [])
-        if not lugares:
+        if not lugares and chave not in FORA_DA_TELA:
             sem += 1
             falhas.append("chave sem destino: %s" % chave)
-        agora = "; ".join(sorted({onde(l) for l in lugares})) or "**SEM DESTINO**"
+        agora = "; ".join(sorted({onde(l) for l in lugares})) or ("fora da tela" if chave in FORA_DA_TELA else "**SEM DESTINO**")
         nome = "; ".join(sorted({l["rotulo"] for l in lugares}))
         linhas.append("| `%s` | %s | %s | %s |" % (chave, secao or "—", agora, nome))
 
@@ -136,10 +138,10 @@ def gerar():
     linhas.append("|---|---|---|---|")
     for ident, grupo, rotulo in acoes:
         lugares = por.get(("acao", ident), [])
-        if not lugares:
+        if not lugares and ident not in ACAO_FORA_DA_TELA:
             sem += 1
             falhas.append("ação sem destino: %s" % ident)
-        agora = "; ".join(sorted({onde(l) for l in lugares})) or "**SEM DESTINO**"
+        agora = "; ".join(sorted({onde(l) for l in lugares})) or ("fora da tela" if ident in ACAO_FORA_DA_TELA else "**SEM DESTINO**")
         nome = "; ".join(sorted({l["rotulo"] for l in lugares}))
         linhas.append("| `%s` | %s · «%s» | %s | %s |" % (ident, grupo or "—", rotulo, agora, nome))
 
@@ -184,9 +186,9 @@ def gerar():
         falhas.append("o comentário do meow_onde_no_painel (lib/comum.sh) ainda fala em aba")
     if any(l["porta"] == "cuidar" and l.get("bloco") == "Pendências" for l in srv["inventario"]):
         falhas.append("o lugares.js ainda tem o bloco «Pendências» no Manter")
-    quer = {"doctor_consertar": "«Consertar a ponte», em Manter Nova › Estado",
-            "LANCADOR_SISTEMA": "«Arrumar o lançador», em Definir Nova › Programas › Lançador",
-            "inicio": "", "areas-sem-alfinete": "«Criar», em Definir Nova › Janelas e tela › Áreas de trabalho"}
+    quer = {"doctor_consertar": "«Reativar permissão de sistema», em Manutenção Nova › Estado",
+            "LANCADOR_SISTEMA": "«Organizar o lançador», em Ajustes Nova › Programas › Lançador",
+            "inicio": "", "areas-sem-alfinete": "«Fixar», em Ajustes Nova › Janelas e tela › Áreas de trabalho"}
     if srv["renomeado"] != quer:
         falhas.append("o --onde não lê o nome das portas do lugares.js (segunda tabela no servidor): %r"
                       % srv["renomeado"])

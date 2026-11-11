@@ -124,6 +124,7 @@ PORTATIL=(
   deb.sh
   espaco.sh
   levantamento.sh
+  glossario.sh
   pacotes-numa-lista.sh
   comum-carrega-limpo.sh
 )
@@ -141,8 +142,10 @@ MAQUINA=(
   criar-e-aprimorar.py
   oficina.sh
   icones-por-pack.py
+  personalizar-pagina.py
   sistema-latte-e-rotulos.py
   pastas-do-pack.sh
+  retirados-do-pack.sh
   restos-do-painel.sh
   folha-dos-resgatados.sh
   app-completo.py
@@ -155,6 +158,8 @@ MAQUINA=(
   espaco-pagina.py
   modificacoes-pagina.py
   logo-pagina.py
+  resultado-na-linha.py
+  faixa-de-fabrica.py
   logo-do-pack-pessoal-pagina.py
   zapzap-tema-de-conversa.py
   graficos-fonte-real.sh
@@ -168,6 +173,8 @@ SEM_PULO=(
   espaco-pagina.py
   modificacoes-pagina.py
   logo-pagina.py
+  resultado-na-linha.py
+  faixa-de-fabrica.py
   logo-do-pack-pessoal-pagina.py
 )
 

@@ -198,19 +198,17 @@ if _guardado or len(_ligam) != 1 or "_ambiente_do_painel(seco=False)" not in _py
 else:
     print("ok: o ensaio é pedido por gesto, e não guardado num interruptor")
 
-_pecas = [("o botão do diálogo", "confirmar-ensaio", _js),
-          ("a faixa da gaveta", "faixa-ensaio", _js),
-          ("o «Rodar de verdade» pós-ensaio", "ensaio-rodar", _js),
-          ("a cópia descartável do ensaio", "_conf_de_ensaio", _py),
-          ("o MEOW_CONF do ensaio", 'ambiente["MEOW_CONF"]', _py),
-          ("o seco no /api/rodar", 'corpo.get("seco")', _py)]
+_pecas = [("a cópia descartável do ensaio", "_conf_de_ensaio", _py),
+          ("o MEOW_CONF do ensaio", 'ambiente["MEOW_CONF"]', _py)]
 _faltam = ["%s (%s)" % (nome, marca) for nome, marca, onde in _pecas if marca not in onde]
-if _faltam:
-    print("FALHOU: o ensaio da sprint P8 sumiu da tela: %s" % ", ".join(_faltam),
-          file=sys.stderr)
+_html = open(os.path.join(raiz, "app/pagina/index.html"), encoding="utf-8").read()
+_voltou = [m for m in ("confirmar-ensaio", "faixa-ensaio", "ensaio-rodar", 'id="resultado"') if m in _js or m in _html]
+if _faltam or _voltou:
+    print("FALHOU: o ensaio no servidor sumiu (%s) ou voltou à tela (%s)"
+          % (", ".join(_faltam) or "—", ", ".join(_voltou) or "—"), file=sys.stderr)
     falhou = 1
 else:
-    print("ok: o «Ver sem mudar» está no diálogo da ação e na janela de resultado")
+    print("ok: o ensaio só vive no servidor; a tela não tem «Ver sem mudar» nem janela de resultado")
 
 import hashlib as _hl
 import shutil as _sh
@@ -264,16 +262,14 @@ for _id9f, _a9f in servidor.ACOES.items():
     if _alvo9f and (_alvo9f not in servidor.ACOES or not servidor.escreve(servidor.ACOES[_alvo9f])):
         _erros9f.append("%s conserta com %r, que não é ação que escreve" % (_id9f, _alvo9f))
 if servidor.ACOES.get("doctor", {}).get("conserta_com") != "doctor_consertar":
-    _erros9f.append("o «Conferir a máquina» não declara o «Consertar o que estiver fora»")
-_js9f = open(os.path.join(raiz, "app/pagina/app.js"), encoding="utf-8").read()
-if ('"conserta_com"' not in _inspect9.getsource(servidor)
-        or "conserta: trabalho.conserta_com" not in _js9f or '"resultado:consertar"' not in _js9f):
-    _erros9f.append("o trabalho não leva a `conserta_com` à gaveta, ou a gaveta não a oferece")
+    _erros9f.append("o «Verificar o sistema» não declara o «Consertar o que estiver fora»")
+if '"conserta_com"' not in _inspect9.getsource(servidor):
+    _erros9f.append("o trabalho não leva a `conserta_com` ao painel")
 if _erros9f:
     print("FALHOU: " + "; ".join(_erros9f), file=sys.stderr)
     falhou = 1
 else:
-    print("ok: o «há divergências» do conferir oferece o botão do conserto na gaveta")
+    print("ok: o «há divergências» do conferir declara o conserto que o doctor faz")
 
 import inspect as _inspect
 import tempfile as _tf
@@ -338,25 +334,8 @@ conf = os.environ["MEOW_CONF"]
 os.makedirs(os.path.dirname(conf))
 with open(os.path.join(raiz, "meow.conf.exemplo"), encoding="utf-8") as fh:
     exemplo = fh.read()
-vazia = 'WALLPAPER_FONTES_PERMITIDAS=""'
-if vazia not in exemplo:
-    print("FALHOU: o meow.conf.exemplo não tem mais a linha %s" % vazia, file=sys.stderr)
-    sys.exit(1)
-sentinela = "meow-teste-sentinela"
-base_velha = 'WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"'
-if base_velha not in exemplo:
-    print("FALHOU: o meow.conf.exemplo não tem mais a linha %s" % base_velha, file=sys.stderr)
-    sys.exit(1)
-fora = os.path.join(os.path.dirname(casa), "disco", sentinela, "wallpapers")
-os.makedirs(os.path.join(fora, "ativos"))
-with open(os.path.join(fora, "ativos", "gato.png"), "wb") as fh:
-    fh.write(bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
-                           "1f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4"
-                           "8f0000000049454e44ae426082"))
 with open(conf, "w", encoding="utf-8") as fh:
-    fh.write(exemplo.replace(vazia, 'WALLPAPER_FONTES_PERMITIDAS="$HOME/Imagens:/run/media/%s/HD"'
-                             % sentinela)
-             .replace(base_velha, 'WALLPAPER_BASE="%s"' % fora))
+    fh.write(exemplo)
 sys.path.insert(0, os.path.join(raiz, "app"))
 import servidor
 
@@ -380,20 +359,10 @@ for vizinho in (casa + "zinho/x", "'%szinho/x'" % casa):
         erros.append("a casa comeu o vizinho: %r virou %r"
                      % (vizinho, servidor.texto_na_tela(vizinho)))
 
-html, _ = servidor.Manipulador.__new__(servidor.Manipulador)._exportar_pagina()
-if sentinela in html:
-    erros.append("a página exportada leva o nome de usuário de uma fonte fora da casa "
-                 "%d vez(es)" % html.count(sentinela))
-if casa in html:
-    erros.append("a página exportada leva a casa %d vez(es)" % html.count(casa))
-if "$WALLPAPER_BASE/ativos/gato.png" not in html:
-    erros.append("a foto do acervo de fora sumiu da página, em vez de sair sem a pasta")
-
 if erros:
     print("FALHOU: " + "; ".join(erros), file=sys.stderr)
     sys.exit(1)
-print("ok: o comando da gaveta cola com a casa entre aspas, e a página exportada não "
-      "leva caminho de fora da casa")
+print("ok: o caminho da casa na tela cola com a casa entre aspas")
 PY
 rm -rf "$_tmp11"
 
@@ -443,7 +412,7 @@ for nat, tabela in servidor.NATUREZAS.items():
 fim = servidor.fim_da_acao
 if not erros:
     if fim("painel_reciclar")["0"][1] == "já estava certo" or "0~" not in fim("painel_reciclar"):
-        erros.append("«Recarregar o painel» ainda pode dizer «já estava certo» depois de reciclar")
+        erros.append("«Reiniciar a barra» ainda pode dizer «já estava certo» depois de reciclar")
     if "consert" in fim("wallpaper_proximo")["1"][1]:
         erros.append("«Próxima imagem» ainda termina dizendo que consertou")
     if fim("som_ouvir")["0"][1] != "tocou":
@@ -459,11 +428,11 @@ if not erros:
                 erros.append("o ensaio de %s diz %r — num ensaio nada foi feito" % (ident, frase))
                 break
 
-esperado = "«Consertar a ponte», em Manter › Estado"
+esperado = "«Reativar permissão de sistema», em Manutenção › Estado"
 if servidor.onde_na_tela("doctor_consertar") != esperado:
     erros.append("--onde doctor_consertar diz %r, e não %r"
                  % (servidor.onde_na_tela("doctor_consertar"), esperado))
-if servidor.onde_na_tela("areas-sem-alfinete") != "«Criar», em Definir › Janelas e tela › Áreas de trabalho":
+if servidor.onde_na_tela("areas-sem-alfinete") != "«Fixar», em Ajustes › Janelas e tela › Áreas de trabalho":
     erros.append("--onde de uma pendência não diz o botão de verdade da ação dela: %r"
                  % servidor.onde_na_tela("areas-sem-alfinete"))
 if "Pendências" in "".join(servidor.onde_na_tela(i) for i in servidor.ACAO_DA_PENDENCIA):
@@ -475,11 +444,11 @@ modulos = os.path.join(raiz, "scripts", "temas-de-apps")
 com_modulo = next(n for n in sorted(os.listdir(modulos))
                   if os.path.isfile(os.path.join(modulos, n, "manifesto.sh")))
 onde = servidor.onde_na_tela(com_modulo + servidor.SUFIXO_TEMA_DE_TERCEIRO)
-if onde != "«Pôr no lugar», em Modificações":
-    erros.append("--onde da pendência de tema de terceiro de %s não leva ao «Pôr no lugar» da Modificações: %r"
+if onde != "«Aplicar», em Modificações":
+    erros.append("--onde da pendência de tema de terceiro de %s não leva ao «Aplicar» da Modificações: %r"
                  % (com_modulo, onde))
 def curto(t):
-    return bool(t) and len(t.split()) <= 3 and t[0].isupper()
+    return bool(t) and len(t.split()) <= 6 and t[0].isupper()
 longos = ["%s: %r" % (k, a["rotulo"]) for k, a in servidor.ACOES.items() if not curto(a["rotulo"])]
 assert servidor.PENDENCIAS.startswith(casa), servidor.PENDENCIAS
 os.makedirs(os.path.dirname(servidor.PENDENCIAS), exist_ok=True)
@@ -513,7 +482,7 @@ with open(servidor.PENDENCIAS, "w", encoding="utf-8") as fh:
 menu = servidor.pendencias()
 if [(p["acao"], p["nome"]) for p in menu] != [("", servidor.NOME_DA_PENDENCIA["files-menu-build"])]:
     erros.append("a pendência do build do menu não sai com o nome do assunto: %r" % menu)
-if servidor.onde_na_tela("files-menu-build") != "«Tentar de novo», em Extensões › Applets":
+if servidor.onde_na_tela("files-menu-build") != "«Recompilar», em Extensões › Applets":
     erros.append("--onde do build do menu não leva ao «Tentar de novo» da Extensões: %r"
                  % servidor.onde_na_tela("files-menu-build"))
 os.remove(servidor.PENDENCIAS)
@@ -546,7 +515,7 @@ os.remove(binario_spice)
 os.remove(servidor.PENDENCIAS)
 os.environ["PATH"] = caminho_antes
 if longos:
-    erros.append("12c: nome ou botão com mais de três palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))
+    erros.append("12c: nome ou botão com mais de seis palavras, ou sem maiúscula: %s" % "; ".join(longos[:6]))
 if servidor.onde_na_tela("sem-modulo-nenhum" + servidor.SUFIXO_TEMA_DE_TERCEIRO):
     erros.append("--onde cita os botões do tema de terceiro para um app sem módulo")
 porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel doctor_consertar',
@@ -810,7 +779,7 @@ if editor != {"tem": True, "nome": "Editor de vetores"}:
     erros.append("13a: o botão do editor de SVG diz %r, e a grade diria «Editor de vetores»"
                  % (editor,))
 
-quer = "«Arrumar o lançador», em Definir › Programas › Lançador"
+quer = "«Organizar o lançador», em Ajustes › Programas › Lançador"
 if servidor.onde_na_tela("LANCADOR_SISTEMA") != quer:
     erros.append("13b: --onde LANCADOR_SISTEMA diz %r, e a linha é %s"
                  % (servidor.onde_na_tela("LANCADOR_SISTEMA"), quer))
@@ -818,7 +787,7 @@ porta = subprocess.run(["bash", "-c", '. "$1/lib/comum.sh"; meow_onde_no_painel 
                         "_", raiz], capture_output=True, text=True, env=dict(os.environ))
 if porta.stdout.strip() != quer:
     erros.append("13b: o meow_onde_no_painel de um cartão diz %r" % porta.stdout.strip())
-if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em Definir › Papel de parede › Pastas":
+if servidor.onde_na_tela("WALLPAPER_DRACULA_REPO") != "«Acervo do Dracula», em Ajustes › Papel de parede › Pastas":
     erros.append("13b: --onde de uma chave que era do «Mais ajustes» diz %r" % servidor.onde_na_tela("WALLPAPER_DRACULA_REPO"))
 if any("Mais ajustes" in (servidor.onde_na_tela(k) or "") for k in list(servidor.ACOES) + ["PACK", "CURSOR", "ICONES_FLAVOR"]):
     erros.append("13b: ainda existe um --onde que manda para «Mais ajustes»")

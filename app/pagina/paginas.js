@@ -59,7 +59,7 @@ function cabeca(titulo, direita = []) {
 }
 
 function estadoDaMaquina() {
-  if (!ESQUEMA.ponte) return { bom: false, titulo: "Falta a ponte", icone: "alerta" };
+  if (!ESQUEMA.ponte) return { bom: false, titulo: "Sem permissão de sistema", icone: "alerta" };
   return { bom: true, titulo: "Tudo em ordem", icone: "certo" };
 }
 
@@ -387,16 +387,27 @@ async function exportarPack(id) {
 }
 
 const CHAVES_DO_SINO = ["SOM_FUNDAMENTAL", "SOM_HARMONICO", "SOM_PESO_FUNDAMENTAL", "SOM_PESO_HARMONICO", "SOM_DECAIMENTO"];
-let SINO_TOCANDO = null;
 function urlDoSino() {
   const q = new URLSearchParams();
   for (const c of CHAVES_DO_SINO) { const v = vale(c); if (v !== "") q.set(c, v); }
   return "/sino?" + q.toString();
 }
-function tocarSino() {
-  if (SINO_TOCANDO) SINO_TOCANDO.pause();
-  SINO_TOCANDO = new Audio(urlDoSino());
-  SINO_TOCANDO.play().catch(() => { });
+let AUDIO_TOCANDO = null;
+function tocarAudio(url, botao) {
+  if (AUDIO_TOCANDO) AUDIO_TOCANDO.pause();
+  for (const x of document.querySelectorAll("[data-tocando]")) delete x.dataset.tocando;
+  const audio = new Audio(url);
+  AUDIO_TOCANDO = audio;
+  botao.dataset.tocando = "";
+  const parar = () => { if (AUDIO_TOCANDO === audio) delete botao.dataset.tocando; };
+  const falhou = () => { parar(); torrada("Não consegui tocar este som", "erro"); };
+  audio.addEventListener("ended", parar);
+  audio.addEventListener("pause", parar);
+  audio.addEventListener("error", falhou);
+  audio.play().catch(falhou);
+}
+function tocarSino(botao) {
+  tocarAudio(urlDoSino(), botao);
 }
 
 function passoCores() {
@@ -499,6 +510,94 @@ function fundoDoCartao(cores, paleta) {
   const nome = contraste(paleta.text, fundo) >= contraste(paleta.base, fundo) ? paleta.text : paleta.base;
   return { fundo, nome };
 }
+function trocarDesenhoDoTema(pasta, nome) {
+  const campo = elemento("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true });
+  campo.addEventListener("change", async () => {
+    const arq = campo.files && campo.files[0];
+    if (!arq) return;
+    const id = rascunho().pack;
+    const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo: pasta, nome, levar: true,
+      aprimorar: !emNovo(), conteudo: await lerComoBase64(arq) }) });
+    if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+    torrada(`${maiuscula(nome.replace(/[-_]+/g, " "))}: trocado`, "ok");
+    DESENHO_ABERTO = null;
+    await carregarAcervo();
+  });
+  campo.click();
+}
+let DESENHO_ABERTO = null;
+let DESENHO_ESCOLHIDO = null;
+const GRUPOS_DE_SISTEMA = [["barra", "Barra e bandeja"], ["configuracoes", "Configurações"], ["botoes", "Botões e janelas"],
+  ["pastas", "Pastas"], ["tipos", "Tipos de arquivo"]];
+function fichaDoDesenho(pasta, alvo) {
+  const chave = (i) => `${i.de}|${i.nome}`;
+  const termo = semAcento(BUSCA_ACERVO.trim());
+  const itens = ACERVO[pasta].filter((i) => i.nome !== alvo.nome
+    && (!termo || semAcento(i.rotulo || i.nome).includes(termo) || semAcento(i.nome).includes(termo)));
+  const escolhido = itens.find((i) => chave(i) === DESENHO_ESCOLHIDO) || null;
+  const lupa = elemento("div", { class: "oficina-lupa" });
+  const dock = elemento("div", { class: "oficina-dock", "aria-hidden": "true" });
+  const pintar = (url) => {
+    lupa.replaceChildren(elemento("img", { src: url, alt: "", width: "200", height: "200" }));
+    dock.replaceChildren(...[48, 32, 22].map((px) => elemento("img", { src: url, alt: "", width: String(px), height: String(px) })));
+  };
+  pintar((escolhido || alvo).url);
+  const usar = botao("Usar", { class: "bt principal", controle: "trocar:usar", disabled: !escolhido,
+    "aria-disabled": escolhido ? null : "true", dica: escolhido ? "Usar este desenho neste ícone" : "Escolha um desenho",
+    onclick: async () => {
+      const x = itens.find((i) => chave(i) === DESENHO_ESCOLHIDO);
+      if (!x) return;
+      const id = rascunho().pack;
+      const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo: pasta, nome: alvo.nome, levar: true,
+        aprimorar: !emNovo(), de: x.levado ? id : x.de, origem: x.nome }) });
+      if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+      torrada(`${maiuscula(alvo.rotulo || alvo.nome)}: trocado`, "ok");
+      DESENHO_ABERTO = null;
+      DESENHO_ESCOLHIDO = null;
+      await carregarAcervo();
+    } });
+  const tira = elemento("div", { class: "tira-glifos" });
+  const escolher = (i, b) => {
+    DESENHO_ESCOLHIDO = chave(i);
+    for (const x of tira.querySelectorAll("button[aria-pressed]")) x.setAttribute("aria-pressed", String(x === b));
+    pintar(i.url);
+    usar.disabled = false;
+    usar.removeAttribute("aria-disabled");
+    usar.dataset.dica = "Usar este desenho neste ícone";
+  };
+  const botaoDe = (i) => {
+    const b = elemento("button", { type: "button", controle: "trocar:opcao", "data-nome": i.nome,
+      "aria-pressed": String(chave(i) === DESENHO_ESCOLHIDO), dica: maiuscula(i.rotulo || i.nome),
+      onclick: () => escolher(i, b) }, [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { texto: i.rotulo || i.nome })]);
+    return b;
+  };
+  for (const [id, titulo] of pasta === "sistema" ? GRUPOS_DE_SISTEMA : [["", "Biblioteca"]]) {
+    const deles = itens.filter((i) => !id || i.grupo === id);
+    if (!deles.length) continue;
+    const d = elemento("details", { class: "pasta-acervo" }, [
+      elemento("summary", { controle: "icone:pasta" }, [elemento("span", { texto: titulo })]),
+      elemento("div", { class: "grade-glifos" }, deles.map(botaoDe))]);
+    const aberta = "trocar:" + id;
+    d.open = PASTAS_ABERTAS.has(aberta) ? PASTAS_ABERTAS.get(aberta) : !id || id === alvo.grupo || !!termo;
+    d.addEventListener("toggle", () => PASTAS_ABERTAS.set(aberta, d.open));
+    tira.append(d);
+  }
+  const cabecalho = elemento("header", {}, [
+    botao(pasta === "sistema" ? "Sistema" : "Biblioteca", { class: "bt leve pequeno", controle: "trocar:volta", icone: "voltar",
+      onclick: () => { DESENHO_ABERTO = null; DESENHO_ESCOLHIDO = null; render(); } }),
+    elemento("img", { src: alvo.url, alt: "" }),
+    elemento("h2", { texto: maiuscula(alvo.rotulo || alvo.nome) }),
+  ]);
+  return elemento("div", { class: "escolha-icone desenho", id: "desenho", "data-trocar": alvo.nome }, [
+    cabecalho,
+    elemento("div", { class: "desenho-corpo" }, [elemento("div", { class: "desenho-olho" }, [lupa, dock]),
+      elemento("div", { class: "desenho-mao" }, [tira])]),
+    elemento("footer", { class: "desenho-pe" }, [
+      botao("Trazer .svg", { class: "bt", icone: "subir", controle: "trocar:svg", dica: "Trocar por um SVG seu",
+        onclick: () => trocarDesenhoDoTema(pasta, alvo.nome) }),
+      usar]),
+  ]);
+}
 function gradeDoAcervo(pasta, grupo) {
   if (!ACERVO || ACERVO.chave !== chaveDoAcervo()) carregarAcervo();
   const pronto = ACERVO && !ACERVO.carregando;
@@ -514,9 +613,18 @@ function gradeDoAcervo(pasta, grupo) {
     grade.style.setProperty("--nome-previa", paleta.subtext1 || paleta.text);
     grade.style.setProperty("--linha-previa", paleta.surface1 || paleta.overlay0 || paleta.text);
   }
+  const pack = rascunho().pack && PACKS.find((x) => x.id === rascunho().pack);
+  const semTrocar = !pack ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
   for (const i of itens) {
-    const cartao = elemento("div", { class: "app", "data-nome": i.nome }, [
-      elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })]);
+    const trava = semTrocar || (i.trava ? maiuscula(i.trava) : "");
+    const miolo = [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })];
+    const cartao = elemento("button", { type: "button", class: "app", "data-nome": i.nome, controle: "trocar:desenho",
+      "data-levado": i.levado ? "" : null, dica: trava || "Trocar este ícone",
+      disabled: !!trava, "aria-disabled": trava ? "true" : null,
+      onclick: () => { DESENHO_ABERTO = { pasta, nome: i.nome }; DESENHO_ESCOLHIDO = null; render(); } }, miolo);
+    if (i.levado && !semTrocar) {
+      cartao.append(elemento("span", { class: "estado-pilula", "data-estado": "ok", texto: "Trocado" }));
+    }
     const outro = fundoDoCartao(i.cores, paleta);
     if (outro) {
       cartao.style.setProperty("--cartao-previa", outro.fundo);
@@ -546,7 +654,7 @@ function passoIcones() {
   const seg = elemento("div", { class: "seg", role: "group", "aria-label": "Que ícones" },
     abas.map(([id, nome]) => elemento("button", { type: "button", "aria-pressed": String(id === ABA_ICONES),
       "data-sub": id, controle: "icones:aba=" + id,
-      onclick: () => { ABA_ICONES = id; BUSCA_ACERVO = ""; render(); } }, [nome])));
+      onclick: () => { ABA_ICONES = id; BUSCA_ACERVO = ""; DESENHO_ABERTO = null; render(); } }, [nome])));
   const filtro = elemento("input", { type: "search", class: "campo", value: BUSCA_ACERVO, placeholder: "Filtrar",
     "aria-label": "Filtrar ícones", controle: "acervo:filtro" });
   filtro.addEventListener("input", () => { BUSCA_ACERVO = filtro.value; render(); });
@@ -555,10 +663,11 @@ function passoIcones() {
   const cabeca = elemento("div", { class: "sub-abas" }, [seg,
     ABA_ICONES === "apps" ? null : filtro,
     elemento("span", { class: "editando", "data-editando": packEmEdicao(), texto: "Editando " + editando })]);
+  const alvo = DESENHO_ABERTO && DESENHO_ABERTO.pasta === ABA_ICONES && ACERVO && !ACERVO.carregando
+    && ACERVO.chave === chaveDoAcervo() && (ACERVO[ABA_ICONES] || []).find((i) => i.nome === DESENHO_ABERTO.nome);
+  if (alvo) return [cabeca, fichaNaJanela(fichaDoDesenho(ABA_ICONES, alvo))];
   if (ABA_ICONES === "sistema") {
-    const grupos = [["barra", "Barra e bandeja"], ["configuracoes", "Configurações"], ["botoes", "Botões e janelas"],
-      ["pastas", "Pastas"], ["tipos", "Tipos de arquivo"]];
-    const grades = grupos.map(([id, titulo]) => [titulo, gradeDoAcervo("sistema", id)]);
+    const grades = GRUPOS_DE_SISTEMA.map(([id, titulo]) => [titulo, gradeDoAcervo("sistema", id)]);
     const cheias = grades.filter(([, g]) => g.querySelector(".app"));
     const pronto = ACERVO && !ACERVO.carregando;
     const mostrar = cheias.length ? cheias : [[pronto ? "Sistema" : grades[0][0], grades[0][1]]];
@@ -597,8 +706,9 @@ function packDoRascunho() {
 async function levarParaOTema(tipo, nome, levar, extra = {}) {
   const id = rascunho().pack;
   const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo, nome, levar, aprimorar: !emNovo(), ...extra }) });
-  if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+  if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return false; }
   await carregarLeva(id);
+  return true;
 }
 function botaoFotoDoTema(pack) {
   const campo = elemento("input", { type: "file", accept: ACERVO_ACEITA.parede, hidden: true, multiple: true });
@@ -653,23 +763,17 @@ function nomeDoSom(evento) {
   const s = SONS && (SONS.eventos || []).find((x) => x.evento === evento);
   return s ? s.nome : maiuscula(evento.replace(/-/g, " "));
 }
-let SOM_TOCANDO = null;
 function ouvirSom(pack, evento, b) {
-  if (SOM_TOCANDO) SOM_TOCANDO.pause();
-  for (const x of document.querySelectorAll(".sons [data-tocando]")) delete x.dataset.tocando;
-  const audio = new Audio(`/som?pack=${encodeURIComponent(pack)}&evento=${encodeURIComponent(evento)}`);
-  SOM_TOCANDO = audio;
-  b.dataset.tocando = "";
-  audio.addEventListener("ended", () => { delete b.dataset.tocando; });
-  audio.play().catch(() => { delete b.dataset.tocando; });
+  tocarAudio(`/som?pack=${encodeURIComponent(pack)}&evento=${encodeURIComponent(evento)}`, b);
 }
 function trocarSom(evento) {
   const campo = elemento("input", { type: "file", accept: ".oga,.ogg,audio/ogg", hidden: true });
   campo.addEventListener("change", async () => {
     const arq = campo.files && campo.files[0];
     if (!arq) return;
-    await levarParaOTema("som", evento, true, { arquivo: arq.name, conteudo: await lerComoBase64(arq) });
+    if (!await levarParaOTema("som", evento, true, { arquivo: arq.name, conteudo: await lerComoBase64(arq) })) return;
     torrada(`${nomeDoSom(evento)}: trocado`, "ok");
+    if (!emNovo()) await rodarAcao("som_aplicar");
   });
   return campo;
 }
@@ -699,8 +803,8 @@ function linhaDeSom(s, pack, semTrocar) {
     "data-origem": s.origem, texto: s.origem === "pack" ? "Do pack" : "Do sistema" });
   return elemento("li", { "data-som": s.evento, class: semPonte ? "sem-ponte" : null, "data-ponte": s.ponte ? "" : null }, [
     tocar,
-    elemento("span", { class: "som-nome" }, [elemento("b", { texto: s.nome }), elemento("small", { texto: s.quando })]),
-    elemento("span", {}, [origem, semPonte ? elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem ponte" }) : null]),
+    elemento("span", { class: "som-nome" }, [elemento("b", { texto: s.nome }), elemento("small", { texto: s.apelido ? `${s.quando} · ${s.apelido}` : s.quando })]),
+    elemento("span", {}, [origem, semPonte ? elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem permissão de sistema" }) : null]),
     botao("Trocar", { class: "bt leve pequeno", controle: "som:trocar", icone: "trocar",
       dica: semTrocar || "Um .oga no lugar deste",
       disabled: !!semTrocar, "aria-disabled": semTrocar ? "true" : null, onclick: () => campo.click() }), campo,
@@ -713,16 +817,16 @@ function sonsDoSistema() {
   const pronto = SONS && SONS.id === id && !SONS.carregando;
   const leitura = packNoAr() && !pack ? packNoAr() : pack;
   const semTrocar = !pack || !LEVA || LEVA.carregando ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
-  if (!pronto) return [bloco("Toca no COSMIC", [elemento("div", { class: "esqueleto fio" })], { class: "fora-erro" })];
-  if (SONS.erro) return [bloco("Toca no COSMIC", [elemento("div", { class: "corpo", texto: "Os sons não abriram" })])];
-  const grupos = [["cosmic", "Toca no COSMIC"], ["apps", "Toca nos apps"]];
+  if (!pronto) return [bloco("Nativo do COSMIC", [elemento("div", { class: "esqueleto fio" })], { class: "fora-erro" })];
+  if (SONS.erro) return [bloco("Nativo do COSMIC", [elemento("div", { class: "corpo", texto: "Os sons não abriram" })])];
+  const grupos = [["cosmic", "Nativo do COSMIC"], ["apps", null]];
   const saida = [];
   if (!ESQUEMA.ponte) {
     saida.push(elemento("section", { class: "bloco tracejado", "data-bloco": "ponte" }, [
       elemento("div", { class: "aviso-linha" }, [
-        elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Ponte fora" }),
+        elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem permissão de sistema" }),
         elemento("span", { texto: "Carregador e bateria tocam o som do Pop" }),
-        botao("Consertar a ponte", { class: "bt principal pequeno", icone: "refazer", controle: "som:ponte", onclick: semPonte }),
+        botao("Reativar permissão de sistema", { class: "bt principal pequeno", icone: "refazer", controle: "som:ponte", onclick: semPonte }),
       ]),
     ]));
   }
@@ -733,17 +837,49 @@ function sonsDoSistema() {
   }
   return saida;
 }
+let SINO_NOME = "";
+let SINO_DESTINO = "audio-volume-change";
+function gravarSino() {
+  const pack = packDoRascunho();
+  const semGravar = !pack ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
+  const eventos = [{ evento: "audio-volume-change", nome: "Volume" }, ...((SONS && SONS.eventos) || [])];
+  const nome = elemento("input", { type: "text", class: "campo", value: SINO_NOME, maxlength: "48",
+    placeholder: "Nome do som", "aria-label": "Nome do som", controle: "sino:nome" });
+  const destino = elemento("select", { class: "campo", "aria-label": "Evento que toca este som", controle: "sino:evento" },
+    eventos.map((e) => elemento("option", { value: e.evento, texto: e.nome, selected: e.evento === SINO_DESTINO ? "" : null })));
+  const gravar = botao("Gerar Sons", { class: "bt principal", icone: "disco", controle: "sino:gravar",
+    disabled: !!semGravar || !SINO_NOME.trim(), "aria-disabled": semGravar || !SINO_NOME.trim() ? "true" : null,
+    dica: semGravar || (SINO_NOME.trim() ? "Grava o sino no tema, no evento escolhido" : "Dê um nome ao som"),
+    onclick: async () => {
+      const corpo = { id: pack.id, tipo: "sino", nome: SINO_NOME.trim(), evento: SINO_DESTINO, aprimorar: !emNovo(),
+        timbre: Object.fromEntries(CHAVES_DO_SINO.map((c) => [c, vale(c)])) };
+      const r = await api("/api/criar", { method: "POST", body: JSON.stringify(corpo) });
+      if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+      torrada(`${SINO_NOME.trim()}: gravado`, "ok");
+      SINO_NOME = "";
+      await carregarSons(pack.id);
+      if (!emNovo() || corpo.evento === "audio-volume-change") await rodarAcao("som_aplicar");
+    } });
+  nome.addEventListener("input", () => {
+    SINO_NOME = nome.value;
+    const vazio = !SINO_NOME.trim();
+    gravar.disabled = !!semGravar || vazio;
+    gravar.setAttribute("aria-disabled", String(!!semGravar || vazio));
+  });
+  destino.addEventListener("change", () => { SINO_DESTINO = destino.value; });
+  return elemento("div", { class: "corpo fila", "data-sino-gravar": "" }, [nome, destino, gravar]);
+}
 function passoSons() {
   const p = PASSOS.find((x) => x.id === "sons");
   const tocou = CHAVES_DO_SINO.some((c) => CHAVE.get(c) && CHAVE.get(c).valor);
   const sino = elemento("div", { class: "sino" }, [
     elemento("button", { type: "button", class: "tocar", "aria-label": "Tocar o sino", dica: "Tocar o sino",
-      controle: "criar:sino", onclick: tocarSino }, [icone("tocar")]),
+      controle: "criar:sino", onclick: (e) => tocarSino(e.currentTarget) }, [icone("tocar")]),
     envelopeDoSino(),
     elemento("span", { class: "estado-pilula", "data-estado": tocou ? "neutro" : "ok", "data-origem-sino": "",
       texto: tocou ? "Trocado" : "Do pack" }),
   ]);
-  return [bloco("Sino do volume", [sino, lista(p.linhas)]), ...sonsDoSistema()];
+  return [bloco("Sino do volume", [sino, gravarSino(), lista(p.linhas)]), ...sonsDoSistema()];
 }
 function linhaDoResumo(rotulo, valor, miolo) {
   return elemento("li", { class: "linha", "data-resumo": rotulo }, [
@@ -779,7 +915,7 @@ function passoMandar() {
   const dica = pouco ? "Pouco contraste entre texto e fundo" : null;
   if (!emNovo()) {
     const motivo = pouco ? dica : motivoDoAprimorar();
-    const aprimorar = botao("Aprimorar", { class: "bt principal", icone: "tema", controle: "criar:aprimorar",
+    const aprimorar = botao("Salvar no tema", { class: "bt principal", icone: "tema", controle: "criar:aprimorar",
       disabled: !!motivo, "aria-disabled": motivo ? "true" : null, dica: motivo || null,
       onclick: async () => {
         const p = packDoAprimorar();
@@ -799,7 +935,7 @@ function passoMandar() {
 }
 
 function nomeDoPasso(p) {
-  return p.id === "mandar" && !emNovo() ? "Aprimorar" : p.nome;
+  return p.id === "mandar" && !emNovo() ? "Salvar no tema" : p.nome;
 }
 function paginaCriar(sub) {
   const r = rascunho();
@@ -812,7 +948,7 @@ function paginaCriar(sub) {
     nome.addEventListener("change", () => { r.nome = maiuscula(nome.value.trim()) || "Meu tema"; guardarRascunho(); render(); });
     titulo = cabeca("Tema novo", [nome]);
   } else {
-    titulo = cabeca("Aprimorar " + (r.nome || ""));
+    titulo = cabeca("Editar " + (r.nome || ""));
   }
   const passos = elemento("ol", { class: "passos" }, PASSOS.map((p, j) => elemento("li", {}, [
     elemento("a", { href: rota + p.id, controle: "passo:" + p.id, "aria-current": j === i ? "step" : null },
@@ -906,7 +1042,7 @@ function linhaMesmoHorario() {
 
 function desenharAbas(p, direita) {
   const lista = $("#abas-lista");
-  $("#abas").setAttribute("aria-label", "Definir");
+  $("#abas").setAttribute("aria-label", "Ajustes");
   if (lista.children.length !== AJUSTES.length || !lista.querySelector('[data-controle^="ajuste:"]')) {
     lista.replaceChildren(...AJUSTES.map((x) => elemento("li", {}, [
       elemento("a", { href: "#ajustes/" + x.id, controle: "ajuste:" + x.id },
@@ -952,38 +1088,49 @@ function faixaDoEstado() {
   const itens = [
     ["Tema", p ? `${p.nome} · ${rotuloDeValor(flavorEmVigor())}` : rotuloDeValor(flavorEmVigor()), "#tema", "ok"],
     ["Ícones", maiuscula(vale("NOME_TEMA_ICONES")), "#criar/icones", "ok"],
-    ["Painel e dock", ligado(vale("FORMA_DOCK_SOLTO")) ? "Solta" : "Na borda", "#ajustes/painel", "ok"],
+    ["Barra e dock", ligado(vale("FORMA_DOCK_SOLTO")) ? "Flutuante" : "Na borda", "#ajustes/painel", "ok"],
     ["Mascote", rotuloDeValor(ESQUEMA.gato_no_dock || vale("LOGO")), "#ajustes/mascote", "ok"],
     ["Som", ligado(vale("SOM")) ? "Ligado" : "Desligado", "#criar/sons", ligado(vale("SOM")) ? "ok" : "alerta"],
-    ["Ponte", ESQUEMA.ponte ? "Instalada" : "Falta", "#cuidar", ESQUEMA.ponte ? "ok" : "fora"],
+    ["Permissão de sistema", ESQUEMA.ponte ? "Ativa" : "Desativada", "#cuidar", ESQUEMA.ponte ? "ok" : "fora"],
   ];
   return elemento("div", { class: "faixa-estado" }, itens.map(([nome, valor, href, estado]) =>
     elemento("a", { href, "data-estado": estado, controle: "estado:" + nome },
       [elemento("b", { texto: nome }), elemento("span", { texto: valor || "Padrão" })])));
 }
 
-function cartaoDeCuidar(c) {
-  const botoes = [];
-  for (const l of c.linhas) {
-    if (l.a) {
-      const a = ACAO.get(l.a);
-      if (a) botoes.push(...controleDeAcao(a, l.b, ""));
-    } else if (l.g === "exportar-conf") {
-      botoes.push(elemento("a", { class: "bt", href: "/api/exportar/conf", download: true, controle: "cuidar:exportar",
-        dica: "Um .conf para a máquina nova" }, [icone("baixar"), elemento("span", { texto: l.b })]));
-    } else if (l.g === "importar") {
-      const campo = elemento("input", { type: "file", accept: ".conf,text/plain", hidden: true });
-      campo.addEventListener("change", () => { const a = campo.files && campo.files[0]; campo.value = ""; importarArquivo(a); });
-      botoes.push(botao(l.b, { class: "bt", icone: "subir", controle: "cuidar:importar", onclick: () => campo.click() }), campo);
-    }
+function ladrilhoDeCuidar(l) {
+  const miolo = (nome) => [elemento("span", { class: "icone" }, [icone(l.i)]), elemento("b", { texto: nome })];
+  if (l.a) {
+    const a = ACAO.get(l.a);
+    if (!a) return null;
+    const [tile, ...resto] = controleDeAcao(a, l.b, "");
+    tile.className = "bloco ladrilho" + (a.destrutivo ? " perigo" : "");
+    tile.replaceChildren(...miolo(l.b));
+    return elemento("div", { class: "ladrilho-no" }, [tile, ...resto]);
   }
-  const primeiro = botoes.find((b) => b.classList && b.classList.contains("bt"));
-  if (primeiro && !primeiro.classList.contains("perigo")) primeiro.classList.add("principal");
-  return elemento("section", { class: "bloco cartao-acao terco", "data-bloco": c.titulo }, [
-    elemento("span", { class: "icone" }, [icone(c.icone)]),
-    elemento("h2", { texto: c.titulo }),
-    elemento("div", { class: "fila" }, botoes),
-  ]);
+  if (l.g === "exportar-conf") {
+    return elemento("div", { class: "ladrilho-no" }, [
+      elemento("a", { class: "bloco ladrilho", href: "/api/exportar/conf", download: true, controle: "cuidar:exportar",
+        dica: "Baixa um arquivo com os seus ajustes, para levar a outro computador" }, miolo(l.b))]);
+  }
+  if (l.g === "importar") {
+    const campo = elemento("input", { type: "file", accept: ".conf,text/plain", hidden: true });
+    campo.addEventListener("change", () => { const a = campo.files && campo.files[0]; campo.value = ""; importarArquivo(a); });
+    return elemento("div", { class: "ladrilho-no" }, [
+      elemento("button", { type: "button", class: "bloco ladrilho", controle: "cuidar:importar",
+        dica: "Lê o arquivo de ajustes de outro computador e aplica aqui na hora", onclick: () => campo.click() }, miolo(l.b)), campo]);
+  }
+  return null;
+}
+
+function gradeDeAcoesDeCuidar() {
+  const filhos = [];
+  for (const c of LUGAR_CUIDAR.cartoes) {
+    filhos.push(elemento("div", { class: "grupo-nome", "aria-hidden": c.semNome ? "true" : null },
+      [c.semNome ? null : elemento("h2", { texto: c.titulo })]));
+    for (const l of c.linhas) filhos.push(ladrilhoDeCuidar(l));
+  }
+  return elemento("section", { class: "grade-ladrilhos inteiro", "aria-label": "Ações de manutenção" }, filhos.filter(Boolean));
 }
 
 function paginaCuidar() {
@@ -1007,7 +1154,7 @@ function paginaCuidar() {
   return [
     elemento("div", { class: "grade-cuidar" }, [
       topo,
-      ...LUGAR_CUIDAR.cartoes.map(cartaoDeCuidar),
+      gradeDeAcoesDeCuidar(),
       blocos[0],
       maquina,
       blocos[1],

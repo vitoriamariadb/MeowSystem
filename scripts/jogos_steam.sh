@@ -27,6 +27,7 @@ esac
 meow_tem awk || { meow_pula "sem awk — não dá para ler os manifestos da Steam"; exit "$MEOW_SEM_DEPENDENCIA"; }
 
 if [ ! -d "$STEAM/steamapps" ]; then
+  meow_frase "A Steam não está instalada: não há jogos dela para conferir."
   meow_pula "Steam não instalada — nada a fazer"
   exit "$MEOW_OK"
 fi
@@ -474,18 +475,26 @@ _notas_finais() {
 }
 { [ "$ferramentas" -gt 0 ] || [ "$fora" -gt 0 ] || [ "$voltou" -gt 0 ] || [ -n "$sem_licenca" ]; } && trap _notas_finais EXIT
 
+_pl() { if [ "$1" -eq 1 ]; then printf '%s %s' "$1" "$2"; else printf '%s %s' "$1" "$3"; fi; }
+
 if [ "$jogos" -eq 0 ]; then
+  meow_frase "A Steam está instalada, mas nenhum jogo dela vai para o lançador."
   meow_pula "a Steam está instalada, e nenhum jogo dela vai para o lançador — nada a criar"
   [ "$mudou" = "1" ] && exit "$MEOW_DIVERGENTE"
   exit "$MEOW_OK"
 fi
 
 if [ "$mudou" = "0" ]; then
+  meow_frase "Os jogos da Steam já estão certos no lançador: $(_pl "$jogos" jogo jogos), cada um com a capa que a Steam baixou."
   meow_ok "$jogos jogo(s) da Steam no lançador, com a capa que a Steam baixou"
   exit "$MEOW_OK"
 fi
 
 if meow_seco; then
+  [ "$escritos" -gt 0 ] && meow_frase "$(_pl "$escritos" "jogo da Steam ainda não está" "jogos da Steam ainda não estão") no lançador."
+  [ "$removidos" -gt 0 ] && meow_frase "$(_pl "$removidos" "jogo desinstalado ainda tem" "jogos desinstalados ainda têm") atalho no lançador."
+  [ "$duplicatas" -gt 0 ] && meow_frase "$(_pl "$duplicatas" "jogo aparece" "jogos aparecem") duas vezes no lançador."
+  meow_frase "O botão Organizar, na linha Organizar os jogos, arruma isso."
   meow_muda "$jogos jogo(s) da Steam: $escritos atalho(s) a escrever, $removidos a remover, $duplicatas cartão(ões) duplicado(s) a tirar do lançador"
   exit "$MEOW_DIVERGENTE"
 fi

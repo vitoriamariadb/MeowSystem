@@ -2008,21 +2008,6 @@ AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
 # de outro projeto. "nao" = o doctor só confere e avisa.
 VIZINHOS_DESATIVAR="sim"          # sim | nao
 
-# @ Mascote novo entra na hora
-# > Sem esperar o relógio: solte o .svg na pasta e ele aparece.
-# O mascote solto em `packs/meowsystem/mascote/` entra NA HORA, sem esperar o relógio?
-#   Com "sim", o par `meow-assets.path`/`meow-assets.service` vigia a pasta por
-#   inotify: soltou um SVG, ele vai para o disco e entra na rotação; apagou, sai.
-#   Sem isso, a mudança só chega na volta seguinte do `meow-logo.timer` — que
-#   com LOGO_INTERVALO="1d" é um dia inteiro de espera para descobrir se o
-#   arquivo entrou.
-#
-#   O vigia NÃO gira o mascote: acrescentar um arquivo não muda qual está no ar. Quem
-#   gira é o relógio, um por dia, que é a escolha de fábrica.
-#
-#   E ele é do MeowSystem, não do self-heal do Ritual da Aurora: aquele é de outro
-#   projeto e pode ser desligado, e o recurso morreria junto sem dizer por quê.
-ASSETS_VIGIA="sim"
 # @ Avisar quando um mascote entrar
 # > Uma notificação com o nome do arquivo.
 ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho

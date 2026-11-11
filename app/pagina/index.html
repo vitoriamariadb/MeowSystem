@@ -25,31 +25,33 @@
   </a>
   <nav aria-label="Portas"><ul class="portas" id="portas"></ul></nav>
   <div class="busca" id="caixa-busca" role="search">
-    <button type="button" class="bt leve so-icone abrir-busca" id="abrir-busca" aria-label="Procurar um ajuste"
-            data-controle="busca-abrir" data-dica="Procurar um ajuste">
+    <button type="button" class="bt leve so-icone abrir-busca" id="abrir-busca" aria-label="Buscar"
+            data-controle="busca-abrir" data-dica="Buscar">
       <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
     </button>
     <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-    <input id="busca" type="search" placeholder="Procurar um ajuste" aria-label="Procurar um ajuste"
+    <input id="busca" type="search" placeholder="Buscar" aria-label="Buscar"
            autocomplete="off" data-controle="busca" aria-controls="achados" aria-expanded="false">
     <kbd aria-hidden="true">/</kbd>
     <div class="achados" id="achados" role="listbox" aria-label="Achados"></div>
   </div>
   <div class="aplicar" id="aplicar" data-n="0">
     <span class="gravando" id="gravando" role="status" data-estado="ok" aria-label="Gravado"><svg class="i so-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><svg class="i so-erro" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span>
-    <button type="button" class="conta" id="conta" aria-expanded="false" aria-controls="ultimas" data-controle="mudancas"></button>
+    <button type="button" class="bt leve pequeno" id="reiniciar-barra" data-controle="reiniciar-barra"
+            data-dica="Reinicia a barra e a dock do COSMIC"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>Reiniciar a barra</button>
     <button type="button" class="bt leve pequeno desfazer" id="desfazer" data-controle="descartar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Desfazer</button>
-    <div class="menu-corpo ultimas" id="ultimas" role="list" aria-label="Últimas mudanças" hidden></div>
   </div>
-  <details class="menu" id="menu">
-    <summary class="bt leve pequeno so-icone" aria-label="Mais" data-controle="menu" data-dica="Mais">
-      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
-    </summary>
-    <div class="menu-corpo" id="menu-corpo" role="menu"></div>
-  </details>
+  <div class="progresso" id="progresso" role="progressbar" aria-labelledby="progresso-nome" data-estado="parado" hidden>
+    <span class="progresso-linha"></span>
+    <span class="progresso-corpo">
+      <span class="progresso-nome" id="progresso-nome"></span>
+      <button type="button" class="bt leve pequeno so-icone" id="parar" aria-label="Parar" data-dica="Parar"
+              data-controle="progresso:parar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </span>
+  </div>
 </header>
 
-<nav class="abas-ajustes" id="abas" aria-label="Definir" hidden>
+<nav class="abas-ajustes" id="abas" aria-label="Ajustes" hidden>
   <ul id="abas-lista"></ul>
   <div class="fila" id="abas-fila"></div>
 </nav>
@@ -66,38 +68,12 @@
 <div id="torradas" class="torradas" aria-live="polite"></div>
 <div id="dica" class="dica" role="tooltip" hidden></div>
 
-<dialog id="resultado" class="resultado" aria-labelledby="resultado-titulo">
-  <div class="dentro">
-    <header class="resultado-topo">
-      <h2 id="resultado-titulo"></h2>
-      <span class="fila">
-        <span id="faixa-ensaio" class="estado-pilula" data-estado="ensaio" hidden>Ensaio</span>
-        <span id="resultado-estado" class="estado-pilula"></span>
-      </span>
-    </header>
-    <details class="registro" id="registro">
-      <summary data-controle="resultado:registro">Registro</summary>
-      <pre id="saida" tabindex="0" aria-live="polite"></pre>
-    </details>
-    <div class="acoes">
-      <button type="button" class="bt perigo" id="parar" data-controle="resultado:parar">Parar</button>
-      <button type="button" class="bt" id="resultado-restaurar" data-controle="resultado:restaurar" hidden>Restaurar</button>
-      <button type="button" class="bt" id="resultado-guardar" data-controle="resultado:guardar"
-              data-dica="Guarda o registro num arquivo">Guardar</button>
-      <button type="button" class="bt" id="ensaio-rodar" data-controle="resultado:de-verdade" hidden>Rodar de verdade</button>
-      <button type="button" class="bt principal" id="resultado-ok" data-controle="resultado:ok">OK</button>
-    </div>
-  </div>
-</dialog>
-
 <dialog id="pergunta" aria-labelledby="pergunta-titulo">
   <form method="dialog" class="dentro">
     <h2 id="pergunta-titulo"></h2>
     <div id="pergunta-corpo"></div>
     <div class="acoes">
       <button value="nao" class="bt" id="pergunta-nao" data-controle="pergunta:nao">Cancelar</button>
-      <button value="seco" class="bt" id="confirmar-ensaio" data-controle="pergunta:ensaio" hidden
-              data-dica="Mostra o que mudaria, sem gravar nada">Ver sem mudar</button>
       <button value="sim" class="bt principal" id="pergunta-sim" data-controle="pergunta:sim">OK</button>
     </div>
   </form>

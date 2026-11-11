@@ -121,6 +121,34 @@ else
   fi
 fi
 
+printf '\n--- 7. o ASSETS_VIGIA="nao" sai, e o vigia não obedece mais a ele ---\n'
+git -C "$RAIZ" show 47a097b3:meow.conf.exemplo 2>/dev/null | sed 's/^ASSETS_VIGIA="sim"/ASSETS_VIGIA="nao"/' > "$TMP/conf7"
+if ! grep -qx 'ASSETS_VIGIA="nao"' "$TMP/conf7"; then
+  falha "não achei o ASSETS_VIGIA no exemplo de 47a097b3"
+else
+  python3 "$MIGRAR" "$TMP/conf7" "$RAIZ/meow.conf.exemplo" --conferir > "$TMP/saida7" 2>&1; rc_c=$?
+  python3 "$MIGRAR" "$TMP/conf7" "$RAIZ/meow.conf.exemplo" > "$TMP/saida7b" 2>&1; rc=$?
+  python3 "$MIGRAR" "$TMP/conf7" "$RAIZ/meow.conf.exemplo" --conferir > /dev/null 2>&1; rc_d=$?
+  if [ "$rc_c" = "1" ] && grep -q 'ASSETS_VIGIA' "$TMP/saida7" && [ "$rc" = "0" ] && [ "$rc_d" = "0" ] \
+     && ! grep -qE '^[[:space:]]*ASSETS_VIGIA=' "$TMP/conf7" && ! grep -q 'Mascote novo entra na hora' "$TMP/conf7" \
+     && grep -qx 'ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho' "$TMP/conf7" \
+     && grep -qx '# @ Avisar quando um mascote entrar' "$TMP/conf7"; then
+    ok "a linha do «nao» e o comentário dela saem; o aviso do mascote fica"
+  else
+    falha "o ASSETS_VIGIA não saiu direito (conferir=$rc_c, migrar=$rc, depois=$rc_d)"
+    cat "$TMP/saida7" "$TMP/saida7b" >&2; grep -n 'ASSETS_VIGIA\|Mascote novo' "$TMP/conf7" >&2
+  fi
+fi
+FALSO7="$TMP/falso7"; mkdir -p "$FALSO7" "$TMP/casa7"
+printf '#!/bin/sh\necho disabled\nexit 1\n' > "$FALSO7/systemctl"; chmod 755 "$FALSO7/systemctl"
+saida="$(env PATH="$FALSO7:$PATH" HOME="$TMP/casa7" ASSETS_VIGIA=nao NO_COLOR=1 \
+  bash "$RAIZ/scripts/vigia_assets.sh" --conferir 2>&1)"; rc=$?
+if [ "$rc" != "0" ] && ! grep -qi 'desligad' <<< "$saida" && grep -qE 'a instalar|não há systemd' <<< "$saida"; then
+  ok "com ASSETS_VIGIA=nao no ambiente, o vigia ainda quer se instalar (rc=$rc)"
+else
+  falha "o vigia ainda obedece ao ASSETS_VIGIA=nao (rc=$rc)"; printf '%s\n' "$saida" | sed 's/^/       /' >&2
+fi
+
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2

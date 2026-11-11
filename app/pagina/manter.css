@@ -3,3 +3,24 @@
 .cartao-acao > h2, .cartao-acao > .fila { grid-column: 2; }
 .estado-pilula[data-estado="alerta"]::before { background: var(--alerta); }
 .grade-cuidar > .bloco > .linhas .linha .rot small { color: var(--tinta-3); font-size: var(--t-sm); margin-left: var(--e-2); white-space: nowrap; }
+.grade-ladrilhos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-3); }
+.grade-ladrilhos > .grupo-nome { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--e-3); margin-top: var(--e-4); }
+.grade-ladrilhos > .grupo-nome:first-child { margin-top: 0; }
+.grupo-nome h2 { font-size: var(--t-md); color: var(--tinta-2); overflow-wrap: anywhere; min-width: 0; }
+.grupo-nome::after { content: ""; flex: 1; height: 1px; background: var(--linha); }
+.ladrilho-no { display: grid; gap: var(--e-2); align-content: start; min-width: 0; }
+.ladrilho { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--e-4); width: 100%; min-height: 84px; padding: var(--e-4) var(--e-5); text-align: left; color: inherit; font: inherit; text-decoration: none; cursor: pointer; transition: border-color var(--dur-media) var(--ease-out), background var(--dur-media) var(--ease-out), transform var(--dur-media) var(--ease-out); }
+.ladrilho .icone { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--raio-md); background: var(--accent-suave); color: var(--accent); }
+.ladrilho b { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.ladrilho:hover { border-color: var(--accent); background: var(--accent-suave); }
+.ladrilho:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ladrilho:active { transform: translateY(1px); }
+.ladrilho:disabled, .ladrilho[aria-disabled="true"] { opacity: .5; cursor: not-allowed; transform: none; border-color: var(--linha); background: var(--cartao); }
+.ladrilho[data-estado="carregando"] { pointer-events: none; color: var(--tinta-2); }
+.ladrilho[data-estado="carregando"] .icone svg { animation: gira 800ms linear infinite; }
+.ladrilho[data-estado="erro"] { border-color: var(--perigo); background: var(--perigo-suave); }
+.ladrilho[data-estado="erro"] .icone { color: var(--perigo); background: var(--perigo-suave); }
+.ladrilho[data-estado="feito"] { border-color: var(--ok); background: var(--ok-suave); }
+.ladrilho[data-estado="feito"] .icone { color: var(--ok); background: var(--ok-suave); }
+.ladrilho.perigo .icone { color: var(--perigo); background: var(--perigo-suave); }
+@media (max-width: 860px) { .grade-ladrilhos { grid-template-columns: minmax(0, 1fr); } }

@@ -253,8 +253,6 @@ m._token_confere = lambda consulta: True
 servido = []
 m._responder = lambda corpo, **_k: servido.append(corpo)
 m.do_GET()
-html, _nome = m._exportar_pagina()
-bloco = re.search(r'<style id="paleta-do-painel">(.*?)</style>', html, re.S)
 marca = re.search(r'stroke="(#[0-9A-Fa-f]{6})"', (m._logo_do_painel() or b"").decode())
 receita = open(os.path.join(os.environ["MEOW_COSMIC_DIR"],
                             "com.system76.CosmicTheme.Dark.Builder/v2/accent")).read()
@@ -263,8 +261,7 @@ macchiato = json.load(open(os.environ["MEOW_PALETA"]))["flavors"]["macchiato"]
 erros = []
 if tela != macchiato["pink"].upper():
     erros.append(f"o COSMIC de brinquedo não está no macchiato-pink (acento {tela})")
-for onde, (base, acento) in (("/paleta.css", vestido(servido[0] if servido else "")),
-                             ("a página exportada", vestido(bloco.group(1) if bloco else ""))):
+for onde, (base, acento) in (("/paleta.css", vestido(servido[0] if servido else "")),):
     if base != macchiato["base"].upper():
         erros.append(f"{onde}: --base {base or 'nenhum'}, e o macchiato que a tela mostra tem {macchiato['base'].upper()}")
     if acento != tela:

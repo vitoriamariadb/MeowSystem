@@ -208,6 +208,27 @@ disparar_autobuild() {
   return 0
 }
 
+frases_do_menu() {
+  local ver="$1" dir="$2"
+  if [ "$FILES_MENU" = "sim" ]; then
+    meow_frase "O menu «Usar como papel de parede» do Arquivos está ligado."
+  else
+    meow_frase "O menu «Usar como papel de parede» do Arquivos está desligado."
+  fi
+  if [ -z "$ver" ]; then
+    meow_frase "O Arquivos não está instalado, então não há menu para trocar."
+  elif tudo_no_ar; then
+    meow_frase "O Arquivos instalado já tem o menu."
+  elif [ -d "$dir" ]; then
+    meow_frase "O Arquivos instalado ainda não tem o menu, mas já há uma versão pronta para esta versão dele."
+  else
+    meow_frase "O Arquivos instalado ainda não tem o menu, e falta construí-lo para esta versão do Arquivos."
+  fi
+  if [ "$FILES_MENU_AUTOBUILD" = "sim" ]; then
+    meow_frase "Quando o Arquivos atualizar, o menu é recompilado sozinho."
+  fi
+}
+
 cmd_estado() {
   local ver dir b p
   ver="$(versao_do_pacote)"
@@ -215,6 +236,7 @@ cmd_estado() {
   printf '  versão do pacote : %s\n' "${ver:-<não instalado>}"
   printf '  chave            : FILES_MENU="%s"  autobuild="%s"\n' "$FILES_MENU" "$FILES_MENU_AUTOBUILD"
   dir="$(artefato_de "${ver:-x}")"
+  frases_do_menu "$ver" "$dir"
   printf '  artefato         : %s\n' "$([ -d "$dir" ] && echo "$dir" || echo '<não existe para esta versão>')"
   for b in "${BINS[@]}"; do
     p="$(qual_no_path "$b")"

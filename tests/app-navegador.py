@@ -50,23 +50,6 @@ def foto(pag, nome):
         pag.screenshot(path=os.path.join(FOTOS, nome + ".png"))
 
 
-def janela(pag, teto=60000):
-    try:
-        pag.wait_for_function("() => document.getElementById('resultado').open", timeout=teto)
-        return True
-    except Exception:
-        return False
-
-
-def parar_e_fechar(pag):
-    if pag.evaluate("() => document.getElementById('resultado').open"):
-        if pag.locator("#parar").is_visible():
-            pag.locator("#parar").click()
-        pag.wait_for_function("() => document.getElementById('parar').hidden", timeout=120000)
-        pag.locator("#resultado-ok").click()
-        pag.wait_for_timeout(300)
-
-
 def main():
     ambiente = casa.montar_casa()
     proc, url = casa.sobe_servidor(ambiente)
@@ -97,7 +80,7 @@ def main():
             definir = [c for u, c in posts[n0:] if u == "definir"]
             checa(definir and f'"valor": "{outra}"' in definir[0].replace('":"', '": "') and "FLAVOR" in definir[0],
                   f"o /api/definir leva FLAVOR={outra} ({definir[:1]})")
-            checa(not pag.evaluate("() => document.getElementById('resultado').open"), "e nenhuma janela de trabalho abre")
+            checa(pag.locator("#resultado").count() == 0, "e não existe janela de resultado")
             foto(pag, "1-vestir")
             checa(casa.valor_de("FLAVOR") == outra, f"o meow.conf diz FLAVOR={outra}")
             checa(pag.evaluate("() => HISTORICO.length") == 1, "e a variante entra na barra para desfazer")
@@ -107,8 +90,8 @@ def main():
             pag.locator(f'[data-controle="pack:{outro_pack}:vestir"]').click()
             pag.wait_for_timeout(500)
             titulo = pag.evaluate("() => document.getElementById('pergunta').open && document.getElementById('pergunta-titulo').textContent")
-            checa(titulo == "Falta a ponte", f"vestir o {outro_pack} sem a ponte mostra «Falta a ponte» ({titulo!r})")
-            checa(pag.locator("#pergunta-sim").inner_text() == "Consertar a ponte", "com o «Consertar a ponte»")
+            checa(titulo == "Sem permissão de sistema", f"vestir o {outro_pack} sem a ponte mostra «Sem permissão de sistema» ({titulo!r})")
+            checa(pag.locator("#pergunta-sim").inner_text() == "Reativar permissão de sistema", "com o «Reativar permissão de sistema»")
             checa(pag.locator("input[type=password]").count() == 0, "e nenhum campo de senha")
             foto(pag, "2-ponte")
             pag.locator("#pergunta-nao").click()
@@ -121,7 +104,7 @@ def main():
             pag.wait_for_function("() => EM_VOO === 0 && !ACOMPANHANDO", timeout=240000)
             depois = casa.valor_de("FORMA_DOCK_SOLTO")
             checa(depois != antes and depois in ("sim", "nao"), f"o clique grava a chave sem Aplicar ({antes} -> {depois})")
-            checa(pag.locator("#conta").inner_text() == f"{n_antes + 1} mudanças", f"a conta diz «{n_antes + 1} mudanças» ({pag.locator('#conta').inner_text()!r})")
+            checa(pag.evaluate("() => HISTORICO.length") == n_antes + 1 and pag.locator("#conta").count() == 0, f"a lista interna soma a mudança ({n_antes + 1}) e o header não tem contagem")
             checa(pag.locator("#bt-aplicar").count() == 0 and pag.locator("#botao-ensaiar").count() == 0, "a barra não tem Aplicar nem Ver sem mudar")
             checa(pag.locator('.linha.mudou[data-linha~="FORMA_DOCK_SOLTO"]').count() == 1, "a linha se marca")
             checa(pag.locator("#conteudo .previa .p-dock.mudou-aqui").count() == 1, "e a dock da prévia ganha o tracejado")
@@ -184,7 +167,7 @@ def main():
             with pag.expect_download(timeout=30000) as baixa:
                 pag.locator('[data-controle="cuidar:exportar"]').click()
             texto = open(baixa.value.path(), encoding="utf-8").read()
-            checa("RELOGIO_SEGUNDOS=" in texto, "«Guardar ajustes» baixa o .conf com as chaves")
+            checa("RELOGIO_SEGUNDOS=" in texto, "«Exportar ajustes» baixa o .conf com as chaves")
             caminho = os.path.join(casa.BRINQUEDO, "trazer.conf")
             with open(caminho, "w", encoding="utf-8") as fh:
                 fh.write('LOG_NIVEL="debug"\n')
@@ -193,7 +176,7 @@ def main():
             escolha.value.set_files(caminho)
             pag.wait_for_timeout(800)
             pag.wait_for_function("() => EM_VOO === 0 && !ACOMPANHANDO", timeout=240000)
-            checa(casa.valor_de("LOG_NIVEL") == "debug", "«Trazer ajustes» grava na hora")
+            checa(casa.valor_de("LOG_NIVEL") == "debug", "«Importar ajustes» grava na hora")
             pag.locator("#desfazer").click()
             pag.wait_for_timeout(800)
             pag.wait_for_function("() => EM_VOO === 0 && !ACOMPANHANDO", timeout=240000)

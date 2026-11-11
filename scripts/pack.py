@@ -4529,6 +4529,34 @@ def levar_sons_de(ident, ref):
     return len(sons)
 
 
+NOMES_DE_SOM = PASTA_SONS + "nomes.json"
+
+
+def nomes_dos_sons(dir_pack):
+    alvo = os.path.join(dir_pack, NOMES_DE_SOM)
+    try:
+        if os.path.islink(alvo):
+            return {}
+        with open(alvo, encoding="utf-8") as fh:
+            dados = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return {e: n for e, n in dados.items() if isinstance(e, str) and isinstance(n, str)} if isinstance(dados, dict) else {}
+
+
+def nomear_som(ident, evento, nome):
+    dir_pack = pack_da_pessoa(ident)
+    _exigir(isinstance(evento, str) and RE_EVENTO.match(evento), f"{evento!r}: evento que não serve")
+    limpo = re.sub(r"[\x00-\x1f]", "", str(nome or "")).strip()[:48]
+    nomes = nomes_dos_sons(dir_pack)
+    if limpo:
+        nomes[evento] = limpo
+    else:
+        nomes.pop(evento, None)
+    _gravar_no_pack(dir_pack, NOMES_DE_SOM, (json.dumps(nomes, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+    return limpo
+
+
 def levar_som(ident, caminho, evento):
     dir_pack = pack_da_pessoa(ident)
     _exigir(isinstance(evento, str) and RE_EVENTO.match(evento), f"{evento!r}: evento que não serve")
@@ -4890,6 +4918,23 @@ def previa_do_pack(ident, flavor, cores=None):
             pasta = escolhida["svg"] if escolhida["svg"] is not None else _ler_svg(escolhida["caminho"])
             break
     return {"dock": dock, "pasta": pasta or None}
+
+
+def trava_de_sistema(dir_pack, arq):
+    real = os.path.realpath(arq)
+    if os.path.dirname(real) == os.path.realpath(os.path.join(dir_pack, "icones", "sistema")):
+        return ""
+    dono = _pack_de(real)
+    return f"vem do tema {campo(dono, 'nome', dono)}"
+
+
+def desenho_de_sistema(ident, nome):
+    dir_pack = pack_da_pessoa(ident)
+    achado = next((arq for n, arq, *_ in sistema_do_pack(dir_pack) if n == nome), None)
+    _exigir(achado, f"{nome}: o tema não usa este ícone")
+    trava = trava_de_sistema(dir_pack, achado)
+    _exigir(not trava, f"{nome}: {trava}")
+    return os.path.basename(os.path.realpath(achado))[:-4]
 
 
 def levar_icone(ident, pasta, caminho, nome="", texto=None):

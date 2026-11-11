@@ -63,7 +63,7 @@ installs; `meow aplicar` installs without asking. To remove it:
 
 ## The panel
 
-`meow abrir`, or the MeowSystem icon in the launcher. 132 settings and 69 actions behind six doors (the panel speaks Portuguese):
+`meow abrir`, or the MeowSystem icon in the launcher. 131 settings and 68 actions behind six doors (the panel speaks Portuguese):
 
 <table>
 <tr>
@@ -71,12 +71,12 @@ installs; `meow aplicar` installs without asking. To remove it:
 <td width="50%"><img src="docs/capturas/readme/criar.png" alt="The Personalizar door of the panel"><br><b>Personalizar</b>: your own pack, step by step: colors, icons, wallpaper, sounds, and download the theme.</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="The Definir door of the panel"><br><b>Definir</b>: panel and dock, windows, wallpaper, mascot, day and night and programs.</td>
-<td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="The Manter door of the panel"><br><b>Manter</b>: the doctor and its fix button, the log, and settings to carry to another machine.</td>
+<td width="50%"><img src="docs/capturas/readme/ajustes.png" alt="The Ajustes door of the panel"><br><b>Ajustes</b>: bar and dock, windows, wallpaper, mascot, day and night and programs.</td>
+<td width="50%"><img src="docs/capturas/readme/cuidar.png" alt="The Manutenção door of the panel"><br><b>Manutenção</b>: the doctor and its fix button, the automatic maintenance, and settings to carry to another machine.</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/capturas/readme/extensoes.png" alt="The Extensões door of the panel"><br><b>Extensões</b>: the house applets and your own: install, update, put on the panel, and the compositor builds.</td>
-<td width="50%"><img src="docs/capturas/readme/modificacoes.png" alt="The Modificações door of the panel"><br><b>Modificações</b>: one card per program that takes the theme: turn on, turn off, put back in place, and each one's fixes.</td>
+<td width="50%"><img src="docs/capturas/readme/extensoes.png" alt="The Extensões door of the panel"><br><b>Extensões</b>: the house applets and your own: install, update, add to the bar, and the compositor builds.</td>
+<td width="50%"><img src="docs/capturas/readme/modificacoes.png" alt="The Modificações door of the panel"><br><b>Modificações</b>: one card per program that takes the theme: turn on, turn off, apply, and each one's fixes.</td>
 </tr>
 </table>
 

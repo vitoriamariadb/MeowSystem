@@ -28,6 +28,7 @@ if [ "$CONFERIR" = 1 ]; then
 fi
 
 mkdir -p "$PASTA" || { meow_erro "não consegui criar $PASTA"; exit "$MEOW_ERRO"; }
+meow_guardar_antes "$DROPIN"
 printf '%s\n' "$TEXTO" > "$DROPIN" || { meow_erro "não consegui escrever $DROPIN"; exit "$MEOW_ERRO"; }
 meow_manifesto_registrar "$DROPIN"
 meow_tem systemctl && systemctl --user daemon-reload >/dev/null 2>&1

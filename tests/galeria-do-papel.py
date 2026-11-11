@@ -85,17 +85,13 @@ def main():
             pag.locator('.galeria figure').first.locator('[data-controle="papel:wallpaper_banir"]').click()
             pag.wait_for_selector("#pergunta[open]", timeout=10000)
             pag.click('[data-controle="pergunta:sim"]')
-            pag.wait_for_selector("#resultado[open]", timeout=30000)
-            pag.wait_for_function("() => { const e = document.getElementById('resultado-estado').dataset.estado;"
-                                  " return e && e !== 'correndo'; }", timeout=120000)
+            casa.fim_do_trabalho(pag, teto=120000)
             pag.wait_for_timeout(500)
-            saida = pag.evaluate("() => document.getElementById('saida').textContent")
             try:
                 with open(lista, encoding="utf-8") as fh:
                     anotada = alvo in [l.strip() for l in fh]
             except OSError:
                 anotada = False
-                print(saida[-800:])
             base = os.path.dirname(ativos)
             checa(not os.path.exists(os.path.join(ativos, alvo)) and anotada and not os.path.isdir(os.path.join(base, "banidos")),
                   f"o «Apagar» tira {alvo} do disco, sem banidos/, e o nome vai para o BANIDOS.txt")

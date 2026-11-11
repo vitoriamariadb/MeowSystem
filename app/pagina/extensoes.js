@@ -1,11 +1,6 @@
 "use strict";
 
 const EXT = { dados: null, quando: 0, pedindo: false, religar: null, mudou: 0, trocou: false };
-const REPOSITORIO_DA_CASA = "https://github.com/vitoriamariadb/MeowSystem";
-const AUTORES = [
-  { nome: "Vitória Maria", papel: "autora" },
-  { nome: "André Farias", papel: "coautor" },
-];
 const ABAS_EXT = [
   { id: "applets", nome: "Applets", icone: "grade" },
   { id: "builds", nome: "Builds", icone: "terminal" },
@@ -77,8 +72,8 @@ function botoesDoCartao(e, parado) {
     "aria-label": "Remover " + e.nome, dica: "Remover", controle: "extensao:remover:" + e.id,
     onclick: () => gestoDeExtensao("extensao_remover", e, "Remover") });
   if (e.falhou) {
-    return [b("Tentar de novo", { icone: "girar", principal: true, controle: "extensao:refazer:" + e.id },
-      () => gestoDeExtensao("extensao_refazer", e, "Tentar de novo")), e.instalada ? remover : null];
+    return [b("Recompilar", { icone: "girar", principal: true, controle: "extensao:refazer:" + e.id },
+      () => gestoDeExtensao("extensao_refazer", e, "Recompilar")), e.instalada ? remover : null];
   }
   if (!e.instalada) {
     return [b("Instalar", { icone: "baixar", principal: true, controle: "extensao:instalar:" + e.id },
@@ -90,9 +85,11 @@ function botoesDoCartao(e, parado) {
       () => gestoDeExtensao(idDaAcao(e, "extensao_atualizar", "extensao_atualizar_repo"), e, "Atualizar")));
   }
   if (!e.na_barra) {
-    fila.push(b("Pôr no painel", { icone: "mais", controle: "extensao:por:" + e.id },
-      () => gestoDeExtensao("extensao_por_no_painel", e, "Pôr no painel")));
+    fila.push(b("Adicionar à barra", { icone: "mais", controle: "extensao:por:" + e.id },
+      () => gestoDeExtensao("extensao_por_no_painel", e, "Adicionar à barra")));
   }
+  fila.push(b("Recompilar", { icone: "girar", controle: "extensao:refazer:" + e.id },
+    () => gestoDeExtensao("extensao_refazer", e, "Recompilar")));
   fila.push(remover);
   return fila;
 }
@@ -106,8 +103,6 @@ function cartaoDeExtensao(e, ocupado) {
       elemento("div", {}, [elemento("h3", { texto: e.nome }), versaoDaExtensao(e)]),
     ]),
     elemento("span", { class: "estado-pilula", "data-estado": estado, "data-pilula": true, texto }),
-    e.falhou && e.registro ? elemento("details", { class: "registro" }, [
-      elemento("summary", { texto: "Registro" }), elemento("pre", {}, linhasDoRegistro(e.registro))]) : null,
     elemento("div", { class: "fila" }, botoesDoCartao(e, parado)),
   ]);
 }
@@ -127,7 +122,7 @@ function botoesDoBuildDaCasa(e, parado) {
   return [
     b("Instalar", "baixar", "instalar", "extensao_instalar", ligar, ligar),
     b("Atualizar", "subir", "atualizar", "extensao_atualizar", e.atualizacao, e.atualizacao),
-    b("Refazer", "girar", "refazer", "extensao_refazer", true, false),
+    b("Recompilar", "girar", "refazer", "extensao_refazer", true, false),
     botao("", { class: "bt leve pequeno so-icone", icone: "lixo", disabled: parado || !e.ativa,
       "aria-label": "Remover " + e.nome, dica: "Remover", controle: "extensao:remover:" + e.id,
       onclick: () => gestoDeExtensao("extensao_remover", e, "Remover") }),
@@ -137,7 +132,7 @@ function botoesDoBuildDaCasa(e, parado) {
 function cartaoDoBuildDaCasa(e, ocupado, construindo, remendos) {
   const [estado, texto] = pilulaDoBuildDaCasa(e, ocupado, construindo);
   const detalhes = [e.versao ? (BINARIO_DO_TIPO[tipoDe(e)] || e.id) + " " + e.versao : "",
-    tipoDe(e) === "compositor" && remendos ? remendos + " remendos" : ""].filter(Boolean).join(" · ");
+    tipoDe(e) === "compositor" && remendos ? remendos + " patches" : ""].filter(Boolean).join(" · ");
   return elemento("article", { class: "bloco cartao-acao", "data-build": e.id, "data-nome": e.nome }, [
     elemento("div", { class: "cartao-cabeca" }, [
       elemento("span", { class: "icone" }, [iconeDaExtensao(e)]),
@@ -146,11 +141,6 @@ function cartaoDoBuildDaCasa(e, ocupado, construindo, remendos) {
     elemento("span", { class: "estado-pilula", "data-estado": estado, "data-pilula": true, texto }),
     elemento("div", { class: "fila" }, botoesDoBuildDaCasa(e, !!ocupado || !!construindo)),
   ]);
-}
-
-function linhasDoRegistro(texto) {
-  return String(texto || "").split("\n").map((l) =>
-    elemento("span", { class: classeDaLinha(l) || null, texto: l + "\n" }));
 }
 
 function pendenciaDeTroca(e, parado) {
@@ -198,62 +188,25 @@ function previaDeExtensoes(lista) {
   return [previa, barra];
 }
 
-function linhaDeBuild({ rotulo, imagem, detalhes, estado, texto, botaoRefazer }) {
-  return elemento("li", { class: "linha" }, [
-    elemento("span", { class: "rot" }, [
-      imagem || elemento("span", { class: "lugar-applet" }, [icone("terminal")]),
-      elemento("span", { class: "duas" }, [elemento("b", { texto: rotulo }),
-        ...detalhes.filter(Boolean).map((d) => elemento("small", { texto: d }))]),
-    ]),
-    elemento("span", { class: "ctl" }, [
-      elemento("span", { class: "estado-pilula", "data-estado": estado, "data-pilula": true, texto }),
-      botaoRefazer,
-    ]),
-  ]);
-}
-
 function blocoDeBuilds(dados) {
   const b = dados.builds || {};
   const ocupado = dados.ocupado;
   const parado = !!ocupado || !!b.construindo;
   const daCasa = (dados.extensoes || []).filter((e) => !ehApplet(e));
-  const linhas = [
-    ...(dados.extensoes || []).filter(ehApplet).map((e) => {
-      const [es, te] = pilulaDeBuild(e, ocupado);
-      const onde = e.instalada ? "~/.local" : "fora do computador";
-      return linhaDeBuild({
-        rotulo: e.nome, imagem: iconeDaExtensao(e), estado: es, texto: te,
-        detalhes: [[e.versao, e.commit].filter(Boolean).join(" · ") + " · " + onde],
-        botaoRefazer: botao(e.instalada ? "Refazer" : "Compilar", { class: "bt pequeno", icone: "girar", disabled: parado,
-          controle: "build:extensao:" + e.id, onclick: () => gestoDeExtensao("extensao_refazer", e, "Refazer") }),
-      });
-    }),
-  ];
-  const falhas = (dados.extensoes || []).filter((e) => e.falhou && e.registro);
   return elemento("section", { class: "bloco", "data-bloco": "Builds" }, [
     elemento("header", {}, [elemento("h2", { texto: "Builds" }),
-      botao("Refazer tudo", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "build:tudo",
-        onclick: () => { EXT.quando = 0; rodar(ACAO.get("builds_refazer_tudo"), "", { verbo: "Refazer tudo",
+      botao("Recompilar tudo", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "build:tudo",
+        onclick: () => { EXT.quando = 0; rodar(ACAO.get("builds_refazer_tudo"), "", { verbo: "Recompilar tudo",
           depois: depoisDoGesto }); } })]),
     daCasa.length ? elemento("div", { class: "grade-extensoes grade-builds" },
       daCasa.map((e) => cartaoDoBuildDaCasa(e, ocupado, b.construindo, b.remendos))) : null,
-    elemento("ul", { class: "linhas" }, linhas),
-    ...falhas.map((e) => elemento("details", { class: "registro", open: true }, [
-      elemento("summary", { texto: "Registro de " + e.nome }), elemento("pre", {}, linhasDoRegistro(e.registro))])),
   ]);
-}
-
-function pilulaDeBuild(e, ocupado) {
-  if (ocupado && ocupado.id === e.id) return ["correndo", "Compilando"];
-  if (e.falhou) return ["erro", "Falhou"];
-  if (!e.instalada) return ["neutro", "Não instalada"];
-  return e.atualizacao ? ["ensaio", "Atualização"] : ["ok", "Em dia"];
 }
 
 function chaveDeBuilds(dados) {
   const ligada = !!(dados.builds && dados.builds.ao_entrar);
   const chave = elemento("button", { class: "chave", type: "button", role: "switch", "aria-checked": String(ligada),
-    "aria-label": "Refazer ao entrar na sessão", controle: "build:ao-entrar" });
+    "aria-label": "Recompilar ao entrar", controle: "build:ao-entrar" });
   chave.addEventListener("click", async () => {
     const nova = chave.getAttribute("aria-checked") !== "true";
     chave.disabled = true;
@@ -266,7 +219,7 @@ function chaveDeBuilds(dados) {
     else if (ROTA.porta === "extensoes") render();
   });
   return elemento("section", { class: "bloco" }, [elemento("ul", { class: "linhas" }, [
-    elemento("li", { class: "linha" }, [elemento("span", { class: "rot", texto: "Refazer ao entrar na sessão" }),
+    elemento("li", { class: "linha" }, [elemento("span", { class: "rot", texto: "Recompilar ao entrar" }),
       elemento("span", { class: "ctl" }, [chave])])])]);
 }
 
@@ -292,10 +245,10 @@ function abasDeExtensoes(sub) {
 function linhaDeReiniciar(parado) {
   return elemento("li", { class: "linha", "data-reiniciar": true }, [
     elemento("span", { class: "rot troca" }, [elemento("span", { class: "lugar-applet" }, [icone("girar")]),
-      elemento("b", { texto: "Painel" })]),
+      elemento("b", { texto: "Barra" })]),
     elemento("span", { class: "ctl" }, [
-      botao("Reiniciar o painel", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "extensao:reiniciar-painel",
-        onclick: () => { EXT.quando = 0; return rodar(ACAO.get("extensao_reiniciar_painel"), "", { verbo: "Reiniciar o painel",
+      botao("Reiniciar a barra", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "extensao:reiniciar-painel",
+        onclick: () => { EXT.quando = 0; return rodar(ACAO.get("extensao_reiniciar_painel"), "", { verbo: "Reiniciar a barra",
           depois: () => { EXT.trocou = false; depoisDoGesto(); } }); } }),
     ]),
   ]);
@@ -360,18 +313,18 @@ function dialogoAdicionar() {
       elemento("dt", { texto: "Substitui" }), elemento("dd", { id: "ficha-substitui" }),
     ])]),
   ]);
-  const pre = elemento("pre", { id: "adicionar-saida", tabindex: "0", "aria-live": "polite" });
   d = elemento("dialog", { id: "adicionar", "aria-labelledby": "adicionar-t", "data-passo": "url" }, [
     elemento("div", { class: "dentro" }, [
       elemento("h2", { id: "adicionar-t", texto: "Adicionar repositório" }),
-      elemento("label", { class: "pilha-campo p-url" }, [elemento("span", { texto: "Endereço" }), campo]),
+      elemento("label", { class: "pilha-campo p-url" }, [elemento("span", { texto: "Endereço do repositório" }), campo]),
       elemento("p", { class: "oficina-erro p-erro-url", id: "adicionar-queixa", role: "alert" }),
       ficha,
       elemento("span", { class: "selo p-ficha", texto: "baixa e compila" }),
       elemento("span", { class: "estado-pilula p-compilando", "data-estado": "correndo", texto: "Compilando" }),
       elemento("span", { class: "estado-pilula p-erro", "data-estado": "erro", texto: "Não compilou" }),
       elemento("span", { class: "estado-pilula p-pronto", "data-estado": "ok", texto: "Instalada, fora da barra" }),
-      elemento("details", { class: "registro p-compilando p-erro", open: true }, [elemento("summary", { texto: "Registro" }), pre]),
+      elemento("span", { class: "progresso-linha p-compilando", role: "progressbar", "aria-label": "Compilando" }),
+      elemento("p", { class: "oficina-erro p-erro", id: "adicionar-motivo", role: "alert" }),
       elemento("div", { class: "acoes" }, [
         elemento("button", { class: "bt leve", type: "button", controle: "adicionar:cancelar", texto: "Cancelar",
           onclick: () => d.close() }),
@@ -379,7 +332,7 @@ function dialogoAdicionar() {
         botao("Instalar", { class: "bt principal p-ficha", id: "adicionar-instalar", icone: "baixar", controle: "adicionar:instalar",
           onclick: instalarRepositorio }),
         botao("Parar", { class: "bt p-compilando", id: "adicionar-parar", controle: "adicionar:parar", onclick: pararRepositorio }),
-        botao("Tentar de novo", { class: "bt principal p-erro", id: "adicionar-de-novo", icone: "girar", controle: "adicionar:de-novo",
+        botao("Recompilar", { class: "bt principal p-erro", id: "adicionar-de-novo", icone: "girar", controle: "adicionar:de-novo",
           onclick: () => rodarRepositorio() }),
         botao("OK", { class: "bt principal p-pronto", id: "adicionar-ok", controle: "adicionar:ok", onclick: () => d.close() }),
       ]),
@@ -397,7 +350,7 @@ function abrirAdicionar() {
   const d = dialogoAdicionar();
   ADICIONAR = { ficha: null, timer: null, trabalho: null };
   $("#repo-url").value = "";
-  $("#adicionar-saida").replaceChildren();
+  $("#adicionar-motivo").textContent = "";
   d.dataset.passo = "url";
   if (!d.open) d.showModal();
   $("#repo-url").focus();
@@ -434,7 +387,7 @@ async function instalarRepositorio() {
 }
 
 function falharRepositorio(texto) {
-  $("#adicionar-saida").append(elemento("span", { class: "erro", texto: maiuscula(texto) + "\n" }));
+  $("#adicionar-motivo").textContent = maiuscula(texto);
   $("#adicionar").dataset.passo = "erro";
 }
 
@@ -442,12 +395,12 @@ async function rodarRepositorio() {
   const f = ADICIONAR && ADICIONAR.ficha;
   if (!f) return;
   const d = $("#adicionar");
-  $("#adicionar-saida").replaceChildren();
+  $("#adicionar-motivo").textContent = "";
   d.dataset.passo = "compilando";
   const r = await api("/api/rodar", { method: "POST", body: JSON.stringify({
     acao: "extensao_instalar_repo", argumento: f.id, confirmado: true }) });
   if (r.erro) { falharRepositorio(r.erro); return; }
-  ADICIONAR.trabalho = { id: r.id, proximo: 0 };
+  ADICIONAR.trabalho = { id: r.id, proximo: 0, saida: [] };
   ADICIONAR.timer = setInterval(puxarRepositorio, 500);
   puxarRepositorio();
 }
@@ -461,13 +414,17 @@ async function puxarRepositorio() {
   if (ADICIONAR.trabalho !== t) return;
   if (r.erro) { clearInterval(ADICIONAR.timer); falharRepositorio(r.erro); return; }
   t.proximo = r.proximo;
-  const saida = $("#adicionar-saida");
-  for (const l of r.linhas || []) saida.append(elemento("span", { class: classeDaLinha(l) || null, texto: l + "\n" }));
-  saida.scrollTop = saida.scrollHeight;
+  t.saida.push(...(r.linhas || []));
   if (r.vivo) return;
   clearInterval(ADICIONAR.timer);
   ADICIONAR.timer = null;
-  $("#adicionar").dataset.passo = r.rc === 0 || r.rc === 1 ? "pronto" : "erro";
+  const deuCerto = r.rc === 0 || r.rc === 1;
+  if (!deuCerto) {
+    const itens = resumirSaida(t.saida);
+    const motivo = itens.filter((i) => i.classe === "erro").pop() || itens.pop();
+    $("#adicionar-motivo").textContent = motivo ? motivo.texto : "Não compilou";
+  }
+  $("#adicionar").dataset.passo = deuCerto ? "pronto" : "erro";
   EXT.quando = 0;
   carregarExtensoes();
 }
@@ -475,33 +432,4 @@ async function puxarRepositorio() {
 async function pararRepositorio() {
   const t = ADICIONAR && ADICIONAR.trabalho;
   if (t) await api("/api/parar", { method: "POST", body: JSON.stringify({ id: t.id }) });
-}
-
-async function abrirCreditos() {
-  let d = document.getElementById("creditos");
-  if (!d) {
-    d = elemento("dialog", { id: "creditos", "aria-labelledby": "creditos-t" }, [
-      elemento("div", { class: "dentro" }, [
-        elemento("h2", { id: "creditos-t", texto: "MeowSystem" }),
-        elemento("ul", { class: "creditos" }, AUTORES.map((a) =>
-          elemento("li", {}, [elemento("b", { texto: a.nome }), elemento("span", { texto: a.papel })]))),
-        elemento("a", { class: "versao", href: REPOSITORIO_DA_CASA, target: "_blank", rel: "noopener",
-          controle: "creditos:repositorio", texto: REPOSITORIO_DA_CASA }),
-        elemento("ul", { class: "creditos upstreams", id: "creditos-upstreams" }),
-        elemento("div", { class: "acoes" }, [
-          botao("OK", { class: "bt principal", controle: "creditos:ok", onclick: () => d.close() })]),
-      ]),
-    ]);
-    document.body.append(d);
-  }
-  d.showModal();
-  if (!EXT.dados) {
-    const r = await api("/api/extensoes");
-    if (!r.erro) EXT.dados = r;
-  }
-  const origens = ((EXT.dados && EXT.dados.extensoes) || []).filter((e) => e.casa && e.upstream);
-  $("#creditos-upstreams").replaceChildren(...origens.map((e) => elemento("li", {}, [
-    elemento("b", { texto: e.nome }),
-    elemento("a", { class: "versao", href: e.upstream, target: "_blank", rel: "noopener",
-      controle: "creditos:upstream:" + e.id, texto: nomeDoRepositorio(e.upstream) })])));
 }

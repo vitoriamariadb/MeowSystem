@@ -348,6 +348,7 @@ cmd_conferir() {
   # shellcheck disable=SC2034
   MEOW_SECO=1
   if [ -z "$LEITURA_AGENDA" ]; then
+    meow_frase "O modo de leitura não está agendado: a tela não muda de cor sozinha."
     meow_pula "LEITURA_AGENDA vazio — nada a conferir (o modo de leitura é seu)"
     return "$MEOW_OK"
   fi
@@ -402,6 +403,11 @@ cmd_estado() {
   if _leitura_resolver_agenda; then
     _leitura_avisar_chaves
     _leitura_dizer_fonte info
+    meow_frase "O modo de leitura liga das $(_leitura_hhmm "$LEITURA_INI") às $(_leitura_hhmm "$LEITURA_FIM")$([ "$LEITURA_FONTE" = "padrao" ] || [ -z "$LEITURA_FONTE" ] && echo ", o horário padrão do MeowSystem, porque nenhum horário foi escolhido no botão da barra" || echo ", o horário que você escolheu no botão da barra")."
+    case "$LEITURA_APPLET_DIZ" in
+      nao) meow_frase "Quem manda na cor da tela agora são os controles do botão da barra, que desligaram o agendamento." ;;
+      *)   meow_frase "Quem manda na cor da tela agora é o relógio." ;;
+    esac
     case "$LEITURA_APPLET_DIZ" in
       sim) meow_info "quem manda agora: o relógio (o applet quer o agendamento)" ;;
       nao) meow_pula "quem manda agora: OS SLIDERS — o applet desligou o 'Agendar'" ;;
@@ -412,6 +418,11 @@ cmd_estado() {
       meow_info "$(_leitura_col "alvo que vale") ${LEITURA_TEMPERATURA}K ($LEITURA_FONTE_ALVO_T) / ${LEITURA_TEXTURA} ($LEITURA_FONTE_ALVO_X) — os sliders mandam no QUANTO"
     fi
     if _leitura_alvo_agora; then
+      if [ "${LEITURA_ALVO_T:-0}" = "0" ]; then
+        meow_frase "Agora são $(_leitura_hhmm "$LEITURA_AGORA") e a tela está sem o filtro de leitura."
+      else
+        meow_frase "Agora são $(_leitura_hhmm "$LEITURA_AGORA") e o relógio pede a tela mais quente, a ${LEITURA_ALVO_T} K."
+      fi
       meow_info "$(_leitura_col "agora são")$(_leitura_hhmm "$LEITURA_AGORA") — fase: $LEITURA_FASE (fração $LEITURA_ALVO_F)"
       meow_info "$(_leitura_col "o relógio pede")temperatura=${LEITURA_ALVO_T}  textura=${LEITURA_ALVO_X}"
     fi
@@ -462,6 +473,7 @@ cmd_estado() {
     elif grep -aqs "$LEITURA_MARCADOR" "/proc/$pid/exe"; then
       meow_ok "$(_leitura_col "a sessão viva")roda um cosmic-comp que sabe ler (PID $pid)"
     else
+      meow_frase "O compositor desta sessão ainda não tem o modo de leitura: ele passa a valer no próximo login."
       meow_pula "$(_leitura_col "a sessão viva")roda um cosmic-comp SEM o modo de leitura (PID $pid)"
       meow_info "  escrever a chave hoje é inofensivo e passa a valer no PRÓXIMO LOGIN."
     fi

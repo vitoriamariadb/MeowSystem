@@ -27,6 +27,7 @@ meow_passo()  { meow_quieto && return 0
                        "$C_DIM" "$(printf '%.0s─' {1..52})" "$C_ZERO"; }
 meow_info()   { meow_quieto && return 0
                 printf '  %s>>%s %s\n' "$C_AZUL" "$C_ZERO" "$*"; }
+meow_frase()  { printf '  %s->%s %s\n' "$C_AZUL" "$C_ZERO" "$*"; }
 meow_ok()     { meow_quieto && return 0
                 printf '  %sok%s   %s\n' "$C_VERDE" "$C_ZERO" "$*"; }
 meow_muda()   { printf '  %s~~%s   %s\n' "$C_AMARELO" "$C_ZERO" "$*"; }
@@ -361,7 +362,7 @@ meow_motivo_do_cargo() {
   elif grep -q 'Could not run `"pkg-config"\|pkg-config: not found\|failed to run.*pkg-config' "$log" 2>/dev/null; then
     printf 'falta o pkg-config'
   else
-    printf 'o cargo não compilou'
+    printf 'o compilador do Rust parou com erro'
   fi
 }
 
@@ -540,6 +541,13 @@ meow_tema_diverge() {
     printf '%s\n' "${casa#"$(meow_cosmic_dir)"/}"
   done < <(meow_tema_casas)
   [ "$n" -eq 0 ]
+}
+
+meow_de_fabrica() {
+  local f
+  case ",${MEOW_DE_FABRICA:-}," in *",$1,"*) ;; *) printf '%s' "$4"; return 0 ;; esac
+  f="$(cat "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/com.system76.CosmicPanel.$2/$(meow_cosmic_v "com.system76.CosmicPanel.$2")/$3" 2>/dev/null)"
+  printf '%s' "${f:-$4}"
 }
 
 meow_libcosmic_de() {

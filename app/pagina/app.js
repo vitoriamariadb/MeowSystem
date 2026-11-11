@@ -32,6 +32,7 @@ const IC = {
   som: '<path d="M11 5 6 9H2v6h4l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
   computador: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
   girar: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  olho: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   lixo: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
   disco: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
   ponte: '<path d="M2 18h20M4 18V9M20 18V9M4 9c4 4 12 4 16 0M9 13v5M15 13v5"/>',
@@ -173,7 +174,7 @@ async function api(rota, opcoes = {}) {
     });
   } catch (e) {
     faixaSemServidor(true);
-    return { erro: "Sem servidor", sem_servidor: true };
+    return { erro: "Não aplicado: MeowSystem desconectado", sem_servidor: true };
   }
   faixaSemServidor(false);
   const texto = await resposta.text();
@@ -188,7 +189,7 @@ function faixaSemServidor(mostrar) {
   if (!mostrar) { if (faixa) faixa.remove(); return; }
   if (faixa) return;
   faixa = elemento("div", { id: "faixa-sem-servidor", class: "torrada erro", role: "alert",
-    dica: "As escolhas que esperam continuam nesta aba" }, [icone("alerta"), " Sem servidor"]);
+    dica: "As escolhas que esperam continuam nesta aba" }, [icone("alerta"), " Não aplicado: MeowSystem desconectado"]);
   faixa.style.cssText = "position:fixed;left:50%;top:72px;transform:translateX(-50%);z-index:45;display:flex;gap:8px;align-items:center";
   document.body.append(faixa);
 }
@@ -272,6 +273,11 @@ let TRABALHOS_A_CAMINHO = 0;
 let FILA_DE_GRAVACAO = Promise.resolve();
 let ACOMPANHANDO = false;
 
+function voltarAoDeFabrica(item) {
+  gravarAgora({ [item.chave]: "" }, { fabrica: true });
+  return true;
+}
+
 function escolher(chave, valor) {
   const item = CHAVE.get(chave);
   if (!item) return false;
@@ -327,7 +333,7 @@ function gravarAgora(lote, opc = {}) {
 async function enviarLote(lote, antes, chaves, opc, numero) {
   const so = chaves.length === 1;
   const r = so
-    ? await api("/api/definir", { method: "POST", body: JSON.stringify({ chave: chaves[0], valor: String(lote[chaves[0]]) }) })
+    ? await api("/api/definir", { method: "POST", body: JSON.stringify({ chave: chaves[0], valor: String(lote[chaves[0]]), fabrica: opc.fabrica === true }) })
     : await api("/api/salvar", { method: "POST", body: JSON.stringify({ mudancas: lote }) });
   EM_VOO--;
   for (const c of chaves) if (ULTIMO_LOTE_DA_CHAVE.get(c) === numero) { MUDANCAS.delete(c); ULTIMO_LOTE_DA_CHAVE.delete(c); }
@@ -353,8 +359,8 @@ async function enviarLote(lote, antes, chaves, opc, numero) {
     HISTORICO.length = Math.min(HISTORICO.length, HISTORICO_MAX);
   }
   if (r.sem_ponte) {
-    torrada("Gravado; falta a ponte para aplicar", "erro");
-    mostrarGravando("erro", "Falta a ponte para aplicar");
+    torrada("Salvo; falta permissão de sistema", "erro");
+    mostrarGravando("erro", "Salvo; falta permissão de sistema");
   } else if (r.aplicando) {
     mostrarGravando("gravando");
     acompanharAplicacao();
@@ -409,7 +415,13 @@ function padraoDe(item) {
   if (item.padrao_do_pack != null) return String(item.padrao_do_pack);
   return item.padrao == null ? "" : String(item.padrao);
 }
+function foraDeFabrica(item) {
+  const agora = Number(item.valendo_agora);
+  const teto = item.teto && item.teto.trava ? Number(item.teto.valor) : Infinity;
+  return item.valendo_agora != null && Number.isFinite(agora) && agora !== Math.min(Number(item.fabrica_cosmic), teto);
+}
 function temOQueRestaurar(item, valor) {
+  if (item.fabrica_cosmic != null && foraDeFabrica(item)) return true;
   return String(valor) !== String(padraoDe(item));
 }
 function botaoPadrao(item, aplica, coluna) {
@@ -418,8 +430,9 @@ function botaoPadrao(item, aplica, coluna) {
   return elemento("button", {
     type: "button", class: "padrao", controle: "padrao:" + item.chave,
     "aria-label": "Voltar ao padrão" + de,
-    dica: (fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item)) + de,
-    onclick: () => aplica(fabrica),
+    dica: (item.fabrica_cosmic != null ? "Volta ao de fábrica do COSMIC: " + item.fabrica_cosmic
+      : fabrica === "" ? "Padrão: o sistema decide" : "Padrão: " + rotuloDeValor(fabrica, item)) + de,
+    onclick: () => (item.fabrica_cosmic != null ? voltarAoDeFabrica(item) : aplica(fabrica)),
   }, [icone("desfazer")]);
 }
 
@@ -541,19 +554,17 @@ function controleFaixa(item, aplica) {
   const teto = item.teto && item.teto.trava ? Number(item.teto.valor) : null;
   const topo = teto == null ? hi : Math.max(Number(lo), Math.min(Number(hi), teto));
   const valor = valorEmVigor(item);
-  const base = valor !== "" ? valor : (item.valendo_agora ?? item.vazio_vale ?? item.padrao ?? lo);
-  const numero = /^-?\d+(\.\d+)?$/.test(String(base)) ? Number(base) : Number(lo);
-  const vazio = valor === "";
+  const base = valor !== "" ? valor : (item.valendo_agora ?? item.fabrica_cosmic ?? item.vazio_vale ?? item.padrao ?? lo);
+  const lido = /^-?\d+(\.\d+)?$/.test(String(base)) ? Number(base) : Number(lo);
+  const numero = Math.max(Number(lo), Math.min(topo, lido));
   const slider = elemento("input", {
     type: "range", min: lo, max: topo, step: passo, value: String(numero),
     "aria-label": item.titulo || item.chave, controle: "chave:" + item.chave, dica: primeiraFrase(item.frase),
   });
   ligarPreenchimento(slider);
-  const saida = elemento("output", { texto: vazio ? "Auto" : String(numero) });
+  const saida = elemento("output", { texto: String(lido) });
   const caixa = elemento("div", { class: "faixa" }, [slider, saida]);
-  if (vazio) caixa.setAttribute("data-vazio", "");
   slider.addEventListener("input", () => {
-    caixa.removeAttribute("data-vazio");
     saida.textContent = slider.value;
     repintarPrevia(item.chave, slider.value);
   });
@@ -938,7 +949,7 @@ function linhaDeAcao(l) {
   const acao = ACAO.get(l.a);
   if (!acao) return null;
   return elemento("li", { class: "linha", "data-linha": acao.id }, [
-    elemento("div", { class: "rot" }, [elemento("span", { texto: l.r, dica: primeiraFrase(acao.ajuda) })]),
+    elemento("div", { class: "rot" }, [l.r ? elemento("span", { texto: l.r, dica: primeiraFrase(acao.ajuda) }) : null]),
     elemento("div", { class: "ctl" }, controleDeAcao(acao, l.b)),
   ]);
 }
@@ -1014,7 +1025,7 @@ function botaoAcervo(tipo, texto, comoEscolha = false) {
   return elemento("span", { style: "display:contents" }, [b, campo]);
 }
 
-function perguntar({ titulo, ok = "OK", perigo = false, corpo = null, ensaio = false }) {
+function perguntar({ titulo, ok = "OK", perigo = false, corpo = null }) {
   const d = $("#pergunta");
   $("#pergunta-titulo").textContent = maiuscula(titulo);
   $("#pergunta-corpo").replaceChildren(...(corpo ? [corpo] : []));
@@ -1022,16 +1033,14 @@ function perguntar({ titulo, ok = "OK", perigo = false, corpo = null, ensaio = f
   const sim = $("#pergunta-sim");
   sim.textContent = maiuscula(ok);
   sim.className = "bt " + (perigo ? "perigo" : "principal");
-  $("#confirmar-ensaio").hidden = !ensaio;
   d.returnValue = "";
   d.showModal();
   return new Promise((resolver) => {
-    d.addEventListener("close", () => resolver(d.returnValue === "seco" ? "seco" : d.returnValue === "sim"), { once: true });
+    d.addEventListener("close", () => resolver(d.returnValue === "sim"), { once: true });
   });
 }
 
 let TRABALHO = null;
-let ULTIMO_TRABALHO = null;
 const RESTAUROS = new Set();
 function lerRestauros() {
   RESTAUROS.clear();
@@ -1040,7 +1049,7 @@ function lerRestauros() {
 const deRoot = (a) => !!(a && (a.sudo || a.pela_ponte));
 
 async function semPonte() {
-  const ok = await perguntar({ titulo: "Falta a ponte", ok: "Consertar a ponte" });
+  const ok = await perguntar({ titulo: "Sem permissão de sistema", ok: "Reativar permissão de sistema" });
   if (ok) rodar(ACAO.get("doctor_consertar"), "");
 }
 
@@ -1052,21 +1061,18 @@ async function esperarOSinoGravado() {
 async function rodar(acao, argumento = "", opcoes = {}) {
   if (!acao) return null;
   if (acao.id === "som_aplicar" && !(await esperarOSinoGravado())) return null;
-  if (TRABALHO && TRABALHO.timer) { torrada("Espere o trabalho terminar"); abrirJanela(); return null; }
+  if (TRABALHO && TRABALHO.timer) { torrada("Espere o trabalho terminar"); return null; }
   if (deRoot(acao) && !ESQUEMA.ponte) { await semPonte(); return null; }
-  let seco = false;
   if (acao.confirma && !opcoes.semPerguntar) {
     const ok = await perguntar({ titulo: maiuscula(acao.rotulo) + "?", ok: opcoes.verbo || acao.rotulo,
-      perigo: !!acao.destrutivo, ensaio: !!acao.escreve });
+      perigo: !!acao.destrutivo });
     if (!ok) return null;
-    seco = ok === "seco";
   }
   TRABALHOS_A_CAMINHO++;
   const r = await api("/api/rodar", { method: "POST",
-    body: JSON.stringify({ acao: acao.id, argumento, confirmado: true, seco }) }).finally(() => { TRABALHOS_A_CAMINHO--; });
+    body: JSON.stringify({ acao: acao.id, argumento, confirmado: true }) }).finally(() => { TRABALHOS_A_CAMINHO--; });
   if (r.erro) { torrada(r.erro, "erro"); return null; }
-  abrirResultado(r, opcoes.depois || null,
-    seco ? () => rodar(acao, argumento, { ...opcoes, semPerguntar: true }) : null);
+  iniciarProgresso(r, opcoes.depois || null);
   return r;
 }
 async function rodarAcao(id, argumento = "") {
@@ -1076,7 +1082,7 @@ async function restaurarAcao(id) {
   const r = await api("/api/rodar", { method: "POST",
     body: JSON.stringify({ acao: "restaurar", argumento: id, confirmado: true }) });
   if (r.erro) { torrada(r.erro, "erro"); return; }
-  abrirResultado(r);
+  iniciarProgresso(r);
   if (TRABALHO) TRABALHO.restaura = id;
 }
 function fimDoTrabalho() {
@@ -1086,84 +1092,173 @@ function fimDoTrabalho() {
   });
 }
 
-function abrirJanela() {
-  const d = $("#resultado");
-  if (!d.open) d.showModal();
-  pastilhaDeTrabalho(false);
-}
-function marcarEstado(estado, texto) {
-  const el = $("#resultado-estado");
-  el.dataset.estado = estado;
-  el.textContent = maiuscula(texto);
-}
-function abrirResultado(trabalho, depois = null, deVerdade = null) {
+function iniciarProgresso(trabalho, depois = null) {
   if (TRABALHO && TRABALHO.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve, rotulo: maiuscula(trabalho.rotulo),
-               acao: trabalho.acao || null, fim: trabalho.fim || {}, mudou: false, depois,
-               conserta: trabalho.conserta_com || null, seco: !!trabalho.seco, deVerdade };
-  ULTIMO_TRABALHO = { id: trabalho.id, acao: trabalho.acao || null };
-  $("#resultado-titulo").textContent = maiuscula(trabalho.rotulo || "Trabalho");
-  $("#saida").replaceChildren();
-  $("#registro").open = false;
-  $("#parar").hidden = false;
-  $("#resultado-restaurar").hidden = true;
-  $("#faixa-ensaio").hidden = !trabalho.seco;
-  $("#ensaio-rodar").hidden = true;
-  delete $("#resultado-guardar").dataset.estado;
-  for (const v of document.querySelectorAll("#resultado .consertar")) v.remove();
-  marcarEstado("correndo", "Rodando");
-  abrirJanela();
+               acao: trabalho.acao || null, fim: trabalho.fim || {}, mudou: false, depois, saida: [],
+               consertaCom: trabalho.conserta_com || null, nomes: trabalho.nomes || null, resumo: !!trabalho.resumo, rota: location.hash };
+  if (TRABALHO.acao) esquecerResultado(TRABALHO.acao);
+  const barra = $("#progresso");
+  barra.dataset.estado = "correndo";
+  $("#progresso-nome").textContent = TRABALHO.rotulo || "Trabalho";
+  barra.hidden = false;
+  estadoDoLadrilho(TRABALHO.acao, "carregando", TRABALHO.rota);
   TRABALHO.timer = setInterval(puxar, 400);
   puxar();
 }
-function classeDaLinha(l) {
-  const t = l.trimStart();
-  if (/^ok\b/.test(t)) return "ok";
-  if (/^(erro|FALHOU|falhou|!!)/.test(t)) return "erro";
-  if (t.startsWith("~~")) return "mudou";
-  return "";
+function fimDoProgresso(estado) {
+  const barra = $("#progresso");
+  barra.dataset.estado = estado;
+  barra.hidden = true;
 }
+const RESULTADOS = new Map();
+const ESTADO_DO_LADRILHO = new Map();
+const FEITO_DO_LADRILHO_MS = 2400;
+function marcarLadrilhos() {
+  for (const [id, e] of [...ESTADO_DO_LADRILHO]) {
+    if (e.rota !== location.hash && e.estado !== "carregando") ESTADO_DO_LADRILHO.delete(id);
+  }
+  for (const t of document.querySelectorAll('#conteudo .ladrilho[data-controle^="acao:"]')) {
+    const e = ESTADO_DO_LADRILHO.get(t.dataset.controle.slice(5));
+    if (e && e.rota === location.hash) t.dataset.estado = e.estado;
+    else delete t.dataset.estado;
+  }
+}
+function estadoDoLadrilho(id, estado, rota) {
+  if (!id) return;
+  const marca = { estado, rota };
+  if (estado) ESTADO_DO_LADRILHO.set(id, marca);
+  else ESTADO_DO_LADRILHO.delete(id);
+  marcarLadrilhos();
+  if (estado !== "feito") return;
+  setTimeout(() => {
+    if (ESTADO_DO_LADRILHO.get(id) !== marca) return;
+    ESTADO_DO_LADRILHO.delete(id);
+    marcarLadrilhos();
+  }, FEITO_DO_LADRILHO_MS);
+}
+const MARCA_DA_SAIDA = /^\s*(ok|~~|--|!!|>>|erro|FALHOU|falhou)(?=\s|$)\s*/;
+const MAX_DO_RESULTADO = 6;
+
+function semCaminho(texto) {
+  return texto.replace(/(^|[\s'"(])(?:~|\/)[^\s'")]*\/([^\s'"/)]+)/g, "$1$2");
+}
+const NAO_LEGIVEL = /[A-Z_]{4,}=|=<|\[[A-Z]{4,}\]|`|\.desktop|\.theme|\bpid\b|(^|[\s'"(])(~|\/)[^\s'")]*\//i;
+function fraseLegivel(frase) {
+  const limpa = frase.replace(/\s{2,}/g, " ").trim();
+  return limpa && !NAO_LEGIVEL.test(limpa) ? maiuscula(limpa) : "";
+}
+function resumirSaida(linhas, nomes = null) {
+  const itens = [];
+  let anteriorMarcada = false;
+  for (const bruta of linhas) {
+    if (!/[\p{L}\p{N}]/u.test(bruta) || /^\s*(==|#)/.test(bruta)) continue;
+    const m = MARCA_DA_SAIDA.exec(bruta);
+    if (!m && anteriorMarcada && /^\s+/.test(bruta)) continue;
+    if (!m && !/^\s/.test(bruta) && !/:|\s{2,}/.test(bruta)) continue;
+    let texto = m ? bruta.slice(m[0].length) : bruta.trim();
+    let classe = "";
+    if (m) {
+      const marca = m[1];
+      classe = marca === "ok" ? "ok" : marca === "~~" ? "mudou" : /^(erro|FALHOU|falhou|!!)$/.test(marca) ? "erro" : "";
+      if (marca !== ">>") {
+        const area = /^[\w-]+\s{2,}(.*)$/.exec(texto);
+        if (area) texto = area[1];
+        texto = texto.split(" — ")[0];
+      }
+    }
+    let dica = "";
+    if (nomes) {
+      const area = m && /^(\S+)\s/.exec(bruta.slice(m[0].length));
+      texto = (area && Object.hasOwn(nomes, area[1]) && nomes[area[1]]) || "";
+      if (texto) dica = fraseLegivel(bruta.slice(m[0].length).replace(/^\S+\s+/, ""));
+    }
+    texto = semCaminho(texto).replace(/\s{2,}/g, " ").trim();
+    if (!texto) continue;
+    anteriorMarcada = !!m;
+    itens.push({ texto: maiuscula(texto), classe, dica });
+  }
+  return itens;
+}
+function frasesDoResumo(linhas) {
+  return linhas.map((l) => /^\s*->\s+(\S.*)$/.exec(l)).filter(Boolean)
+    .map((m) => ({ texto: maiuscula(m[1].trim()), classe: "" }));
+}
+function guardarResultado(t, rc, frase) {
+  const frases = t.resumo ? frasesDoResumo(t.saida) : [];
+  const itens = frases.length ? frases : resumirSaida(t.saida, t.nomes);
+  const divergem = itens.filter((i) => i.classe === "mudou" || i.classe === "erro");
+  const contagem = divergem.length === 1 ? "1 coisa diverge" : `${divergem.length} coisas divergem`;
+  const confere = !!t.consertaCom;
+  const mostrar = confere || (rc === 1 && divergem.length) ? divergem : itens;
+  const cabeca = frases.length ? "" : divergem.length && (confere || rc === 1) ? contagem
+    : !confere && rc === 0 && itens.length ? "" : maiuscula(frase);
+  RESULTADOS.set(t.acao, {
+    rota: t.rota, estado: rc === 0 ? "ok" : rc === 1 ? "divergente" : "erro", cabeca,
+    itens: mostrar.slice(0, MAX_DO_RESULTADO), sobram: Math.max(0, mostrar.length - MAX_DO_RESULTADO),
+    consertaCom: rc === 1 ? t.consertaCom : null, acao: t.acao,
+  });
+  pintarResultados();
+}
+function esquecerResultado(id) {
+  RESULTADOS.delete(id);
+  for (const velho of document.querySelectorAll(`[data-resultado="${id}"]`)) velho.remove();
+}
+function noDoResultado(id, r) {
+  const consertar = r.consertaCom && ACAO.get(r.consertaCom);
+  return elemento("div", { class: "resultado", "data-resultado": id, "data-estado": r.estado, role: "status" }, [
+    r.cabeca ? elemento("p", { class: "resultado-cabeca", texto: r.cabeca }) : null,
+    r.itens.length ? elemento("ul", { class: "resultado-linhas" }, [
+      ...r.itens.map((i) => elemento("li", { class: i.classe || null, texto: i.texto, dica: i.dica || null })),
+      r.sobram ? elemento("li", { class: "sobra", texto: `E mais ${r.sobram}` }) : null,
+    ]) : null,
+    consertar ? botao("Consertar", { class: "bt pequeno principal", controle: "resultado:consertar",
+      onclick: async () => {
+        if (!(await rodar(consertar, "", { semPerguntar: true }))) return;
+        await fimDoTrabalho();
+        rodarAcao(id);
+      } }) : null,
+  ]);
+}
+function pintarResultados() {
+  for (const [id, r] of [...RESULTADOS]) {
+    if (r.rota !== location.hash) { RESULTADOS.delete(id); continue; }
+    for (const velho of document.querySelectorAll(`[data-resultado="${id}"]`)) velho.remove();
+    const gatilho = document.querySelector(`#conteudo [data-controle="acao:${id}"]`);
+    if (!gatilho) continue;
+    const dono = gatilho.closest("li.linha, .cabeca-mod, .estado-maquina, .cartao-acao, .ladrilho-no");
+    const no = noDoResultado(id, r);
+    if (dono) dono.append(no);
+    else gatilho.parentElement.after(no);
+  }
+  marcarLadrilhos();
+}
+
 async function puxar() {
   const t = TRABALHO;
   if (!t) return;
   const desde = t.proximo;
   const r = await api(`/api/trabalho?id=${t.id}&desde=${desde}`);
   if (TRABALHO !== t || t.proximo !== desde) return;
-  if (r.erro) { clearInterval(t.timer); t.timer = null; TRABALHO = null; pastilhaDeTrabalho(false); return; }
+  if (r.erro) { clearInterval(t.timer); t.timer = null; TRABALHO = null; fimDoProgresso("erro"); estadoDoLadrilho(t.acao, "erro", t.rota); return; }
   t.proximo = r.proximo;
-  const saida = $("#saida");
-  for (const l of r.linhas || []) {
-    saida.append(elemento("span", { class: classeDaLinha(l) || null, texto: l + "\n" }));
-    if (l.trimStart().startsWith("~~")) t.mudou = true;
-  }
-  saida.scrollTop = saida.scrollHeight;
+  for (const l of r.linhas || []) if (l.trimStart().startsWith("~~")) t.mudou = true;
+  t.saida.push(...(r.linhas || []));
   if (r.vivo) return;
   clearInterval(t.timer);
   t.timer = null;
-  $("#parar").hidden = true;
   if (r.restauravel && t.acao) RESTAUROS.add(t.acao);
   if (t.acao === "restaurar" && (r.rc === 0 || r.rc === 1)) RESTAUROS.delete(t.restaura);
-  $("#resultado-restaurar").hidden = !(r.restauravel && t.acao);
   const tabela = t.fim || {};
   const [classe, frase] = (r.rc === 0 && t.mudou && tabela["0~"]) || tabela[String(r.rc)] || ["erro", `Saiu ${r.rc}`];
-  marcarEstado(classe === "ok" ? "ok" : classe === "erro" ? "erro" : "correndo", `${maiuscula(frase)} · ${r.segundos}s`);
-  if (classe === "erro") $("#registro").open = true;
-  if (r.rc === 1 && t.conserta && ACAO.get(t.conserta)) {
-    const a = ACAO.get(t.conserta);
-    $("#resultado .acoes").prepend(botao(maiuscula(a.rotulo), { class: "bt consertar", controle: "resultado:consertar",
-      onclick: () => { $("#resultado").close(); rodar(a, ""); } }));
-  }
-  if (t.seco && t.deVerdade && typeof r.rc === "number" && r.rc >= 0) {
-    const b = $("#ensaio-rodar");
-    b.hidden = false;
-    b.onclick = () => { $("#resultado").close(); t.deVerdade(); };
-  }
-  if (!$("#resultado").open) torrada(`${t.rotulo}: ${frase}`, classe === "erro" ? "erro" : "ok");
-  pastilhaDeTrabalho(false);
+  fimDoProgresso(classe === "erro" ? "erro" : "ok");
+  estadoDoLadrilho(t.acao, classe === "erro" ? "erro" : classe === "pula" ? "" : "feito", t.rota);
+  if (classe === "erro") torrada(`${t.rotulo}: ${frase}`, "erro");
   TRABALHOS_A_CAMINHO++;
   TRABALHO = null;
   try {
-    if (t.escreve && !t.seco) await depoisDeEscrever();
+    if (!t.escreve && t.acao && t.rota === location.hash) guardarResultado(t, r.rc, frase);
+    if (t.escreve) await depoisDeEscrever();
     if (t.depois && (r.rc === 0 || r.rc === 1)) t.depois();
   } finally {
     TRABALHOS_A_CAMINHO--;
@@ -1189,42 +1284,14 @@ function lerClaro() {
   if (esquema.includes("light")) document.documentElement.dataset.claro = "1";
   else delete document.documentElement.dataset.claro;
 }
-function pastilhaDeTrabalho(mostrar) {
-  let p = document.getElementById("pastilha-trabalho");
-  if (!mostrar) { if (p) p.remove(); return; }
-  if (p || !TRABALHO) return;
-  p = botao(TRABALHO.rotulo || "Trabalho", { class: "bt pequeno", id: "pastilha-trabalho",
-    controle: "trabalho", icone: "girar", onclick: abrirJanela });
-  $("#aplicar").before(p);
-}
-
 function atualizarAplicar() {
   const n = HISTORICO.length;
   $("#aplicar").dataset.n = String(n);
-  $("#conta").textContent = n === 1 ? "1 mudança" : `${n} mudanças`;
-  const caixa = $("#ultimas");
-  if (!n) { caixa.hidden = true; $("#conta").setAttribute("aria-expanded", "false"); }
-  caixa.replaceChildren(...HISTORICO.map((e) => elemento("div", { class: "ultima", role: "listitem" }, [
-    elemento("span", {}, [elemento("b", { texto: e.rotulo }), elemento("small", { texto: e.detalhe })]),
-    botao("Desfazer", { class: "bt leve pequeno", controle: "desfazer-uma", icone: "desfazer",
-      onclick: () => desfazerEntradas([e]) }),
-  ])));
 }
 function nomeDeChave(chave) {
   const l = inventarioDoPainel().find((x) => x.tipo === "chave" && x.id === chave);
   return l ? l.rotulo : ((CHAVE.get(chave) || {}).titulo || chave);
 }
-function fecharUltimas() {
-  $("#ultimas").hidden = true;
-  $("#conta").setAttribute("aria-expanded", "false");
-}
-function alternarUltimas() {
-  const caixa = $("#ultimas");
-  if (!HISTORICO.length) return;
-  caixa.hidden = !caixa.hidden;
-  $("#conta").setAttribute("aria-expanded", String(!caixa.hidden));
-}
-
 async function importarArquivo(arquivo) {
   if (!arquivo) return;
   if (arquivo.size > 512 * 1024) { torrada("Arquivo grande demais", "erro"); return; }
@@ -1239,14 +1306,14 @@ async function importarArquivo(arquivo) {
 }
 
 function indiceDaBusca() {
-  const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Manter"
+  const onde = (l) => (l.porta === "tema" ? "Tema" : l.porta === "cuidar" ? "Manutenção"
     : l.porta === "criar" ? "Personalizar · " + l.pagina
     : l.porta === "modificacoes" ? ["Modificações", l.pagina || l.bloco].filter(Boolean).join(" · ")
-    : "Definir · " + l.pagina);
+    : "Ajustes · " + l.pagina);
   const visto = new Set();
   const saida = [];
   for (const l of inventarioDoPainel()) {
-    if (l.porta === "topo" || l.porta === "janela" || (l.tipo === "chave" && !CHAVE.has(l.id)) || (l.tipo === "acao" && !ACAO.has(l.id))) continue;
+    if (l.porta === "topo" || (l.tipo === "chave" && !CHAVE.has(l.id)) || (l.tipo === "acao" && !ACAO.has(l.id))) continue;
     const k = l.porta + l.pagina + l.rotulo;
     if (visto.has(k)) continue;
     visto.add(k);
@@ -1347,15 +1414,6 @@ function desenharPortas() {
       [icone(p.icone), elemento("span", { texto: p.nome })]),
   ])));
 }
-function desenharMenu() {
-  const itens = [];
-  itens.push(elemento("button", { type: "button", role: "menuitem", controle: "menu:creditos", texto: "Créditos",
-    onclick: () => { $("#menu").open = false; abrirCreditos(); } }));
-  itens.push(elemento("a", { href: "/api/exportar/pagina", download: true, role: "menuitem",
-    controle: "menu:pagina", texto: "Esta tela num arquivo" }));
-  $("#menu-corpo").replaceChildren(...itens);
-}
-
 function render() {
   if (!ESQUEMA || ESQUEMA.erro) return;
   const ativo = document.activeElement;
@@ -1370,6 +1428,7 @@ function render() {
     : ROTA.porta === "modificacoes" ? paginaModificacoes(ROTA.sub) : paginaTema();
   $("#conteudo").replaceChildren(...[].concat(pagina).filter(Boolean));
   $("#conteudo").removeAttribute("aria-busy");
+  pintarResultados();
   reacenderChegada();
   document.title = "MeowSystem · " + (emNovo() ? "Tema novo" : (PORTAS.find((p) => p.id === ROTA.porta) || PORTAS[0]).nome);
   if (foco) {
@@ -1392,35 +1451,12 @@ async function iniciar() {
   atualizarAplicar();
   ligarDicas();
   ligarBusca();
-  desenharMenu();
   $(".pular").addEventListener("click", (ev) => { ev.preventDefault(); $("#principal").focus(); });
   $("#desfazer").addEventListener("click", desfazerTudo);
-  $("#conta").addEventListener("click", alternarUltimas);
-  const menu = $("#menu");
-  document.addEventListener("click", (e) => {
-    if (menu.open && !menu.contains(e.target)) menu.open = false;
-    if (!$("#aplicar").contains(e.target)) fecharUltimas();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape") return;
-    if (menu.open) { menu.open = false; menu.querySelector("summary").focus(); }
-    fecharUltimas();
-  });
-  $("#resultado").addEventListener("close", () => { if (TRABALHO && TRABALHO.timer) pastilhaDeTrabalho(true); });
-  $("#resultado-ok").addEventListener("click", () => $("#resultado").close());
+  $("#reiniciar-barra").addEventListener("click", () => rodar(ACAO.get("extensao_reiniciar_painel")));
   $("#parar").addEventListener("click", async () => {
     if (!TRABALHO) return;
     await api("/api/parar", { method: "POST", body: JSON.stringify({ id: TRABALHO.id }) });
-  });
-  $("#resultado-guardar").addEventListener("click", async () => {
-    if (!ULTIMO_TRABALHO) return;
-    const r = await api("/api/guardar-log", { method: "POST", body: JSON.stringify({ id: ULTIMO_TRABALHO.id }) });
-    if (r.erro) { torrada(r.erro, "erro"); return; }
-    $("#resultado-guardar").dataset.estado = "feito";
-    $("#resultado-guardar").dataset.dica = maiuscula(r.caminho || "");
-  });
-  $("#resultado-restaurar").addEventListener("click", () => {
-    if (ULTIMO_TRABALHO && ULTIMO_TRABALHO.acao) restaurarAcao(ULTIMO_TRABALHO.acao);
   });
   addEventListener("beforeunload", (ev) => { if (EM_VOO > 0) ev.preventDefault(); });
   ROTA = rotaDoHash();

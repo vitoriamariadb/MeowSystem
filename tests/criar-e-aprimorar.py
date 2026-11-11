@@ -143,7 +143,7 @@ def com_checkout(nav, url):
     ir(pag, "criar/cores")
     no_ar = pag.evaluate("() => ({ id: packNoAr().id, nome: packNoAr().nome, flavor: rascunho().base.flavor })")
     titulo = pag.evaluate("() => document.querySelector('#conteudo h1').textContent")
-    checa(titulo == "Aprimorar " + no_ar["nome"], f"o título diz o que sai da página ({titulo!r})")
+    checa(titulo == "Editar " + no_ar["nome"], f"o título diz o que sai da página ({titulo!r})")
     r = pag.evaluate("() => rascunho()")
     checa(r["pack"] == no_ar["id"] and r["nome"] == no_ar["nome"], f"o Personalizar abre com o tema no ar ({r['pack']})")
     paleta = os.path.join(casa.RAIZ_B, "packs", no_ar["id"], "paleta.json")
@@ -154,7 +154,7 @@ def com_checkout(nav, url):
           f"«Guardar» grava a cor em packs/{no_ar['id']}/paleta.json do checkout")
     checa(packs_dela() == antes, f"nenhum tema novo aparece ({packs_dela()})")
     ultima = pag.evaluate("() => document.querySelector('[data-controle=\"passo:mandar\"]').textContent")
-    checa(ultima.endswith("Aprimorar"), f"o último passo é «Aprimorar» ({ultima!r})")
+    checa(ultima.endswith("Salvar no tema"), f"o último passo é «Salvar no tema» ({ultima!r})")
     foto(pag, "aprimorar-cores")
 
     print("== os dois rascunhos não se misturam")
@@ -181,7 +181,7 @@ def com_checkout(nav, url):
     esperar(pag, 800)
     ir(pag, "criar/cores")
     meu = pag.evaluate("() => ({ id: rascunho().pack, flavor: rascunho().base.flavor, h1: document.querySelector('#conteudo h1').textContent })")
-    checa(meu["id"] == "gato-novo" and meu["h1"] == "Aprimorar Gato Novo", f"abre com o tema dela no ar ({meu})")
+    checa(meu["id"] == "gato-novo" and meu["h1"] == "Editar Gato Novo", f"abre com o tema dela no ar ({meu})")
     antes = packs_dela()
     trocar_cor(pag, "mauve", "#654321")
     pag.click('[data-controle="criar:guardar"]')
@@ -218,7 +218,7 @@ def sem_checkout(nav, url):
     ir(pag, "criar/mandar")
     a = pag.locator('[data-controle="criar:aprimorar"]')
     checa(a.get_attribute("aria-disabled") == "true" and "checkout" in (a.get_attribute("data-dica") or ""),
-          f"«Aprimorar» apagado, com o porquê na dica ({a.get_attribute('data-dica')!r})")
+          f"«Salvar no tema» apagado, com o porquê na dica ({a.get_attribute('data-dica')!r})")
     resp = pag.evaluate("([id, f]) => api('/api/pack-cores', { method: 'POST', body: JSON.stringify({ id, flavor: f, cores: { mauve: '#0A0B0C' } }) })",
                         [no_ar["id"], no_ar["flavor"]])
     checa("checkout" in (resp.get("erro") or "") and tom(paleta, no_ar["flavor"], "mauve") == tom_antes,

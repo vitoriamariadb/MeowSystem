@@ -111,7 +111,7 @@ LOG="$CASA/.local/state/meowsystem/meow.log"
 saida="$(pendencia starship-ausente "O starship falta" "./scripts/prompt.sh instalar-starship")"
 pendencia starship-ausente "O starship falta" "./scripts/prompt.sh instalar-starship" >/dev/null
 sem_lugar="$(pendencia coisa-sem-lugar "Algo ficou de fora" "./scripts/qualquer.sh consertar")"
-if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Instalar», em Manter › Instalar de novo' <<< "$saida" \
+if ! grep -q 'scripts/prompt.sh' <<< "$saida" && grep -q '«Reinstalar o MeowSystem», em Manutenção › Reinstalar o MeowSystem' <<< "$saida" \
    && ! grep -qE 'resolve|scripts/' <<< "$sem_lugar" \
    && [ "$(grep -c 'ficou para depois: O starship falta$' "$LOG" 2>/dev/null)" = 1 ] \
    && ! grep -q 'Pendências' <<< "$saida"; then
@@ -121,7 +121,7 @@ else
     "$saida / sem lugar: $sem_lugar / registro: $(cat "$LOG" 2>/dev/null)"
 fi
 
-printf '\n--- 6. o papel de parede devolvido aponta as «Pastas suas», e não «meow wallpaper permitir» ---\n'
+printf '\n--- 6. o papel de parede devolvido aponta a «Seus papéis de parede», e não «meow wallpaper permitir» ---\n'
 achados="$(grep -nE '^[^#]*meow_(info|pula|aviso|muda|ok|erro) .*meow wallpaper permitir' "$RAIZ/scripts/wallpaper.sh")"
 [ -z "$achados" ] && ok "o wallpaper.sh não manda digitar «meow wallpaper permitir»" \
   || falha "o wallpaper.sh manda digitar «meow wallpaper permitir»" "$achados"
@@ -134,10 +134,10 @@ print("chave=%s" % servidor.onde_na_tela("WALLPAPER_FONTES_PERMITIDAS"))
 PY
 )"
 onde="$(sed -n 's/^onde=//p' <<< "$saida")"
-if [ -n "$onde" ] && [ "$onde" = "$(sed -n 's/^chave=//p' <<< "$saida")" ] && grep -q '«Pastas suas»' <<< "$onde"; then
-  ok "a pendência do papel de parede devolvido leva às «Pastas suas», onde a imagem dela fica autorizada ($onde)"
+if [ -n "$onde" ] && [ "$onde" = "$(sed -n 's/^chave=//p' <<< "$saida")" ] && grep -q '«Seus papéis de parede»' <<< "$onde"; then
+  ok "a pendência do papel de parede devolvido leva à «Seus papéis de parede», onde a imagem dela fica autorizada ($onde)"
 else
-  falha "a pendência do papel de parede devolvido não leva às «Pastas suas»" "$saida"
+  falha "a pendência do papel de parede devolvido não leva às «Seus papéis de parede»" "$saida"
 fi
 
 printf '\n--- 6b. «meow wallpaper dispensar» tira a pendência sem autorizar a imagem ---\n'

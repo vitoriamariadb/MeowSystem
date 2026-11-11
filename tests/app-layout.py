@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import importlib.util
 import os
+import re
 import shutil
 import sys
 
@@ -67,25 +68,17 @@ TRANSBORDOS = """
 }
 """
 
-VOLTAR_E_REGISTRO = """
-() => {
-  const r = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { top: Math.round(b.top), bottom: Math.round(b.bottom), left: Math.round(b.left) }; };
-  return { registro: r('.grade-cuidar > [data-bloco="Registro"]'), voltar: r('.grade-cuidar > .bloco.tracejado') };
-}
+SEM_REGISTRO_E_COM_PERIGO = """
+() => ({ registro: document.querySelectorAll('[data-bloco="Registro"]').length,
+         logs: document.querySelectorAll('.grade-cuidar pre, .grade-cuidar details.registro').length,
+         perigo: document.querySelectorAll('.grade-cuidar > .bloco.tracejado').length })
 """
 
 
-def voltar_ao_lado_do_registro(pag, largura):
-    p = pag.evaluate(VOLTAR_E_REGISTRO)
-    reg, vol = p["registro"], p["voltar"]
-    if not (reg and vol):
-        checa(False, f"cuidar {largura}: o Registro e o cartão tracejado são filhos da grade ({p})")
-    elif largura > 860:
-        checa(vol["top"] == reg["top"] and vol["left"] > reg["left"],
-              f"cuidar {largura}: o cartão tracejado fica à direita do Registro, no mesmo topo ({p})")
-    else:
-        checa(vol["left"] == reg["left"] and vol["top"] >= reg["bottom"],
-              f"cuidar {largura}: numa coluna, o cartão tracejado vem depois do Registro ({p})")
+def sem_registro_e_com_perigo(pag, largura):
+    p = pag.evaluate(SEM_REGISTRO_E_COM_PERIGO)
+    checa(p["registro"] == 0 and p["logs"] == 0 and p["perigo"] == 1,
+          f"cuidar {largura}: sem bloco de registro nem log, e o cartão tracejado é filho da grade ({p})")
 
 
 POSICOES = """
@@ -205,7 +198,7 @@ def main():
                     nome = rota.replace("/", "-")
                     ruins = pag.evaluate(TRANSBORDOS)
                     if rota == "cuidar":
-                        voltar_ao_lado_do_registro(pag, w)
+                        sem_registro_e_com_perigo(pag, w)
                     checa(not ruins, f"{rota}: nada estoura o pai ({ruins[:3]})")
                     foto(pag, f"{w}x{h}-{nome}-topo")
                     pag.evaluate("() => scrollTo(0, document.documentElement.scrollHeight)")
@@ -232,7 +225,7 @@ def main():
             pag.goto(url)
             esperar(pag, 800)
             ir(pag, "cuidar")
-            voltar_ao_lado_do_registro(pag, 800)
+            sem_registro_e_com_perigo(pag, 800)
             foto(pag, "800x1000-cuidar-topo")
             contexto.close()
             contexto = nav.new_context(viewport={"width": 1920, "height": 1080})
@@ -266,26 +259,62 @@ def main():
                        noRotulo: !!document.querySelector('.linha.dupla .rot .padrao'),
                        margemDock: m && m.disabled, margemPainel: mp && mp.disabled,
                        vazio: !!document.querySelector('.faixa[data-vazio]'),
+                       semNumero: [...document.querySelectorAll('.faixa output')].filter((o) => !/^-?\\d+(\\.\\d+)?$/.test(o.textContent.trim())).length,
                        segSemDica: [...document.querySelectorAll('.seg button')].filter((b) => !b.dataset.dica).length };
             }""")
             checa(info["padrao"] and info["coluna"] == "Dock" and not info["noRotulo"], f"o ↶ mora na célula da coluna ({info})")
             checa(info["margemDock"] is True and info["margemPainel"] is False, f"com a dock colada, só a distância dela se desliga ({info})")
-            checa(info["vazio"], "o deslizante sem valor mostra o trilho tracejado")
+            checa(not info["vazio"] and info["semNumero"] == 0, f"toda faixa vale sem clique, com o número que vale na saída ({info})")
             checa(info["segSemDica"] == 0, "todo botão XS…XL tem dica")
-            print("== Manter: cartões com o desenho ao lado")
-            for (w, h) in [(1920, 1080), (1280, 800)]:
+            print("== a faixa arrasta, grava, e o ↶ volta a chave vazia com a faixa ativa")
+            fabrica = pag.evaluate("() => document.querySelector('input[data-controle=\"chave:FORMA_RAIO_PAINEL\"]').closest('.faixa').querySelector('output').textContent")
+            pag.evaluate("""async () => {
+              const s = document.querySelector('input[data-controle="chave:FORMA_RAIO_PAINEL"]');
+              s.value = String(Number(s.value) === Number(s.min) ? Number(s.min) + 2 : Number(s.min));
+              s.dispatchEvent(new Event('input')); s.dispatchEvent(new Event('change')); await FILA_DE_GRAVACAO; }""")
+            esperar(pag, 300)
+            pag.wait_for_function("() => !ACOMPANHANDO && !EM_VOO", timeout=60000)
+            arrastado = casa.valor_de("FORMA_RAIO_PAINEL")
+            checa(arrastado not in (None, "") and arrastado != fabrica, f"soltar a faixa grava o número ({arrastado!r}, antes {fabrica!r})")
+            pag.evaluate("async () => { document.querySelector('[data-controle=\"padrao:FORMA_RAIO_PAINEL\"]').click(); await FILA_DE_GRAVACAO; }")
+            pag.wait_for_function("() => !ACOMPANHANDO && !EM_VOO", timeout=60000)
+            esperar(pag, 300)
+            depois = pag.evaluate("""() => { const s = document.querySelector('input[data-controle="chave:FORMA_RAIO_PAINEL"]');
+              const c = s.closest('.faixa');
+              return { vazio: c.hasAttribute('data-vazio'), desligada: s.disabled, saida: c.querySelector('output').textContent, faixa: s.value }; }""")
+            checa(casa.valor_de("FORMA_RAIO_PAINEL") == "" and not depois["vazio"] and not depois["desligada"]
+                  and depois["saida"].isdigit() and depois["saida"] == depois["faixa"],
+                  f"o ↶ volta a chave vazia e a faixa segue ativa, com número ({casa.valor_de('FORMA_RAIO_PAINEL')!r}, {depois})")
+            print("== as linhas que saíram da tela não voltam")
+            for rota, termos in [("ajustes/janelas", ["Vale para", "Versão do ponteiro"]),
+                                 ("ajustes/papel", ["Escolhida dura", "Versão do acervo"]),
+                                 ("cuidar", ["Mascote novo entra"])]:
+                ir(pag, rota)
+                pag.evaluate("() => { for (const d of document.querySelectorAll('details.mais')) d.open = true; }")
+                texto = pag.evaluate("() => document.getElementById('conteudo').innerText")
+                for termo in termos:
+                    checa(termo not in texto, f"{rota}: «{termo}» fora da tela")
+            print("== Manter: ladrilhos em duas colunas, uma no estreito")
+            for (w, h, colunas) in [(1920, 1080, 2), (1280, 800, 2), (900, 800, 2), (800, 800, 1)]:
                 pag.set_viewport_size({"width": w, "height": h})
                 ir(pag, "cuidar")
-                cartoes = pag.evaluate("""() => [...document.querySelectorAll('.cartao-acao')].map((c) => {
-                  const r = (e) => e && e.getBoundingClientRect();
-                  const cr = r(c), ic = r(c.querySelector('.icone, svg')), t = r(c.querySelector('h2')), f = r(c.querySelector('.fila'));
-                  return { n: c.querySelector('h2') && c.querySelector('h2').textContent, ladoAlado: !!(ic && t && ic.right <= t.left + 1),
-                           dentro: !!(f && f.right <= cr.right + 1 && f.left >= cr.left - 1 && t.right <= cr.right + 1) };
+                lad = pag.evaluate("""() => [...document.querySelectorAll('.grade-ladrilhos .ladrilho')].map((c) => {
+                  const cr = c.getBoundingClientRect(), g = c.closest('.grade-ladrilhos').getBoundingClientRect();
+                  const ic = c.querySelector('.icone').getBoundingClientRect(), t = c.querySelector('b').getBoundingClientRect();
+                  return { n: c.querySelector('b').textContent, x: Math.round(cr.left), h: Math.round(cr.height),
+                           lado: ic.right <= t.left + 1, dentro: cr.left >= g.left - 1 && cr.right <= g.right + 1 && t.right <= cr.right + 1,
+                           botoesDentro: c.querySelectorAll('button, a').length, dica: c.dataset.dica || "" };
                 })""")
-                checa(len(cartoes) >= 3 and all(c["ladoAlado"] and c["dentro"] for c in cartoes), f"{w}: três cartões, desenho à esquerda e botões dentro ({cartoes})")
-                pag.evaluate("() => document.querySelector('.cartao-acao').scrollIntoView({ block: 'center' })")
+                nomes = [c["n"] for c in lad]
+                jargao = [c["dica"] for c in lad if not c["dica"] or re.search(r"\b(apt|flatpak|cargo|crates|Rust)\b|\.conf\b|\{", c["dica"])]
+                checa(not jargao, f"{w}: a dica de cada ladrilho se explica sozinha ({jargao})")
+                checa(nomes == ["Exportar ajustes", "Importar ajustes", "Atualizar a máquina", "O que muda", "Limpar as sobras",
+                                "Reinstalar o MeowSystem"], f"{w}: os seis ladrilhos com o nome da ação ({nomes})")
+                checa(all(c["lado"] and c["dentro"] and c["botoesDentro"] == 0 for c in lad), f"{w}: ícone ao lado do nome e tudo dentro ({lad})")
+                checa(len({c["x"] for c in lad}) == colunas, f"{w}: {colunas} coluna(s) de ladrilhos ({sorted({c['x'] for c in lad})})")
+                pag.evaluate("() => document.querySelector('.grade-ladrilhos').scrollIntoView({ block: 'center' })")
                 pag.wait_for_timeout(200)
-                foto(pag, f"{w}x{h}-cartoes")
+                foto(pag, f"{w}x{h}-ladrilhos")
 
             print("== a ficha do ícone, uma caixa e um «Usar»")
             for (w, h) in LARGURAS:
@@ -324,27 +353,28 @@ def main():
                     foto(pag, f"{w}x{h}-ficha-icone-{fonte}")
                 pag.evaluate("() => { APP_ABERTO = null; DESENHO_FONTE = 'gerar'; render(); }")
 
-            print("== o diálogo do Instalar tudo")
+            print("== a linha de progresso do Instalar tudo")
             for (w, h) in LARGURAS:
                 pag.set_viewport_size({"width": w, "height": h})
                 ir(pag, "cuidar")
                 info = pag.evaluate("""() => {
-                  const d = document.getElementById('resultado');
-                  document.getElementById('resultado-titulo').textContent = 'Instalar tudo';
-                  document.getElementById('saida').textContent = ('x'.repeat(400) + '\\n' + 'linha curta\\n').repeat(40);
-                  document.getElementById('registro').open = true;
-                  if (!d.open) d.showModal();
-                  const r = d.getBoundingClientRect();
-                  const ok = document.getElementById('resultado-ok').getBoundingClientRect();
+                  const p = document.getElementById('progresso');
+                  document.getElementById('progresso-nome').textContent = 'Instalar tudo';
+                  p.dataset.estado = 'correndo';
+                  p.hidden = false;
+                  const r = p.getBoundingClientRect();
+                  const t = document.getElementById('topo').getBoundingClientRect();
                   const pr = document.getElementById('parar').getBoundingClientRect();
-                  const out = { l: r.left, r: r.right, t: r.top, b: r.bottom, okb: ok.bottom, okr: ok.right, okvis: ok.width > 0,
-                                parar: pr.width > 0, doc: document.documentElement.scrollWidth, pre: document.getElementById('saida').scrollWidth > document.getElementById('saida').clientWidth + 1 };
+                  const l = p.querySelector('.progresso-linha').getBoundingClientRect();
+                  const out = { l: r.left, r: r.right, linhaL: l.left, linhaR: l.right, linhaH: l.height, colada: Math.abs(r.top - t.bottom) <= 1,
+                                parar: pr.width > 0 && pr.left >= 0 && pr.right <= innerWidth && pr.bottom <= innerHeight,
+                                doc: document.documentElement.scrollWidth };
+                  p.hidden = true;
                   return out;
                 }""")
-                cabe = info["l"] >= 0 and info["r"] <= w and info["t"] >= 0 and info["b"] <= h and info["okb"] <= h and info["okr"] <= w
-                checa(cabe and info["okvis"] and info["parar"] and info["doc"] == w and not info["pre"], f"{w}x{h}: o diálogo cabe, com os botões à vista e sem barra para o lado ({info})")
-                foto(pag, f"{w}x{h}-dialogo")
-                pag.evaluate("() => document.getElementById('resultado').close()")
+                cabe = info["linhaL"] == 0 and info["linhaR"] == w and info["linhaH"] > 0 and info["colada"]
+                checa(cabe and info["parar"] and info["doc"] == w, f"{w}x{h}: a linha vai de borda a borda logo abaixo do header, com o Parar à vista e sem barra para o lado ({info})")
+                foto(pag, f"{w}x{h}-progresso")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:
