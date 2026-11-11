@@ -9,7 +9,7 @@ StartLimitBurst=20
 [Service]
 Type=oneshot
 
-ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${ASSETS_VIGIA:-sim}" = "sim" ]'
+ExecCondition=/bin/sh -c '[ -f %h/.config/meow/meow.conf ]'
 
 ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
 ExecStartPre=-/usr/bin/sleep 3

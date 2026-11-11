@@ -1648,7 +1648,7 @@ etapa_logo() {
 
 etapa_assets() {
   passo "Vigia do acervo de mascotes (systemd --user)"
-  ASSETS_VIGIA="${ASSETS_VIGIA:-sim}" "$MEOW_RAIZ/scripts/vigia_assets.sh"
+  "$MEOW_RAIZ/scripts/vigia_assets.sh"
   return $?
 }
 
