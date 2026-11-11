@@ -265,6 +265,25 @@ def main():
             checa(info["margemDock"] is True and info["margemPainel"] is False, f"com a dock colada, só a distância dela se desliga ({info})")
             checa(not info["vazio"] and info["semNumero"] == 0, f"toda faixa vale sem clique, com o número que vale na saída ({info})")
             checa(info["segSemDica"] == 0, "todo botão XS…XL tem dica")
+            print("== a faixa arrasta, grava, e o ↶ volta a chave vazia com a faixa ativa")
+            fabrica = pag.evaluate("() => document.querySelector('input[data-controle=\"chave:FORMA_RAIO_PAINEL\"]').closest('.faixa').querySelector('output').textContent")
+            pag.evaluate("""async () => {
+              const s = document.querySelector('input[data-controle="chave:FORMA_RAIO_PAINEL"]');
+              s.value = String(Number(s.value) === Number(s.min) ? Number(s.min) + 2 : Number(s.min));
+              s.dispatchEvent(new Event('input')); s.dispatchEvent(new Event('change')); await FILA_DE_GRAVACAO; }""")
+            esperar(pag, 300)
+            pag.wait_for_function("() => !ACOMPANHANDO && !EM_VOO", timeout=60000)
+            arrastado = casa.valor_de("FORMA_RAIO_PAINEL")
+            checa(arrastado not in (None, "") and arrastado != fabrica, f"soltar a faixa grava o número ({arrastado!r}, antes {fabrica!r})")
+            pag.evaluate("async () => { document.querySelector('[data-controle=\"padrao:FORMA_RAIO_PAINEL\"]').click(); await FILA_DE_GRAVACAO; }")
+            pag.wait_for_function("() => !ACOMPANHANDO && !EM_VOO", timeout=60000)
+            esperar(pag, 300)
+            depois = pag.evaluate("""() => { const s = document.querySelector('input[data-controle="chave:FORMA_RAIO_PAINEL"]');
+              const c = s.closest('.faixa');
+              return { vazio: c.hasAttribute('data-vazio'), desligada: s.disabled, saida: c.querySelector('output').textContent, faixa: s.value }; }""")
+            checa(casa.valor_de("FORMA_RAIO_PAINEL") == "" and not depois["vazio"] and not depois["desligada"]
+                  and depois["saida"].isdigit() and depois["saida"] == depois["faixa"],
+                  f"o ↶ volta a chave vazia e a faixa segue ativa, com número ({casa.valor_de('FORMA_RAIO_PAINEL')!r}, {depois})")
             print("== as linhas que saíram da tela não voltam")
             for rota, termos in [("ajustes/janelas", ["Vale para", "Versão do ponteiro"]),
                                  ("ajustes/papel", ["Escolhida dura", "Versão do acervo"]),
