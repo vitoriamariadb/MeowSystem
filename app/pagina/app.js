@@ -1085,7 +1085,7 @@ function iniciarProgresso(trabalho, depois = null) {
   if (TRABALHO && TRABALHO.timer) clearInterval(TRABALHO.timer);
   TRABALHO = { id: trabalho.id, proximo: 0, timer: null, escreve: trabalho.escreve, rotulo: maiuscula(trabalho.rotulo),
                acao: trabalho.acao || null, fim: trabalho.fim || {}, mudou: false, depois, saida: [],
-               consertaCom: trabalho.conserta_com || null, rota: location.hash };
+               consertaCom: trabalho.conserta_com || null, nomes: trabalho.nomes || null, rota: location.hash };
   if (TRABALHO.acao) esquecerResultado(TRABALHO.acao);
   const barra = $("#progresso");
   barra.dataset.estado = "correndo";
@@ -1106,7 +1106,7 @@ const MAX_DO_RESULTADO = 6;
 function semCaminho(texto) {
   return texto.replace(/(^|[\s'"(])(?:~|\/)[^\s'")]*\/([^\s'"/)]+)/g, "$1$2");
 }
-function resumirSaida(linhas) {
+function resumirSaida(linhas, nomes = null) {
   const itens = [];
   let anteriorMarcada = false;
   for (const bruta of linhas) {
@@ -1125,6 +1125,10 @@ function resumirSaida(linhas) {
         texto = texto.split(" — ")[0];
       }
     }
+    if (nomes) {
+      const area = m && /^(\S+)\s/.exec(bruta.slice(m[0].length));
+      texto = (area && Object.hasOwn(nomes, area[1]) && nomes[area[1]]) || "";
+    }
     texto = semCaminho(texto).replace(/\s{2,}/g, " ").trim();
     if (!texto) continue;
     anteriorMarcada = !!m;
@@ -1133,7 +1137,7 @@ function resumirSaida(linhas) {
   return itens;
 }
 function guardarResultado(t, rc, frase) {
-  const itens = resumirSaida(t.saida);
+  const itens = resumirSaida(t.saida, t.nomes);
   const divergem = itens.filter((i) => i.classe === "mudou" || i.classe === "erro");
   const contagem = divergem.length === 1 ? "1 coisa diverge" : `${divergem.length} coisas divergem`;
   const confere = !!t.consertaCom;

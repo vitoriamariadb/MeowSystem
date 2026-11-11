@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+import ast
 import importlib.util
 import os
+import re
 import shutil
 import sys
 import time
@@ -80,7 +82,21 @@ def ir(pag, rota):
     esperar(pag)
 
 
+def nomes_das_conferencias():
+    with open(os.path.join(casa.RAIZ, "app", "servidor.py"), encoding="utf-8") as fh:
+        for no in ast.parse(fh.read()).body:
+            if isinstance(no, ast.Assign) and any(getattr(a, "id", "") == "NOME_DA_CONFERENCIA" for a in no.targets):
+                return ast.literal_eval(no.value)
+    return {}
+
+
 def main():
+    print("0. toda conferência do doctor tem nome curto")
+    nomes = nomes_das_conferencias()
+    with open(os.path.join(casa.RAIZ, "bin", "meow"), encoding="utf-8") as fh:
+        verificaveis = re.search(r"^VERIFICAVEIS=\((.*)\)$", fh.read(), re.M).group(1).split()
+    checa(set(nomes) == set(verificaveis), f"NOME_DA_CONFERENCIA cobre o VERIFICAVEIS ({sorted(set(nomes) ^ set(verificaveis))})")
+    checa(len(set(nomes.values())) == len(nomes), "e nenhum nome se repete")
     ambiente = casa.montar_casa()
     proc, url = casa.sobe_servidor(ambiente)
     if not url:
@@ -139,6 +155,8 @@ def main():
             checa(r.get("estado") == "divergente", f"o retorno 1 vira divergência, não some calado ({r.get('estado')})")
             checa(achou and "diverg" in r.get("texto", ""), f"diz quantas coisas divergem ({r.get('texto', '')[:80]!r})")
             checa(r.get("linhas", 0) >= 1, "e quais, uma por linha")
+            itens = pag.locator('[data-resultado="doctor"] .resultado-linhas li:not(.sobra)').all_inner_texts()
+            checa(itens and all(i in nomes.values() for i in itens), f"cada uma pelo nome curto, não pela frase do doctor ({itens})")
             if FOTOS:
                 pag.screenshot(path=os.path.join(FOTOS, "p200-verificar-depois.png"))
             antes = len(posts)
