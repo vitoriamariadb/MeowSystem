@@ -532,10 +532,10 @@ EXTRAS = {
     "tema": ["tema:saude", "tema:abrir", "tema:criar", "pack:*:*", "chave:ACCENT=*", "chave:MODO=*"],
     "criar/*": ["criar:nome", "passo:*", "criar:voltar", "criar:proximo"],
     "criar/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
-    "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "desenho:*", "autoral:*", "acervo:icone",
+    "criar/icones": ["apps:filtro", "app", "icone:*", "oficina:*", "desenho:*", "autoral:*", "acervo:icone", "trocar:desenho",
                      "acervo:filtro", "icones:aba=*"],
     "criar/papel": ["galeria:*", "papel:*", "acervo:parede"],
-    "criar/sons": ["criar:sino", "som:ouvir", "som:trocar", "som:ponte"],
+    "criar/sons": ["criar:sino", "som:ouvir", "som:trocar", "som:ponte", "sino:*"],
     "criar/mandar": ["criar:aprimorar"],
     "novo/*": ["criar:nome", "passo:*", "criar:voltar", "criar:proximo"],
     "novo/cores": ["criar:comeca=*", "criar:cor=*", "criar:guardar"],
@@ -1037,7 +1037,7 @@ class Percurso:
             seletor = f".grade-apps.pastas[data-acervo='{aba}'] .app"
             n = self.js(f"() => document.querySelectorAll(\"{seletor}\").length")
             self.checa(n > 0, f"a aba {aba} mostra os ícones do pack em edição ({n})")
-            self.checa(not self.achar("levar:" + aba), f"a aba {aba} só mostra: não tem botão de levar")
+            self.checa(not self.achar("levar:" + aba), f"a aba {aba} troca pelo próprio cartão: não tem botão de levar")
             if aba == "biblioteca":
                 self.h_biblioteca_legivel(seletor)
             if self.achar("acervo:filtro"):

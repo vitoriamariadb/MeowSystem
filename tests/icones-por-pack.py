@@ -140,7 +140,7 @@ def main():
             confere(len(bib_mew) > 36, f"Biblioteca (MeowSystem): a biblioteca inteira, não só os 36 de antes ({len(bib_mew)})")
             fotografar(pag, "p131-biblioteca-meowsystem.png")
             confere(len(bib_mew) > 0 and all("dracula" not in a["src"] for a in bib_mew), f"Biblioteca (MeowSystem): só o acervo do pack ({len(bib_mew)})")
-            confere(pag.locator('[data-controle^="levar:"]').count() == 0, "as abas Sistema e Biblioteca só mostram: sem botão de levar")
+            confere(pag.locator('[data-controle^="levar:"]').count() == 0, "as abas Sistema e Biblioteca trocam pelo próprio cartão: sem botão de levar")
 
             partir_de(pag, "dracula")
             aba(pag, "sistema")

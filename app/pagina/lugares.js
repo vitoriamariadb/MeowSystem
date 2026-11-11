@@ -58,8 +58,6 @@ const PASSOS = [
       { c: "SOM_DECAIMENTO", r: "Duração do som" },
       { c: "SOM_PESO_FUNDAMENTAL", r: "Volume da nota 1" },
       { c: "SOM_PESO_HARMONICO", r: "Volume da nota 2" },
-      { a: "som_ouvir", r: "Ouvir o instalado", b: "Ouvir" },
-      { a: "som_aplicar", r: "Gerar Sons", b: "Gerar Sons" },
     ] },
   { id: "mandar", nome: "Usar e compartilhar",
     linhas: [

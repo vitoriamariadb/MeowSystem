@@ -26,3 +26,15 @@ faz sentido.»
 - Quem usa ouve na sessão real (lista de conferência à mão).
 
 Tamanho: 1 a 2 h.
+
+## Execução
+
+Causa medida: o `/som` responde 200 `audio/ogg` para os 24 eventos do pack e o play de cada linha toca no navegador
+(`playing` e `ended`); o que não se reproduziu foi o silêncio. O defeito real era o «Ouvir o instalado» (ação
+`som_ouvir`, `pw-play` no processo do servidor, janela de resultado) e os `catch(() => {})` do play das linhas e do sino,
+que engoliam o erro.
+
+Cura: a linha sai da tela (a ação fica no CLI); um só tocador (`tocarAudio`) marca `data-tocando` no botão e avisa
+«Não consegui tocar este som» quando falha.
+
+Prova: `tests/personalizar-pagina.py` (`/som` por evento, estado, `ended`, aviso de falha, sem diálogo).

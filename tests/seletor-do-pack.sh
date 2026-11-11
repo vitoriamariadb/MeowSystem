@@ -25,7 +25,7 @@ desktop() {
 }
 desktop google-chrome "Chrome de Brinquedo" google-chrome
 desktop programa-de-brinquedo "Programa de Brinquedo" programa-de-brinquedo
-desktop com.system76.CosmicFiles "Arquivos de Brinquedo" com.system76.CosmicFiles
+desktop com.meowsystem.Painel "Painel de Brinquedo" com.meowsystem.Painel
 desktop org.gnome.Calculator "Calculadora de Brinquedo" org.gnome.Calculator
 jogo() {
   printf '[Desktop Entry]\nName=%s\nExec=true\nIcon=%s\nTerminal=false\nType=Application\nCategories=Game;\n' \
@@ -269,13 +269,13 @@ checa(codigo == 409, "gravar no mapa de um pack fora do ar é recusado (%s)" % c
 for forjado in ("../../../etc/passwd", "biblioteca/sem-desenho.svg", "icones/biblioteca/alien.svg"):
     codigo, dados = escolher("google-chrome", forjado)
     checa(codigo == 404, "o desenho %r, que a busca não ofereceria, é recusado (%s)" % (forjado, codigo))
-codigo, dados = escolher("com.system76.CosmicFiles", "biblioteca/alien.svg")
+codigo, dados = escolher("com.meowsystem.Painel", "biblioteca/alien.svg")
 checa(codigo == 409 and "outro passo" in dados.get("erro", ""),
-      "o «Arquivos», que o completar_icones.sh decide, recusa o desenho do pack", repr(dados))
+      "o «Painel do MeowSystem», que o completar_icones.sh decide, recusa o desenho do pack", repr(dados))
 apps = {a["id"]: a for a in servidor.Manipulador._dados_apps(m, {}).get("apps", [])}
-checa((apps.get("com.system76.CosmicFiles") or {}).get("trava_pack")
+checa((apps.get("com.meowsystem.Painel") or {}).get("trava_pack")
       and (apps.get("google-chrome") or {}).get("trava_pack") is None,
-      "a grade diz a trava do pack no «Arquivos», e não no Chrome")
+      "a grade diz a trava do pack no «Painel do MeowSystem», e não no Chrome")
 jogos = {a["id"]: a for a in servidor.Manipulador._dados_jogos(m, {}).get("apps", [])}
 por_caminho = jogos.get("jogo-de-brinquedo") or {}
 codigo, dados = escolher("jogo-de-brinquedo", "biblioteca/alien.svg")
@@ -365,8 +365,8 @@ checa(r.get("pack") == {"id": "dracula", "nome": "Dracula"}
       "a busca da ficha do Chrome diz a escolha do painel no pack, e o desenho que ela trocou",
       repr((r.get("pack"), r.get("escolha"))))
 checa((glifos_de("programa-de-brinquedo").get("escolha") or {}).get("antes", "?") is None
-      and glifos_de("com.system76.CosmicFiles").get("escolha") is None,
-      "a do programa novo não trocou desenho nenhum, e o «Arquivos» não tem escolha")
+      and glifos_de("com.meowsystem.Painel").get("escolha") is None,
+      "a do programa novo não trocou desenho nenhum, e o «Painel do MeowSystem» não tem escolha")
 
 traco_projeto = os.path.join(raiz, "packs", "meowsystem", "icones", "apps-arcticons.map")
 antes_traco = texto(traco_projeto)

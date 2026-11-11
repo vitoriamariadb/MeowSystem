@@ -368,6 +368,7 @@ etapa_pacotes() {
     [curl]=curl
     [xz]=xz-utils
     [unzip]=unzip
+    [ffmpeg]=ffmpeg
   )
   local faltam=()
   local b

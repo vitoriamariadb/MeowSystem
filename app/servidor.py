@@ -1548,6 +1548,27 @@ _SOM_TIMBRE_DE_FABRICA = {"SOM_FUNDAMENTAL": "880.0", "SOM_HARMONICO": "1320.0",
 _SOM_CARIMBO = os.path.join(ESTADO, "som-do-pack")
 
 
+def _pares_do_sino(valores):
+    esquema = {i["chave"]: i for i in ler_esquema()}
+    pares = []
+    for chave in _SOM_TIMBRE_DE_FABRICA:
+        valor = str(valores.get(chave, ""))
+        if valor == "":
+            continue
+        queixa = validar_valor(esquema[chave], valor) if chave in esquema else "fora do meow.conf.exemplo"
+        if queixa:
+            return None, "%s: %s" % (chave, queixa)
+        pares.append("%s=%s" % (chave, valor))
+    return pares, ""
+
+
+def _sino_wav(pares, destino):
+    feito = subprocess.run(
+        ["bash", os.path.join(RAIZ, "scripts", "som.sh"), "gerar", destino, *pares],
+        capture_output=True, timeout=20, env=_ambiente_do_painel())
+    return feito.returncode == 0 and os.path.isfile(destino)
+
+
 @_uma_vez_por_leitura
 def _som_do_pack_ativo():
     mod = modulo_pack()
@@ -5869,22 +5890,12 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/sino":
             if not self._token_confere(consulta):
                 return self._recusar(403, "token de sessão ausente ou errado")
-            pares = []
-            esquema = {i["chave"]: i for i in ler_esquema()}
-            for chave in _SOM_TIMBRE_DE_FABRICA:
-                valor = consulta.get(chave, [""])[0]
-                if valor == "":
-                    continue
-                queixa = validar_valor(esquema[chave], valor) if chave in esquema else "fora do meow.conf.exemplo"
-                if queixa:
-                    return self._recusar(400, "%s: %s" % (chave, queixa))
-                pares.append("%s=%s" % (chave, valor))
+            pares, queixa = _pares_do_sino({c: consulta.get(c, [""])[0] for c in _SOM_TIMBRE_DE_FABRICA})
+            if queixa:
+                return self._recusar(400, queixa)
             with tempfile.TemporaryDirectory(prefix="meow-sino-") as pasta:
                 destino = os.path.join(pasta, "sino.wav")
-                feito = subprocess.run(
-                    ["bash", os.path.join(RAIZ, "scripts", "som.sh"), "gerar", destino, *pares],
-                    capture_output=True, timeout=20, env=_ambiente_do_painel())
-                if feito.returncode != 0 or not os.path.isfile(destino):
+                if not _sino_wav(pares, destino):
                     return self._recusar(500, "não consegui gerar o sino")
                 with open(destino, "rb") as fh:
                     return self._responder(fh.read(), tipo="audio/wav")
@@ -6797,7 +6808,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
     def _donos_do_scalable(self):
         donos = set()
-        for script, listas in (("completar_icones.sh", ("AUTORAL", "RETIRADOS", "APELIDO")),
+        for script, listas in (("completar_icones.sh", ("AUTORAL", "APELIDO")),
                                ("logo.sh", ("BOTOES_DOCK",))):
             try:
                 with open(os.path.join(RAIZ, "scripts", script), "r", encoding="utf-8") as fh:
@@ -8231,7 +8242,9 @@ class Manipulador(BaseHTTPRequestHandler):
         ident = consulta.get("id", [""])[0] or _pack_adotado()
         dir_pack = mod.achar(ident) if ident in _packs_no_disco() else None
         do_pack = {e for _c, e, _a in mod.sons_do_pack(dir_pack)} if dir_pack else set()
-        eventos = [dict(s, origem="pack" if s["evento"] in do_pack else "sistema")
+        apelidos = mod.nomes_dos_sons(dir_pack) if dir_pack else {}
+        eventos = [dict(s, origem="pack" if s["evento"] in do_pack else "sistema",
+                        apelido=apelidos.get(s["evento"], ""))
                    for s in catalogo]
         return self._json({"pack": ident, "eventos": eventos})
 
@@ -8255,6 +8268,17 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "não consegui gravar a paleta: %s" % e}, 500)
         return self._json({"ok": True, "id": ident, "mudadas": mudadas})
 
+    def _url_do_levado(self, mod, ident, pasta, nome, cores):
+        try:
+            arq = os.path.join(mod.pack_para_ler(ident), "icones", pasta, nome + ".svg")
+            with open(arq, encoding="utf-8") as fh:
+                texto = fh.read(mod.TETO_SVG)
+        except (mod.Recusa, OSError, UnicodeDecodeError):
+            return ""
+        paleta = cores or {}
+        pintado = mod._previa_da_biblioteca(texto, paleta, paleta.get("text")) if paleta else None
+        return _url_de_svg(pintado if pintado is not None else texto)
+
     def _api_criar_ler(self, consulta):
         mod = modulo_pack()
         if not mod:
@@ -8270,6 +8294,7 @@ class Manipulador(BaseHTTPRequestHandler):
             except mod.Recusa as e:
                 return self._json({"erro": texto_na_tela(str(e))}, 404)
         icones = {}
+        dir_editado = mod.achar(base) if not ident and base else None
         for pasta in mod.PASTAS_QUE_SE_LEVAM:
             icones[pasta] = []
             try:
@@ -8285,13 +8310,17 @@ class Manipulador(BaseHTTPRequestHandler):
                     _ICONES_DECLARADOS.add(os.path.normpath(i["arq"]))
                     url = "/previa?tipo=arquivo&id=" + quote(i["arq"], safe="")
                     try:
+                        url += "&m=%d" % os.stat(i["arq"]).st_mtime_ns
                         with open(i["arq"], encoding="utf-8", errors="replace") as fh:
                             cores_do_desenho = _cores_do_traco(fh.read(300000))
                     except OSError:
                         cores_do_desenho = []
+                if i["levado"] and ident:
+                    url = self._url_do_levado(mod, ident, pasta, i["nome"], cores) or url
+                trava = mod.trava_de_sistema(dir_editado, i["arq"]) if pasta == "sistema" and dir_editado else ""
                 icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
                                       "grupo": i.get("grupo", ""), "levado": i["levado"], "url": url,
-                                      "cores": cores_do_desenho})
+                                      "cores": cores_do_desenho, "trava": texto_na_tela(trava) if trava else ""})
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:
@@ -8338,7 +8367,27 @@ class Manipulador(BaseHTTPRequestHandler):
                     feito = mod.nome_da_foto(ident, nome)
                     mod.tirar_foto(ident, feito)
             elif tipo in mod.PASTAS_QUE_SE_LEVAM:
-                if levar:
+                destino = mod.desenho_de_sistema(ident, nome) if levar and tipo == "sistema" \
+                    and corpo.get("aprimorar") is True else nome
+                if levar and corpo.get("origem"):
+                    de, origem = str(corpo.get("de", "")), os.path.basename(str(corpo.get("origem", "")))
+                    if de not in _packs_no_disco():
+                        return self._json({"erro": "não conheço o pack «%s»" % de}, 404)
+                    achado = next((i for i in mod.acervo_para_levar(None, tipo, de) if i["nome"] == origem), None)
+                    if not achado:
+                        return self._json({"erro": "não achei esse ícone no pack «%s»" % de}, 404)
+                    feito = mod.levar_icone(ident, tipo, achado["arq"], destino)
+                elif levar and corpo.get("conteudo"):
+                    try:
+                        dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+                    except Exception:
+                        return self._json({"erro": "conteúdo não é base64"}, 400)
+                    try:
+                        texto = dados.decode("utf-8")
+                    except UnicodeDecodeError:
+                        return self._json({"erro": "isso não parece um SVG"}, 400)
+                    feito = mod.levar_icone(ident, tipo, nome, destino, texto)
+                elif levar:
                     de = str(corpo.get("de", ""))
                     achado = next((i for i in mod.acervo_para_levar(
                         ident, tipo, "", _cores_da_consulta(corpo.get("cores")))
@@ -8360,6 +8409,24 @@ class Manipulador(BaseHTTPRequestHandler):
                     with open(caminho, "wb") as fh:
                         fh.write(dados)
                     feito = mod.levar_som(ident, caminho, nome)
+            elif tipo == "sino":
+                evento = str(corpo.get("evento", ""))
+                pares, queixa = _pares_do_sino(corpo.get("timbre") if isinstance(corpo.get("timbre"), dict) else {})
+                if queixa:
+                    return self._json({"erro": queixa}, 400)
+                ffmpeg = shutil.which("ffmpeg")
+                if not ffmpeg:
+                    return self._json({"erro": "Falta o ffmpeg para gravar o som no tema"}, 409)
+                with tempfile.TemporaryDirectory(prefix="meow-sino-") as pasta:
+                    wav, ogg = os.path.join(pasta, "sino.wav"), os.path.join(pasta, "sino.oga")
+                    if not _sino_wav(pares, wav):
+                        return self._json({"erro": "não consegui gerar o sino"}, 500)
+                    feito = subprocess.run([ffmpeg, "-y", "-loglevel", "error", "-i", wav, "-c:a", "libvorbis",
+                                            "-f", "ogg", ogg], capture_output=True, timeout=30)
+                    if feito.returncode != 0 or not os.path.isfile(ogg):
+                        return self._json({"erro": "não consegui converter o sino em Ogg"}, 500)
+                    feito = mod.levar_som(ident, ogg, evento)
+                mod.nomear_som(ident, evento, nome)
             elif tipo == "sons":
                 de = str(corpo.get("de", ""))
                 if de not in _packs_no_disco():

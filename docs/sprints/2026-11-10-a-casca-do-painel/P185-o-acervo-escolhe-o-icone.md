@@ -24,3 +24,16 @@ selecionar qual ícone usar se tratando do acervo».
 - Captura antes e depois.
 
 Tamanho: 1 a 2 h.
+
+## Execução
+
+Causa medida (reproduzida com PACK=dracula em HOME temporário): nenhuma das três hipóteses. No tema Dracula o acervo só
+tem desenhos do pack, e para o Arquivos (`com.system76.CosmicFiles`) os 623 vinham travados por «o ícone deste app é de
+outro passo do MeowSystem»: o `_donos_do_scalable` lia a lista `RETIRADOS` do `completar_icones.sh` como dono do ícone.
+Sem desenho livre não havia «Usar» (só a dica de hover dizia o porquê).
+
+Cura: o `completar_icones.sh` não retira o scalable de quem o pack mapeia ou quem usa escolheu (a decisão 16, «desenho do
+pack vence o traço», vale também para os oito); `RETIRADOS` sai do `_donos_do_scalable`; o «Usar» fica sempre no cartão
+(desabilitado até haver escolha) e, se tudo estiver travado, o motivo aparece escrito no rodapé.
+
+Prova: `tests/personalizar-pagina.py` (escolhe, usa, mapa e tema instalado), `tests/retirados-do-pack.sh`.
