@@ -54,20 +54,10 @@ Quem aplica:
 
 ## Próximo passo
 
-11/11: B integrado no master (235d7fec, conferente APROVADO, suíte 149/150) e P199 (o `restaurar.sh` verde de novo,
-f60a4c11). B2 (P200) integrado em 11fb4bb7, suíte 151/151. A integrado em 47a097b3; suíte do master com A+B2: 153/153. C+D código integrado (c780b199, suíte 153/153; ASSETS_VIGIA aposentada).
-Nada em voo. Falta: escolha da maquete do Manter (A https://claude.ai/artifact/Fo156xSuUHbMBwtAp9SmAk ·
-B https://claude.ai/artifact/8KHASKZbRod3TPfWw2dZ14) e então o código da P196; as respostas do artifact dos nomes;
-P201; as perguntas da faixa (↶ com padrão vazio, faixa sem valor lido); depois push, install e P194/P195 na sessão real.
-Revisão com quem usa: https://claude.ai/artifact/QAMczhuH14p61bmUqDww6v (85 nomes do Verificar + 4 perguntas; ler com ArtifactData, coleção `respostas`). Próxima conversa com quem usa: os 85
-nomes curtos do «Verificar o sistema» (`NOME_DA_CONFERENCIA` no `servidor.py`) e a P201. Quando cada conferente voltar: integrar no master; depois C e D juntos.
-Vermelho antigo não se aceita: vira sprint e conserto. Suíte longa de agente: o agente espera em primeiro plano,
-em pedaços de até 9 min, nunca encerra o turno «esperando».
-
-Anotações para depois (não são escopo de bloco nenhum ainda):
-- `tests/glossario.sh` lê `GLOSSARIO.md` e `textos_da_tela.py` de dentro desta leva: levar para fora de `docs/sprints` antes de arquivar.
-- «Painel agora» (`painel_estado`) e «Pôr o mascote» (`logo_trocar`) no `rotulo` do servidor ainda usam palavra que saiu da tela.
-- Código morto anterior ao B: `Manipulador._svg_vazado` e o `seco` do `/api/jogo-fora`.
+11/11 19:30: todos os blocos integrados (B, P199, B2, A, C+D, último: P196, P201, P202) junto dos 10 commits do
+GitHub (07-08/11; conflito só na lista de pacotes: `zstd` e `ffmpeg` ficam). Suíte única sobre a árvore unificada:
+156/156. Master `e0ed41b9`, push feito. Falta: install nos três PCs, P194 e P195 na sessão real dela, e as respostas
+do artifact dos 85 nomes (https://claude.ai/artifact/QAMczhuH14p61bmUqDww6v).
 
 ## Para os blocos A, C e D
 
