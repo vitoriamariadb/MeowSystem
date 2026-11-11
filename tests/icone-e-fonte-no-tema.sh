@@ -38,7 +38,7 @@ amb bash "$RAIZ/scripts/construir_icones.sh" >"$T/i2" 2>&1; rc=$?
 igual "a segunda passada sai 0" "$rc" 0
 igual "e não escreve nada na árvore do COSMIC" "$(foto)" "$f1"
 
-echo "== 2. a fonte: font copia a interface_font do Tk, mono_font traz a do pack"
+echo "== 2. a fonte: font semeia a interface_font do Tk onde falta, mono_font traz a do pack"
 amb bash "$RAIZ/scripts/instalar_fontes.sh" >"$T/f1" 2>&1
 for n in "${CASAS[@]}"; do
   d="$C/com.system76.CosmicTheme.$n/v2"
@@ -53,6 +53,17 @@ amb bash "$RAIZ/scripts/instalar_fontes.sh" >"$T/f2" 2>&1; rc=$?
 igual "a segunda passada sai 0" "$rc" 0
 igual "e não escreve nada na árvore do COSMIC" "$(foto)" "$f2"
 amb bash "$RAIZ/scripts/instalar_fontes.sh" --conferir >/dev/null 2>&1; igual "e o --conferir sai 0" "$?" 0
+ELA='(
+    family: "Inter",
+    weight: Normal,
+    stretch: Normal,
+    style: Normal,
+)'
+for n in Dark Dark.Builder; do printf '%s' "$ELA" > "$C/com.system76.CosmicTheme.$n/v2/font"; done
+amb bash "$RAIZ/scripts/instalar_fontes.sh" >/dev/null 2>&1
+igual "a fonte que ela escolheu no Configurações (no tema, não no Tk) não volta para a do Tk" \
+  "$(cat "$C/com.system76.CosmicTheme.Dark/v2/font")" "$ELA"
+igual "nem no Builder" "$(cat "$C/com.system76.CosmicTheme.Dark.Builder/v2/font")" "$ELA"
 
 echo "== 3. o doctor confere as cinco casas e acusa ~~ quando uma falta"
 saida="$(doutor chk_efeito)"; igual "tudo no lugar: ok (rc 0)" "$?" 0
@@ -69,9 +80,16 @@ arq="$C/com.system76.CosmicTheme.Light/v2/mono_font"; guardado="$(cat "$arq")"
 rm -f "$arq"; saida="$(doutor chk_efeito)"; igual "sem o mono_font de Light: ~~" "$?" 1
 saida_f="$(amb MEOW_DRY_RUN=1 bash "$RAIZ/scripts/instalar_fontes.sh" --conferir 2>&1)"; igual "e o --conferir das fontes também" "$?" 1
 printf '%s' "$guardado" > "$arq"
-arq="$C/com.system76.CosmicTheme.Dark.Builder/v2/font"; guardado="$(cat "$arq")"
-printf '(\n    family: "Outra",\n    weight: Normal,\n    stretch: Normal,\n    style: Normal,\n)' > "$arq"
-saida="$(doutor chk_efeito)"; igual "font diferente da interface_font: ~~" "$?" 1
+saida="$(doutor chk_efeito)"; igual "font escolhida por ela, diferente da interface_font do Tk: ok" "$?" 0
+for n in Dark Dark.Builder; do cp "$TK/interface_font" "$C/com.system76.CosmicTheme.$n/v2/font"; done
+arq="$C/com.system76.CosmicTheme.Light.Builder/v2/font"; guardado="$(cat "$arq")"; rm -f "$arq"
+saida="$(doutor chk_efeito)"; rc=$?
+igual "sem a font de Light.Builder: ~~" "$rc" 1
+[[ "$saida" == *"Light.Builder/v2: font falta"* ]] && ok "e diz qual casa" || falha "não disse a casa: $saida"
+printf '%s' "$guardado" > "$arq"
+arq="$C/com.system76.CosmicTheme.Light/v2/icon_theme"; guardado="$(cat "$arq")"
+printf 'MeowSystem-Icons' > "$arq"
+saida="$(doutor chk_efeito)"; igual "icon_theme sem aspas (o serde lê como erro e cai no Cosmic): ~~" "$?" 1
 printf '%s' "$guardado" > "$arq"
 rm -f "$C/com.system76.CosmicTheme.Dark/v2/icon_theme"
 f3="$(foto)"
@@ -93,6 +111,25 @@ saida="$(doutor chk_efeito OT_EFEITO_JSON="$ORA")"; igual "font errada no JSON: 
 printf '{"name":"x"}' > "$ORA"
 saida="$(doutor chk_efeito OT_EFEITO_JSON="$ORA")"; igual "JSON de libcosmic antiga, sem os campos: ok (o Tk vale)" "$?" 0
 
+ORA_BIN="$(ls -d "${SUITE_CASA_REAL:-$HOME}"/.local/libexec/meow/oraculo-tema/dd108aa*/meow-oraculo-tema 2>/dev/null | head -n1)"
+if [ -x "$ORA_BIN" ] && command -v dpkg-query >/dev/null 2>&1 && V_CS="$(dpkg-query -W -f='${Version}' cosmic-settings 2>/dev/null)" && [ -n "$V_CS" ]; then
+  REV="${ORA_BIN%/*}"; REV="${REV##*/}"
+  mkdir -p "$T/ot-trabalho" "$T/ot-casa/$REV"
+  printf '%s\n' "$REV" > "$T/ot-trabalho/revisao-$V_CS"
+  ln -s "$ORA_BIN" "$T/ot-casa/$REV/meow-oraculo-tema"
+  saida="$(doutor chk_efeito OT_TRABALHO="$T/ot-trabalho" OT_CASA="$T/ot-casa")"; rc=$?
+  igual "o oráculo do libcosmic ${REV:0:7} lê as quatro casas como o pack pede (rc 0)" "$rc" 0
+  [[ "$saida" == *"o oráculo"* ]] && ok "e quem leu foi o oráculo, não a cópia em Python" || falha "não usou o oráculo: $saida"
+  arq="$C/com.system76.CosmicTheme.Dark/v2/mono_font"; guardado="$(cat "$arq")"
+  printf '(\n    family "JetBrainsMono Nerd Font Mono",\n)' > "$arq"
+  saida="$(doutor chk_efeito OT_TRABALHO="$T/ot-trabalho" OT_CASA="$T/ot-casa")"; rc=$?
+  igual "mono_font em RON quebrado: o serde do ${REV:0:7} cai no padrão e o doctor dá ~~" "$rc" 1
+  [[ "$saida" == *"Dark/v2: mono_font é 'Noto Sans Mono'"* ]] && ok "e diz o que o COSMIC lê de fato" || falha "frase: $saida"
+  printf '%s' "$guardado" > "$arq"
+else
+  printf '  --    o oráculo dd108aa não está compilado nesta máquina: o serde real fica para a bancada dela\n'
+fi
+
 echo "== 5. aplicar o tema não apaga as chaves do MeowSystem"
 f5="$(for n in "${CASAS[@]}"; do cat "$C/com.system76.CosmicTheme.$n/v2/icon_theme" "$C/com.system76.CosmicTheme.$n/v2/font" "$C/com.system76.CosmicTheme.$n/v2/mono_font"; done | sha256sum)"
 amb MEOW_ESTADO="$T/estado" bash "$RAIZ/scripts/aplicar_tema.sh" original >"$T/a1" 2>&1; rc=$?
@@ -102,6 +139,34 @@ igual "icon_theme, font e mono_font das quatro casas ficam como estavam" "$f5b" 
 saida="$(doutor chk_efeito)"; igual "e o doctor segue ok" "$?" 0
 amb MEOW_ESTADO="$T/estado" MEOW_RESPEITAR_GUI=1 bash "$RAIZ/scripts/aplicar_tema.sh" original >"$T/a2" 2>&1; igual "com --respeitar-gui também sai 0" "$?" 0
 saida="$(doutor chk_efeito)"; igual "e o doctor segue ok" "$?" 0
+
+echo "== 5b. trocar o sabor pelo caminho do install (Mocha -> Frappé) não mexe nas três chaves"
+PK="$T/packs"; CONF5="$T/meow5.conf"; mkdir -p "$PK"; cp -a "$RAIZ/packs/meowsystem" "$PK/"
+CAPS5="$PK/meowsystem/temas/capturados"
+for cap in "$CAPS5"/*/; do grep -qs '^origem: derivada de ' "$cap/captura.txt" && rm -rf "$cap"; done
+for n in "${CASAS[@]}"; do printf '"Cosmic"' > "$CAPS5/mocha-mauve/com.system76.CosmicTheme.$n/v2/icon_theme"; done
+ETAPAS="$T/etapas.sh"
+{ sed -n '/^etapa_gerar() {$/,/^}$/p' "$RAIZ/install.sh"; sed -n '/^etapa_tema() {$/,/^}$/p' "$RAIZ/install.sh"; } > "$ETAPAS"
+etapa5() {
+  printf 'FLAVOR="%s"\nACCENT="mauve"\nMODO="escuro"\nPACK="meowsystem"\nLOGO="coquinha"\n' "$1" > "$CONF5"
+  amb MEOW_CONF="$CONF5" MEOW_PACKS="$PK" MEOW_ESTADO="$T/estado" FLAVOR="$1" bash -c '
+    . "$MEOW_RAIZ/lib/comum.sh" >/dev/null 2>&1
+    set -a; . "$MEOW_CONF"; set +a
+    meow_notificar() { :; }
+    passo() { :; }
+    . "$1"; etapa_gerar; etapa_tema' _ "$ETAPAS" 2>&1
+}
+chaves5() { for n in "${CASAS[@]}"; do for k in icon_theme font mono_font; do printf '%s=' "$n/$k"; cat "$C/com.system76.CosmicTheme.$n/v2/$k" 2>/dev/null; echo; done; done; }
+rm -f "$C/com.system76.CosmicTheme.Light/v2/icon_theme"
+a5="$(chaves5)"
+etapa5 mocha >"$T/e5a"
+grep -q "tema 'mocha-mauve'" "$T/e5a" && ok "a etapa tema aplica o mocha-mauve" || falha "não aplicou o mocha-mauve: $(tail -5 "$T/e5a")"
+igual "a captura que traz icon_theme \"Cosmic\" não escreve nas casas, nem na que não tinha a chave" "$(chaves5)" "$a5"
+etapa5 frappe >"$T/e5b"
+grep -q "tema 'frappe-mauve'" "$T/e5b" && ok "a troca para o Frappé deriva e aplica o frappe-mauve" || falha "não aplicou o frappe-mauve: $(tail -5 "$T/e5b")"
+igual "e as três chaves das quatro casas ficam como estavam" "$(chaves5)" "$a5"
+amb bash "$RAIZ/scripts/construir_icones.sh" >/dev/null 2>&1
+saida="$(doutor chk_efeito)"; igual "o conserto repõe a casa que faltava e o doctor fica ok" "$?" 0
 
 echo "== 6. o contrato vigia a casa, e o pós-apt refaz quando o hash muda"
 grep -qP '^casa\tsrc/icon_theme\.rs\t[0-9a-f]{64}\t' "$RAIZ/assets/contratos/cosmic.tsv" \
