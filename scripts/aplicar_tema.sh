@@ -11,6 +11,15 @@ declare -a CHAVES_ALPHA_AURORA=(background primary secondary)
 
 declare -a CHAVES_DELA=(frosted alpha_map frosted_maximized_apps)
 
+declare -a CHAVES_DO_MEOW=(icon_theme font mono_font)
+
+e_chave_do_meow() {
+  local k
+  case "$1" in com.system76.CosmicTheme.*) ;; *) return 1 ;; esac
+  for k in "${CHAVES_DO_MEOW[@]}"; do [ "$(basename "$1")" = "$k" ] && return 0; done
+  return 1
+}
+
 e_chave_dela() {
   local chave; chave="$(basename "$1")"
   case "$1" in
@@ -42,6 +51,7 @@ print(da.receita_da_captura(Path(sys.argv[2]), sys.argv[3]).name, da.versao_do_b
         b="$COSMIC/com.system76.CosmicTheme.$arv.Builder/$vb/$chave"
         [ -f "$a" ] && [ -f "$b" ] || continue
         cmp -s "$a" "$b" && continue
+        e_chave_do_meow "${a#"$ORIGEM"/}" && continue
         [ "$chave" = "frosted_maximized_apps" ] && continue
         for k in "${CHAVES_DELA[@]}"; do
           [ "$chave" = "$k" ] && { slider=1; continue 2; }
@@ -209,7 +219,7 @@ while IFS= read -r -d '' arq; do
   for ficha in "${FICHAS[@]}"; do [ "$rel" = "$ficha" ] && continue 2; done
   destino="$COSMIC/$rel"
 
-  if e_chave_dela "$rel" && [ -f "$destino" ]; then
+  if { e_chave_dela "$rel" || e_chave_do_meow "$rel"; } && [ -f "$destino" ]; then
     iguais=$((iguais+1)); continue
   fi
 
@@ -246,6 +256,7 @@ for arvore in "$ORIGEM"/com.system76.CosmicTheme.*; do
   while IFS= read -r -d '' vivo; do
     rel="${vivo#"$COSMIC"/}"
     [ -e "$ORIGEM/$rel" ] && continue
+    e_chave_do_meow "$rel" && continue
     if [ "$RECEITA_VELHA" = "1" ] && e_produto "$rel"; then
       cedidos=$((cedidos+1)); continue
     fi

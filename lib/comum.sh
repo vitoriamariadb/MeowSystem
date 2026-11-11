@@ -489,6 +489,45 @@ meow_cosmic_v() {
   printf 'v%s' "${n:-${2:-1}}"
 }
 
+MEOW_TEMA_ARVORES=(Dark Light Dark.Builder Light.Builder)
+
+meow_tema_casas() {
+  local a
+  for a in "${MEOW_TEMA_ARVORES[@]}"; do
+    printf '%s/com.system76.CosmicTheme.%s/%s\n' "$(meow_cosmic_dir)" "$a" "$(meow_cosmic_v "com.system76.CosmicTheme.$a" 2)"
+  done
+}
+
+meow_tema_gravar() {
+  local casa rc=0 r
+  while IFS= read -r casa; do
+    meow_escrever "$casa/$1" "$2" 644; r=$?
+    case "$r" in
+      0) ;;
+      1) rc=1 ;;
+      *) return "$MEOW_ERRO" ;;
+    esac
+  done < <(meow_tema_casas)
+  return "$rc"
+}
+
+meow_tema_ler() {
+  local casa="$1"
+  [ -f "$casa/$2" ] || return 1
+  cat "$casa/$2"
+}
+
+meow_tema_diverge() {
+  local casa atual n=0
+  while IFS= read -r casa; do
+    atual="$(meow_tema_ler "$casa" "$1" 2>/dev/null)" || atual=""
+    [ "$atual" = "$2" ] && continue
+    n=$((n+1))
+    printf '%s\n' "${casa#"$(meow_cosmic_dir)"/}"
+  done < <(meow_tema_casas)
+  [ "$n" -eq 0 ]
+}
+
 meow_libcosmic_de() {
   local sha="${2##*~}" rev
   [ "${MEOW_SEM_REDE:-0}" = "1" ] && return 1

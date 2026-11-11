@@ -475,6 +475,25 @@ case $? in
   *) meow_erro "não consegui escrever $TK/monospace_font"; exit "$MEOW_ERRO" ;;
 esac
 
+novo_mono="$(ron_com_familia "$FAMILIA_MONO" "$atual_mono")"
+meow_tema_gravar mono_font "$novo_mono"
+case $? in
+  0) meow_ok "mono_font do tema já aponta para '$FAMILIA_MONO'" ;;
+  1) meow_muda "mono_font do tema -> '$FAMILIA_MONO'"; mudou=1 ;;
+  *) meow_erro "não consegui gravar mono_font no tema do COSMIC"; exit "$MEOW_ERRO" ;;
+esac
+
+if [ -f "$TK/interface_font" ]; then
+  meow_tema_gravar font "$(cat "$TK/interface_font")"
+  case $? in
+    0) meow_ok "font do tema já copia a interface_font do Tk" ;;
+    1) meow_muda "font do tema -> a interface_font do Tk"; mudou=1 ;;
+    *) meow_erro "não consegui gravar font no tema do COSMIC"; exit "$MEOW_ERRO" ;;
+  esac
+else
+  meow_pula "$TK/interface_font não existe — a font do tema fica como está"
+fi
+
 if [ -d "$TERM_DIR" ]; then
   meow_escrever "$TERM_DIR/font_name" "\"$FAMILIA_MONO\"" 644
   case $? in

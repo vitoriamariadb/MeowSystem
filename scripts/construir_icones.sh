@@ -658,6 +658,13 @@ tema_mudou_de_nome=0
 meow_escrever "$TK/icon_theme" "\"$TEMA_NOME\"" 644
 case $? in 1) mudou=1 ;; esac
 
+meow_tema_gravar icon_theme "\"$TEMA_NOME\""
+case $? in
+  1) mudou=1; tema_mudou_de_nome=1 ;;
+  0) ;;
+  *) meow_erro "não consegui gravar icon_theme no tema do COSMIC"; exit "$MEOW_ERRO" ;;
+esac
+
 if [ "$mudou" = "0" ]; then
   meow_ok "ícones e logo já no lugar"
   exit "$MEOW_OK"
