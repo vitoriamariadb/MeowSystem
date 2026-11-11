@@ -148,9 +148,20 @@ for nome in "${!AUTORAL[@]}"; do
   esac
 done
 
+_do_pack_no_ar() {
+  python3 "$RAIZ/scripts/pack.py" escolhas 2>/dev/null | cut -f1
+  [ "${ICONES_DRACULA:-sim}" != "nao" ] || return 0
+  local mapa
+  mapa="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" icones.apps.mapa 2>/dev/null)" || return 0
+  [ -f "$mapa" ] || return 0
+  sed -e 's/#.*//' "$mapa" | awk -F: 'NF>=2 { gsub(/[ \t]/, "", $1); if ($1 != "") print $1 }'
+}
+DO_PACK="$(_do_pack_no_ar)"
+
 retirados=0
 for nome in "${RETIRADOS[@]}"; do
   [ -f "$ALVO/$nome.svg" ] || continue
+  grep -qxF -- "$nome" <<<"$DO_PACK" && continue
   if meow_seco; then
     meow_muda "removeria $nome.svg de scalable/apps (o glifo de linha é o que vale)"
     mudou=1; retirados=$((retirados+1))

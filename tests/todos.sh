@@ -142,6 +142,7 @@ MAQUINA=(
   icones-por-pack.py
   sistema-latte-e-rotulos.py
   pastas-do-pack.sh
+  retirados-do-pack.sh
   restos-do-painel.sh
   folha-dos-resgatados.sh
   app-completo.py

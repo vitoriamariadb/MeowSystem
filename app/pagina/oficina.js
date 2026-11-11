@@ -117,9 +117,12 @@ function escolhaDeIcone(app, recarregar) {
   cores.hidden = !(g && g.tipo === "traco");
 
   const botoes = [];
-  let usar = null;
-  if (itens.some((x) => !travaDe(x))) {
-    usar = botao("Usar", { class: "bt principal", controle: "icone:usar", onclick: async () => {
+  const algumLivre = itens.some((x) => !travaDe(x));
+  const motivoGeral = !algumLivre && itens.length ? maiuscula(travaDe(itens[0])) : "";
+  const usar = botao("Usar", { class: "bt principal", controle: "icone:usar",
+      disabled: !g || !!travaDe(g), "aria-disabled": !g || travaDe(g) ? "true" : null,
+      dica: !g ? "Escolha um desenho" : travaDe(g) ? maiuscula(travaDe(g)) : "Usar este desenho neste app",
+      onclick: async () => {
       const x = escolhido();
       if (!x) { torrada("Escolha um desenho", "erro"); return; }
       const corpo = x.tipo !== "traco" ? { app: app.id, arquivo: x.arquivo }
@@ -130,7 +133,6 @@ function escolhaDeIcone(app, recarregar) {
       if (x.tipo === "traco" && r.tirou_escolha) { await rodarAcao("icones_traco"); await fimDoTrabalho(); }
       await depoisDoIcone(app, x.tipo === "traco" ? "icones_traco" : "icones_pack", recarregar);
     } });
-  }
   const minha = GLIFOS.app === app.id ? GLIFOS.minha : null;
   if (app.mapa && app.mapa.meu) {
     botoes.push(botao("Desfazer", { class: "bt pequeno", controle: "icone:desfazer-traco", dica: "Volta ao traço de antes",
@@ -192,7 +194,7 @@ function escolhaDeIcone(app, recarregar) {
     painel.append(cabecalho,
       elemento("div", { class: "desenho-corpo" }, [olho, elemento("div", { class: "desenho-mao", "data-fonte-corpo": "acervo" }, [
         elemento("div", { class: "fila", style: "justify-content:flex-end" }, [busca]), tira, cores])]),
-      elemento("footer", { class: "desenho-pe" }, [...botoes, usar]));
+      elemento("footer", { class: "desenho-pe" }, [motivoGeral ? elemento("span", { class: "oficina-erro", texto: motivoGeral }) : null, ...botoes, usar]));
   } else {
     painel.append(cabecalho, oficinaDeDesenho(app, recarregar));
   }

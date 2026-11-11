@@ -194,8 +194,11 @@ const porControle = (painel, nome) => painel.todos().filter((e) => e.dataset.con
   checa(apagados.every((b) => b.getAttribute("aria-disabled") === "true" && b.dataset.dica === "Chrome de brinquedo já tem desenho convertido do projeto."),
         "o desenho apagado diz que não vale (aria-disabled), e o porquê vai para a dica com maiúscula");
   painel = ficha(aplicativo({ trava, trava_pack: "o ícone é decidido por outro passo." }));
-  checa(porControle(painel, "icone:travado").length === 2 && !porControle(painel, "icone:usar").length,
-        "com as duas travas, tudo fica apagado e não há «Usar»");
+  const usarTravado = porControle(painel, "icone:usar")[0];
+  checa(porControle(painel, "icone:travado").length === 2 && usarTravado && usarTravado.getAttribute("aria-disabled") === "true",
+        "com as duas travas, tudo fica apagado e o «Usar» fica à vista, desabilitado");
+  checa(painel.textContent.includes("O ícone é decidido por outro passo."),
+        "e o porquê aparece escrito no rodapé da ficha, não só na dica");
 
   // --- o desfazer da escolha no pack -------------------------------------------
   zerar();

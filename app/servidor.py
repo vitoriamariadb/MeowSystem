@@ -6708,7 +6708,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
     def _donos_do_scalable(self):
         donos = set()
-        for script, listas in (("completar_icones.sh", ("AUTORAL", "RETIRADOS", "APELIDO")),
+        for script, listas in (("completar_icones.sh", ("AUTORAL", "APELIDO")),
                                ("logo.sh", ("BOTOES_DOCK",))):
             try:
                 with open(os.path.join(RAIZ, "scripts", script), "r", encoding="utf-8") as fh:
