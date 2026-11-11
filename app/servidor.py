@@ -8166,6 +8166,17 @@ class Manipulador(BaseHTTPRequestHandler):
             return self._json({"erro": "não consegui gravar a paleta: %s" % e}, 500)
         return self._json({"ok": True, "id": ident, "mudadas": mudadas})
 
+    def _url_do_levado(self, mod, ident, pasta, nome, cores):
+        try:
+            arq = os.path.join(mod.pack_para_ler(ident), "icones", pasta, nome + ".svg")
+            with open(arq, encoding="utf-8") as fh:
+                texto = fh.read(mod.TETO_SVG)
+        except (mod.Recusa, OSError, UnicodeDecodeError):
+            return ""
+        paleta = cores or {}
+        pintado = mod._previa_da_biblioteca(texto, paleta, paleta.get("text")) if paleta else None
+        return _url_de_svg(pintado if pintado is not None else texto)
+
     def _api_criar_ler(self, consulta):
         mod = modulo_pack()
         if not mod:
@@ -8200,6 +8211,8 @@ class Manipulador(BaseHTTPRequestHandler):
                             cores_do_desenho = _cores_do_traco(fh.read(300000))
                     except OSError:
                         cores_do_desenho = []
+                if i["levado"] and ident:
+                    url = self._url_do_levado(mod, ident, pasta, i["nome"], cores) or url
                 icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
                                       "grupo": i.get("grupo", ""), "levado": i["levado"], "url": url,
                                       "cores": cores_do_desenho})
@@ -8249,7 +8262,17 @@ class Manipulador(BaseHTTPRequestHandler):
                     feito = mod.nome_da_foto(ident, nome)
                     mod.tirar_foto(ident, feito)
             elif tipo in mod.PASTAS_QUE_SE_LEVAM:
-                if levar:
+                if levar and corpo.get("conteudo"):
+                    try:
+                        dados = base64.b64decode(str(corpo.get("conteudo", "")), validate=True)
+                    except Exception:
+                        return self._json({"erro": "conteúdo não é base64"}, 400)
+                    try:
+                        texto = dados.decode("utf-8")
+                    except UnicodeDecodeError:
+                        return self._json({"erro": "isso não parece um SVG"}, 400)
+                    feito = mod.levar_icone(ident, tipo, nome, nome, texto)
+                elif levar:
                     de = str(corpo.get("de", ""))
                     achado = next((i for i in mod.acervo_para_levar(
                         ident, tipo, "", _cores_da_consulta(corpo.get("cores")))

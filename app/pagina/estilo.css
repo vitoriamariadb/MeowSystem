@@ -386,6 +386,9 @@ select.campo { padding-right: var(--e-8); }
 
 .grade-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--e-2); }
 .grade-apps .app { position: relative; display: grid; justify-items: center; align-content: start; gap: 6px; padding: var(--e-3) var(--e-1) var(--e-2); border-radius: var(--raio-md); border: 1px solid var(--linha); background: var(--fundo); font-size: var(--t-xs); color: var(--tinta-2); text-align: center; min-height: 92px; }
+.grade-apps button.app { font-family: inherit; cursor: pointer; }
+.grade-apps button.app[aria-disabled="true"] { opacity: .6; cursor: not-allowed; }
+.grade-apps button.app .estado-pilula { position: absolute; top: 4px; right: 4px; }
 .grade-apps .app:hover { border-color: var(--accent-linha); color: var(--tinta); }
 .grade-apps .app[aria-expanded="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .grade-apps .app img, .grade-apps .app .lugar { width: 40px; height: 40px; }

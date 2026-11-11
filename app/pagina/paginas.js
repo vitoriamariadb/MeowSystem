@@ -499,6 +499,20 @@ function fundoDoCartao(cores, paleta) {
   const nome = contraste(paleta.text, fundo) >= contraste(paleta.base, fundo) ? paleta.text : paleta.base;
   return { fundo, nome };
 }
+function trocarDesenhoDoTema(pasta, nome) {
+  const campo = elemento("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true });
+  campo.addEventListener("change", async () => {
+    const arq = campo.files && campo.files[0];
+    if (!arq) return;
+    const id = rascunho().pack;
+    const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo: pasta, nome, levar: true,
+      aprimorar: !emNovo(), conteudo: await lerComoBase64(arq) }) });
+    if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+    torrada(`${maiuscula(nome.replace(/[-_]+/g, " "))}: trocado`, "ok");
+    await carregarAcervo();
+  });
+  campo.click();
+}
 function gradeDoAcervo(pasta, grupo) {
   if (!ACERVO || ACERVO.chave !== chaveDoAcervo()) carregarAcervo();
   const pronto = ACERVO && !ACERVO.carregando;
@@ -514,9 +528,17 @@ function gradeDoAcervo(pasta, grupo) {
     grade.style.setProperty("--nome-previa", paleta.subtext1 || paleta.text);
     grade.style.setProperty("--linha-previa", paleta.surface1 || paleta.overlay0 || paleta.text);
   }
+  const pack = rascunho().pack && PACKS.find((x) => x.id === rascunho().pack);
+  const semTrocar = !pack ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
   for (const i of itens) {
-    const cartao = elemento("div", { class: "app", "data-nome": i.nome }, [
-      elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })]);
+    const miolo = [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })];
+    const cartao = elemento("button", { type: "button", class: "app", "data-nome": i.nome, controle: "trocar:desenho",
+      "data-levado": i.levado ? "" : null, dica: semTrocar || "Trocar por um SVG seu",
+      disabled: !!semTrocar, "aria-disabled": semTrocar ? "true" : null,
+      onclick: () => trocarDesenhoDoTema(pasta, i.nome) }, miolo);
+    if (i.levado && !semTrocar) {
+      cartao.append(elemento("span", { class: "estado-pilula", "data-estado": "ok", texto: "Trocado" }));
+    }
     const outro = fundoDoCartao(i.cores, paleta);
     if (outro) {
       cartao.style.setProperty("--cartao-previa", outro.fundo);
