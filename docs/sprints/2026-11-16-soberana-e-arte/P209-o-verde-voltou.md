@@ -20,5 +20,20 @@ investigue isso use o askpass».
 - Se começou com o build de 07/11 (`app-id-do-cliente` e `nomes-nas-duas-telas` entraram nele) ou com o cosmic-comp
   ec674cd: comparar com o build 8cb1802 (marcado `ruim` em 05/11) e com o binário do pacote.
 
-## A cura
-A definir depois da medição. Nunca propor o compositor de volta na AMD (decisão 6).
+## A queda de 20:44 (mesma sessão)
+- 20:44:41 `amdgpu 0000:75:00.0: [gfxhub] page fault … Process cosmic-comp pid 4174 thread cosmic-com:cs0`, `Faulty UTCL2
+  client ID: TCP (0x8)`, `PERMISSION_FAULTS: 0x3` — o mesmo quadro da queda de 17/09 que a `blur-cache-textura` atacou.
+- 20:44:44 coredump: SIGABRT na thread 4209 (radeonsi, `libgallium 26.1.6`); a thread 4206 estava em
+  `smithay::backend::renderer::gles::GlesRenderer::cleanup` (addr2line) dentro do `libnvidia-eglcore`. Morreram junto
+  cosmic-osd, cosmic-files-applet e o portal (`graficos`). O compositor voltou às 20:44:46 (PID 2194550).
+- Mesa sem mudança desde 11/09; é a única queda do compositor nos coredumps guardados. Upstream: pop-os/cosmic-comp#2843
+  (RTX 4050 + Radeon 680M, SIGABRT em libgallium 26.1.6).
+- O SIGTERM da barra às 20:35:05 é o rodízio do mascote («Trocar sozinho»), não o gatilho.
+
+## Hipótese de cura (a provar)
+O verde e a queda passam pelo mesmo caminho: o eDP é da AMD, e `render_node_for_output` faz a AMD COMPOR o quadro do eDP
+quando a área não tem janela da NVIDIA (área vazia, só a barra) — aí ela tenta usar texturas de cliente feitas na
+NVIDIA (modifier `0x03…`) e falha («import for wrong devices», o verde), e todo trabalho de render da AMD é exposição
+ao page fault. Patch `req` novo: com `COSMIC_RENDER_DEVICE` definido, o eDP é composto sempre no nó primário (RTX); a AMD
+só recebe o quadro pronto. Prova: zero «import for wrong devices» numa sessão de horas com as duas telas, e nenhuma
+queda. Nunca o compositor de volta na AMD (decisão 6).
