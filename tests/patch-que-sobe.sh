@@ -121,6 +121,29 @@ igual "o binário só tem a versão nova" "$(grep -ao 'MEOW-T-[0-9]*' "$CASA/$VE
 igual "a segunda passagem sai 0" "$rc" 0
 igual "e não reextrai" "$(grep -c '^dpkg-source' "$T/log")" 0
 
+echo "== 3. a árvore com o marcador e um pedaço faltando é reextraída"
+cat > "$T/patches/t.patch" <<FIM
+--- a/src/a.rs
++++ b/src/a.rs
+@@ -1,3 +1,5 @@
+ fn um() {}
++static M: &str = "MEOW-T-3";
+ fn dois() {}
+ fn tres() {}
++fn quatro() {}
+FIM
+rm -rf "$CASA/$VER" "$FONTE"
+"$T/bin/dpkg-source" -x x "$FONTE"
+printf 'fn um() {}\nstatic M: &str = "MEOW-T-3";\nfn dois() {}\nfn tres() {}\n' > "$FONTE/src/a.rs"
+: > "$T/log"; comp; rc=$?
+igual "compilou: 0" "$rc" 0
+igual "o fonte meio-patchado foi reextraído" "$(grep -c '^dpkg-source -x' "$T/log")" 1
+igual "e a árvore tem o pedaço que faltava" "$(grep -c '^fn quatro' "$FONTE/src/a.rs")" 1
+[ "$rc" = 0 ] || sed 's/^/        /' "$T/saida"
+
+: > "$T/log"; comp; rc=$?
+igual "a árvore inteira não reextrai na segunda passagem" "$(grep -c '^dpkg-source' "$T/log")" 0
+
 [ -s "$T/recusados" ] && falha "chamou o que recusa: $(cat "$T/recusados")"
 
 echo

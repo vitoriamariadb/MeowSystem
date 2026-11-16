@@ -555,9 +555,13 @@ _cp_ja_aplicado() {
   while IFS= read -r alvo; do
     [ -n "$alvo" ] || continue
     [ -f "$fonte/$alvo" ] || continue
-    grep -qF -- "$procura" "$fonte/$alvo" 2>/dev/null && return 0
+    grep -qF -- "$procura" "$fonte/$alvo" 2>/dev/null && { _cp_inteiro "$fonte" "$patch_arq"; return; }
   done < <(_cp_alvos_do_patch "$patch_arq")
   return 1
+}
+
+_cp_inteiro() {
+  (cd "$1" && patch -p1 -R --dry-run -F0 --silent < "$2") >/dev/null 2>&1
 }
 
 _cp_outra_versao() {
