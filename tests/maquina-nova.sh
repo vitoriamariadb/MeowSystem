@@ -9,7 +9,7 @@ T="$(mktemp -d)" || exit 2
 trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/bin" "$T/sistema" "$T/icones-sistema/Papirus-Dark"
 
-for c in rsvg-convert convert gtk-update-icon-cache btop batcat fastfetch unzip xz; do
+for c in rsvg-convert convert gtk-update-icon-cache btop batcat fastfetch unzip xz zstd ffmpeg; do
   printf '#!/bin/sh\nexit 0\n' > "$T/sistema/$c"; chmod 755 "$T/sistema/$c"
 done
 
