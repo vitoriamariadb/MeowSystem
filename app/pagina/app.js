@@ -284,8 +284,27 @@ function escolher(chave, valor) {
   if (String(valor) === String(valorEmVigor(item))) return true;
   const lote = { [chave]: String(valor) };
   completarParDaNoite(lote, chave, valor);
+  completarModoQueFazValer(lote, item);
+  if (ESQUEMA.mesmo_horario && (ESQUEMA.horario_das_areas || []).some((a) => a.chaves.includes(chave))) {
+    desligarMesmoHorario().then(() => gravarAgora(lote));
+    return true;
+  }
   gravarAgora(lote);
   return true;
+}
+
+async function desligarMesmoHorario() {
+  const r = await api("/api/mesmo-horario", { method: "POST", body: JSON.stringify({ ligar: false }) });
+  if (r.erro) torrada(maiuscula(primeiraFrase(r.erro)), "erro");
+  await recarregarEsquema();
+}
+
+function completarModoQueFazValer(lote, item) {
+  const solto = SOLTO_DE[item.chave];
+  if (solto && CHAVE.get(solto) && String(vale(solto)) === "nao") lote[solto] = "sim";
+  const d = item.dominada_por;
+  if (!d || !d.vale_com || !CHAVE.get(d.chave) || String(vale(d.chave)) !== String(d.valor)) return;
+  lote[d.chave] = d.vale_com;
 }
 
 function chavesRecentes() {
@@ -836,28 +855,7 @@ function controlePorArea(item, aplica) {
   return caixa;
 }
 
-const SOLTO_DE = { FORMA_MARGEM_PAINEL: ["FORMA_PAINEL_SOLTO", "o painel"], FORMA_MARGEM_DOCK: ["FORMA_DOCK_SOLTO", "a dock"] };
-
-function alturaForaDaProporcao(item) {
-  if (item.chave !== "FASTFETCH_LOGO_LINHAS") return null;
-  const pedida = Number(valorEmVigor(item));
-  const ideal = Number(vale("FASTFETCH_LOGO_COLUNAS")) / (Number(vale("FASTFETCH_LOGO_CELULA")) || 2.556);
-  if (!(pedida >= 1) || !(ideal > 0) || Math.round(Math.abs(pedida - ideal) / ideal * 100) <= 12) return null;
-  return `Longe da proporção do Tamanho: o desenho sai com ${Math.max(1, Math.round(ideal))} linhas.`;
-}
-
-function dominada(item) {
-  const fora = alturaForaDaProporcao(item);
-  if (fora) return fora;
-  const solto = SOLTO_DE[item.chave];
-  if (solto && CHAVE.get(solto[0]) && String(vale(solto[0])) === "nao") {
-    return `A distância só vale com ${solto[1]} solto da borda.`;
-  }
-  const d = item.dominada_por;
-  if (!d) return null;
-  if (!CHAVE.get(d.chave) || String(vale(d.chave)) !== String(d.valor)) return null;
-  return maiuscula(d.porque || "");
-}
+const SOLTO_DE = { FORMA_MARGEM_PAINEL: "FORMA_PAINEL_SOLTO", FORMA_MARGEM_DOCK: "FORMA_DOCK_SOLTO" };
 
 const COLUNAS = ["Barra de cima", "Dock"];
 
@@ -868,14 +866,12 @@ function linhaDeChave(l) {
   const um = itens[0];
   const dupla = Array.isArray(l.c) && l.c.length === 2;
   const mudou = chaves.some((c) => MUDANCAS.has(c) || HISTORICO.some((e) => e.itens.some((it) => it.chave === c)));
-  const presa = (dupla ? (itens.every(dominada) ? dominada(um) : null) : dominada(um)) || (ESQUEMA.mesmo_horario
-    && (ESQUEMA.horario_das_areas || []).some((a) => a.chaves.includes(um.chave)) ? "Segue o horário da noite" : null);
   const classe = "linha" + (dupla ? " dupla" : "") + (l.sub ? " sub" : "")
-    + (mudou ? " mudou" : "") + (presa ? " dominada" : "") + (l.larga ? " larga" : "");
+    + (mudou ? " mudou" : "") + (l.larga ? " larga" : "");
   const frases = [...new Set(itens.map((i) => primeiraFrase(i.frase)).filter(Boolean))];
   const junta = frases.map((f, i) => `${COLUNAS[i]}: ${f}`).join(" ");
   const rot = elemento("div", { class: "rot" }, [
-    elemento("span", { texto: l.r, dica: presa || (frases.length > 1 && dupla && junta.length <= 120
+    elemento("span", { texto: l.r, dica: (frases.length > 1 && dupla && junta.length <= 120
       ? junta : frases[0]) || null }),
   ]);
   if (!dupla) {
@@ -893,12 +889,6 @@ function linhaDeChave(l) {
       const coluna = COLUNAS[i];
       const ctl = elemento("div", { class: "ctl", "data-coluna": coluna }, [it ? controle(it) : null]);
       if (it) {
-        const presaDela = dominada(it);
-        if (presaDela) {
-          ctl.classList.add("desligado");
-          ctl.setAttribute("data-dica", presaDela);
-          for (const e of ctl.querySelectorAll("input, button, select")) e.disabled = true;
-        }
         const aplica = (v) => escolher(it.chave, v);
         if (temOQueRestaurar(it, valorEmVigor(it))) ctl.append(botaoPadrao(it, aplica, coluna));
         const auto = botaoAutomatico(it, valorEmVigor(it), aplica, coluna);
@@ -912,17 +902,6 @@ function linhaDeChave(l) {
   return li;
 }
 
-function motivoIndisponivel(acao) {
-  const m = acao.indisponivel;
-  if (!m) return "";
-  if (m.porque) return maiuscula(m.porque);
-  if (m.chave) {
-    const l = inventarioDoPainel().find((x) => x.tipo === "chave" && x.id === m.chave);
-    return `Vale com «${l ? l.rotulo : m.chave}» em ${rotuloDeValor(m.pede, CHAVE.get(m.chave))}`;
-  }
-  return "Sem efeito agora";
-}
-
 function controleDeAcao(acao, texto, classe = "pequeno") {
   const partes = [];
   let escolha = null;
@@ -931,12 +910,10 @@ function controleDeAcao(acao, texto, classe = "pequeno") {
     for (const o of acao.opcoes) escolha.append(elemento("option", { value: o, texto: rotuloDeValor(o) }));
     partes.push(escolha);
   }
-  const vazia = acao.arg && !escolha;
-  const motivo = motivoIndisponivel(acao) || (vazia ? "Nada para escolher agora" : "");
+  if (acao.arg && !escolha) return [];
   partes.push(botao(texto || maiuscula(acao.rotulo), {
     class: "bt " + classe + (acao.destrutivo ? " perigo" : ""),
-    controle: "acao:" + acao.id, dica: motivo || primeiraFrase(acao.ajuda),
-    disabled: !!motivo, "aria-disabled": motivo ? "true" : null,
+    controle: "acao:" + acao.id, dica: primeiraFrase(acao.ajuda),
     onclick: () => rodar(acao, escolha ? escolha.value : ""),
   }));
   if (RESTAUROS.has(acao.id) && acao.escreve) {
@@ -947,7 +924,7 @@ function controleDeAcao(acao, texto, classe = "pequeno") {
 }
 function linhaDeAcao(l) {
   const acao = ACAO.get(l.a);
-  if (!acao) return null;
+  if (!acao || (acao.indisponivel && acao.indisponivel.feito)) return null;
   return elemento("li", { class: "linha", "data-linha": acao.id }, [
     elemento("div", { class: "rot" }, [l.r ? elemento("span", { texto: l.r, dica: primeiraFrase(acao.ajuda) }) : null]),
     elemento("div", { class: "ctl" }, controleDeAcao(acao, l.b)),
@@ -1067,6 +1044,16 @@ async function rodar(acao, argumento = "", opcoes = {}) {
     const ok = await perguntar({ titulo: maiuscula(acao.rotulo) + "?", ok: opcoes.verbo || acao.rotulo,
       perigo: !!acao.destrutivo });
     if (!ok) return null;
+  }
+  const falta = acao.indisponivel || {};
+  if (falta.pede && falta.chave && CHAVE.has(falta.chave)) {
+    await gravarAgora({ [falta.chave]: String(falta.pede) });
+    await FILA_DE_GRAVACAO;
+  }
+  if (falta.antes && ACAO.has(falta.antes)) {
+    const previo = await rodar(ACAO.get(falta.antes), "", { semPerguntar: true });
+    if (!previo) return null;
+    await fimDoTrabalho();
   }
   TRABALHOS_A_CAMINHO++;
   const r = await api("/api/rodar", { method: "POST",

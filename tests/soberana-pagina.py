@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+import importlib.util
+import os
+import re
+import shutil
+import sys
+
+try:
+    import playwright  # noqa: F401
+except ImportError:
+    print("pulado: playwright nao esta instalado neste interpretador.")
+    sys.exit(3)
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+_spec = importlib.util.spec_from_file_location("app_completo", os.path.join(AQUI, "app-completo.py"))
+casa = importlib.util.module_from_spec(_spec)
+_argv, sys.argv = sys.argv, [os.path.join(AQUI, "app-completo.py")]
+_spec.loader.exec_module(casa)
+sys.argv = _argv
+
+from playwright.sync_api import sync_playwright  # noqa: E402
+
+falhas = []
+DESLIGADOS = ("#conteudo button[disabled], #conteudo .ctl.desligado, #conteudo .linha.dominada, "
+              "#conteudo [aria-disabled=true], #conteudo input[disabled], #conteudo select[disabled]")
+
+
+def confere(cond, frase, detalhe=""):
+    print(("ok: " if cond else "FALHOU: ") + frase + ((" — " + str(detalhe)) if detalhe and not cond else ""))
+    if not cond:
+        falhas.append(frase)
+
+
+def esperar(pag, ms=600):
+    pag.wait_for_function("() => typeof ESQUEMA !== 'undefined' && ESQUEMA"
+                          " && !document.getElementById('conteudo').hasAttribute('aria-busy')", timeout=60000)
+    pag.wait_for_timeout(ms)
+
+
+def ir(pag, rota):
+    pag.evaluate(f"() => {{ location.hash = '#{rota}'; }}")
+    esperar(pag, 1200)
+
+
+def conf_com(**chaves):
+    with open(casa.CONF, encoding="utf-8") as fh:
+        texto = fh.read()
+    for chave, valor in chaves.items():
+        linha = f'{chave}="{valor}"'
+        if re.search(rf"^{chave}=.*$", texto, flags=re.M):
+            texto = re.sub(rf"^{chave}=.*$", linha, texto, flags=re.M)
+        else:
+            texto += "\n" + linha + "\n"
+    with open(casa.CONF, "w", encoding="utf-8") as fh:
+        fh.write(texto)
+
+
+def esperar_conf(chave, quer, teto=20):
+    import time
+    fim = time.time() + teto
+    while time.time() < fim:
+        if casa.valor_de(chave) == quer:
+            return True
+        time.sleep(0.3)
+    return False
+
+
+def nada_desligado(pag, onde):
+    achados = pag.evaluate("(s) => [...document.querySelectorAll(s)].map((e) => e.getAttribute('data-controle') || e.className)", DESLIGADOS)
+    confere(not achados, f"{onde}: nenhum controle desligado nem cinza", achados)
+
+
+def mascote(pag):
+    conf_com(LOGO_MODO="fixo", FASTFETCH_LOGO_MODO="espelho")
+    pag.reload(wait_until="commit")
+    esperar(pag, 800)
+    ir(pag, "ajustes/mascote")
+    nada_desligado(pag, "Mascote com «Fixo» em «O outro» e o mascote parado")
+    girar = pag.locator('[data-controle="acao:logo_girar"]')
+    confere(girar.count() == 1 and girar.is_enabled(), "«Girar» com o mascote fixo está acesa")
+    confere(not (girar.get_attribute("data-dica") or "").startswith("Vale com"), "e a dica de «Girar» não é o motivo")
+    girar.click()
+    confere(esperar_conf("LOGO_MODO", "rotacao"), "clicar em «Girar» liga o modo girando", casa.valor_de("LOGO_MODO"))
+    pag.locator('[data-controle="chave:FASTFETCH_LOGO_GATO=mimir"]').click()
+    confere(esperar_conf("FASTFETCH_LOGO_MODO", "fixo"),
+            "escolher em «Fixo» grava «Sempre o mesmo» em «Qual mascote»", casa.valor_de("FASTFETCH_LOGO_MODO"))
+
+
+def areas(pag):
+    ir(pag, "ajustes/janelas")
+    nada_desligado(pag, "Janelas e tela")
+    fixar = pag.locator('[data-controle="acao:areas_alfinetar_primeira"]')
+    confere(fixar.count() == 0, "com área fixada, a linha «Fixar» some, sem ficar apagada")
+
+
+def main():
+    ambiente = casa.montar_casa()
+    proc, url = casa.sobe_servidor(ambiente)
+    if not url:
+        print("ERRO: o app/run.sh não imprimiu a URL")
+        return 2
+    try:
+        with sync_playwright() as p:
+            nav = p.chromium.launch()
+            pag = nav.new_page(viewport={"width": 1574, "height": 1032})
+            erros = []
+            pag.on("pageerror", lambda e: erros.append(str(e)))
+            pag.on("dialog", lambda d: (erros.append("diálogo nativo: " + d.message), d.dismiss()))
+            pag.goto(url, wait_until="commit")
+            esperar(pag, 800)
+            mascote(pag)
+            areas(pag)
+            confere(not erros, "nenhum erro de página nem diálogo nativo", erros)
+            nav.close()
+    finally:
+        proc.terminate()
+        casa.encerrar_a_casa()
+        shutil.rmtree(casa.BRINQUEDO, ignore_errors=True)
+    if falhas:
+        print(f"\n{len(falhas)} FALHOU")
+        return 1
+    print("\nsoberana-pagina: tudo certo")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

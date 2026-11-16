@@ -143,6 +143,7 @@ MAQUINA=(
   oficina.sh
   icones-por-pack.py
   personalizar-pagina.py
+  soberana-pagina.py
   sistema-latte-e-rotulos.py
   pastas-do-pack.sh
   retirados-do-pack.sh

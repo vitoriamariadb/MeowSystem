@@ -299,30 +299,35 @@ RE_DURACAO = re.compile(r"^\d+(?:[.,]\d+)?[smhd]$")
 DOMINIOS = {
     "LOGO_ROTACAO": {
         "chave": "LOGO_MODO",
+        "vale_com": "rotacao",
         "quando": lambda v: bool(v) and v != "rotacao",
         "porque": "Ela só liga a rotação quando o mascote é escolhido girando — "
                   "hoje não tem efeito nenhum.",
     },
     "LOGO": {
         "chave": "LOGO_MODO",
+        "vale_com": "fixo",
         "quando": lambda v: v == "hora",
         "porque": "Por horário quem escolhe são os mascotes de dia e de noite; "
                   "esta só entra quando um daqueles dois não está na lista.",
     },
     "FORMA_MARGEM_PAINEL": {
         "chave": "FORMA_PAINEL_SOLTO",
+        "vale_com": "sim",
         "quando": lambda v: v == "nao",
         "porque": "A margem só é desenhada quando o painel está solto da "
                   "borda: assim, o compositor descarta este número calado.",
     },
     "FORMA_MARGEM_DOCK": {
         "chave": "FORMA_DOCK_SOLTO",
+        "vale_com": "sim",
         "quando": lambda v: v == "nao",
         "porque": "A margem só é desenhada quando a dock está solta da "
                   "borda: assim, o compositor descarta este número calado.",
     },
     "FASTFETCH_LOGO_GATO": {
         "chave": "FASTFETCH_LOGO_MODO",
+        "vale_com": "fixo",
         "quando": lambda v: bool(v) and v != "fixo",
         "porque": "Ela só vale com a escolha em \u201cfixo\u201d. Em "
                   "\u201chora\u201d o terminal segue o mascote do dock; em "
@@ -1164,7 +1169,7 @@ def _dominada_por(chave):
     if not regra["quando"](valor):
         return None
     return {"chave": regra["chave"], "titulo": _titulo_de(regra["chave"]),
-            "valor": valor, "porque": regra["porque"]}
+            "valor": valor, "porque": regra["porque"], "vale_com": regra.get("vale_com", "")}
 
 
 def _opcoes_fechadas(chave, ajuda, inline, padrao):
@@ -3822,9 +3827,8 @@ ACOES = {
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
         "escreve": True, "sudo": False, "confirma": False,
         "indisponivel": _gato_so_nos_modos(("fixo",), "fixo"),
-        "ajuda": "Põe no dock o mascote escolhido, e ele fica. Quando o mascote segue "
-                 "o relógio ou gira sozinho, este botão fica apagado e diz onde "
-                 "mudar.",
+        "ajuda": "Põe no dock o mascote escolhido, e ele fica. Se o mascote seguia "
+                 "o relógio ou girava sozinho, o clique o deixa sempre o mesmo.",
     },
     "logo_girar": {
         "rotulo": "Próximo mascote",
@@ -3833,8 +3837,8 @@ ACOES = {
         "argv": _meow("logo", "girar"),
         "escreve": True, "sudo": False, "confirma": False,
         "indisponivel": _gato_so_nos_modos(("rotacao",), "rotacao"),
-        "ajuda": "Só tem efeito quando o mascote está girando; fora disso o "
-                 "botão fica apagado e diz onde mudar.",
+        "ajuda": "Se o mascote não estava girando, o clique "
+                 "o põe para girar e já troca.",
     },
     "wallpaper": {
         "resumo": True,
@@ -5502,9 +5506,8 @@ def _iniciar_agora(acao_id, argumento, confirmado=False, seco=False, pasta_de_en
     if acao is None:
         return (None, "ação desconhecida")
 
-    if indisponivel(acao_id):
-        return (None, "«%s» não teria efeito agora — o cartão diz por quê"
-                      % acao["rotulo"])
+    if (indisponivel(acao_id) or {}).get("feito"):
+        return (None, "«%s» não teria efeito agora" % acao["rotulo"])
 
     if acao.get("confirma") and not confirmado:
         return (None, {

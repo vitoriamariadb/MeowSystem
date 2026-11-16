@@ -225,7 +225,6 @@ select.campo { padding-right: var(--e-8); }
 .linha.dupla .ctl { justify-content: flex-start; flex-wrap: nowrap; }
 .linha.sub { padding-left: var(--e-12); }
 .linha.mudou::before { content: ""; position: absolute; left: 10px; top: 50%; width: 7px; height: 7px; margin-top: -3px; border-radius: 50%; background: var(--accent); }
-.linha.dominada .rot, .linha.dominada .ctl { opacity: .55; }
 .linha.chegou { animation: chegou 1.6s var(--ease-out); }
 @keyframes chegou { from { background: var(--accent-suave); } to { background: transparent; } }
 .linha.larga { grid-template-columns: minmax(0, 1fr); }
@@ -580,7 +579,6 @@ dialog .acoes { display: flex; justify-content: flex-end; gap: var(--e-3); flex-
   .linha.dupla .seg button { padding: 0 6px; }
 }
 .faixa input:disabled { opacity: .4; cursor: not-allowed; }
-.linha .ctl.desligado { opacity: .45; }
 .p-barra { gap: var(--p-espaco-painel, 1.2cqi); height: auto; min-height: 3.6cqi; padding: .5cqi 1.4cqi; }
 .previa[data-ilha-painel="sim"] .p-barra { left: 50%; right: auto; transform: translateX(-50%); width: max-content; }
 .previa[data-solto-painel="nao"] .p-barra { top: 0; border-radius: 0 0 var(--p-raio-painel, 1.4cqi) var(--p-raio-painel, 1.4cqi); }
