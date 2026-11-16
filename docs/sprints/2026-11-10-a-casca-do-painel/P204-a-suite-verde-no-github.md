@@ -45,6 +45,8 @@ Reaplicada em `bloco/ci2` (worktree `.meow-wt-ci2`, a partir do master), commit 
 - `scripts/icones_absolutos.sh` e `tests/contrato-cosmic.sh` ficam com a versão do master, que já cobre;
 - `tests/acervo-da-ficha.sh`: vermelho do próprio master desde a P203, que passou a oferecer a pasta `sistema/` na ficha de
   propósito; as duas asserções agora esperam `sistema/` em vez de proibi-la;
+- `app/servidor.py`: vermelho do próprio master no `resultado-na-linha.py` desde a conferência `efeito` (1eb523d3), que
+  entrou no `VERIFICAVEIS` sem nome curto no `NOME_DA_CONFERENCIA`; agora tem;
 - o «abre P182» e o arquivo da sprint antiga não voltam: o conteúdo útil está aqui.
 
 ## Como se prova
