@@ -686,6 +686,9 @@ notebook_antes="$(bloco17 "$ZD/scripts/self-heal.sh" MeowSystem)"
 rodar17 Meow-portatil --desativar-prontos >/dev/null 2>&1
 confere "sem o registro dela, o notebook corta só no bloco do notebook" \
   '[ "$(bloco17 "$ZD/scripts/self-heal.sh" MeowSystem)" = "$notebook_antes" ] && [ "$(bloco17 "$ZD/scripts/self-heal.sh" Meow-portatil | grep -c "^#vizinhos:maq-")" = 3 ]'
+rodar17 Meow-portatil --restaurar maq-instalar >/dev/null 2>&1
+confere "e o --restaurar do notebook devolve só o bloco do notebook, com a marca do desktop no lugar" \
+  '[ "$(bloco17 "$ZD/scripts/self-heal.sh" MeowSystem)" = "$notebook_antes" ] && ! bloco17 "$ZD/scripts/self-heal.sh" Meow-portatil | grep -q "^#vizinhos:maq-instalar#"'
 
 casa17 MeowSystem
 lista="$(rodar17 MeowSystem --listar)"
@@ -707,6 +710,45 @@ md5a="$(md5sum < "$ZD/scripts/atravessa.sh")"
 saida="$(rodar17 MeowSystem --desativar maq-atravessa 2>&1)"; rc=$?
 confere "um corte que atravessa a borda de um bloco de máquina é recusado, sem mudar nada" \
   '[ "$rc" = 2 ] && printf "%s" "$saida" | grep -q "atravessa a borda" && [ "$md5a" = "$(md5sum < "$ZD/scripts/atravessa.sh")" ] && [ ! -d "$ESTADO/vizinhos/maq-atravessa" ]'
+
+mkdir -p "$ZD/functions"
+printf '#!/bin/bash\ngsettings set org.gnome.desktop.interface cursor-theme Outro\n' > "$ZD/scripts/so-desktop.sh"
+printf '#!/bin/bash\ngsettings set org.gnome.desktop.interface cursor-theme Outro\n' > "$ZD/scripts/so-desktop-mao.sh"
+cat > "$ZD/scripts/cura.sh" <<'FIM'
+#!/bin/bash
+MAQUINA="$(cat /proc/sys/kernel/hostname 2>/dev/null)"
+case "$MAQUINA" in MeowSystem)  # maquina
+"$HOME/.config/zsh/scripts/so-desktop.sh"
+esac  # maquina
+echo nada
+FIM
+cat > "$ZD/functions/maq.zsh" <<'FIM'
+maq_func() {
+  case "$MAQUINA" in MeowSystem)  # maquina
+  "$HOME/.config/zsh/scripts/so-desktop-mao.sh"
+  esac  # maquina
+}
+FIM
+printf '[Service]\nExecStart=%%h/.config/zsh/scripts/cura.sh\n' > "$UD/cura.service"
+ln -s ../cura.service "$UD/default.target.wants/cura.service"
+inv_desktop="$(rodar17 MeowSystem --inventario)"; inv_notebook="$(rodar17 Meow-portatil --inventario)"
+confere "o script que só o bloco do desktop chama entra no inventário do desktop, pela unidade e pela função" \
+  'printf "%s\n" "$inv_desktop" | grep -q "scripts/so-desktop.sh" && printf "%s\n" "$inv_desktop" | grep -q "scripts/so-desktop-mao.sh"'
+confere "e não entra no do notebook, nem pela unidade, nem pela função" \
+  '! printf "%s\n" "$inv_notebook" | grep -q "scripts/so-desktop"'
+
+printf 'item\tmaq-saida\tsaida\t$ZD/scripts/saida17.sh\t-\t-\t-\tmotivo de brinquedo\n' >> "$CT17"
+cat > "$ZD/scripts/saida17.sh" <<'FIM'
+#!/bin/bash
+printf '%s\n' "saida17.sh: motivo de brinquedo"; exit 0  #vizinhos+:maq-saida#
+MAQUINA="$(cat /proc/sys/kernel/hostname 2>/dev/null)"
+case "$MAQUINA" in MeowSystem)  # maquina
+echo so no desktop  #vizinhos+:maq-saida#
+esac  # maquina
+FIM
+rodar17 Meow-portatil --restaurar maq-saida >/dev/null 2>&1
+confere "o --restaurar de uma saída no notebook não apaga a linha marcada do bloco do desktop" \
+  '! grep -q "exit 0  #vizinhos+:maq-saida#" "$ZD/scripts/saida17.sh" && bloco17 "$ZD/scripts/saida17.sh" MeowSystem | grep -qxF "echo so no desktop  #vizinhos+:maq-saida#"'
 rm -f "$T/bin/systemctl"
 
 printf '\n'
