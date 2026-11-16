@@ -25,7 +25,7 @@ real de portabilidade.
 | `trava-herdada` | hermético | `cp sleep` copia o multichamada do uutils, que sai com `unknown program` e solta o cadeado | `dormente`: script bash que dorme sem filho, com o nome certo em `/proc/<pid>/comm` |
 | `contrato-cosmic` | hermético | as pastas v2 e o `cosmic-term` só existiam com o COSMIC instalado | o master já cura, a versão dele fica |
 | `garantir-builds` | hermético | o doctor olhava `/usr/bin/cosmic-comp` de verdade | `CP_BIN` aponta para a fábrica falsa em toda a seção, e a seção 3b do master fica |
-| `maquina-nova` | hermético | o pré-voo só passava com o `cosmic-comp` vivo; `btop`, `bat`, `fastfetch` e o Papirus faltantes fazem o `pacotes` mudar em toda passada, e a árvore sem `.git` não converge | `MEOW_IGNORA_DESKTOP=1`, falsos em `$T/sistema` e `MEOW_ICONES_SISTEMA` |
+| `maquina-nova` | hermético | o pré-voo só passava com o `cosmic-comp` vivo; `btop`, `bat`, `fastfetch`, `zstd`, `ffmpeg` e o Papirus faltantes fazem o `pacotes` mudar em toda passada, e a árvore sem `.git` não converge | `MEOW_IGNORA_DESKTOP=1`, falsos em `$T/sistema` e `MEOW_ICONES_SISTEMA` |
 | `doctor-veredito` | hermético | sem a Fira Sans, o `instalar_fontes.sh` pede `pop-fonts` depois do `curl`, e o `recebido` guarda só o último pedido | `fc-list`, `fc-cache` e `fc-match` falsos; a asserção `= curl` ficou igual |
 | `achados-tecnicos` | portabilidade | o Python do runner tem `gi` e não tem Gtk 4 | o master já cura em `scripts/icones_absolutos.sh`, a versão dele fica |
 
@@ -38,8 +38,9 @@ Reaplicada em `bloco/ci2` (worktree `.meow-wt-ci2`, a partir do master), commit 
 
 - `.github/workflows/testes.yml`: `fetch-depth: 0`, `timeout-minutes: 60` (a convergência e o `deb` agora rodam inteiros) e
   os pacotes da branch (`imagemagick`, `librsvg2-bin`, `strace`) somados aos do master;
-- `tests/trava-herdada.sh` (dorminhoco próprio), `tests/maquina-nova.sh` (os dois commits), `tests/doctor-veredito.sh`
-  (fontconfig falso) e `tests/garantir-builds.sh` (binário de fábrica falso), respeitando a seção 3b do master;
+- `tests/trava-herdada.sh` (dorminhoco próprio), `tests/maquina-nova.sh` (os dois commits, mais o `zstd` e o `ffmpeg`
+  que o `sistema.tsv` do master lista), `tests/doctor-veredito.sh` (fontconfig falso) e `tests/garantir-builds.sh`
+  (binário de fábrica falso), respeitando a seção 3b do master;
 - `install.sh`: a base de ícones do sistema aceita outra raiz (`MEOW_ICONES_SISTEMA`), sobre o `sistema.tsv` do master;
 - `scripts/icones_absolutos.sh` e `tests/contrato-cosmic.sh` ficam com a versão do master, que já cobre;
 - `tests/acervo-da-ficha.sh`: vermelho do próprio master desde a P203, que passou a oferecer a pasta `sistema/` na ficha de
