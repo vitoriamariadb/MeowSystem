@@ -938,7 +938,7 @@ estão em `docs/sprints/2026-10-15-fechamento/P84-png-para-vetor.md`, no histór
 | `icones/sistema/window-maximize-symbolic.svg` | desenho deste projeto, 17/11/2026 (P220), maximizar: uma grade levadiça de castelo, barras com as pontas embaixo; silhueta cheia em `currentColor` no lugar do glifo do `m4thewz/dracula-icons` |  | GPL-3.0 | 2026-11-17 | `bc398658fa2716a392e4fe999dd6fa7b6939f4425059acfc5452b3d92cb12ff4` |
 | `icones/sistema/window-minimize-symbolic.svg` | desenho deste projeto, 17/11/2026 (P220), minimizar: um morcego de asas abertas pousado embaixo; silhueta cheia em `currentColor` no lugar do glifo do `m4thewz/dracula-icons` |  | GPL-3.0 | 2026-11-17 | `205089ce7f1cd8da6f245b0ef0bc351c93286cf1c1fd72065b12effbc78702eb` |
 | `icones/sistema/window-pop-out-symbolic.svg` | desenho deste projeto, 16/11/2026 (P207), destacar: um fantasma saindo da janela; silhueta cheia em `currentColor` no lugar do glifo do `m4thewz/dracula-icons` |  | GPL-3.0 | 2026-11-16 | `19ab24e11b1fdefde7ae9f8413140ca2a5240517fa820bff3cfe7cdfaf0768b6` |
-| `icones/sistema/window-restore-symbolic.svg` | desenho deste projeto, 16/11/2026 (P207), restaurar: duas lápides; silhueta cheia em `currentColor` no lugar do glifo do `m4thewz/dracula-icons` |  | GPL-3.0 | 2026-11-16 | `2eaac2d4052f8bac5b010f481a1d0066dc9fe6e3a455b7da1e9b2ff3b468c088` |
+| `icones/sistema/window-restore-symbolic.svg` | desenho deste projeto, 17/11/2026 (P220), restaurar: a grade levadiça meio erguida no portal, da família do maximizar; silhueta cheia em `currentColor` no lugar do glifo do `m4thewz/dracula-icons` |  | GPL-3.0 | 2026-11-17 | `410fb25c1f0367b297a2fd28d41c6da607bfbd6f454a0cdb8ff5b8c15bad20e0` |
 
 ### O que a P87 trouxe — 16/10/2026
 
