@@ -1,8 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <title>cosmic-applet-battery-level-50-limited-symbolic — bateria em vela: 50%, carga limitada, com o teto em cima; a vela queima até o nível da carga, com a chama acesa no pavio</title>
+  <title>cosmic-applet-battery-level-50-limited-symbolic — bateria em vela: 50%, carga limitada, com o teto em cima; a vela queima até o nível da carga, com a chama acesa no pavio e a sombra da vela inteira atrás</title>
   <clipPath id="abaixo-do-teto"><rect x="0" y="2.1" width="16" height="16"/></clipPath>
   <g clip-path="url(#abaixo-do-teto)">
   <path fill="currentColor" d="M2.6,13.5 H13.4 Q13.4,15.3 11.6,15.3 H4.4 Q2.6,15.3 2.6,13.5 Z"/>
+  <mask id="em-volta-da-chama"><rect width="16" height="16" fill="#fff"/><path fill="#000" stroke="#000" stroke-width="1.6" stroke-linejoin="round" d="M8,3.85 C8.9,5.05 9.5,5.85 9.5,6.65 A1.5,1.5 0 0 1 6.5,6.65 C6.5,5.85 7.1,5.05 8,3.85 Z"/><rect x="0" y="8.2" width="16" height="0.7" fill="#000"/></mask>
+  <path fill="currentColor" opacity="0.3" mask="url(#em-volta-da-chama)" d="M5.2,5.8 Q5.2,5.3 5.7,5.3 H10.3 Q10.8,5.3 10.8,5.8 V13.5 H5.2 Z"/>
   <path fill="currentColor" d="M5.2,9.4 Q5.2,8.9 5.7,8.9 H10.3 Q10.8,8.9 10.8,9.4 V13.5 H5.2 Z"/>
   <path fill="currentColor" d="M5.2,9.5 Q4.3,10.5 4.5,11.3 Q4.9,11.8 5.2,11.2 Z"/>
   <path fill="currentColor" d="M8,3.85 C8.9,5.05 9.5,5.85 9.5,6.65 A1.5,1.5 0 0 1 6.5,6.65 C6.5,5.85 7.1,5.05 8,3.85 Z"/>

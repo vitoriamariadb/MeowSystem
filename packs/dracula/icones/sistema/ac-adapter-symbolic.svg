@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <title>ac-adapter-symbolic — bateria em vela: na tomada, inteira e com o raio; a vela queima até o nível da carga, com a chama acesa no pavio</title>
+  <title>ac-adapter-symbolic — bateria em vela: na tomada, inteira e com o raio; a vela queima até o nível da carga, com a chama acesa no pavio e a sombra da vela inteira atrás</title>
   <mask id="selo"><rect width="16" height="16" fill="#fff"/><path d="M13.9,8.6 L10.7,12.7 H12.8 L11.9,15.6 L15.3,11.3 H13.2 Z" fill="#000" stroke="#000" stroke-width="1.8" stroke-linejoin="round"/></mask>
   <g mask="url(#selo)">
   <path fill="currentColor" d="M2.6,13.5 H13.4 Q13.4,15.3 11.6,15.3 H4.4 Q2.6,15.3 2.6,13.5 Z"/>
