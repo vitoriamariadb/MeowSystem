@@ -14,6 +14,8 @@ import os, socket, struct, sys
 
 JANELAS = [("google-chrome", "Calendar - Google Chrome"),
            ("", "O teams.cloud.microsoft está compartilhando sua tela.")]
+if len(sys.argv) > 2:
+    JANELAS = [tuple(l.rstrip("\n").split("\t", 1)) for l in open(sys.argv[2]) if l.strip()]
 IFACE = "ext_foreign_toplevel_list_v1"
 
 
@@ -170,6 +172,48 @@ RS
     falha "a herança não passou: $(cat "$T/rustc" "$T/saida" 2>/dev/null)"
   fi
 fi
+
+echo "== as janelas do sistema medidas no palco ganham a ponte (P235)"
+SIS="$T/sistema/applications"; APPS="$T/casa/.local/share/applications"
+mkdir -p "$SIS" "$APPS" "$T/run2" "$T/estado"
+printf '[Desktop Entry]\nType=Application\nName=Arquivos\nExec=cosmic-files %%U\nIcon=com.system76.CosmicFiles\n' \
+  > "$SIS/com.system76.CosmicFiles.desktop"
+printf '[Desktop Entry]\nType=Application\nName=Portal\nIcon=applications-system-symbolic\nExec=/usr/libexec/xdg-desktop-portal-gtk\nNoDisplay=true\n' \
+  > "$SIS/xdg-desktop-portal-gtk.desktop"
+printf '[Desktop Entry]\nType=Application\nName=Access Prompt\nIcon=security-medium\nExec=/usr/libexec/gcr-prompter\nNoDisplay=true\n' \
+  > "$SIS/gcr-prompter.desktop"
+printf '%s\t\n' com.system76.CosmicFilesDialog xdg-desktop-portal-gtk gcr-prompter com.system76.CosmicFiles > "$T/sistema.janelas"
+python3 -I "$T/compositor.py" "$T/run2/sonda" "$T/sistema.janelas" > /dev/null & SERVIDOR2=$!
+trap 'kill "${SERVIDOR:-}" "${SERVIDOR2:-}" 2>/dev/null; rm -rf "$T"' EXIT
+for _ in $(seq 50); do [ -S "$T/run2/sonda" ] && break; sleep 0.1; done
+sistema() {
+  env -i PATH="$PATH" HOME="$T/casa" NO_COLOR=1 XDG_RUNTIME_DIR="$T/run2" WAYLAND_DISPLAY=sonda \
+    XDG_DATA_DIRS="$T/sistema" MEOW_ESTADO="$T/estado" "$@"
+}
+fotografar() { (cd "$T" && find casa sistema -printf '%p %s %T@\n' | sort); }
+casa_de() { sistema python3 "$RAIZ/scripts/appid_sonda.py" --casar <<< "$1" | cut -f2,3; }
+grep -qxF 'com.system76.CosmicFilesDialog:com.system76.CosmicFiles' "$RAIZ/assets/apps/appid.map" \
+  && ok "o mapa leva o diálogo de arquivos ao Gestor de Arquivos" || falha "o diálogo de arquivos não está no mapa"
+[ "$(casa_de com.system76.CosmicFilesDialog)" = "-	-" ] \
+  && ok "antes da ponte o diálogo não casa: a dock desenha a engrenagem" || falha "o diálogo já casava: $(casa_de com.system76.CosmicFilesDialog)"
+sistema bash "$RAIZ/scripts/appid_dock.sh" --aplicar > "$T/aplicar" 2>&1; rc=$?
+ponte="$APPS/meow-janela-com.system76.CosmicFilesDialog.desktop"
+[ "$rc" = 1 ] && grep -qx 'StartupWMClass=com.system76.CosmicFilesDialog' "$ponte" \
+  && grep -qx 'Icon=com.system76.CosmicFiles' "$ponte" && grep -qx 'Name=Arquivos' "$ponte" && grep -qx 'NoDisplay=true' "$ponte" \
+  && ok "a ponte nasce com o nome e o ícone do Gestor de Arquivos, escondida" || falha "a ponte não saiu certa (rc $rc): $(cat "$T/aplicar" "$ponte" 2>&1)"
+[ "$(casa_de com.system76.CosmicFilesDialog)" = "StartupWMClass	$ponte" ] \
+  && ok "depois da ponte o diálogo casa" || falha "o diálogo segue sem casar: $(casa_de com.system76.CosmicFilesDialog)"
+[ "$(casa_de com.system76.CosmicFiles)" = "id	$SIS/com.system76.CosmicFiles.desktop" ] \
+  && ok "a janela do próprio Gestor segue no .desktop real" || falha "a ponte venceu o .desktop real: $(casa_de com.system76.CosmicFiles)"
+for j in xdg-desktop-portal-gtk gcr-prompter; do
+  [ "$(casa_de "$j")" = "id	$SIS/$j.desktop" ] && ! ls "$APPS" | grep -qF "$j" \
+    && ok "$j já casa no .desktop dele e não ganha ponte" || falha "$j: $(casa_de "$j"); $(ls "$APPS")"
+done
+grep -qF 'janela(s) aberta(s) cujo app_id não casa' "$T/aplicar" \
+  && falha "o doctor ainda acusa janela do sistema sem casamento: $(cat "$T/aplicar")" || ok "nenhuma janela do sistema medida fica sem casamento"
+antes="$(fotografar)"
+sistema bash "$RAIZ/scripts/appid_dock.sh" --aplicar > /dev/null 2>&1; rc=$?
+[ "$rc" = 0 ] && [ "$antes" = "$(fotografar)" ] && ok "a segunda passada não escreve" || falha "a segunda passada escreveu (rc $rc)"
 
 if [ "$falhas" = 0 ]; then echo "janela-sem-app-id: tudo certo"; exit 0; fi
 echo "janela-sem-app-id: $falhas falha(s)"; exit 1

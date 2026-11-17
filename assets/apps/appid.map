@@ -99,3 +99,47 @@ boxy-svg-boxy-svg:com.boxy_svg.BoxySVG:alias
 #   `GLib.set_prgname("...")` antes de criar a janela — e aí o app_id nasce certo,
 #   casa com o `.desktop` que já existe, e esta linha sai daqui.
 __main__.py:hefesto-dualsense4unix
+
+# ============================================================================
+# MEDIDO EM 17/11/2026 — as janelas do SISTEMA, no palco (`scripts/palco.sh`)
+# ============================================================================
+#
+# Cada uma aberta pelo caminho que não muda nada (portal, prompt, agente) dentro
+# do palco, lida com `palco.sh janelas` e fechada com o palco. O que o palco não
+# prova: a GPU real, duas telas, o painel e a dock (não sobem lá).
+#
+# O diálogo de arquivos do COSMIC, a dor que originou esta leva: «cosmic files
+# dialog aparece sem icone», com a engrenagem genérica no dock.
+#   app_id medido .... com.system76.CosmicFilesDialog   (título vazio)
+#   aberto por ....... portal FileChooser: OpenFile, SaveFile e pasta
+#                      (`directory`), os três com o MESMO app_id
+#   .desktop dele .... com.system76.CosmicFiles (o Gestor de Arquivos; quem
+#                      desenha o diálogo é o código do cosmic-files, dentro do
+#                      xdg-desktop-portal-cosmic)
+#   sem casamento .... nenhum `.desktop` com esse id nem com esse StartupWMClass
+com.system76.CosmicFilesDialog:com.system76.CosmicFiles
+#
+# Medidas que NÃO viram linha, escritas para ninguém refazer o caminho:
+#
+#   · JÁ casam, e o script recusaria a ponte (venceria o `.desktop` real):
+#       xdg-desktop-portal-gtk ... «Abrir com» (OpenURI.OpenFile com `ask`) e
+#                                  «Imprimir» (Print.PreparePrint); casa com
+#                                  xdg-desktop-portal-gtk.desktop («Portal»,
+#                                  Icon=applications-system-symbolic)
+#       gcr-prompter ............. prompt do chaveiro (Secret.CreateCollection)
+#                                  e o `pinentry` (pinentry-gnome3 pede pelo
+#                                  mesmo prompter); casa com gcr-prompter.desktop
+#       com.system76.CosmicSettings, com.system76.CosmicInitialSetup,
+#       com.system76.CosmicStore, com.system76.CosmicMonitor ... casam pelo id;
+#                                  as páginas (`cosmic-settings wireless`) usam o
+#                                  app_id do próprio Configurações
+#
+#   · NÃO criam toplevel (superfície de camada, a dock nunca as vê):
+#       o seletor de captura (Screenshot interativo), o seletor de compartilhar
+#       a tela (ScreenCast.Start), o pedido de acesso (Access.AccessDialog), o
+#       agente do polkit do cosmic-osd (aberto com um polkitd falso no palco e
+#       CANCELADO), o próprio cosmic-osd, o cosmic-launcher, o
+#       cosmic-app-library e o cosmic-workspaces
+#
+#   · Fora do alcance do palco (pedem o NetworkManager do sistema): a senha do
+#     Wi-Fi do applet de rede e o nm-connection-editor
