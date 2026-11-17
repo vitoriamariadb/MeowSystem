@@ -412,6 +412,36 @@ saida="$saida$(mod zapzap reverter)"; rc2=$?
   && ok "zapzap: com «trocar», o nosso entra; o desfazer tira só o nosso, e o CSS dela segue ligado" \
   || falha "zapzap: o desfazer com o CSS dela na pasta tirou demais ou de menos (aplicar=$rc, reverter=$rc2)" "$saida"
 rm -f "$ZZ_PASTA/meu.css"
+ln -sfn "$T/zapzap.desktop" "$CASA/.local/share/flatpak/exports/share/applications/com.rtosta.zapzap.desktop"
+printf '[system]\ntheme=dark\ntray_theme=symbolic_light\n\n[web]\nscroll_animator=true\n' > "$ZZ_CONF"
+mod zapzap aplicar >/dev/null
+sed -i 's/^theme=dark$/csr=true\ncsr_button_theme=adwaita\ntheme=dark/' "$ZZ_CONF"
+zz_csr() { awk -F= '/^\[/{s=$0} s=="[system]" && $1=="csr"{print $2}' "$ZZ_CONF"; }
+saida="$(mod zapzap conferir)"; rc=$?
+[ "$rc" = 1 ] && printf '%s' "$saida" | grep -q 'barra própria' \
+  && ok "zapzap: com a barra própria (csr=true), o conferir acusa os botões genéricos" \
+  || falha "zapzap: o conferir não viu a barra própria (rc=$rc)" "$saida"
+saida="$(mod zapzap aplicar)"; rc=$?
+[ "$rc" = 1 ] && [ "$(zz_csr)" = "false" ] && [ "$(cat "$ZZ_CONF.meow-csr-original" 2>/dev/null)" = "true" ] \
+  && grep -qx 'csr_button_theme=adwaita' "$ZZ_CONF" && grep -qx 'theme=dark' "$ZZ_CONF" && grep -qx 'scroll_animator=true' "$ZZ_CONF" \
+  && printf '%s' "$saida" | grep -q 'botões da janela: os do pack' \
+  && ok "zapzap: aplicar desliga a barra própria (csr=false), guarda o valor de antes e não mexe no resto do conf" \
+  || falha "zapzap: a barra própria não saiu (rc=$rc, csr=$(zz_csr))" "$saida$(cat "$ZZ_CONF")"
+zz_antes="$(zz_sha)$(cat "$ZZ_CONF.meow-csr-original" 2>/dev/null)"
+saida="$(mod zapzap aplicar)"; rc=$?
+saida2="$(mod zapzap conferir)"; rc2=$?
+[ "$rc" = 0 ] && [ "$rc2" = 0 ] && [ "$(zz_sha)$(cat "$ZZ_CONF.meow-csr-original" 2>/dev/null)" = "$zz_antes" ] \
+  && ok "zapzap: sem a barra própria, a segunda passada não escreve nada e o conferir dá 0" \
+  || falha "zapzap: a segunda passada mexeu no csr (aplicar=$rc, conferir=$rc2)" "$saida$saida2"
+saida="$(mod zapzap reverter MEOW_DRY_RUN=1)"; rc=$?
+[ "$(zz_csr)" = "false" ] && [ -f "$ZZ_CONF.meow-csr-original" ] && printf '%s' "$saida" | grep -q 'devolveria csr=true' \
+  && ok "zapzap: o desfazer a seco só diz que devolveria o csr" \
+  || falha "zapzap: o desfazer a seco mexeu no csr (rc=$rc)" "$saida"
+saida="$(mod zapzap reverter)"; rc=$?
+[ "$rc" = 1 ] && [ "$(zz_csr)" = "true" ] && [ ! -e "$ZZ_CONF.meow-csr-original" ] \
+  && grep -qx 'csr_button_theme=adwaita' "$ZZ_CONF" && grep -qx 'scroll_animator=true' "$ZZ_CONF" \
+  && ok "zapzap: desfazer devolve a barra própria como estava (csr=true) e apaga o guardado" \
+  || falha "zapzap: o desfazer não devolveu o csr (rc=$rc, csr=$(zz_csr))" "$saida$(cat "$ZZ_CONF")"
 
 implantar "$CASA/.local/share/flatpak" com.discordapp.Discord
 saida="$(mod discord aplicar)"; rc=$?
