@@ -6,7 +6,9 @@ limitação de uso […] aumentarmos a qualidade do produto como um todo»).
 | bloco | tarefa | árvore / branch | situação |
 | --- | --- | --- | --- |
 | A | P212 navegadores no modo GTK | `.meow-wt-navegadores` / `bloco/navegadores` | retomado após a queda; já tem `6a379c22`, `1fa64bb2` |
-| B | P213 Electron, P214 Qt e outros formatos | `.meow-wt-toolkits` / `bloco/toolkits` | retomado; já tem até `83cb20f2` (achados viraram P215 a P219) |
+| B | P213 Electron | `.meow-wt-toolkits` / `bloco/toolkits` | conferido: Obsidian curado (`frame=native`, `b17f1189`), foto antes e depois refeita no palco; BoxySVG já sai com a arte do pack; Discord → P216; Spotify e OnlyOffice → P219 |
+| B | P214 Qt e outros formatos | `.meow-wt-toolkits` / `bloco/toolkits` | conferido: ZapZap curado (`csr=false`, `156dc6e3`), foto antes e depois refeita no palco; Qt 6.11 e GTK em flatpak, GTK em deb e XWayland já saem com a arte do pack; Qt do sistema → P215; Telegram → P217; Krita → P218; vale na máquina depois do `meow doctor --consertar` real (ZapZap e Obsidian fechados) |
+| — | P215 Qt do sistema (`decoration_preference=ServerSide`), P216 Discord pelo Vencord, P217 Telegram, P218 Krita sem X11, P219 formatos sem foto | próxima leva | escritas; P215 e P219 se medem no palco |
 | C | P220 botões do Dracula | `.meow-wt-arte-botoes` / `bloco/arte-botoes` | pronto: folha aprovada («Aprovo»); restaurar = grade meio erguida («Grade meio erguida»), feito pelo coordenador em `b52884a4`; APLICADO no tema real em 17/11 18:58 a partir desta árvore (queixa dela: «o morcego ficou minúsculo» na barra de título, era o desenho do P207), `--conferir` ok |
 | D | P231 vagas no pack e no criador | `.meow-wt-produto` / `bloco/produto` | retomado; já tem `3bf3632f`, `05d071ea`; Soneca `67741ed` em `../meowsystem-soneca-p231` (sem push) |
 | E | P232 Dracula na barra | `.meow-wt-arte-dracula2` / `bloco/arte-dracula2` | conferido (`7b320a63`, `c3dded60`, `feb47b6d`); escolhas: corrente, AMPULHETA, Soneca e notificação aprovadas; agente retomado põe a ampulheta no lugar com os níveis legíveis e leva as variantes para `icones/biblioteca/` |

@@ -11,8 +11,8 @@
 Medição que não fechou, não defeito provado.
 
 ## A cura na origem
-Medir cada um como o P213 e o P214 mandam (cópia da config numa pasta dentro de `~/.var/app/<app>/`, que o
-sandbox enxerga) e, se a barra for genérica, curar no manifesto do app; snap e AppImage só quando houver um.
+Medir cada um no palco (`scripts/palco.sh copiar` da config do app; `palco.sh rodar env
+FLATPAK_USER_DIR=$HOME/.local/share/flatpak flatpak run <app>`, que lê `~/.var/app` da casa do palco) e, se a barra for genérica, curar no manifesto do app; snap e AppImage só quando houver um.
 
 ## Como se prova
 Foto da barra de cada um; o que divergir vira tarefa própria.

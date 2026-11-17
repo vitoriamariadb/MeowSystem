@@ -19,5 +19,6 @@ fracionada e o IME do Wayland).
 
 ## Como se prova
 - Teste com HOME temporário: aplicar grava `ServerSide`; segunda passada sem escrita; reverter devolve o valor de antes.
-- Foto do qt6ct e do qt5ct antes e depois (o compositor relê a chave sem reiniciar; quem coordena muda a chave real).
+- Foto do qt6ct e do qt5ct antes e depois no palco (`scripts/palco.sh`): a chave muda na cópia de `~/.config/cosmic`
+  que o palco leva, nunca na config real dela.
 - Conferir que nenhum app que pede `ClientSide` explícito ganhou duas barras.

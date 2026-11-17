@@ -27,3 +27,13 @@ e se pede decoração do servidor (`xdg-decoration`, que o COSMIC atende com a a
   reverter desfaz.
 - Foto antes e depois do ZapZap e de um app de cada toolkit medido.
 - Linha de `docs/DECISOES.md` proposta ao coordenador, não escrita.
+
+## Medido (agentes do bloco, 17/11)
+- ZapZap: a barra genérica `– + ×` é a barra própria do ZapZap (`[system] csr=true`, `csr_button_theme=adwaita`, o
+  dela). Com `csr=false` o COSMIC desenha a moldura com a arte do pack. Curado no manifesto `zapzap` (`156dc6e3`):
+  aplica `csr=false`, guarda o de antes em `ZapZap.conf.meow-csr-original`, o desfazer devolve. Refeito no palco
+  pelo conferente (cópia do `ZapZap.conf` dela, a cura pela função do manifesto, foto antes e depois).
+- Qt 6.11 em flatpak (qBittorrent, ghostwriter), GTK3 e GTK4 em flatpak (BleachBit, Warehouse) e em deb
+  (gnome-disks, gnome-calculator) e X11 pela XWayland: já saem com a arte do pack.
+- Sem cura neste bloco: Qt do sistema (qt6ct, qt5ct; `bradient`, porque não pede modo de decoração) → P215;
+  Telegram → P217; Krita flatpak não abre → P218; Clapper, partitionmanager, snap e AppImage → P219.
