@@ -7,7 +7,7 @@ limitação de uso […] aumentarmos a qualidade do produto como um todo»).
 | --- | --- | --- | --- |
 | A | P212 navegadores no modo GTK | `.meow-wt-navegadores` / `bloco/navegadores` | retomado após a queda; já tem `6a379c22`, `1fa64bb2` |
 | B | P213 Electron, P214 Qt e outros formatos | `.meow-wt-toolkits` / `bloco/toolkits` | retomado; já tem até `83cb20f2` (achados viraram P215 a P219) |
-| C | P220 botões do Dracula | `.meow-wt-arte-botoes` / `bloco/arte-botoes` | pronto: folha aprovada («Aprovo»); restaurar = grade meio erguida («Grade meio erguida»), feito pelo coordenador em `b52884a4` |
+| C | P220 botões do Dracula | `.meow-wt-arte-botoes` / `bloco/arte-botoes` | pronto: folha aprovada («Aprovo»); restaurar = grade meio erguida («Grade meio erguida»), feito pelo coordenador em `b52884a4`; APLICADO no tema real em 17/11 18:58 a partir desta árvore (queixa dela: «o morcego ficou minúsculo» na barra de título, era o desenho do P207), `--conferir` ok |
 | D | P231 vagas no pack e no criador | `.meow-wt-produto` / `bloco/produto` | retomado; já tem `3bf3632f`, `05d071ea`; Soneca `67741ed` em `../meowsystem-soneca-p231` (sem push) |
 | E | P232 Dracula na barra | `.meow-wt-arte-dracula2` / `bloco/arte-dracula2` | conferido (`7b320a63`, `c3dded60`, `feb47b6d`); escolhas: corrente, AMPULHETA, Soneca e notificação aprovadas; agente retomado põe a ampulheta no lugar com os níveis legíveis e leva as variantes para `icones/biblioteca/` |
 | F | P233 arte do MeowSystem | `.meow-wt-arte-meow` / `bloco/arte-meow` | pronto (`b2aaa8a7`, `2ac2d2cc`, `7d758965`); escolhas: arranhão, novelo, peixe; Wi-Fi reforçado («Reforçar os níveis») |
