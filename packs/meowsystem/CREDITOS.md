@@ -108,6 +108,19 @@ Este é o arquivo da procedência deste pack (o `LEIA-ME.md` diz). Um
 pack sincronizar catppuccin` lê a tabela de arte copiada dele e recusa um
 `PROCEDENCIA.md` sem ela.
 
+## Os papéis de parede desenhados — `wallpapers/pares/`
+
+Três cenas em par dia e noite, desenho deste projeto (P234, 17/11/2026), feitas em código, sem bitmap embutido, nas
+cores da `paleta.json`: `latte` de dia, `mocha` de noite. O par de uma cena tem a mesma composição; muda a luz. As
+fotos do acervo continuam em `wallpapers/CREDITOS.md`; o `sha256` de cada desenho está no
+[`PROCEDENCIA.md`](PROCEDENCIA.md).
+
+| cena | dia | noite | pack | licença | data |
+|---|---|---|---|---|---|
+| telhados: gato no telhado, sol e varal de dia, lua e janelas acesas de noite | `wallpapers/pares/telhados-dia.svg` | `wallpapers/pares/telhados-noite.svg` | MeowSystem | GPL-3.0-or-later | 2026-11-17 |
+| janela: gato de costas no parapeito, vaso e céu de dia, estrelas e reflexo de noite | `wallpapers/pares/janela-dia.svg` | `wallpapers/pares/janela-noite.svg` | MeowSystem | GPL-3.0-or-later | 2026-11-17 |
+| patinhas e novelos, em padrão | `wallpapers/pares/patinhas-dia.svg` | `wallpapers/pares/patinhas-noite.svg` | MeowSystem | GPL-3.0-or-later | 2026-11-17 |
+
 ## O que NÃO é deste pack, e mora em `assets/`
 
 A fronteira é de dono, não de assunto. O `assets/paleta/cosmic-map.json` é

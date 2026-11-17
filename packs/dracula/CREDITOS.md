@@ -61,6 +61,22 @@ Desenho próprio deste projeto, um por pasta XDG, feitos sobre a silhueta da
 pasta base em 16/09/2026. Existem porque o `catppuccin/vscode-icons` cobre os
 quatro sabores do Catppuccin e nada além: não existe um `catppuccin/dracula`.
 
+## Os papéis de parede — `wallpapers/`
+
+Os treze desenhos do tulip-orchid (`catedral/`, `cemiterio/`, `noite/`, `ornamento/`) moram no pack desde a P74
+(09/10/2026), sob a MIT do `wallpapers/LICENSE`; o repositório nomeado pelas chaves `WALLPAPER_DRACULA_REPO` e
+`WALLPAPER_DRACULA_COMMIT` do `meow.conf` continua valendo para quem o declara.
+
+As três cenas em par dia e noite de `wallpapers/pares/` são desenho deste projeto (P234, 17/11/2026), feitas em
+código, sem bitmap embutido, nas cores da `paleta.json`: `alucard` de dia, `dracula` de noite. O par de uma cena tem a
+mesma composição; muda a luz. O `sha256` de cada arquivo está no [`PROCEDENCIA.md`](PROCEDENCIA.md).
+
+| cena | dia | noite | pack | licença | data |
+|---|---|---|---|---|---|
+| catedral: vitral aceso de dia, velas na nave de noite | `wallpapers/pares/catedral-dia.svg` | `wallpapers/pares/catedral-noite.svg` | Dracula | GPL-3.0-or-later | 2026-11-17 |
+| castelo na colina, com a ponte e a grade levadiça: céu nublado lilás de dia, lua cheia e morcegos de noite | `wallpapers/pares/castelo-dia.svg` | `wallpapers/pares/castelo-noite.svg` | Dracula | GPL-3.0-or-later | 2026-11-17 |
+| campo-santo: névoa clara e corvo pousado de dia, névoa roxa e portão aberto de noite | `wallpapers/pares/camposanto-dia.svg` | `wallpapers/pares/camposanto-noite.svg` | Dracula | GPL-3.0-or-later | 2026-11-17 |
+
 ## O que este pack NÃO traz, e de quem herda
 
 Até 24/09/2026 este parágrafo dizia que o pack era "uma paleta e dois acervos
@@ -79,7 +95,6 @@ que imprime a herança linha a linha, o que o pack não traz é isto:
 | mapa do COSMIC | `catppuccin` — `cosmic.mapa` é `null`: vale o molde inteiro, e só o nome da paleta muda |
 | tema do qBittorrent | `catppuccin` — o `dracula.qbtheme` não tem procedência, e o `_nota_qbittorrent` do `pack.json` conta por que não entrou |
 | fontes | a herança manda buscar no `catppuccin`, que não traz nenhuma: vale a Nerd Font do motor |
-| papéis de parede | um repositório nomeado pelas chaves `WALLPAPER_DRACULA_REPO` e `WALLPAPER_DRACULA_COMMIT` do `meow.conf` — nomear a conta de uma pessoa num arquivo versionado é o que se evita aqui |
 | prompt, fastfetch, mascotes | o motor (`assets/`), igual para todo pack — o formato ainda não tem campo para eles |
 
 ## Licença
