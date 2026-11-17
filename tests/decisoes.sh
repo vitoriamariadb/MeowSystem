@@ -544,6 +544,7 @@ registro 55 'entra sem clique' && ! grep -q 'retido\|liberar' "$RAIZ/scripts/com
   || falha "P100: voltou patch opt na série, ou o uniform leitura_temp de neutro 1.0"
 registro 57 'a interface é soberana' && ! grep -q 'motivoIndisponivel\|disabled: !!motivo' "$RAIZ/app/pagina/app.js" \
   && ! grep -q 'desligado' "$RAIZ/app/pagina/app.js" \
+  && ! grep -q 'aria-disabled' "$RAIZ"/app/pagina/*.js \
   && grep -q 'completarModoQueFazValer' "$RAIZ/app/pagina/app.js" \
   && ok "57: a interface é soberana: nenhum controle desliga com dica de porquê, e o gesto liga o modo" \
   || falha "57: voltou o controle desligado com dica de porquê"

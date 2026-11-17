@@ -389,8 +389,8 @@ def main():
                   "o compositor e o menu do Arquivos têm cartão")
             checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Pronto, desligado"),
                   f"build pronto com o shim desligado: «{pilula_de_build(pag, 'compositor')}»")
-            checa(botoes_de_build(pag, "compositor") == ["Instalar", "Atualizar (parado)", "Recompilar", "Remover Compositor (parado)"],
-                  f"o cartão do compositor tem os quatro botões ({botoes_de_build(pag, 'compositor')})")
+            checa(botoes_de_build(pag, "compositor") == ["Instalar", "Recompilar"],
+                  f"o cartão do compositor só mostra o que vale agora ({botoes_de_build(pag, 'compositor')})")
             checa("cosmic-comp 0.1~t" in cartao_de_build(pag, "compositor").inner_text()
                   and re.search(r"\b\d+ patches", cartao_de_build(pag, "compositor").inner_text()), "e diz a versão e os patches")
             checa(eventual(lambda: pilula_de_build(pag, "menu-arquivos") == "Não instalada"),
@@ -402,8 +402,8 @@ def main():
             checa(eventual(lambda: pilula_de_build(pag, "graficos") == "Não instalada")
                   and "portal 1.0~t" in cartao_de_build(pag, "graficos").inner_text(),
                   f"o portal sem build: «{pilula_de_build(pag, 'graficos')}», com a versão do pacote")
-            checa(botoes_de_build(pag, "graficos") == ["Instalar", "Atualizar (parado)", "Recompilar", "Remover Compartilhar tela (parado)"],
-                  f"e tem os quatro botões do cartão de build ({botoes_de_build(pag, 'graficos')})")
+            checa(botoes_de_build(pag, "graficos") == ["Instalar", "Recompilar"],
+                  f"e só mostra o que vale agora ({botoes_de_build(pag, 'graficos')})")
             foto("extensoes-builds-desligado")
             cartao_de_build(pag, "compositor").get_by_role("button", name="Instalar").click()
             estado = fim_do_trabalho(pag)
@@ -434,7 +434,7 @@ def main():
             pag.evaluate("() => { EXT.quando = 0; render(); }")
             checa(eventual(lambda: pilula_de_build(pag, "compositor") == "Atualização"),
                   f"versão nova do pacote com o build velho guardado: «{pilula_de_build(pag, 'compositor')}»")
-            checa(botoes_de_build(pag, "compositor") == ["Instalar (parado)", "Atualizar", "Recompilar", "Remover Compositor"],
+            checa(botoes_de_build(pag, "compositor") == ["Atualizar", "Recompilar", "Remover Compositor"],
                   f"e oferece Atualizar e Remover, com o shim de pé ({botoes_de_build(pag, 'compositor')})")
             shutil.rmtree(velho)
             os.remove(SHIM)

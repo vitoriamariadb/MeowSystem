@@ -281,11 +281,14 @@ function voltarAoDeFabrica(item) {
 function escolher(chave, valor) {
   const item = CHAVE.get(chave);
   if (!item) return false;
-  if (String(valor) === String(valorEmVigor(item))) return true;
-  const lote = { [chave]: String(valor) };
-  completarParDaNoite(lote, chave, valor);
+  const lote = {};
   completarModoQueFazValer(lote, item);
-  if (ESQUEMA.mesmo_horario && (ESQUEMA.horario_das_areas || []).some((a) => a.chaves.includes(chave))) {
+  if (String(valor) !== String(valorEmVigor(item))) {
+    lote[chave] = String(valor);
+    completarParDaNoite(lote, chave, valor);
+  }
+  if (!Object.keys(lote).length) return true;
+  if (lote[chave] !== undefined && ESQUEMA.mesmo_horario && (ESQUEMA.horario_das_areas || []).some((a) => a.chaves.includes(chave))) {
     desligarMesmoHorario().then(() => gravarAgora(lote));
     return true;
   }
@@ -910,7 +913,7 @@ function controleDeAcao(acao, texto, classe = "pequeno") {
     for (const o of acao.opcoes) escolha.append(elemento("option", { value: o, texto: rotuloDeValor(o) }));
     partes.push(escolha);
   }
-  if (acao.arg && !escolha) return [];
+  if ((acao.arg && !escolha) || (acao.indisponivel && acao.indisponivel.feito)) return [];
   partes.push(botao(texto || maiuscula(acao.rotulo), {
     class: "bt " + classe + (acao.destrutivo ? " perigo" : ""),
     controle: "acao:" + acao.id, dica: primeiraFrase(acao.ajuda),
@@ -924,10 +927,11 @@ function controleDeAcao(acao, texto, classe = "pequeno") {
 }
 function linhaDeAcao(l) {
   const acao = ACAO.get(l.a);
-  if (!acao || (acao.indisponivel && acao.indisponivel.feito)) return null;
+  const partes = acao ? controleDeAcao(acao, l.b) : [];
+  if (!partes.length) return null;
   return elemento("li", { class: "linha", "data-linha": acao.id }, [
     elemento("div", { class: "rot" }, [l.r ? elemento("span", { texto: l.r, dica: primeiraFrase(acao.ajuda) }) : null]),
-    elemento("div", { class: "ctl" }, controleDeAcao(acao, l.b)),
+    elemento("div", { class: "ctl" }, partes),
   ]);
 }
 function linha(l) {
@@ -1047,8 +1051,8 @@ async function rodar(acao, argumento = "", opcoes = {}) {
   }
   const falta = acao.indisponivel || {};
   if (falta.pede && falta.chave && CHAVE.has(falta.chave)) {
-    await gravarAgora({ [falta.chave]: String(falta.pede) });
-    await FILA_DE_GRAVACAO;
+    if (!(await gravarAgora({ [falta.chave]: String(falta.pede) }))) return null;
+    for (let n = 0; n < 4800 && (EM_VOO || ACOMPANHANDO); n++) await new Promise((ok) => setTimeout(ok, 250));
   }
   if (falta.antes && ACAO.has(falta.antes)) {
     const previo = await rodar(ACAO.get(falta.antes), "", { semPerguntar: true });

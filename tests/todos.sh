@@ -177,6 +177,7 @@ SEM_PULO=(
   resultado-na-linha.py
   faixa-de-fabrica.py
   logo-do-pack-pessoal-pagina.py
+  soberana-pagina.py
 )
 
 MODO="tudo"

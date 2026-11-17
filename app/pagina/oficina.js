@@ -69,9 +69,9 @@ function escolhaDeIcone(app, recarregar) {
   let cor = (app.traco && app.traco.cor) || (app.mapa && app.mapa.cor) || "mauve";
   const chaveDe = (g) => `${g.grupo}|${g.glifo}`;
   const travaDe = (g) => g.trava || (g.tipo === "traco" ? app.trava : app.trava_pack) || "";
-  const itens = GLIFOS.app === app.id ? GLIFOS.itens : [];
+  const itens = (GLIFOS.app === app.id ? GLIFOS.itens : []).filter((g) => !travaDe(g));
   if (GLIFOS.escolhido === undefined && GLIFOS.app === app.id && !GLIFOS.carregando) {
-    const minha = GLIFOS.minha && itens.find((g) => g.arquivo === GLIFOS.minha.arquivo && !travaDe(g));
+    const minha = GLIFOS.minha && itens.find((g) => g.arquivo === GLIFOS.minha.arquivo);
     const vestido = app.mapa && itens.find((g) => g.tipo === "traco" && g.glifo === app.mapa.glifo);
     GLIFOS.escolhido = minha ? chaveDe(minha) : vestido ? chaveDe(vestido) : null;
   }
@@ -83,10 +83,9 @@ function escolhaDeIcone(app, recarregar) {
 
   const tira = elemento("div", { class: "tira-glifos" });
   const botaoDe = (g) => elemento("button", {
-    type: "button", class: travaDe(g) ? "travado" : null, controle: travaDe(g) ? "icone:travado" : "icone:desenho",
-    "aria-pressed": String(chaveDe(g) === GLIFOS.escolhido), "aria-disabled": travaDe(g) ? "true" : null,
-    dica: travaDe(g) ? maiuscula(travaDe(g)) : maiuscula(g.glifo),
-    onclick: () => { if (travaDe(g)) return; GLIFOS.escolhido = chaveDe(g); render(); },
+    type: "button", controle: "icone:desenho",
+    "aria-pressed": String(chaveDe(g) === GLIFOS.escolhido), dica: maiuscula(g.glifo),
+    onclick: () => { GLIFOS.escolhido = chaveDe(g); render(); },
   }, [elemento("img", { src: g.url + "&tinta=texto", alt: "", loading: "lazy" }), elemento("span", { texto: maiuscula(g.rotulo || g.glifo) })]);
   const sugeridos = itens.filter((g) => g.sugerido);
   if (sugeridos.length) {
@@ -118,14 +117,11 @@ function escolhaDeIcone(app, recarregar) {
   cores.hidden = !(g && g.tipo === "traco");
 
   const botoes = [];
-  const algumLivre = itens.some((x) => !travaDe(x));
-  const motivoGeral = !algumLivre && itens.length ? maiuscula(travaDe(itens[0])) : "";
-  const usar = botao("Usar", { class: "bt principal", controle: "icone:usar",
-      disabled: !g || !!travaDe(g), "aria-disabled": !g || travaDe(g) ? "true" : null,
-      dica: !g ? "Escolha um desenho" : travaDe(g) ? maiuscula(travaDe(g)) : "Usar este desenho neste app",
+  const usar = botao("Usar", { class: "bt principal", controle: "icone:usar", hidden: !g,
+      dica: "Usar este desenho neste app",
       onclick: async () => {
       const x = escolhido();
-      if (!x) { torrada("Escolha um desenho", "erro"); return; }
+      if (!x) return;
       const corpo = x.tipo !== "traco" ? { app: app.id, arquivo: x.arquivo }
         : { app: app.id, glifo: x.glifo, arquivo: x.arquivo, cor };
       const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify(corpo) });
@@ -150,9 +146,9 @@ function escolhaDeIcone(app, recarregar) {
         if (r.erro) { torrada(r.erro, "erro"); return; }
         await depoisDoIcone(app, "icones_pack", recarregar);
       } }));
-    if (minha.pack && minha.desenho) {
+    if (minha.pack && minha.desenho && !GLIFOS.aviso) {
       botoes.push(botao("Levar para o tema", { class: "bt pequeno", controle: "icone:levar",
-        disabled: !!GLIFOS.aviso, dica: GLIFOS.aviso ? maiuscula(GLIFOS.aviso) : "Vale em toda máquina com este tema",
+        dica: "Vale em toda máquina com este tema",
         onclick: async () => {
           const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify({ app: app.id, pack: minha.pack, desenho: minha.desenho, aprimorar: ROTA.porta === "criar" }) });
           if (r.erro) { torrada(r.erro, "erro"); return; }
@@ -195,7 +191,7 @@ function escolhaDeIcone(app, recarregar) {
     painel.append(cabecalho,
       elemento("div", { class: "desenho-corpo" }, [olho, elemento("div", { class: "desenho-mao", "data-fonte-corpo": "acervo" }, [
         elemento("div", { class: "fila", style: "justify-content:flex-end" }, [busca]), tira, cores])]),
-      elemento("footer", { class: "desenho-pe" }, [motivoGeral ? elemento("span", { class: "oficina-erro", texto: motivoGeral }) : null, ...botoes, usar]));
+      elemento("footer", { class: "desenho-pe" }, [...botoes, usar]));
   } else {
     painel.append(cabecalho, oficinaDeDesenho(app, recarregar));
   }
@@ -369,8 +365,7 @@ function oficinaDeDesenho(app, relerLista) {
   function cartaoDe(v, fig, aoClicar) {
     return elemento("button", { type: "button", class: "oficina-cartao", controle: "oficina:variacao", "data-src": v.id,
       "data-salvo": v.id === "guardado" || v.id === "salvo" ? "" : null,
-      "aria-pressed": String(OFICINA.escolhida === v.id), disabled: !!v.erro, dica: v.erro ? maiuscula(v.erro) : null,
-      onclick: aoClicar }, [fig || elemento("span", { class: "oficina-lugar" }), elemento("span", { texto: maiuscula(v.rotulo) })]);
+      "aria-pressed": String(OFICINA.escolhida === v.id), onclick: aoClicar }, [fig || elemento("span", { class: "oficina-lugar" }), elemento("span", { texto: maiuscula(v.rotulo) })]);
   }
   function pintarFolha() {
     partida.replaceChildren();
@@ -397,8 +392,8 @@ function oficinaDeDesenho(app, relerLista) {
     if (!OFICINA.variacoes.length && OFICINA.ocupada) {
       for (let i = 0; i < 4; i++) grade.append(elemento("span", { class: "oficina-cartao" }, [elemento("span", { class: "oficina-lugar" })]));
     }
-    for (const v of OFICINA.variacoes) {
-      const fig = v.erro ? null : circulo ? desenharArte(v.svg, 56) : desenhar(v.svg, 56, OFICINA.cor);
+    for (const v of OFICINA.variacoes.filter((x) => !x.erro)) {
+      const fig = circulo ? desenharArte(v.svg, 56) : desenhar(v.svg, 56, OFICINA.cor);
       grade.append(cartaoDe(v, fig, () => escolherCartao(v)));
     }
     secaoVariacoes.append(titulo, grade);
@@ -422,10 +417,10 @@ function oficinaDeDesenho(app, relerLista) {
   }
   function pintarEditor() {
     editor.replaceChildren();
-    if (!OFICINA.editor || !OFICINA.editor.tem) return;
+    if (!OFICINA.editor || !OFICINA.editor.tem || !String(OFICINA.svg || "").trim() || OFICINA.dopack) return;
     editor.append(
       botao(OFICINA.editor.nome ? `Abrir no ${OFICINA.editor.nome}` : "Abrir no editor", { class: "bt leve pequeno",
-        controle: "oficina:editor", disabled: !String(OFICINA.svg || "").trim() || OFICINA.dopack, onclick: abrirNoEditor }));
+        controle: "oficina:editor", onclick: abrirNoEditor }));
   }
   function pintarPe() {
     const tem = !!(OFICINA.noPack && OFICINA.noPack.tem);
@@ -435,9 +430,10 @@ function oficinaDeDesenho(app, relerLista) {
   }
   function pintarTudo() {
     pintarFolha(); pintarAjuste(); pintarDock(); pintarLupa(); pintarEditor(); pintarPe();
-    usar.disabled = !String(OFICINA.svg || "").trim() || OFICINA.ocupada || OFICINA.dopack;
-    desfazer.disabled = !OFICINA.historico.length;
-    refazer.disabled = !OFICINA.refazer.length;
+    usar.hidden = !String(OFICINA.svg || "").trim() || OFICINA.dopack;
+    usar.disabled = OFICINA.ocupada;
+    desfazer.hidden = !OFICINA.historico.length;
+    refazer.hidden = !OFICINA.refazer.length;
     if (area.value !== OFICINA.svg) area.value = OFICINA.svg;
   }
   redesenharOficina = pintarTudo;
@@ -574,9 +570,9 @@ function oficinaAutoral() {
   const caixa = elemento("section", { class: "autoral", "data-linha": "autorais" });
   caixa.append(elemento("h3", { texto: "Desenhos do tema" }));
   const escolha = elemento("div", { class: "fila", role: "group", "aria-label": "Desenho" });
-  for (const d of AUTORAL.desenhos) {
+  for (const d of AUTORAL.desenhos.filter((x) => !x.erro)) {
     escolha.append(botao(maiuscula(d.nome), { class: "bt pequeno", controle: "autoral:desenho",
-      "aria-pressed": String(AUTORAL.nome === d.nome), disabled: !!d.erro,
+      "aria-pressed": String(AUTORAL.nome === d.nome),
       dica: d.herdado ? `Herdado do ${d.nome_origem || d.pack}` : null,
       onclick: () => {
         AUTORAL.nome = d.nome;
@@ -615,7 +611,7 @@ function oficinaAutoral() {
   }
   if (AUTORAL.erro) caixa.append(elemento("span", { class: "oficina-erro", role: "img", "aria-label": maiuscula(AUTORAL.erro), dica: maiuscula(AUTORAL.erro) }, [icone("alerta")]));
   caixa.append(elemento("div", { class: "fila" }, [botao("Salvar no tema", { class: "bt pequeno principal", controle: "autoral:salvar",
-    disabled: !AUTORAL.nome || AUTORAL.ocupada, onclick: async () => {
+    hidden: !AUTORAL.nome, disabled: AUTORAL.ocupada, onclick: async () => {
       AUTORAL.ocupada = true;
       const r = await api("/api/autorais", { method: "POST", body: JSON.stringify({ acao: "salvar", nome: AUTORAL.nome, papeis: AUTORAL.papeis, aprimorar: ROTA.porta === "criar" }) });
       AUTORAL.ocupada = false;

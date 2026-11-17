@@ -1182,9 +1182,8 @@ class Percurso:
 
     def acionar(self, nome, item):
         m = molde(nome)
-        if item["desabilitado"] and not nome.startswith("acao:") and nome != "criar:guardar":
-            self.checa(bool(item["dica"]) and item["dica"][0].isupper(),
-                       f"o controle apagado «{nome}» diz o porquê na dica ({item['dica']!r})")
+        if item["desabilitado"]:
+            self.checa(False, f"«{nome}» está à vista e apagado ({item['dica']!r}): controle visível sempre funciona")
             self.acionados.add(m)
             return
         if nome == "som:trocar":
@@ -1460,7 +1459,7 @@ class Percurso:
             && !semCartao(l) && !soNoCartao(l))
             .map((l) => ({ tipo: l.tipo, id: l.id,
               existe: l.tipo === 'chave' ? CHAVE.has(l.id) && !CHAVE.get(l.id).sem_programa
-                    : l.tipo === 'acao' ? ACAO.has(l.id) : true }));
+                    : l.tipo === 'acao' ? ACAO.has(l.id) && controleDeAcao(ACAO.get(l.id), '').length > 0 : true }));
         }""", [porta, sub])
         saida = []
         for l in lista:

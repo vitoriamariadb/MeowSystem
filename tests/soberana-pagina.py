@@ -65,9 +65,22 @@ def esperar_conf(chave, quer, teto=20):
     return False
 
 
+MOTIVOS = ("Vale com", "Sem efeito agora", "Nada para", "Segue o horário", "Guarde o tema", "Pouco contraste",
+           "Escolha um desenho", "Dê um nome", "build em curso", "não traz este som", "só vale com")
+
+
 def nada_desligado(pag, onde):
     achados = pag.evaluate("(s) => [...document.querySelectorAll(s)].map((e) => e.getAttribute('data-controle') || e.className)", DESLIGADOS)
     confere(not achados, f"{onde}: nenhum controle desligado nem cinza", achados)
+    dicas = pag.evaluate("(m) => [...document.querySelectorAll('#conteudo [data-dica]')].map((e) => e.dataset.dica)"
+                         ".filter((d) => m.some((x) => d.includes(x)))", list(MOTIVOS))
+    confere(not dicas, f"{onde}: nenhuma dica diz o porquê de um bloqueio", dicas)
+
+
+def todas_as_paginas(pag):
+    for rota in casa.ROTAS + ["novo/icones", "novo/sons", "extensoes", "extensoes/builds", "extensoes/espaco"]:
+        ir(pag, rota)
+        nada_desligado(pag, rota)
 
 
 def mascote(pag):
@@ -84,6 +97,13 @@ def mascote(pag):
     pag.locator('[data-controle="chave:FASTFETCH_LOGO_GATO=mimir"]').click()
     confere(esperar_conf("FASTFETCH_LOGO_MODO", "fixo"),
             "escolher em «Fixo» grava «Sempre o mesmo» em «Qual mascote»", casa.valor_de("FASTFETCH_LOGO_MODO"))
+    conf_com(FASTFETCH_LOGO_MODO="espelho", FASTFETCH_LOGO_GATO="mimir")
+    pag.reload(wait_until="commit")
+    esperar(pag, 800)
+    ir(pag, "ajustes/mascote")
+    pag.locator('[data-controle="chave:FASTFETCH_LOGO_GATO=mimir"]').click()
+    confere(esperar_conf("FASTFETCH_LOGO_MODO", "fixo"),
+            "clicar de novo no mascote que já está em «Fixo» também liga «Sempre o mesmo»", casa.valor_de("FASTFETCH_LOGO_MODO"))
 
 
 def areas(pag):
@@ -110,6 +130,7 @@ def main():
             esperar(pag, 800)
             mascote(pag)
             areas(pag)
+            todas_as_paginas(pag)
             confere(not erros, "nenhum erro de página nem diálogo nativo", erros)
             nav.close()
     finally:

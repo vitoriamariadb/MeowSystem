@@ -205,20 +205,18 @@ def com_checkout(nav, url):
 
 def sem_checkout(nav, url):
     pag, erros = abrir(nav, url)
-    print("== sem .git na raiz, o tema de fábrica não se aprimora, e o botão diz o porquê")
+    print("== sem .git na raiz, o tema de fábrica não se aprimora, e o botão que não vale não aparece")
     ir(pag, "criar/cores")
     no_ar = pag.evaluate("() => ({ id: packNoAr().id, flavor: rascunho().base.flavor })")
     paleta = os.path.join(casa.RAIZ_B, "packs", no_ar["id"], "paleta.json")
     tom_antes = tom(paleta, no_ar["flavor"], "mauve")
     trocar_cor(pag, "mauve", "#0A0B0C")
     b = pag.locator('[data-controle="criar:guardar"]')
-    checa(b.get_attribute("aria-disabled") == "true" and "checkout" in (b.get_attribute("data-dica") or ""),
-          f"«Guardar» apagado, com o porquê na dica ({b.get_attribute('data-dica')!r})")
+    checa(b.count() == 0, "«Guardar» não aparece, em vez de apagado com o porquê na dica")
     foto(pag, "aprimorar-sem-checkout")
     ir(pag, "criar/mandar")
     a = pag.locator('[data-controle="criar:aprimorar"]')
-    checa(a.get_attribute("aria-disabled") == "true" and "checkout" in (a.get_attribute("data-dica") or ""),
-          f"«Salvar no tema» apagado, com o porquê na dica ({a.get_attribute('data-dica')!r})")
+    checa(a.count() == 0, "«Salvar no tema» não aparece, em vez de apagado com o porquê na dica")
     resp = pag.evaluate("([id, f]) => api('/api/pack-cores', { method: 'POST', body: JSON.stringify({ id, flavor: f, cores: { mauve: '#0A0B0C' } }) })",
                         [no_ar["id"], no_ar["flavor"]])
     checa("checkout" in (resp.get("erro") or "") and tom(paleta, no_ar["flavor"], "mauve") == tom_antes,

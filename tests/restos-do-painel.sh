@@ -184,21 +184,21 @@ const porControle = (painel, nome) => painel.todos().filter((e) => e.dataset.con
   checa(agora.termo === "chro" && agora.itens.join() === "da-busca-chro",
         "a resposta da busca velha, chegando depois, não pinta a lista da busca de agora", JSON.stringify(agora));
 
-  // --- a trava é estado, e não sumiço -------------------------------------------
+  // --- a trava tira o desenho da ficha, sem nada apagado ------------------------
   zerar(); glifos();
   const trava = "chrome de brinquedo já tem desenho convertido do projeto.";
   painel = ficha(aplicativo({ trava }));
-  let apagados = porControle(painel, "icone:travado");
-  checa(apagados.length === 1 && porControle(painel, "icone:desenho").length === 1 && porControle(painel, "icone:usar").length === 1,
-        "com a trava do traço, o pack e o «Usar» ficam, e o traço fica apagado na pasta dele");
-  checa(apagados.every((b) => b.getAttribute("aria-disabled") === "true" && b.dataset.dica === "Chrome de brinquedo já tem desenho convertido do projeto."),
-        "o desenho apagado diz que não vale (aria-disabled), e o porquê vai para a dica com maiúscula");
+  checa(porControle(painel, "icone:travado").length === 0 && porControle(painel, "icone:desenho").length === 1
+        && porControle(painel, "icone:usar").length === 1,
+        "com a trava do traço, o traço sai da ficha e o desenho do pack fica");
+  checa(!painel.todos().some((b) => b.getAttribute("aria-disabled") === "true" || b.disabled),
+        "e nada fica apagado na ficha");
   painel = ficha(aplicativo({ trava, trava_pack: "o ícone é decidido por outro passo." }));
   const usarTravado = porControle(painel, "icone:usar")[0];
-  checa(porControle(painel, "icone:travado").length === 2 && usarTravado && usarTravado.getAttribute("aria-disabled") === "true",
-        "com as duas travas, tudo fica apagado e o «Usar» fica à vista, desabilitado");
-  checa(painel.textContent.includes("O ícone é decidido por outro passo."),
-        "e o porquê aparece escrito no rodapé da ficha, não só na dica");
+  checa(porControle(painel, "icone:desenho").length === 0 && usarTravado && usarTravado.getAttribute("hidden") !== null,
+        "com as duas travas, nenhum desenho aparece, e o «Usar» também não");
+  checa(!painel.textContent.includes("O ícone é decidido por outro passo."),
+        "e o porquê não vira texto no rodapé da ficha");
 
   // --- o desfazer da escolha no pack -------------------------------------------
   zerar();

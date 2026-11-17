@@ -45,10 +45,10 @@ function cabecaDoEspaco(d) {
   const parado = nada || d.ocupado;
   const preco = nada ? null : elemento("span", { class: "preco", "data-preco": true,
     texto: tamanhoEmTexto(d.liberavel) + (d.refazer ? " · recompila em ~" + d.refazer + " min" : "") });
-  const liberar = botao("Apagar arquivos recriáveis", { class: "bt principal", icone: "lixo", disabled: parado,
+  const liberar = parado ? null : botao("Apagar arquivos recriáveis", { class: "bt principal", icone: "lixo",
     controle: "espaco:liberar", onclick: () => rodar(ACAO.get("espaco_liberar"), "", { verbo: "Apagar arquivos recriáveis",
       depois: () => { ESP.quando = 0; carregarEspaco(); } }) }, [preco]);
-  const dica = d.ocupado ? "Há um build em curso" : nada ? "Nada para liberar"
+  const dica = parado ? null
     : "Tira o que o MeowSystem reconstrói sozinho. O próximo build compila de novo, e leva ~" + d.refazer + " min.";
   return elemento("section", { class: "bloco espaco-cabeca", "data-bloco": "Espaço" }, [
     elemento("div", { class: "espaco-total" }, [

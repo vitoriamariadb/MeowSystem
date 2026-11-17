@@ -192,8 +192,7 @@ function menuDoCartao(c) {
   const pontos = [icone("pontos")];
   const rotulo = "Opções de " + nomeDoCartao(c);
   if (!corpo.length) {
-    return elemento("button", { type: "button", class: "bt leve pequeno so-icone", disabled: true, "aria-label": rotulo,
-      controle: "modificacao:menu:" + c.id }, pontos);
+    return elemento("span", { class: "bt leve pequeno so-icone menu-vazio", style: "visibility:hidden", "aria-hidden": "true" });
   }
   const d = elemento("details", { class: "menu menu-mod", open: MOD.menu === c.id }, [
     elemento("summary", { class: "bt leve pequeno so-icone", "aria-label": rotulo, controle: "modificacao:menu:" + c.id,

@@ -515,6 +515,7 @@ function trocarDesenhoDoTema(pasta, nome) {
   campo.addEventListener("change", async () => {
     const arq = campo.files && campo.files[0];
     if (!arq) return;
+    if (!rascunho().pack && !(await garantirPack())) return;
     const id = rascunho().pack;
     const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo: pasta, nome, levar: true,
       aprimorar: !emNovo(), conteudo: await lerComoBase64(arq) }) });
@@ -545,11 +546,12 @@ function fichaDoDesenho(pasta, alvo) {
     dock.replaceChildren(...[48, 32, 22].map((px) => elemento("img", { src: url, alt: "", width: String(px), height: String(px) })));
   };
   pintar((escolhido || alvo).url);
-  const usar = botao("Usar", { class: "bt principal", controle: "trocar:usar", disabled: !escolhido,
-    "aria-disabled": escolhido ? null : "true", dica: escolhido ? "Usar este desenho neste ícone" : "Escolha um desenho",
+  const usar = botao("Usar", { class: "bt principal", controle: "trocar:usar", hidden: !escolhido,
+    dica: "Usar este desenho neste ícone",
     onclick: async () => {
       const x = itens.find((i) => chave(i) === DESENHO_ESCOLHIDO);
       if (!x) return;
+      if (!rascunho().pack && !(await garantirPack())) return;
       const id = rascunho().pack;
       const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo: pasta, nome: alvo.nome, levar: true,
         aprimorar: !emNovo(), de: x.levado ? id : x.de, origem: x.nome, origem_pasta: x.pasta }) });
@@ -564,9 +566,7 @@ function fichaDoDesenho(pasta, alvo) {
     DESENHO_ESCOLHIDO = chave(i);
     for (const x of tira.querySelectorAll('[data-controle="trocar:opcao"]')) x.setAttribute("aria-pressed", String(x === b));
     pintar(i.url);
-    usar.disabled = false;
-    usar.removeAttribute("aria-disabled");
-    usar.dataset.dica = "Usar este desenho neste ícone";
+    usar.hidden = false;
   };
   const botaoDe = (i) => {
     const b = elemento("button", { type: "button", controle: "trocar:opcao", "data-nome": i.nome, "data-pasta": i.pasta,
@@ -619,15 +619,15 @@ function gradeDoAcervo(pasta, grupo) {
     grade.style.setProperty("--linha-previa", paleta.surface1 || paleta.overlay0 || paleta.text);
   }
   const pack = rascunho().pack && PACKS.find((x) => x.id === rascunho().pack);
-  const semTrocar = !pack ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
+  const semTrocar = (!emNovo() && motivoDoAprimorar()) || "";
   for (const i of itens) {
-    const trava = semTrocar || (i.trava ? maiuscula(i.trava) : "");
     const miolo = [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })];
-    const cartao = elemento("button", { type: "button", class: "app", "data-nome": i.nome, controle: "trocar:desenho",
-      "data-levado": i.levado ? "" : null, dica: trava || "Trocar este ícone",
-      disabled: !!trava, "aria-disabled": trava ? "true" : null,
-      onclick: () => { DESENHO_ABERTO = { pasta, nome: i.nome }; DESENHO_ESCOLHIDO = null; render(); } }, miolo);
-    if (i.levado && !semTrocar) {
+    const cartao = semTrocar || i.trava
+      ? elemento("div", { class: "app", "data-nome": i.nome, "data-levado": i.levado ? "" : null }, miolo)
+      : elemento("button", { type: "button", class: "app", "data-nome": i.nome, controle: "trocar:desenho",
+        "data-levado": i.levado ? "" : null, dica: "Trocar este ícone",
+        onclick: () => { DESENHO_ABERTO = { pasta, nome: i.nome }; DESENHO_ESCOLHIDO = null; render(); } }, miolo);
+    if (i.levado && pack && !semTrocar) {
       cartao.append(elemento("span", { class: "estado-pilula", "data-estado": "ok", texto: "Trocado" }));
     }
     const outro = fundoDoCartao(i.cores, paleta);
@@ -709,17 +709,17 @@ function packDoRascunho() {
   return pack;
 }
 async function levarParaOTema(tipo, nome, levar, extra = {}) {
+  if (!rascunho().pack && !(await garantirPack())) return false;
   const id = rascunho().pack;
   const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo, nome, levar, aprimorar: !emNovo(), ...extra }) });
   if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return false; }
   await carregarLeva(id);
   return true;
 }
-function botaoFotoDoTema(pack) {
+function botaoFotoDoTema() {
   const campo = elemento("input", { type: "file", accept: ACERVO_ACEITA.parede, hidden: true, multiple: true });
-  const sem = pack ? "" : "Guarde o tema em Cores";
   const b = botao("Trazer imagens", { class: "bt pequeno", icone: "subir", controle: "acervo:parede",
-    disabled: !!sem, "aria-disabled": sem ? "true" : null, dica: sem || null, onclick: () => campo.click() });
+    onclick: () => campo.click() });
   campo.addEventListener("change", async () => {
     const arquivos = [...(campo.files || [])];
     campo.value = "";
@@ -752,7 +752,7 @@ function passoPapel() {
   if (emNovo()) {
     const pack = packDoRascunho();
     return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [galeriaDoTemaNovo(pack)])],
-      { direita: [botaoFotoDoTema(pack)] })];
+      { direita: [botaoFotoDoTema()] })];
   }
   return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria()])],
     { direita: [botaoAcervo("parede", "Trazer imagens")] })];
@@ -799,10 +799,9 @@ function envelopeDoSino() {
 }
 function linhaDeSom(s, pack, semTrocar) {
   const semPonte = s.ponte && !ESQUEMA.ponte;
-  const tocar = elemento("button", { type: "button", class: "p", "aria-label": "Ouvir " + s.nome.toLowerCase(),
-    dica: s.origem === "pack" ? "Ouvir" : "O pack não traz este som", controle: "som:ouvir",
-    disabled: s.origem !== "pack" || !pack, "aria-disabled": s.origem !== "pack" || !pack ? "true" : null }, [icone("tocar")]);
-  if (pack) tocar.addEventListener("click", () => ouvirSom(pack.id, s.evento, tocar));
+  const tocar = s.origem === "pack" && pack ? elemento("button", { type: "button", class: "p",
+    "aria-label": "Ouvir " + s.nome.toLowerCase(), dica: "Ouvir", controle: "som:ouvir",
+    onclick: () => ouvirSom(pack.id, s.evento, tocar) }, [icone("tocar")]) : elemento("span", { class: "p", "aria-hidden": "true" });
   const campo = trocarSom(s.evento);
   const origem = elemento("span", { class: "estado-pilula", "data-estado": s.origem === "pack" ? "ok" : "neutro",
     "data-origem": s.origem, texto: s.origem === "pack" ? "Do pack" : "Do sistema" });
@@ -810,9 +809,8 @@ function linhaDeSom(s, pack, semTrocar) {
     tocar,
     elemento("span", { class: "som-nome" }, [elemento("b", { texto: s.nome }), elemento("small", { texto: s.apelido ? `${s.quando} · ${s.apelido}` : s.quando })]),
     elemento("span", {}, [origem, semPonte ? elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem permissão de sistema" }) : null]),
-    botao("Trocar", { class: "bt leve pequeno", controle: "som:trocar", icone: "trocar",
-      dica: semTrocar || "Um .oga no lugar deste",
-      disabled: !!semTrocar, "aria-disabled": semTrocar ? "true" : null, onclick: () => campo.click() }), campo,
+    semTrocar ? elemento("span") : botao("Trocar", { class: "bt leve pequeno", controle: "som:trocar", icone: "trocar",
+      dica: "Um .oga no lugar deste", onclick: () => campo.click() }), campo,
   ]);
 }
 function sonsDoSistema() {
@@ -821,7 +819,7 @@ function sonsDoSistema() {
   if (!SONS || SONS.id !== id) carregarSons(id);
   const pronto = SONS && SONS.id === id && !SONS.carregando;
   const leitura = packNoAr() && !pack ? packNoAr() : pack;
-  const semTrocar = !pack || !LEVA || LEVA.carregando ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
+  const semTrocar = (!emNovo() && motivoDoAprimorar()) || "";
   if (!pronto) return [bloco("Nativo do COSMIC", [elemento("div", { class: "esqueleto fio" })], { class: "fora-erro" })];
   if (SONS.erro) return [bloco("Nativo do COSMIC", [elemento("div", { class: "corpo", texto: "Os sons não abriram" })])];
   const grupos = [["cosmic", "Nativo do COSMIC"], ["apps", null]];
@@ -845,17 +843,17 @@ function sonsDoSistema() {
 let SINO_NOME = "";
 let SINO_DESTINO = "audio-volume-change";
 function gravarSino() {
-  const pack = packDoRascunho();
-  const semGravar = !pack ? "Guarde o tema em Cores" : (!emNovo() && motivoDoAprimorar()) || "";
+  if (!emNovo() && motivoDoAprimorar()) return null;
   const eventos = [{ evento: "audio-volume-change", nome: "Volume" }, ...((SONS && SONS.eventos) || [])];
   const nome = elemento("input", { type: "text", class: "campo", value: SINO_NOME, maxlength: "48",
     placeholder: "Nome do som", "aria-label": "Nome do som", controle: "sino:nome" });
   const destino = elemento("select", { class: "campo", "aria-label": "Evento que toca este som", controle: "sino:evento" },
     eventos.map((e) => elemento("option", { value: e.evento, texto: e.nome, selected: e.evento === SINO_DESTINO ? "" : null })));
   const gravar = botao("Gerar Sons", { class: "bt principal", icone: "disco", controle: "sino:gravar",
-    disabled: !!semGravar || !SINO_NOME.trim(), "aria-disabled": semGravar || !SINO_NOME.trim() ? "true" : null,
-    dica: semGravar || (SINO_NOME.trim() ? "Grava o sino no tema, no evento escolhido" : "Dê um nome ao som"),
+    hidden: !SINO_NOME.trim(), dica: "Grava o sino no tema, no evento escolhido",
     onclick: async () => {
+      const pack = packDoRascunho() || await garantirPack();
+      if (!pack) return;
       const corpo = { id: pack.id, tipo: "sino", nome: SINO_NOME.trim(), evento: SINO_DESTINO, aprimorar: !emNovo(),
         timbre: Object.fromEntries(CHAVES_DO_SINO.map((c) => [c, vale(c)])) };
       const r = await api("/api/criar", { method: "POST", body: JSON.stringify(corpo) });
@@ -867,9 +865,7 @@ function gravarSino() {
     } });
   nome.addEventListener("input", () => {
     SINO_NOME = nome.value;
-    const vazio = !SINO_NOME.trim();
-    gravar.disabled = !!semGravar || vazio;
-    gravar.setAttribute("aria-disabled", String(!!semGravar || vazio));
+    gravar.hidden = !SINO_NOME.trim();
   });
   destino.addEventListener("change", () => { SINO_DESTINO = destino.value; });
   return elemento("div", { class: "corpo fila", "data-sino-gravar": "" }, [nome, destino, gravar]);
@@ -915,13 +911,9 @@ function passoMandar() {
     linhaDoResumo("Temas de apps", origemDaCategoria(base, "temas de aplicativo")),
     linhaDoResumo("Mascote", origemDaCategoria(base, "mascote")),
   ]);
-  const m = vinteSeis();
-  const pouco = contraste(m.text, m.base) < 4.5;
-  const dica = pouco ? "Pouco contraste entre texto e fundo" : null;
   if (!emNovo()) {
-    const motivo = pouco ? dica : motivoDoAprimorar();
+    if (motivoDoAprimorar()) return [bloco(r.nome, [resumo])];
     const aprimorar = botao("Salvar no tema", { class: "bt principal", icone: "tema", controle: "criar:aprimorar",
-      disabled: !!motivo, "aria-disabled": motivo ? "true" : null, dica: motivo || null,
       onclick: async () => {
         const p = packDoAprimorar();
         if (p && await gravarCoresNoTema(true)) rodar(ACAO.get("pack_usar"), p.id, { semPerguntar: true });
@@ -930,10 +922,9 @@ function passoMandar() {
   }
   const saidas = elemento("div", { class: "corpo fila" }, [
     botao("Baixar o tema", { class: "bt principal", icone: "baixar", controle: "criar:baixar",
-      disabled: pouco, "aria-disabled": pouco ? "true" : null, dica: dica || "Um .meowpack para outra máquina",
+      dica: "Um .meowpack para outra máquina",
       onclick: async () => { const pack = await garantirPack(); if (pack) exportarPack(pack.id); } }),
     botao("Aplicar tema", { class: "bt", icone: "tema", controle: "criar:vestir",
-      disabled: pouco, "aria-disabled": pouco ? "true" : null, dica,
       onclick: async () => { const pack = await garantirPack(); if (pack) vestir(pack, null); } }),
   ]);
   return [bloco(r.nome, [resumo, saidas])];
@@ -966,12 +957,9 @@ function paginaCriar(sub) {
       [icone("voltar"), elemento("span", { texto: "Voltar" })]) : elemento("span"),
     elemento("div", { class: "fila" }, [
       sub === "cores" ? (() => {
-        const m = vinteSeis();
-        const pouco = contraste(m.text, m.base) < 4.5;
-        const motivo = pouco ? "Pouco contraste entre texto e fundo" : emNovo() ? "" : motivoDoAprimorar();
-        return botao("Guardar", { class: "bt principal", controle: "criar:guardar", disabled: !!motivo,
-          "aria-disabled": motivo ? "true" : null,
-          dica: motivo || (emNovo() ? "Grava o tema entre os seus" : "Grava no " + r.nome),
+        if (!emNovo() && motivoDoAprimorar()) return null;
+        return botao("Guardar", { class: "bt principal", controle: "criar:guardar",
+          dica: emNovo() ? "Grava o tema entre os seus" : "Grava no " + r.nome,
           onclick: () => (emNovo() ? guardarTema() : gravarCoresNoTema()) });
       })() : null,
       i < PASSOS.length - 1 ? elemento("a", { class: "bt", href: rota + PASSOS[i + 1].id, controle: "criar:proximo" },
@@ -1109,6 +1097,7 @@ function ladrilhoDeCuidar(l) {
     const a = ACAO.get(l.a);
     if (!a) return null;
     const [tile, ...resto] = controleDeAcao(a, l.b, "");
+    if (!tile) return null;
     tile.className = "bloco ladrilho" + (a.destrutivo ? " perigo" : "");
     tile.replaceChildren(...miolo(l.b));
     return elemento("div", { class: "ladrilho-no" }, [tile, ...resto]);

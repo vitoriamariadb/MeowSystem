@@ -246,7 +246,7 @@ def main():
                 pag.evaluate("() => document.getElementById('desfazer') && document.getElementById('desfazer').click()")
                 pag.wait_for_timeout(150)
 
-            print("== um ↶ por coluna, a margem desligada e o deslizante vazio")
+            print("== um ↶ por coluna, a margem acesa e o deslizante vazio")
             ir(pag, "ajustes/painel")
             pag.evaluate(GESTO, ["FORMA_DOCK_SOLTO", "alternar"])
             pag.wait_for_timeout(250)
@@ -263,7 +263,15 @@ def main():
                        segSemDica: [...document.querySelectorAll('.seg button')].filter((b) => !b.dataset.dica).length };
             }""")
             checa(info["padrao"] and info["coluna"] == "Dock" and not info["noRotulo"], f"o ↶ mora na célula da coluna ({info})")
-            checa(info["margemDock"] is True and info["margemPainel"] is False, f"com a dock colada, só a distância dela se desliga ({info})")
+            checa(info["margemDock"] is False and info["margemPainel"] is False, f"com a dock colada, a distância dela segue acesa ({info})")
+            pag.evaluate("""async () => {
+              const s = document.querySelector('input[data-controle="chave:FORMA_MARGEM_DOCK"]');
+              const passo = Number(s.step) || 1;
+              s.value = String(Number(s.value) + passo > Number(s.max) ? Number(s.value) - passo : Number(s.value) + passo);
+              s.dispatchEvent(new Event('input')); s.dispatchEvent(new Event('change')); await FILA_DE_GRAVACAO; }""")
+            pag.wait_for_function("() => !ACOMPANHANDO && !EM_VOO", timeout=60000)
+            checa(casa.valor_de("FORMA_DOCK_SOLTO") == "sim",
+                  f"mexer na distância com a dock colada solta a dock ({casa.valor_de('FORMA_DOCK_SOLTO')!r})")
             checa(not info["vazio"] and info["semNumero"] == 0, f"toda faixa vale sem clique, com o número que vale na saída ({info})")
             checa(info["segSemDica"] == 0, "todo botão XS…XL tem dica")
             print("== a faixa arrasta, grava, e o ↶ volta a chave vazia com a faixa ativa")
@@ -328,6 +336,10 @@ def main():
                 for fonte in ["gerar", "acervo"]:
                     pag.evaluate(f"() => document.querySelector('[data-fonte=\"{fonte}\"]').click()")
                     pag.wait_for_timeout(1500)
+                    if fonte == "acervo":
+                        pag.wait_for_selector('[data-controle="icone:desenho"]', timeout=60000)
+                        pag.locator('[data-controle="icone:desenho"]').first.click()
+                        pag.wait_for_timeout(600)
                     for rolagem in ["topo", "fim"]:
                         pag.evaluate("() => window.scrollTo(0, 0)" if rolagem == "topo" else "() => window.scrollTo(0, document.documentElement.scrollHeight)")
                         pag.wait_for_timeout(300)
