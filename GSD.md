@@ -28,6 +28,9 @@ O registro é [`docs/DECISOES.md`](docs/DECISOES.md): uma linha por decisão que
 
 - `sudo` pode escrever no sistema real, sempre. Teste nunca chama `sudo` de verdade.
 - Teste e QA usam HOME temporário, falsos no PATH que recusam escrita (`sudo`, `pkexec`, `su`, `apt`, `cargo`, `just`, `make`, `systemctl` de escrita, `pkill`) e nenhum barramento da sessão.
+- Medição visual ou de janela (foto, barra de título, app_id, diálogo do portal) só pelo palco: `scripts/palco.sh`
+  `subir`, `rodar <cmd…>`, `foto <saida.png>`, `janelas`, `descer`. Nada abre na sessão dela; `descer` mata só o
+  que o palco subiu. Em paralelo, cada agente com o seu `PALCO_DIR=/tmp/<nome>`.
 - Painel só com HOME temporário, PID próprio, nunca `--parar`.
 - Agente não roda `install.sh`, `meow compositor` nem `meow doctor --consertar` com o HOME real; quem coordena a
   sessão (o orquestrador) pode.
