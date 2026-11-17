@@ -11,6 +11,7 @@
 | P235 janelas do sistema sem ícone (H) | `.meow-wt-janelas` / `bloco/janelas` | workflow no ar (2 agentes); medido pelo coordenador: o diálogo de arquivos é `com.system76.CosmicFilesDialog` |
 | P236 parte 1, o dock casa por padrão (I) | `.meow-wt-dock` / `bloco/dock` | workflow no ar (3 agentes) |
 | P236 parte 2, padrões no `appid.map` | `bloco/janelas`, depois do P235 | espera o H voltar |
+| P237 pastas do Dracula com cena (J) | `.meow-wt-pastas-dracula` / `bloco/pastas-dracula` (do `bloco/arte-botoes`) | workflow no ar (2 agentes) |
 
 Pedido de 17/11: workflows liberados sem teto de agentes nem de cota nesta leva («Sem limitação de percentual e sem
 limitação de uso […] aumentarmos a qualidade do produto como um todo»).
