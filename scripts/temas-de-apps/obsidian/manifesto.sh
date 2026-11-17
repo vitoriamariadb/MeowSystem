@@ -44,6 +44,76 @@ if melhor:
 PYFIM
 }
 
+_OBS_JSON_APP="$HOME/.var/app/$MEOW_OBSIDIAN_APP_ID/config/obsidian/obsidian.json"
+_OBS_MOLDURA_GUARDADA="$_OBS_JSON_APP.meow-frame-original"
+
+_meow_obsidian_moldura() {
+  python3 -I - "$_OBS_JSON_APP" "$@" <<'PYFIM'
+import json, sys
+
+caminho, modo = sys.argv[1], sys.argv[2]
+with open(caminho, encoding="utf-8") as f:
+    dados = json.load(f)
+if not isinstance(dados, dict):
+    sys.exit(2)
+if modo == "ler":
+    valor = dados.get("frame")
+    print(valor if isinstance(valor, str) and valor in ("hidden", "obsidian", "native") else "-")
+    sys.exit(0)
+valor = sys.argv[3]
+if valor == "-":
+    dados.pop("frame", None)
+else:
+    dados["frame"] = valor
+sys.stdout.write(json.dumps(dados, ensure_ascii=False, separators=(",", ":")))
+PYFIM
+}
+
+_meow_obsidian_moldura_atual() {
+  [ -f "$_OBS_JSON_APP" ] || { printf 'native'; return 0; }
+  _meow_obsidian_moldura ler 2>/dev/null || printf 'native'
+}
+
+_meow_obsidian_moldura_nativa() {
+  local antes novo
+  antes="$(_meow_obsidian_moldura_atual)"
+  [ "$antes" = "native" ] && return "$MEOW_OK"
+  if meow_seco; then
+    meow_muda "obsidian: trocaria a moldura própria (frame=$antes) pela nativa; os botões passam a ser os do pack, pelo COSMIC"
+    return "$MEOW_DIVERGENTE"
+  fi
+  novo="$(_meow_obsidian_moldura definir native)" && [ -n "$novo" ] || return "$MEOW_ERRO"
+  if [ ! -f "$_OBS_MOLDURA_GUARDADA" ]; then
+    meow_escrever "$_OBS_MOLDURA_GUARDADA" "$antes" 644
+    [ $? = 2 ] && return "$MEOW_ERRO"
+  fi
+  meow_escrever "$_OBS_JSON_APP" "$novo" 644
+  case $? in
+    1) meow_info "obsidian: botões da janela: os do pack, pelo COSMIC (vale quando o Obsidian reabrir)"
+       return "$MEOW_DIVERGENTE" ;;
+    2) return "$MEOW_ERRO" ;;
+  esac
+  return "$MEOW_OK"
+}
+
+_meow_obsidian_moldura_devolver() {
+  local antes novo
+  [ -f "$_OBS_MOLDURA_GUARDADA" ] || return "$MEOW_OK"
+  antes="$(cat "$_OBS_MOLDURA_GUARDADA" 2>/dev/null)"
+  case "$antes" in hidden|obsidian|-) ;; *) antes="-" ;; esac
+  if meow_seco; then
+    meow_muda "obsidian: devolveria a moldura de antes (frame=$antes)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if [ -f "$_OBS_JSON_APP" ] && [ "$(_meow_obsidian_moldura_atual)" = "native" ]; then
+    novo="$(_meow_obsidian_moldura definir "$antes")" && [ -n "$novo" ] || return "$MEOW_ERRO"
+    printf '%s' "$novo" > "$_OBS_JSON_APP" 2>/dev/null || return "$MEOW_ERRO"
+    meow_muda "obsidian: a moldura de antes voltou (frame=$antes; vale quando o Obsidian reabrir)"
+  fi
+  rm -f -- "$_OBS_MOLDURA_GUARDADA"
+  return "$MEOW_DIVERGENTE"
+}
+
 _meow_obsidian_rodando() {
   pgrep -f "$MEOW_OBSIDIAN_PADRAO_PROC" >/dev/null 2>&1
 }
@@ -446,6 +516,13 @@ meow_app_conferir() {
   esac
   _meow_obsidian_git conferir "$MEOW_OBSIDIAN_TEMA" || divergente=1
 
+  local moldura
+  moldura="$(_meow_obsidian_moldura_atual)"
+  if [ "$moldura" != "native" ]; then
+    meow_muda "obsidian: a moldura própria (frame=$moldura) desenha botões genéricos no lugar dos do pack"
+    divergente=1
+  fi
+
   if [ "$divergente" = "0" ]; then
     meow_ok "obsidian: $_OBS_EXIBE já aplicado"
     return "$MEOW_OK"
@@ -497,7 +574,11 @@ meow_app_aplicar() {
   local git_pendente=0
   _meow_obsidian_git conferir "$MEOW_OBSIDIAN_TEMA" >/dev/null 2>&1 || git_pendente=1
 
-  if [ "${#pendentes[@]}" -eq 0 ] && [ "$json_pendente" = "0" ] && [ "$git_pendente" = "0" ]; then
+  local moldura_pendente=0
+  [ "$(_meow_obsidian_moldura_atual)" = "native" ] || moldura_pendente=1
+
+  if [ "${#pendentes[@]}" -eq 0 ] && [ "$json_pendente" = "0" ] && [ "$git_pendente" = "0" ] \
+     && [ "$moldura_pendente" = "0" ]; then
     meow_ok "obsidian: $_OBS_EXIBE já estava aplicado"
     return "$MEOW_OK"
   fi
@@ -555,6 +636,15 @@ meow_app_aplicar() {
   fi
 
   [ "$json_pendente" = "1" ] || [ "$git_pendente" = "1" ] && _meow_obsidian_git renovar "$MEOW_OBSIDIAN_TEMA"
+
+  if [ "$moldura_pendente" = "1" ]; then
+    _meow_obsidian_moldura_nativa
+    case $? in
+      0) ;;
+      1) mudou=1 ;;
+      *) meow_erro "obsidian: não consegui ligar a moldura nativa no obsidian.json"; return "$MEOW_ERRO" ;;
+    esac
+  fi
 
   if [ "$mudou" = "0" ]; then
     meow_ok "obsidian: $_OBS_EXIBE já estava aplicado"
@@ -683,6 +773,7 @@ meow_app_reverter() {
   done
   [ "${#baixados[@]}" -gt 0 ] && algum=1
   [ "${#sobras[@]}" -gt 0 ] && algum=1
+  [ -f "$_OBS_MOLDURA_GUARDADA" ] && algum=1
 
   if [ "$algum" = "0" ]; then
     meow_seco || rmdir -- "$MEOW_OBSIDIAN_BAIXADOS" 2>/dev/null
@@ -758,6 +849,12 @@ meow_app_reverter() {
       meow_erro "obsidian: não consegui remover $sobra"; return "$MEOW_ERRO"
     fi
   done
+  _meow_obsidian_moldura_devolver
+  case $? in
+    0) ;;
+    1) mudou=1 ;;
+    *) meow_erro "obsidian: não consegui devolver a moldura de antes no obsidian.json"; return "$MEOW_ERRO" ;;
+  esac
   meow_seco && return "$MEOW_DIVERGENTE"
   rmdir -- "$MEOW_OBSIDIAN_BAIXADOS" 2>/dev/null || true
 

@@ -901,6 +901,20 @@ else
   falha "obsidian: o aplicar não tematizou o cofre A da casa de brinquedo" "$saida"
 fi
 a_tematizado="$(sha256sum < "$A/.obsidian/appearance.json" | cut -d' ' -f1)"
+obs_frame() { python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get("frame", "-"))' "$OBS_JSON"; }
+if [ "$(obs_frame)" = "native" ] && [ "$(cat "$OBS_JSON.meow-frame-original" 2>/dev/null)" = "-" ] \
+   && grep -q '"a1":{"path":' "$OBS_JSON" && printf '%s' "$saida" | grep -q 'botões da janela: os do pack'; then
+  ok "obsidian: o aplicar liga a moldura nativa (frame=native), guarda que não havia frame e não perde os cofres"
+else
+  falha "obsidian: a moldura nativa não entrou no obsidian.json (frame=$(obs_frame))" "$saida$(cat "$OBS_JSON")"
+fi
+obs_sha="$(cat "$OBS_JSON" "$OBS_JSON.meow-frame-original" | sha256sum)"
+saida="$(modulo_obsidian aplicar)"
+if printf '%s' "$saida" | grep -q 'rc=0' && [ "$(cat "$OBS_JSON" "$OBS_JSON.meow-frame-original" | sha256sum)" = "$obs_sha" ]; then
+  ok "obsidian: com a moldura nativa, a segunda passada não escreve nada (rc=0)"
+else
+  falha "obsidian: a segunda passada mexeu na moldura ou divergiu" "$saida"
+fi
 
 printf '{\n  "theme": "obsidian",\n  "cssTheme": "Tema de Brinquedo",\n  "enabledCssSnippets": [\n    "dracula_background"\n  ]\n}' \
   > "$B/.obsidian/appearance.json"
@@ -937,6 +951,35 @@ if printf '%s' "$saida" | grep -q 'rc=0' && [ "$(impressao "$B")" = "$b_antes" ]
   ok "obsidian: o segundo desfazer não acha nada a fazer (rc=0)"
 else
   falha "obsidian: o segundo desfazer não devolveu 0, ou mexeu no B" "$saida"
+fi
+printf '{"vaults":{"a1":{"path":"%s","ts":1000,"open":true}},"frame":"hidden","cli":true}' "$A" > "$OBS_JSON"
+saida="$(modulo_obsidian conferir)"
+if printf '%s' "$saida" | grep -q 'moldura própria (frame=hidden)'; then
+  ok "obsidian: com a moldura própria (frame=hidden), o conferir acusa os botões genéricos"
+else
+  falha "obsidian: o conferir não viu a moldura própria" "$saida"
+fi
+saida="$(modulo_obsidian aplicar)"
+if [ "$(obs_frame)" = "native" ] && [ "$(cat "$OBS_JSON.meow-frame-original" 2>/dev/null)" = "hidden" ] \
+   && grep -q '"cli":true' "$OBS_JSON"; then
+  ok "obsidian: o aplicar troca frame=hidden por native e guarda o hidden"
+else
+  falha "obsidian: a troca da moldura própria pela nativa não fechou" "$saida$(cat "$OBS_JSON")"
+fi
+obs_sha="$(cat "$OBS_JSON" | sha256sum)"
+saida="$(MEOW_DRY_RUN=1 modulo_obsidian reverter)"
+if printf '%s' "$saida" | grep -q 'devolveria a moldura de antes (frame=hidden)' \
+   && [ "$(cat "$OBS_JSON" | sha256sum)" = "$obs_sha" ] && [ -f "$OBS_JSON.meow-frame-original" ]; then
+  ok "obsidian: o desfazer a seco só diz que devolveria a moldura"
+else
+  falha "obsidian: o desfazer a seco mexeu na moldura" "$saida"
+fi
+saida="$(modulo_obsidian reverter)"
+if [ "$(obs_frame)" = "hidden" ] && [ ! -e "$OBS_JSON.meow-frame-original" ] && grep -q '"a1":{"path":' "$OBS_JSON" \
+   && grep -q '"cli":true' "$OBS_JSON"; then
+  ok "obsidian: o desfazer devolve frame=hidden, apaga o guardado e não perde os cofres"
+else
+  falha "obsidian: o desfazer não devolveu a moldura (frame=$(obs_frame))" "$saida$(cat "$OBS_JSON")"
 fi
 
 CASA9="$T/casa9"; mkdir -p "$CASA9/.config/spicetify"
