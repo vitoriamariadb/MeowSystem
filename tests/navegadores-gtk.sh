@@ -35,6 +35,7 @@ EDGE="$CASA/.var/app/com.microsoft.Edge/config/microsoft-edge/Default"
 SNAP="$CASA/snap/chromium/common/chromium/Default"
 BRAVE="$CASA/.config/BraveSoftware/Brave-Browser/Default"
 VAZIO="$CASA/.config/chromium/Default"
+TEMA_LOJA=jnegjmlkajgpjloaanncielldhcedhcp
 TODOS=("$CHROME/Default" "$CHROME2" "$CHROME3" "$CHROME4" "$EDGE" "$SNAP" "$BRAVE" "$VAZIO")
 
 mod() {
@@ -62,7 +63,8 @@ semear() {
   json '{"extensions":{"theme":{"id":"user_color_theme_id","system_theme":0}},"profile":{"name":"Pessoa 2"},"account_info":[{"email":"a@b"}],"sync":{"has_setup_completed":true,"keep_everything_synced":true}}' "$CHROME2/Preferences"
   json '{"extensions":{"theme":{"id":"user_color_theme_id","system_theme":0}},"account_info":[{"email":"c@d"}],"sync":{"gaia_id":"123","selected_types_per_account":{"x":{"sync.tabs":true}}},"browser":{"theme":{"saved_local_theme":"CAAQAEgB","user_color2":5}}}' "$CHROME3/Preferences"
   json '{"extensions":{"theme":{"id":"user_color_theme_id","system_theme":0}},"account_info":[{"email":"e@f"}],"sync":{"has_setup_completed":true,"keep_everything_synced":false,"bookmarks":true,"passwords":false}}' "$CHROME4/Preferences"
-  json '{"extensions":{"theme":{"id":"jnegjmlkajgpjloaanncielldhcedhcp","pack":"/x/Extensions/jnegj/1.0.2_0","system_theme":0}},"browser":{"theme":{"follows_system_colors":false}},"account_info":[{"email":"g@h"}],"sync":{"has_setup_completed":true,"keep_everything_synced":true,"collections":true}}' "$EDGE/Preferences"
+  json '{"extensions":{"theme":{"id":"jnegjmlkajgpjloaanncielldhcedhcp","pack":"/x/Extensions/jnegj/1.0.2_0","system_theme":0},"settings":{"jnegjmlkajgpjloaanncielldhcedhcp":{"disable_reasons":[],"path":"jnegjmlkajgpjloaanncielldhcedhcp/1.0.2_0","manifest":{"name":"Roxo","theme":{"colors":{}}}},"fclbdkbhjlgkbpfldjodgjncejkkjcme":{"disable_reasons":[],"manifest":{"name":"Bloqueador"}}}},"browser":{"theme":{"follows_system_colors":false}},"account_info":[{"email":"g@h"}],"sync":{"has_setup_completed":true,"keep_everything_synced":true,"collections":true}}' "$EDGE/Preferences"
+  mkdir -p "$EDGE/Extensions/$TEMA_LOJA/1.0.2_0"; printf '{"theme":{}}' > "$EDGE/Extensions/$TEMA_LOJA/1.0.2_0/manifest.json"
   json '{"extensions":{"theme":{"system_theme":0}},"homepage":"about:blank"}' "$SNAP/Preferences"
   json '{"extensions":{"theme":{"id":"","system_theme":1}},"brave":{"x":2}}' "$BRAVE/Preferences"
   json '{"profile":{"name":"sem tema"}}' "$VAZIO/Preferences"
@@ -152,6 +154,14 @@ assert json.load(open(sys.argv[1]))["sync"]=={"has_setup_completed":True,"keep_e
   && ok "o Edge, de sincronia com outros tipos, não tem a sincronia tocada" \
   || falha "o aplicar mexeu na sincronia do Edge" "$(inteiro "$EDGE/Preferences")"
 
+python3 -c '
+import json,sys
+s=json.load(open(sys.argv[1]))["extensions"]["settings"]
+assert s[sys.argv[2]]["disable_reasons"]==[1] and s["fclbdkbhjlgkbpfldjodgjncejkkjcme"]["disable_reasons"]==[]' "$EDGE/Preferences" "$TEMA_LOJA" \
+  && [ -f "$T/estado/temas-de-apps/chromium/"*"/$TEMA_LOJA/1.0.2_0/manifest.json" ] \
+  && ok "o tema da loja fica desligado como no Usar GTK do navegador (senão ele volta ao abrir), guardado para o reverter; as outras extensões ficam" \
+  || falha "o tema da loja seguiu ligado, não foi guardado, ou outra extensão foi tocada" "$(inteiro "$EDGE/Preferences")"
+
 antes="$(fotografia)"
 saida="$(mod aplicar)"; rc=$?
 [ "$rc" = 0 ] && [ "$antes" = "$(fotografia)" ] && ok "a segunda passada fica quieta e não escreve" \
@@ -173,6 +183,35 @@ if [ "$rc" = 1 ] && [ "$(tema "$EDGE/Preferences")" = '{"system_theme": 1}' ] &&
 else
   falha "o reverter com o Edge aberto não separou o aberto dos fechados (rc=$rc)" "$saida"
 fi
+semear
+mod aplicar >/dev/null
+python3 -c '
+import json,sys
+p=sys.argv[1]; d=json.load(open(p)); d["extensions"]["settings"].pop(sys.argv[2])
+json.dump(d,open(p,"w"))' "$EDGE/Preferences" "$TEMA_LOJA"
+rm -rf "$EDGE/Extensions/$TEMA_LOJA"
+saida="$(mod conferir)"; rc=$?
+[ "$rc" = 0 ] && ok "o navegador desinstalar o tema desligado não vira divergência" \
+  || falha "o tema desinstalado pelo navegador reabriu a divergência (rc=$rc)" "$saida"
+mod reverter >/dev/null
+python3 -c '
+import json,sys
+s=json.load(open(sys.argv[1]))["extensions"]["settings"][sys.argv[2]]
+assert s["disable_reasons"]==[] and s["manifest"]["name"]=="Roxo"' "$EDGE/Preferences" "$TEMA_LOJA" \
+  && [ -f "$EDGE/Extensions/$TEMA_LOJA/1.0.2_0/manifest.json" ] && [ ! -e "$T/estado/temas-de-apps/chromium" ] \
+  && ok "o reverter devolve o tema da loja que o navegador desinstalou, ligado, e apaga a cópia" \
+  || falha "o reverter não devolveu o tema da loja desinstalado" "$(inteiro "$EDGE/Preferences")"
+
+semear
+python3 -c '
+import json,sys
+p=sys.argv[1]; d=json.load(open(p)); d["extensions"]["theme"]={"id":"","system_theme":1}
+json.dump(d,open(p,"w"))' "$EDGE/Preferences"
+for a in "${TODOS[@]}"; do [ "$a" = "$EDGE" ] || rm -rf "$a"; done
+saida="$(mod conferir)"; rc=$?
+[ "$rc" = 1 ] && ok "tema da loja ligado com system_theme 1: o conferir acusa, porque o navegador o veste ao abrir" \
+  || falha "o conferir não viu o tema da loja ligado (rc=$rc)" "$saida"
+
 semear
 orig=(); for a in "${TODOS[@]}"; do orig+=("$(inteiro "$a/Preferences")"); done
 mod aplicar >/dev/null

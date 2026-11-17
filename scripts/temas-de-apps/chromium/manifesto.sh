@@ -5,7 +5,7 @@
 _CR_ROTULO="chromium"
 
 _CR_PY='
-import base64, hashlib, json, os, sys, tempfile
+import base64, hashlib, json, os, shutil, sys, tempfile
 
 modo, caminho, estado = sys.argv[1], sys.argv[2], sys.argv[3]
 
@@ -94,9 +94,42 @@ def tema_sai_da_conta(d):
     return m
 
 
+def extensoes(d):
+    s = pegar(d, ("extensions", "settings"))
+    return s if isinstance(s, dict) else {}
+
+
+def temas_ligados(d, tema_id=None):
+    return [k for k, e in extensoes(d).items()
+            if isinstance(e, dict) and not e.get("disable_reasons")
+            and (k == tema_id or "theme" in (e.get("manifest") if isinstance(e.get("manifest"), dict) else {}))]
+
+
+def desligar(e):
+    r = e.get("disable_reasons")
+    e["disable_reasons"] = r | 1 if isinstance(r, int) else (r if isinstance(r, list) else []) + [1]
+
+
+def copias(c):
+    return os.path.join(os.path.dirname(estado), "temas-de-apps", "chromium", hashlib.sha256(c.encode()).hexdigest()[:16])
+
+
+def apagar_copias(c):
+    shutil.rmtree(copias(c), ignore_errors=True)
+    pasta = os.path.dirname(copias(c))
+    for _ in range(2):
+        try:
+            os.rmdir(pasta)
+        except OSError:
+            return
+        pasta = os.path.dirname(pasta)
+
+
 def no_gtk(d):
     t = tema_de(d)
     if not (bool(t) and t.get("system_theme") == 1 and not t.get("id") and not t.get("pack")):
+        return False
+    if temas_ligados(d):
         return False
     return all(pegar(d, c) == v for c, v in tema_sai_da_conta(d).items())
 
@@ -129,12 +162,22 @@ if modo == "aplicar":
     ja = {tuple(c[0]) for c in conta}
     mudancas = {c: v for c, v in tema_sai_da_conta(prefs).items() if pegar(prefs, c) != v}
     conta += [[list(c), pegar(prefs, c), v] for c, v in mudancas.items() if c not in ja]
+    temas = anterior.get("temas", {}) if isinstance(anterior.get("temas"), dict) else {}
+    ligados = temas_ligados(prefs, (atual or {}).get("id"))
+    for k in ligados:
+        temas.setdefault(k, json.loads(json.dumps(extensoes(prefs)[k])))
+        origem, copia = os.path.join(os.path.dirname(caminho), "Extensions", k), os.path.join(copias(caminho), k)
+        if os.path.isdir(origem) and not os.path.exists(copia):
+            shutil.copytree(origem, copia, symlinks=True)
     guardado[caminho] = {
         "theme": json.loads(json.dumps(atual)),
         "extensions": anterior.get("extensions", "extensions" in prefs),
         "conta": conta,
+        "temas": temas,
     }
     gravar(estado, guardado)
+    for k in ligados:
+        desligar(extensoes(prefs)[k])
     for c, v in mudancas.items():
         por(prefs, c, v)
     novo = dict(atual or {})
@@ -157,6 +200,18 @@ if modo == "reverter":
                 prefs.pop("extensions", None)
         else:
             prefs.setdefault("extensions", {})["theme"] = antes
+        for k, e in guardado[caminho].get("temas", {}).items():
+            agora = extensoes(prefs).get(k)
+            if agora is None:
+                prefs.setdefault("extensions", {}).setdefault("settings", {})[k] = e
+                origem, destino = os.path.join(copias(caminho), k), os.path.join(os.path.dirname(caminho), "Extensions", k)
+                if os.path.isdir(origem) and not os.path.exists(destino):
+                    shutil.copytree(origem, destino, symlinks=True)
+            elif isinstance(agora, dict):
+                if "disable_reasons" in e:
+                    agora["disable_reasons"] = e["disable_reasons"]
+                else:
+                    agora.pop("disable_reasons", None)
         mudou = 1
     for c, velho, meu in guardado[caminho].get("conta", []):
         if pegar(prefs, c) == meu and velho != meu:
@@ -164,6 +219,7 @@ if modo == "reverter":
             mudou = 1
     if mudou:
         gravar(caminho, prefs)
+    apagar_copias(caminho)
     del guardado[caminho]
     if guardado:
         gravar(estado, guardado)
