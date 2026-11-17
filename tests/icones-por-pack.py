@@ -53,8 +53,9 @@ def fontes_do_acervo(pag, pasta):
                         ".map((a) => ({ nome: a.querySelector('.nome').textContent, src: a.querySelector('img').src }))", pasta)
 
 
-GRUPOS = {"barra": "Barra e bandeja", "configuracoes": "Configurações", "botoes": "Botões e janelas",
-          "pastas": "Pastas", "tipos": "Tipos de arquivo"}
+GRUPOS = {"barra": "Barra e bandeja", "configuracoes": "Configurações", "janela": "Botões da janela",
+          "botoes": "Botões e janelas", "pastas": "Pastas", "tipos": "Tipos de arquivo"}
+GRUPOS_COM_ARTE_DE_EXTENSAO = {"soneca": "Soneca"}
 NOMES_DA_BARRA = {"system-shutdown-symbolic", "network-wireless-signal-excellent-symbolic"}
 
 
@@ -77,7 +78,8 @@ def fotografar(pag, nome):
 
 def confere_sistema(pag, pack):
     g = grupos_do_sistema(pag)
-    confere(set(g) == set(GRUPOS) and all(g[k]["titulo"] == v for k, v in GRUPOS.items()),
+    confere(set(g) - set(GRUPOS_COM_ARTE_DE_EXTENSAO) == set(GRUPOS)
+            and all(g[k]["titulo"] == v for k, v in {**GRUPOS, **GRUPOS_COM_ARTE_DE_EXTENSAO}.items() if k in g),
             f"Sistema ({pack}): os grupos {', '.join(GRUPOS.values())} ({ {k: len(v['nomes']) for k, v in g.items()} })")
     todos = {n for v in g.values() for n in v["nomes"]}
     confere(NOMES_DA_BARRA <= set(g.get("barra", {}).get("nomes", [])),
