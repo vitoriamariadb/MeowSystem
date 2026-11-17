@@ -2,34 +2,51 @@
 #
 # MARCADOR: AURORA-COMPOE-NA-ESCOLHIDA-1   (base: AURORA-COMPOE-NA-ESCOLHIDA)
 #
-# Com COSMIC_RENDER_DEVICE definido (decisão 6), toda tela é composta na GPU escolhida, e a que liga a tela só
-# recebe o quadro pronto. Upstream, render_node_for_output devolve a GPU da tela quando a área não tem janela da
-# escolhida: no nitro-5 a AMD do eDP passava a compor com texturas de cliente feitas na RTX (modifier NVIDIA) e
-# falhava («import for wrong devices», o verde), e todo render na AMD expunha o page fault que derrubou a sessão
-# em 16/11 (P209). Sem a variável, nada muda.
+# Quando a GPU do COSMIC_RENDER_DEVICE (decisão 6) está presente, toda tela é composta nela, e a GPU que liga a tela
+# só recebe o quadro pronto. Upstream, render_node_for_output devolve a GPU da tela quando a área não tem janela da
+# escolhida: no nitro-5 a AMD do eDP compunha com texturas de cliente feitas na RTX e falhava («import for wrong
+# devices», o verde), e o render na AMD expunha o page fault que derrubou a sessão em 16/11 (P209).
+# Modo só AMD (a NVIDIA desligada não aparece entre os dispositivos), máquina de uma GPU ou sem a variável: nada muda.
+# A presença é medida a cada escolha da primária, então ligar ou desligar a placa acompanha.
 #
---- a/src/backend/kms/surface/mod.rs
-+++ b/src/backend/kms/surface/mod.rs
-@@ -1486,6 +1486,12 @@
-     .flatten()
+--- a/src/backend/kms/mod.rs
++++ b/src/backend/kms/mod.rs
+@@ -238,10 +238,16 @@
+     primary_node.and_then(|x| x.node_with_type(NodeType::Render).and_then(Result::ok))
  }
  
 +#[used]
 +static AURORA_COMPOE_NA_ESCOLHIDA: &str = "AURORA-COMPOE-NA-ESCOLHIDA-1";
 +
-+static GPU_ESCOLHIDA: std::sync::LazyLock<bool> =
-+    std::sync::LazyLock::new(|| std::env::var_os("COSMIC_RENDER_DEVICE").is_some());
++static GPU_ESCOLHIDA_PRESENTE: AtomicBool = AtomicBool::new(false);
 +
- // TODO: Introduce can_shared_dmabuf_framebuffer for cases where we might select another gpu
- //  and composite on target if not possible to finally get rid of "primary"
- #[profiling::function]
-@@ -1495,8 +1501,8 @@
+ fn determine_primary_gpu(
+     drm_devices: &IndexMap<DrmNode, Device>,
+     seat: String,
+ ) -> Result<Option<DrmNode>> {
++    GPU_ESCOLHIDA_PRESENTE.store(false, std::sync::atomic::Ordering::Relaxed);
+     if let Some(device) = dev_var("COSMIC_RENDER_DEVICE")
+         && let Some(node) = drm_devices.values().find_map(|dev| {
+             device
+@@ -249,6 +255,7 @@
+                 .then_some(dev.inner.render_node)
+         })
+     {
++        GPU_ESCOLHIDA_PRESENTE.store(true, std::sync::atomic::Ordering::Relaxed);
+         return Ok(Some(node));
+     }
+ 
+--- a/src/backend/kms/surface/mod.rs
++++ b/src/backend/kms/surface/mod.rs
+@@ -1495,8 +1495,10 @@
      target_node: &DrmNode,
      shell: &Shell,
  ) -> DrmNode {
 -    if target_node == primary_node {
 -        return *target_node;
-+    if target_node == primary_node || *GPU_ESCOLHIDA {
++    if target_node == primary_node
++        || super::GPU_ESCOLHIDA_PRESENTE.load(std::sync::atomic::Ordering::Relaxed)
++    {
 +        return *primary_node;
      }
  

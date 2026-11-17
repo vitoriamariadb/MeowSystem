@@ -212,11 +212,12 @@ confere "sai 3, não escreve, aponta o «Instalar tudo» e não manda digitar" \
 ACAO_GPU=aplicar script GPU_COMPOSITOR=dedicada; ACAO_GPU=reverter script GPU_COMPOSITOR=dedicada MEOW_PONTE="$VELHA"; rc=$?
 confere "o reverter também espera, sem tocar na linha" '[ "$rc" = 3 ] && grep -q COSMIC_RENDER_DEVICE "$ENVF"' "$(cat "$T/saida")"
 
-printf '\n12. com a GPU escolhida, toda tela é composta nela (P209)\n'
+printf '\n12. com a GPU escolhida presente, toda tela é composta nela; só AMD ou uma GPU, nada muda (P209)\n'
 P="$RAIZ/patches/cosmic-comp-compoe-na-escolhida.patch"
 confere "o patch é obrigatório na série" 'grep -qE "^req[[:space:]]+cosmic-comp-compoe-na-escolhida.patch[[:space:]]+AURORA-COMPOE-NA-ESCOLHIDA$" "$RAIZ/patches/series"'
-confere "ele lê a mesma variável que a ponte grava" 'grep -q "^+.*var_os(\"COSMIC_RENDER_DEVICE\")" "$P"'
-confere "e a tela da outra GPU recebe o quadro composto na escolhida" 'grep -q "^+    if target_node == primary_node || \*GPU_ESCOLHIDA {" "$P" && grep -q "^+        return \*primary_node;" "$P"'
+confere "a presença zera a cada escolha da primária (placa desligada não conta)" 'grep -q "^+    GPU_ESCOLHIDA_PRESENTE.store(false" "$P"'
+confere "e só liga quando a variável achou a placa" 'grep -B1 "^+        GPU_ESCOLHIDA_PRESENTE.store(true" "$P" | grep -q "^ *{$"'
+confere "a tela da outra GPU recebe o quadro composto na escolhida" 'grep -q "^+        || super::GPU_ESCOLHIDA_PRESENTE.load" "$P" && grep -q "^+        return \*primary_node;" "$P"'
 
 [ "$falhas" = 0 ] && printf '\nok: a GPU do compositor é detectada em cada máquina\n'
 exit $((falhas > 0))
