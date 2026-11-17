@@ -5,7 +5,7 @@
 _CR_ROTULO="chromium"
 
 _CR_PY='
-import json, os, sys, tempfile
+import base64, hashlib, json, os, sys, tempfile
 
 modo, caminho, estado = sys.argv[1], sys.argv[2], sys.argv[3]
 
@@ -43,24 +43,62 @@ def tema_de(d):
     return t if isinstance(t, dict) else None
 
 
-CHAVES_DA_CONTA = ("keep_everything_synced", "themes")
+def pegar(d, chaves):
+    for k in chaves:
+        if not isinstance(d, dict) or k not in d:
+            return None
+        d = d[k]
+    return d
 
 
-def com_conta(d):
-    s = d.get("sync")
-    return bool(d.get("account_info")) or (isinstance(s, dict) and bool(s.get("has_setup_completed")))
+def por(d, chaves, valor):
+    if valor is None:
+        pilha = []
+        for k in chaves[:-1]:
+            if not isinstance(d.get(k), dict):
+                return
+            pilha.append((d, k))
+            d = d[k]
+        d.pop(chaves[-1], None)
+        for pai, k in reversed(pilha[1:]):
+            if pai[k] == {}:
+                pai.pop(k)
+        return
+    for k in chaves[:-1]:
+        if not isinstance(d.get(k), dict):
+            d[k] = {}
+        d = d[k]
+    d[chaves[-1]] = valor
 
 
-def sem_sincronia(d):
-    s = d.get("sync")
-    return isinstance(s, dict) and all(s.get(k) is False for k in CHAVES_DA_CONTA)
+OUTROS_TIPOS = ("apps", "autofill", "bookmarks", "cookies", "extensions", "passwords", "payments", "preferences",
+               "product_comparison", "reading_list", "saved_tab_groups", "tabs", "typed_urls")
+TEMA_LOCAL = ("browser", "theme", "saved_local_theme")
+
+
+def tema_sai_da_conta(d):
+    s = d.get("sync") if isinstance(d.get("sync"), dict) else {}
+    if "/microsoft-edge" in caminho:
+        return {}
+    if s.get("has_setup_completed"):
+        m = {("sync", "themes"): False}
+        if s.get("keep_everything_synced") is not False:
+            m[("sync", "keep_everything_synced")] = False
+            m.update({("sync", k): True for k in OUTROS_TIPOS})
+    elif isinstance(s.get("gaia_id"), str) and s["gaia_id"]:
+        conta = base64.b64encode(hashlib.sha256(s["gaia_id"].encode()).digest()).decode()
+        m = {("sync", "selected_types_per_account", conta, "sync.themes"): False}
+    else:
+        return {}
+    m[TEMA_LOCAL] = None
+    return m
 
 
 def no_gtk(d):
     t = tema_de(d)
     if not (bool(t) and t.get("system_theme") == 1 and not t.get("id") and not t.get("pack")):
         return False
-    return sem_sincronia(d) if com_conta(d) else True
+    return all(pegar(d, c) == v for c, v in tema_sai_da_conta(d).items())
 
 
 try:
@@ -86,15 +124,19 @@ if modo == "aplicar":
     if no_gtk(prefs):
         sys.exit(0)
     atual = tema_de(prefs)
-    sync = prefs.get("sync") if isinstance(prefs.get("sync"), dict) else {}
+    anterior = guardado.get(caminho, {})
+    conta = [c for c in anterior.get("conta", []) if isinstance(c, list) and len(c) == 3]
+    ja = {tuple(c[0]) for c in conta}
+    mudancas = {c: v for c, v in tema_sai_da_conta(prefs).items() if pegar(prefs, c) != v}
+    conta += [[list(c), pegar(prefs, c), v] for c, v in mudancas.items() if c not in ja]
     guardado[caminho] = {
         "theme": json.loads(json.dumps(atual)),
-        "extensions": "extensions" in prefs,
-        "sync": {k: sync.get(k) for k in CHAVES_DA_CONTA} if com_conta(prefs) else {},
+        "extensions": anterior.get("extensions", "extensions" in prefs),
+        "conta": conta,
     }
     gravar(estado, guardado)
-    if com_conta(prefs):
-        prefs.setdefault("sync", {}).update({k: False for k in CHAVES_DA_CONTA})
+    for c, v in mudancas.items():
+        por(prefs, c, v)
     novo = dict(atual or {})
     novo["system_theme"] = 1
     novo.pop("id", None)
@@ -108,11 +150,6 @@ if modo == "reverter":
         sys.exit(0)
     mudou = 0
     if no_gtk(prefs):
-        for k, v in guardado[caminho].get("sync", {}).items():
-            if v is None:
-                prefs.get("sync", {}).pop(k, None)
-            else:
-                prefs.setdefault("sync", {})[k] = v
         antes = guardado[caminho].get("theme")
         if antes is None:
             prefs.get("extensions", {}).pop("theme", None)
@@ -120,8 +157,13 @@ if modo == "reverter":
                 prefs.pop("extensions", None)
         else:
             prefs.setdefault("extensions", {})["theme"] = antes
-        gravar(caminho, prefs)
         mudou = 1
+    for c, velho, meu in guardado[caminho].get("conta", []):
+        if pegar(prefs, c) == meu and velho != meu:
+            por(prefs, c, velho)
+            mudou = 1
+    if mudou:
+        gravar(caminho, prefs)
     del guardado[caminho]
     if guardado:
         gravar(estado, guardado)

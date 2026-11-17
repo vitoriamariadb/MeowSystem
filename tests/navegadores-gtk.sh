@@ -29,11 +29,13 @@ ABERTOS="$T/abertos"; FLATPAK_ABERTOS="$T/flatpak-abertos"
 
 CHROME="$CASA/.config/google-chrome"
 CHROME2="$CHROME/Profile 1"
+CHROME3="$CHROME/Profile 2"
+CHROME4="$CHROME/Profile 3"
 EDGE="$CASA/.var/app/com.microsoft.Edge/config/microsoft-edge/Default"
 SNAP="$CASA/snap/chromium/common/chromium/Default"
 BRAVE="$CASA/.config/BraveSoftware/Brave-Browser/Default"
 VAZIO="$CASA/.config/chromium/Default"
-TODOS=("$CHROME/Default" "$CHROME2" "$EDGE" "$SNAP" "$BRAVE" "$VAZIO")
+TODOS=("$CHROME/Default" "$CHROME2" "$CHROME3" "$CHROME4" "$EDGE" "$SNAP" "$BRAVE" "$VAZIO")
 
 mod() {
   env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" XDG_DATA_HOME="$CASA/.local/share" \
@@ -58,7 +60,9 @@ semear() {
   for a in "${TODOS[@]}"; do mkdir -p "$a"; done
   json '{"extensions":{"theme":{"id":"user_color_theme_id","system_theme":0},"ui":{"x":1}},"browser":{"theme":{"color_scheme2":2,"user_color2":-1714692,"saved_local_theme":"CAAQAUgB"}},"profile":{"name":"Pessoa 1"}}' "$CHROME/Default/Preferences"
   json '{"extensions":{"theme":{"id":"user_color_theme_id","system_theme":0}},"profile":{"name":"Pessoa 2"},"account_info":[{"email":"a@b"}],"sync":{"has_setup_completed":true,"keep_everything_synced":true}}' "$CHROME2/Preferences"
-  json '{"extensions":{"theme":{"id":"jnegjmlkajgpjloaanncielldhcedhcp","pack":"/x/Extensions/jnegj/1.0.2_0","system_theme":0}},"browser":{"theme":{"follows_system_colors":false}}}' "$EDGE/Preferences"
+  json '{"extensions":{"theme":{"id":"user_color_theme_id","system_theme":0}},"account_info":[{"email":"c@d"}],"sync":{"gaia_id":"123","selected_types_per_account":{"x":{"sync.tabs":true}}},"browser":{"theme":{"saved_local_theme":"CAAQAEgB","user_color2":5}}}' "$CHROME3/Preferences"
+  json '{"extensions":{"theme":{"id":"user_color_theme_id","system_theme":0}},"account_info":[{"email":"e@f"}],"sync":{"has_setup_completed":true,"keep_everything_synced":false,"bookmarks":true,"passwords":false}}' "$CHROME4/Preferences"
+  json '{"extensions":{"theme":{"id":"jnegjmlkajgpjloaanncielldhcedhcp","pack":"/x/Extensions/jnegj/1.0.2_0","system_theme":0}},"browser":{"theme":{"follows_system_colors":false}},"account_info":[{"email":"g@h"}],"sync":{"has_setup_completed":true,"keep_everything_synced":true,"collections":true}}' "$EDGE/Preferences"
   json '{"extensions":{"theme":{"system_theme":0}},"homepage":"about:blank"}' "$SNAP/Preferences"
   json '{"extensions":{"theme":{"id":"","system_theme":1}},"brave":{"x":2}}' "$BRAVE/Preferences"
   json '{"profile":{"name":"sem tema"}}' "$VAZIO/Preferences"
@@ -115,14 +119,38 @@ fi
 
 if python3 -c '
 import json,sys
-d=json.load(open(sys.argv[1]))
-assert d["sync"]["keep_everything_synced"] is False and d["sync"]["themes"] is False
+d=json.load(open(sys.argv[1]))["sync"]
+outros=("apps","autofill","bookmarks","cookies","extensions","passwords","payments","preferences","product_comparison","reading_list","saved_tab_groups","tabs","typed_urls")
+assert d["keep_everything_synced"] is False and d["themes"] is False and all(d[k] is True for k in outros)
 for p in sys.argv[2:]:
-    assert "sync" not in json.load(open(p))' "$CHROME2/Preferences" "$CHROME/Default/Preferences" "$EDGE/Preferences"; then
-  ok "perfil com conta no Google para de sincronizar o tema (senão a nuvem devolve o Clássico ao abrir); perfil sem conta não ganha chave de sincronia"
+    assert "sync" not in json.load(open(p))' "$CHROME2/Preferences" "$CHROME/Default/Preferences" "$SNAP/Preferences"; then
+  ok "perfil que sincroniza tudo: só o tema sai da sincronia (senão a nuvem devolve o Clássico ao abrir), os outros tipos seguem ligados; perfil sem conta não ganha chave de sincronia"
 else
-  falha "o perfil com conta não parou de sincronizar o tema, ou o perfil sem conta ganhou chave de sincronia"
+  falha "o perfil que sincroniza tudo não ficou com tudo menos o tema, ou o perfil sem conta ganhou chave de sincronia" "$(inteiro "$CHROME2/Preferences")"
 fi
+if python3 -c '
+import json,sys
+d=json.load(open(sys.argv[1]))["sync"]
+assert d=={"has_setup_completed":True,"keep_everything_synced":False,"bookmarks":True,"passwords":False,"themes":False}, d' "$CHROME4/Preferences"; then
+  ok "perfil que já escolhe o que sincroniza: só o tema sai, as escolhas dele ficam"
+else
+  falha "o aplicar mexeu nas escolhas de sincronia de quem já escolhia" "$(inteiro "$CHROME4/Preferences")"
+fi
+if python3 -c '
+import json,sys,hashlib,base64
+d=json.load(open(sys.argv[1]))
+h=base64.b64encode(hashlib.sha256(b"123").digest()).decode()
+assert d["sync"]["selected_types_per_account"]=={"x":{"sync.tabs":True},h:{"sync.themes":False}}, d["sync"]
+assert "keep_everything_synced" not in d["sync"] and d["browser"]["theme"]=={"user_color2":5}' "$CHROME3/Preferences"; then
+  ok "perfil só conectado à conta: o tema sai da escolha da conta e o tema local guardado (o Clássico) sai junto"
+else
+  falha "o perfil só conectado à conta não tirou o tema da conta, ou sobrou o tema local guardado" "$(inteiro "$CHROME3/Preferences")"
+fi
+python3 -c '
+import json,sys
+assert json.load(open(sys.argv[1]))["sync"]=={"has_setup_completed":True,"keep_everything_synced":True,"collections":True}' "$EDGE/Preferences" \
+  && ok "o Edge, de sincronia com outros tipos, não tem a sincronia tocada" \
+  || falha "o aplicar mexeu na sincronia do Edge" "$(inteiro "$EDGE/Preferences")"
 
 antes="$(fotografia)"
 saida="$(mod aplicar)"; rc=$?
@@ -157,8 +185,39 @@ saida="$(mod reverter)"; rc=$?
 [ "$rc" = 0 ] && ok "o segundo reverter fica quieto" || falha "o segundo reverter devia dar 0 e deu $rc" "$saida"
 
 semear
+antes_chrome2="$(inteiro "$CHROME2/Preferences")"
+mod aplicar >/dev/null
+python3 -c '
+import json,sys
+p=sys.argv[1]; d=json.load(open(p)); d["extensions"]["theme"]={"id":"abcdefghijklmnopabcdefghijklmnop","system_theme":0}
+json.dump(d,open(p,"w"))' "$CHROME2/Preferences"
+mod aplicar >/dev/null
+mod reverter >/dev/null
+if python3 -c '
+import json,sys
+a=json.loads(sys.argv[2]); d=json.load(open(sys.argv[1]))
+assert d["sync"]==a["sync"], d["sync"]' "$CHROME2/Preferences" "$antes_chrome2"; then
+  ok "a sincronia volta à de antes, mesmo com um tema trocado no meio e um segundo aplicar"
+else
+  falha "o reverter perdeu a sincronia de antes" "$(inteiro "$CHROME2/Preferences")"
+fi
+semear
+mod aplicar >/dev/null
+python3 -c '
+import json,sys
+p=sys.argv[1]; d=json.load(open(p)); d["extensions"]["theme"]={"id":"abcdefghijklmnopabcdefghijklmnop","system_theme":0}
+json.dump(d,open(p,"w"))' "$CHROME2/Preferences"
+mod reverter >/dev/null
+python3 -c '
+import json,sys
+d=json.load(open(sys.argv[1]))
+assert d["sync"]=={"has_setup_completed":True,"keep_everything_synced":True} and d["extensions"]["theme"]["id"]=="abcdefghijklmnopabcdefghijklmnop"' "$CHROME2/Preferences" \
+  && ok "o reverter devolve a sincronia mesmo quando o tema já foi trocado à mão, e não pisa no tema novo" \
+  || falha "o reverter deixou a sincronia desligada ou pisou no tema escolhido à mão" "$(inteiro "$CHROME2/Preferences")"
+
+semear
 printf '{ isto não é json' > "$CHROME/Default/Preferences"
-for a in "$CHROME2" "$EDGE" "$SNAP" "$BRAVE" "$VAZIO"; do rm -f "$a/Preferences"; done
+for a in "$CHROME2" "$CHROME3" "$CHROME4" "$EDGE" "$SNAP" "$BRAVE" "$VAZIO"; do rm -f "$a/Preferences"; done
 antes="$(fotografia)"
 saida="$(mod aplicar)"; rc=$?
 [ "$rc" = 3 ] && [ "$antes" = "$(fotografia)" ] && ok "Preferences ilegível: deixa como está e avisa (3)" \
