@@ -50,13 +50,25 @@ _tema_do() {
 }
 
 _temas_da_casa() {
-  local f tema chaves
+  local f tema chaves textos
   for f in "$PINOS"/*.pino; do
     [ -f "$f" ] || continue
     tema="$(sed -n 's/^TEMA="\(.*\)"/\1/p' "$f" | head -1)"
     chaves="$(sed -n 's/^TEMA_CHAVES="\(.*\)"/\1/p' "$f" | head -1)"
-    [ -n "$tema" ] && [ -n "$chaves" ] && printf '%s\t%s\n' "$tema" "$chaves"
+    textos="$(sed -n 's/^TEMA_TEXTOS="\(.*\)"/\1/p' "$f" | head -1)"
+    [ -n "$tema" ] && [ -n "$chaves" ] && printf '%s\t%s\t%s\t%s\n' "$tema" "$chaves" "$(basename "$f" .pino)" "${textos:--}"
   done
+}
+
+_textos_do_pack() {
+  local id="$1" declarados="$2" chave valor par
+  [ "$declarados" != - ] || return 0
+  while IFS=$'\t' read -r chave valor; do
+    [ -n "$chave" ] || continue
+    for par in $declarados; do
+      [ "${par%%:*}" = "$chave" ] && printf 'texto_%s = %s\n' "$chave" "$valor"
+    done
+  done < <(python3 "$RAIZ/scripts/pack.py" textos "$(meow_pack_dir)" "$id" 2>/dev/null)
 }
 
 _instalado() {
@@ -70,8 +82,8 @@ _instalado() {
 }
 
 main() {
-  local tema chaves destino texto rc geral="$MEOW_OK" visto=0
-  while IFS=$'\t' read -r tema chaves; do
+  local tema chaves id textos destino texto rc geral="$MEOW_OK" visto=0
+  while IFS=$'\t' read -r tema chaves id textos; do
     [ -n "$tema" ] || continue
     destino="$RAIZ_TEMAS/$tema/tema.conf"
     if [ "$REVERTER" = 1 ]; then
@@ -89,6 +101,8 @@ main() {
       meow_aviso "não montei o tema de $tema: a paleta de $_flavor não tem as cores que ele pede"
       geral="$MEOW_SEM_DEPENDENCIA"; continue
     fi
+    textos="$(_textos_do_pack "$id" "$textos")"
+    [ -z "$textos" ] || texto="$texto"$'\n'"$textos"
     if [ "$CONFERIR" = 1 ]; then
       if [ -f "$destino" ] && [ "$texto" = "$(cat "$destino")" ]; then
         meow_ok "o tema de $tema é o do pack ($_flavor)"

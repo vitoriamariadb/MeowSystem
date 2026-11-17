@@ -20,7 +20,7 @@ ESTADO_COSMIC="$HOME/.local/state/cosmic"
 
 . "$RAIZ/scripts/applet_pino.sh"
 
-PINO_CHAVES=" ORDEM TIPO PADRAO CHAVE_DO_CONF ATIVA NOME DESCRICAO URL COMMIT VERSAO LIBCOSMIC APP_ID BIN DESKTOP ICONES METAINFO SUBSTITUI LEGADO MIGRA_ESTADO TEMA TEMA_CHAVES PENDENCIA UPSTREAM "
+PINO_CHAVES=" ORDEM TIPO PADRAO CHAVE_DO_CONF ATIVA NOME DESCRICAO URL COMMIT VERSAO LIBCOSMIC APP_ID BIN DESKTOP ICONES METAINFO SUBSTITUI LEGADO MIGRA_ESTADO TEMA TEMA_CHAVES TEMA_TEXTOS PENDENCIA UPSTREAM "
 GARANTIR="${EXTENSOES_GARANTIR:-$RAIZ/scripts/garantir_builds.sh}"
 COMPOSITOR_PATCHES="${EXTENSOES_COMPOSITOR:-$RAIZ/scripts/compositor_patches.sh}"
 FILES_MENU_SH="${EXTENSOES_FILES_MENU:-$RAIZ/scripts/files_menu.sh}"
@@ -65,6 +65,7 @@ _pino_valido() {
   [ -z "$P_CHAVE_DO_CONF" ] || [[ "$P_CHAVE_DO_CONF" =~ ^[A-Z][A-Z0-9_]*$ ]] || return 1
   [ -z "$P_PENDENCIA" ] || [[ "$P_PENDENCIA" =~ ^[a-z0-9][a-z0-9-]*$ ]] || return 1
   for par in $P_TEMA_CHAVES; do [[ "$par" =~ ^[a-z_]+:(@acento|[a-z0-9]+)(/[0-9a-f]{2})?$ ]] || return 1; done
+  for par in $P_TEMA_TEXTOS; do [[ "$par" =~ ^[a-z][a-z_]*:[^[:space:]:]+$ ]] || return 1; done
   if [ "${P_TIPO:-applet}" != applet ]; then
     [[ "$P_BIN" =~ ^[A-Za-z0-9._-]+$ ]] || return 1
     return 0

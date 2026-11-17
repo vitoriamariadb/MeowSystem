@@ -4,6 +4,7 @@ set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/comum.sh
 . "$RAIZ/lib/comum.sh"
+. "$RAIZ/lib/noite.sh"
 
 BASE="${WALLPAPER_BASE:-$HOME/.local/share/backgrounds/meowsystem}"
 ATIVOS="$BASE/ativos"
@@ -55,6 +56,7 @@ sim_ou_nao() {
   printf '%s' "$padrao"
 }
 
+JANELA_DO_MASCOTE="$(meow_noite_janela)"
 NOITE="$(sim_ou_nao "$(valor_da_chave WALLPAPER_NOITE sim)" WALLPAPER_NOITE sim)"
 NOITE_INICIO="$(valor_da_chave WALLPAPER_NOITE_INICIO 18:00)"
 NOITE_FIM="$(valor_da_chave WALLPAPER_NOITE_FIM 07:00)"
@@ -508,6 +510,53 @@ podar_lado() {
   return 1
 }
 
+declare -A PAR=() LADO_DO_PAR=()
+
+nome_semeado() {
+  local nome="${SEMENTE_PREFIXO}-${1//\//-}"
+  case "${nome##*.}" in svg|SVG) nome="${nome%.*}.png" ;; esac
+  printf '%s' "$nome"
+}
+
+ler_pares() {
+  PAR=(); LADO_DO_PAR=()
+  local _cena dia noite
+  while IFS=$'\t' read -r _cena dia noite; do
+    [ -n "$dia" ] && [ -n "$noite" ] || continue
+    dia="$(nome_semeado "$dia")"; noite="$(nome_semeado "$noite")"
+    [ -f "$ATIVOS/$dia" ] && [ -f "$ATIVOS/$noite" ] || continue
+    PAR["$dia"]="$noite"; PAR["$noite"]="$dia"
+    LADO_DO_PAR["$dia"]=dia; LADO_DO_PAR["$noite"]=noite
+  done < <(python3 "$RAIZ/scripts/pack.py" pares "$_PACK_NO_AR" 2>/dev/null)
+  return 0
+}
+
+trocar_pelo_par() {
+  [ "${#PAR[@]}" -gt 0 ] || return 0
+  local fase atual base par quando ttl intervalo agora ini fim _fonte
+  read -r ini fim _fonte <<< "$JANELA_DO_MASCOTE"
+  fase="$(meow_fase_da_hora "$ini" "$fim")"
+  agora="$(date +%s)"
+  if atual="$(fixo_valido)"; then
+    quando="$(cut -f2 "$FIXADO" 2>/dev/null)"
+  elif atual="$(imagem_atual)"; then
+    ttl="$(segundos_de "$FIXO_TTL")"; intervalo="$(segundos_de "$INTERVALO")"
+    [ "$ttl" -gt 0 ] || return 0
+    quando=$(( agora - (ttl > intervalo ? ttl - intervalo : 0) ))
+  else
+    return 0
+  fi
+  base="${atual##*/}"; par="${PAR[$base]:-}"
+  [ -n "$par" ] && [ "${LADO_DO_PAR[$base]}" != "$fase" ] || return 0
+  if meow_seco; then
+    meow_muda "trocaria $base pelo par de $fase, $par"
+    return 0
+  fi
+  printf '%s\t%s\n' "$ATIVOS/$par" "$quando" > "$FIXADO" 2>/dev/null || return 0
+  meow_info "$fase: $base deu lugar ao par, $par"
+  return 0
+}
+
 resolver_rotacao() {
   _resolver_grupo || return $?
   local fixo
@@ -520,6 +569,8 @@ resolver_rotacao() {
       meow_info "curadoria nova: soltei a fixação para o carrossel responder na hora"
     fi
   fi
+
+  trocar_pelo_par
 
   if fixo="$(fixo_valido)"; then
     ROTACAO="$fixo"; GRUPO="fixado"
@@ -539,6 +590,7 @@ _resolver_grupo() {
   ROTACAO="$ROTACAO_BASE"; GRUPO=""; NOITE_N=0; DIA_N=0
 
   [ "$NOITE" = "sim" ] || return 0
+  ler_pares
 
   local lim; lim="$(milesimos_de "$LIMIAR_LUZ")"
   if [ "$lim" -le 0 ] || [ "$lim" -ge 10000 ]; then
@@ -556,6 +608,9 @@ _resolver_grupo() {
 
   local -a escuros=() claros=()
   local base por_escolha=0
+  for base in "${!LADO_DO_PAR[@]}"; do
+    [ -n "${LADO[$base]:-}" ] || LADO["$base"]="${LADO_DO_PAR[$base]}"
+  done
 
   local -A universo=() da_colecao=()
   for base in ${COLECAO[@]+"${COLECAO[@]}"}; do da_colecao["$base"]=1; done
@@ -1357,7 +1412,7 @@ _semear_de_pasta() {
     case "${rel##*.}" in
       png|PNG|jpg|JPG|jpeg|JPEG|webp|WEBP|avif|AVIF|gif|GIF|tif|tiff|TIF|TIFF) ;;
       svg|SVG) if meow_tem rsvg-convert; then vetor=1; else svg_sem=$((svg_sem + 1)); continue; fi ;;
-      LICENSE|md|txt) continue ;;
+      LICENSE|md|txt|tsv) continue ;;
       *) ignorados=$((ignorados + 1)); continue ;;
     esac
     nome="${SEMENTE_PREFIXO}-${rel//\//-}"

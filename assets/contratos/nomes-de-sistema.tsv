@@ -88,7 +88,7 @@ input-tablet-symbolic	devices	configuracoes	Mesa digitalizadora	applets,settings
 input-touchpad-symbolic	devices	configuracoes	Touchpad	osd,settings
 keyboard-brightness-symbolic	status	barra	Luz do teclado	applets,osd
 laptop-symbolic	devices	configuracoes	Notebook	applets,osd,settings
-list-add-symbolic	actions	botoes	Acrescentar	settings
+list-add-symbolic	actions	janela	Acrescentar	settings
 list-remove-symbolic	actions	botoes	Tirar	settings
 media-playback-pause-symbolic	actions	barra	Pausar	applets
 media-playback-start-symbolic	actions	barra	Tocar	applets
@@ -164,8 +164,8 @@ video-x-generic-symbolic	status	botoes	Arquivo de vídeo	settings
 view-more-horizontal-symbolic	actions	botoes	Mais opções	panel
 view-more-symbolic	actions	botoes	Menu	panel,settings
 view-refresh-symbolic	actions	botoes	Atualizar	applets
-window-close-symbolic	actions	botoes	Fechar janela	applets,osd,notifications,settings,app-library,launcher
-window-maximize-symbolic	actions	botoes	Maximizar	applets,settings
-window-minimize-symbolic	actions	botoes	Minimizar	applets,settings
+window-close-symbolic	actions	janela	Fechar janela	applets,osd,notifications,settings,app-library,launcher
+window-maximize-symbolic	actions	janela	Maximizar	applets,settings
+window-minimize-symbolic	actions	janela	Minimizar	applets,settings
 window-pop-out-symbolic	actions	botoes	Destacar	settings
-window-restore-symbolic	actions	botoes	Restaurar	applets,settings
+window-restore-symbolic	actions	janela	Restaurar	applets,settings
