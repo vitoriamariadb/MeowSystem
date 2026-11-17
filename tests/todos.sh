@@ -127,6 +127,7 @@ PORTATIL=(
   glossario.sh
   pacotes-numa-lista.sh
   comum-carrega-limpo.sh
+  destrava.sh
 )
 
 MAQUINA=(
@@ -143,6 +144,7 @@ MAQUINA=(
   oficina.sh
   icones-por-pack.py
   personalizar-pagina.py
+  soberana-pagina.py
   sistema-latte-e-rotulos.py
   pastas-do-pack.sh
   retirados-do-pack.sh
@@ -176,6 +178,7 @@ SEM_PULO=(
   resultado-na-linha.py
   faixa-de-fabrica.py
   logo-do-pack-pessoal-pagina.py
+  soberana-pagina.py
 )
 
 MODO="tudo"

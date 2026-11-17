@@ -552,11 +552,6 @@ if trocar != {"chave": "LOGO_MODO", "vale": "hora", "pede": "fixo"}:
     erros.append("com o mascote por horário, «Pôr um mascote no dock» não se apaga: %r" % (trocar,))
 if not girar or girar.get("pede") != "rotacao":
     erros.append("com o mascote por horário, «Passar ao próximo mascote» não se apaga: %r" % (girar,))
-trabalho, erro = servidor.iniciar("logo_trocar", "coquinha")
-if trabalho is not None or not erro:
-    if trabalho is not None:
-        trabalho.parar()
-    erros.append("o servidor rodou «Pôr um mascote no dock» apagado")
 conf_com(LOGO_MODO="fixo")
 if servidor.indisponivel("logo_trocar") or not servidor.indisponivel("logo_girar"):
     erros.append("com o mascote fixo, o «Pôr» tem de acender e o «Passar ao próximo» não")

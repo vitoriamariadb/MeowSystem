@@ -66,9 +66,10 @@ const ehApplet = (e) => tipoDe(e) === "applet";
 const BINARIO_DO_TIPO = { compositor: "cosmic-comp", menu: "cosmic-files", graficos: "portal" };
 
 function botoesDoCartao(e, parado) {
+  if (parado) return [];
   const b = (texto, props, acao) => botao(texto, { class: "bt pequeno" + (props.principal ? " principal" : ""),
-    icone: props.icone, disabled: parado, controle: props.controle, onclick: acao });
-  const remover = botao("", { class: "bt leve pequeno so-icone", icone: "lixo", disabled: parado,
+    icone: props.icone, controle: props.controle, onclick: acao });
+  const remover = botao("", { class: "bt leve pequeno so-icone", icone: "lixo",
     "aria-label": "Remover " + e.nome, dica: "Remover", controle: "extensao:remover:" + e.id,
     onclick: () => gestoDeExtensao("extensao_remover", e, "Remover") });
   if (e.falhou) {
@@ -115,18 +116,19 @@ function pilulaDoBuildDaCasa(e, ocupado, construindo) {
 }
 
 function botoesDoBuildDaCasa(e, parado) {
-  const b = (texto, icone, verbo, acao, livre, principal) => botao(texto, {
-    class: "bt pequeno" + (principal ? " principal" : ""), icone, disabled: parado || !livre,
-    controle: "extensao:" + verbo + ":" + e.id, onclick: () => gestoDeExtensao(acao, e, texto) });
+  if (parado) return [];
+  const b = (texto, icone, verbo, acao, livre, principal) => (livre ? botao(texto, {
+    class: "bt pequeno" + (principal ? " principal" : ""), icone,
+    controle: "extensao:" + verbo + ":" + e.id, onclick: () => gestoDeExtensao(acao, e, texto) }) : null);
   const ligar = !e.atualizacao && (!e.instalada || !e.ativa);
   return [
     b("Instalar", "baixar", "instalar", "extensao_instalar", ligar, ligar),
     b("Atualizar", "subir", "atualizar", "extensao_atualizar", e.atualizacao, e.atualizacao),
     b("Recompilar", "girar", "refazer", "extensao_refazer", true, false),
-    botao("", { class: "bt leve pequeno so-icone", icone: "lixo", disabled: parado || !e.ativa,
+    e.ativa ? botao("", { class: "bt leve pequeno so-icone", icone: "lixo",
       "aria-label": "Remover " + e.nome, dica: "Remover", controle: "extensao:remover:" + e.id,
-      onclick: () => gestoDeExtensao("extensao_remover", e, "Remover") }),
-  ];
+      onclick: () => gestoDeExtensao("extensao_remover", e, "Remover") }) : null,
+  ].filter(Boolean);
 }
 
 function cartaoDoBuildDaCasa(e, ocupado, construindo, remendos) {
@@ -151,10 +153,10 @@ function pendenciaDeTroca(e, parado) {
       iconeDaExtensao(e),
       elemento("span", {}, [elemento("b", { texto: e.nome }), " no lugar de " + velho]),
     ]),
-    elemento("span", { class: "ctl" }, [
-      botao("Trocar", { class: "bt principal pequeno", icone: "certo", disabled: parado, controle: "extensao:trocar:" + e.id,
+    elemento("span", { class: "ctl" }, parado ? [] : [
+      botao("Trocar", { class: "bt principal pequeno", icone: "certo", controle: "extensao:trocar:" + e.id,
         onclick: () => { EXT.trocou = true; return gestoDeExtensao("extensao_trocar", e, "Trocar"); } }),
-      botao("Manter", { class: "bt leve pequeno", disabled: parado, controle: "extensao:manter:" + e.id,
+      botao("Manter", { class: "bt leve pequeno", controle: "extensao:manter:" + e.id,
         onclick: async () => {
           const r = await api("/api/extensao-manter", { method: "POST", body: JSON.stringify({ id: e.id }) });
           if (r.erro) { torrada(r.erro, "erro"); return; }
@@ -195,7 +197,7 @@ function blocoDeBuilds(dados) {
   const daCasa = (dados.extensoes || []).filter((e) => !ehApplet(e));
   return elemento("section", { class: "bloco", "data-bloco": "Builds" }, [
     elemento("header", {}, [elemento("h2", { texto: "Builds" }),
-      botao("Recompilar tudo", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "build:tudo",
+      parado ? null : botao("Recompilar tudo", { class: "bt pequeno", icone: "girar", controle: "build:tudo",
         onclick: () => { EXT.quando = 0; rodar(ACAO.get("builds_refazer_tudo"), "", { verbo: "Recompilar tudo",
           depois: depoisDoGesto }); } })]),
     daCasa.length ? elemento("div", { class: "grade-extensoes grade-builds" },
@@ -246,8 +248,8 @@ function linhaDeReiniciar(parado) {
   return elemento("li", { class: "linha", "data-reiniciar": true }, [
     elemento("span", { class: "rot troca" }, [elemento("span", { class: "lugar-applet" }, [icone("girar")]),
       elemento("b", { texto: "Barra" })]),
-    elemento("span", { class: "ctl" }, [
-      botao("Reiniciar a barra", { class: "bt pequeno", icone: "girar", disabled: parado, controle: "extensao:reiniciar-painel",
+    elemento("span", { class: "ctl" }, parado ? [] : [
+      botao("Reiniciar a barra", { class: "bt pequeno", icone: "girar", controle: "extensao:reiniciar-painel",
         onclick: () => { EXT.quando = 0; return rodar(ACAO.get("extensao_reiniciar_painel"), "", { verbo: "Reiniciar a barra",
           depois: () => { EXT.trocou = false; depoisDoGesto(); } }); } }),
     ]),

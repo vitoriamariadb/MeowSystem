@@ -190,6 +190,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 import threading
 import xml.etree.ElementTree as ET
@@ -4298,6 +4299,27 @@ def motivo_para_nao_aprimorar(ident):
     return "Tema de fora da sua casa de temas"
 
 
+def trazer_para_a_casa(ident):
+    _exigir(isinstance(ident, str) and RE_ID.match(ident),
+            f"id {ident!r} — só minúsculas, dígitos e hífen")
+    if not motivo_para_nao_aprimorar(ident):
+        return achar(ident)
+    destino = os.path.join(raiz_da_pessoa(), ident)
+    origem = achar(ident)
+    _exigir(origem, f"{ident!r}: não achei esse tema")
+    origem = os.path.realpath(origem)
+    _exigir(not os.path.exists(destino) or os.path.islink(destino),
+            f"{destino} já existe e não é um tema: não escrevo por cima")
+    os.makedirs(raiz_da_pessoa(), exist_ok=True)
+    parcial = destino + ".copiando"
+    shutil.rmtree(parcial, ignore_errors=True)
+    shutil.copytree(origem, parcial, symlinks=True)
+    if os.path.islink(destino):
+        os.unlink(destino)
+    os.replace(parcial, destino)
+    return destino
+
+
 def pack_da_pessoa(ident):
     _exigir(isinstance(ident, str) and RE_ID.match(ident),
             f"id {ident!r} — só minúsculas, dígitos e hífen")
@@ -4932,9 +4954,19 @@ def desenho_de_sistema(ident, nome):
     dir_pack = pack_da_pessoa(ident)
     achado = next((arq for n, arq, *_ in sistema_do_pack(dir_pack) if n == nome), None)
     _exigir(achado, f"{nome}: o tema não usa este ícone")
-    trava = trava_de_sistema(dir_pack, achado)
-    _exigir(not trava, f"{nome}: {trava}")
+    if trava_de_sistema(dir_pack, achado):
+        return nome
     return os.path.basename(os.path.realpath(achado))[:-4]
+
+
+def levadas(ref, bloco):
+    dir_pack = achar(ref)
+    if not dir_pack or campo(dir_pack, f"icones.{bloco}.desenhos"):
+        return ""
+    pasta = os.path.join(dir_pack, "icones", "sistema")
+    if os.path.islink(pasta) or not os.path.isdir(pasta):
+        return ""
+    return os.path.realpath(pasta)
 
 
 def levar_icone(ident, pasta, caminho, nome="", texto=None):
@@ -5501,6 +5533,11 @@ def main(argv):
         if verbo == "wallpapers" and len(argv) == 3:
             for chave, valor in sorted(origem_dos_wallpapers(argv[2]).items()):
                 print(f"{chave}={valor}")
+            return OK
+        if verbo == "levadas" and len(argv) == 4:
+            achado = levadas(argv[2], argv[3])
+            if achado:
+                print(achado)
             return OK
         if verbo == "acervo" and len(argv) in (4, 5):
             achado = acervo(argv[3], argv[4] if len(argv) == 5 else "", ref=argv[2])

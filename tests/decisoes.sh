@@ -542,6 +542,15 @@ registro 55 'entra sem clique' && ! grep -q 'retido\|liberar' "$RAIZ/scripts/com
   && ! grep -q 'Uniform::new("leitura_temp"' "$RAIZ/patches/cosmic-comp-modo-leitura.patch" \
   && ok "P100: a série é toda req (dela, 28/09) e o neutro do modo de leitura é o zero" \
   || falha "P100: voltou patch opt na série, ou o uniform leitura_temp de neutro 1.0"
+registro 57 'a interface é soberana' && ! grep -q 'motivoIndisponivel\|disabled: !!motivo' "$RAIZ/app/pagina/app.js" \
+  && ! grep -q 'desligado' "$RAIZ/app/pagina/app.js" \
+  && ! grep -q 'aria-disabled' "$RAIZ"/app/pagina/*.js \
+  && grep -q 'completarModoQueFazValer' "$RAIZ/app/pagina/app.js" \
+  && grep -q 'clique destrava' "$RAIZ/docs/DECISOES.md" \
+  && grep -q 'meow_destravados' "$RAIZ/scripts/icones_apps_arcticons.sh" \
+  && ! grep -q 'Feito à mão em PNG' "$RAIZ/app/servidor.py" \
+  && ok "57: a interface é soberana: nenhum controle desliga com dica de porquê, e o gesto liga o modo" \
+  || falha "57: voltou o controle desligado com dica de porquê"
 
 sem_linha=""; total=0
 while read -r n; do

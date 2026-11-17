@@ -205,24 +205,28 @@ def com_checkout(nav, url):
 
 def sem_checkout(nav, url):
     pag, erros = abrir(nav, url)
-    print("== sem .git na raiz, o tema de fábrica não se aprimora, e o botão diz o porquê")
+    print("== sem .git na raiz, o clique destrava: o tema de fábrica vem para a casa de temas e recebe a cor")
     ir(pag, "criar/cores")
     no_ar = pag.evaluate("() => ({ id: packNoAr().id, flavor: rascunho().base.flavor })")
     paleta = os.path.join(casa.RAIZ_B, "packs", no_ar["id"], "paleta.json")
+    na_casa = os.path.join(casa.CASA, ".local", "share", "meowsystem", "packs", no_ar["id"], "paleta.json")
     tom_antes = tom(paleta, no_ar["flavor"], "mauve")
     trocar_cor(pag, "mauve", "#0A0B0C")
     b = pag.locator('[data-controle="criar:guardar"]')
-    checa(b.get_attribute("aria-disabled") == "true" and "checkout" in (b.get_attribute("data-dica") or ""),
-          f"«Guardar» apagado, com o porquê na dica ({b.get_attribute('data-dica')!r})")
+    checa(b.count() == 1 and b.is_enabled() and not b.get_attribute("aria-disabled"),
+          "«Guardar» aparece e funciona, sem porquê na dica")
     foto(pag, "aprimorar-sem-checkout")
+    b.click()
+    for _ in range(60):
+        if tom(na_casa, no_ar["flavor"], "mauve") == "#0A0B0C":
+            break
+        pag.wait_for_timeout(500)
+    checa(tom(na_casa, no_ar["flavor"], "mauve") == "#0A0B0C",
+          f"o clique traz o tema para a casa de temas e grava a cor nela ({tom(na_casa, no_ar['flavor'], 'mauve')})")
+    checa(tom(paleta, no_ar["flavor"], "mauve") == tom_antes, "e o tema de fábrica fica como estava")
     ir(pag, "criar/mandar")
     a = pag.locator('[data-controle="criar:aprimorar"]')
-    checa(a.get_attribute("aria-disabled") == "true" and "checkout" in (a.get_attribute("data-dica") or ""),
-          f"«Salvar no tema» apagado, com o porquê na dica ({a.get_attribute('data-dica')!r})")
-    resp = pag.evaluate("([id, f]) => api('/api/pack-cores', { method: 'POST', body: JSON.stringify({ id, flavor: f, cores: { mauve: '#0A0B0C' } }) })",
-                        [no_ar["id"], no_ar["flavor"]])
-    checa("checkout" in (resp.get("erro") or "") and tom(paleta, no_ar["flavor"], "mauve") == tom_antes,
-          f"o servidor recusa com o porquê e a paleta fica ({resp})")
+    checa(a.count() == 1 and a.is_enabled(), "«Salvar no tema» aparece e funciona")
     checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
 
 

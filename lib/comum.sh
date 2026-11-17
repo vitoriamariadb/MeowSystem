@@ -651,6 +651,16 @@ meow_escrever() {
 MEOW_CONF_ARQUIVO="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
 MEOW_CONF_PADRAO="${MEOW_CONF_PADRAO:-$MEOW_RAIZ/meow.conf.exemplo}"
 
+meow_destravados() {
+  local lista="${MEOW_ICONES_DESTRAVADOS:-$(dirname "$MEOW_CONF_ARQUIVO")/icones-destravados.list}" linha
+  [ -f "$lista" ] || return 0
+  while IFS= read -r linha || [ -n "$linha" ]; do
+    case "$linha" in ''|'#'*) continue ;; esac
+    meow_nome_seguro "$linha" && printf '%s\n' "$linha"
+  done < "$lista"
+  return 0
+}
+
 meow_conf_texto_definir() {
   local texto="$1" chave="$2" valor="$3" novo="" linha resto antes espacos comentario achou=0
   while IFS= read -r linha; do

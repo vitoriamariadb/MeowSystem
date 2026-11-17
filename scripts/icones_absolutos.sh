@@ -18,6 +18,7 @@ DIRS=(
 TROCAR=(
   "input-remapper-gtk:input-remapper"
 )
+while IFS= read -r _d; do TROCAR+=("$_d:$_d"); done < <(meow_destravados)
 
 PY_SISTEMA=""
 for c in /usr/bin/python3.12 /usr/bin/python3; do

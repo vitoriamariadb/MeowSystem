@@ -7,6 +7,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 ORIGEM=""
 MAPA=""
+LEVADAS=""
 COR=""
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 BASE="$HOME/.local/share/icons/$TEMA"
@@ -122,7 +123,27 @@ _pronto() {
   if [ ! -d "$ORIGEM" ] || [ ! -f "$MAPA" ]; then
     return 1
   fi
+  LEVADAS="$(_levadas sistema)"
   return "$MEOW_OK"
+}
+
+_levadas() {
+  local ref
+  ref="$(meow_pack_dir)"
+  [ -n "$ref" ] || ref="$(meow_pack_padrao_dir || true)"
+  [ -n "$ref" ] || return 0
+  python3 "$RAIZ/scripts/pack.py" levadas "$ref" "$1" 2>/dev/null || true
+}
+
+_arte() {
+  local nome="$1" glifo="$2"
+  if [ -n "$LEVADAS" ] && [ -f "$LEVADAS/$nome.svg" ] && [ ! -L "$LEVADAS/$nome.svg" ]; then
+    printf '%s/%s.svg' "$LEVADAS" "$nome"
+  elif [ -f "$ORIGEM/$glifo.svg" ]; then
+    printf '%s/%s.svg' "$ORIGEM" "$glifo"
+  else
+    return 1
+  fi
 }
 
 _com_traco() {
@@ -143,23 +164,22 @@ _com_cor() {
 }
 
 _desejado() {
-  local nome glifo tam
+  local nome arte tam
   for tam in "${!TRACO[@]}"; do
     for nome in "${!MAPA_LIDO[@]}"; do
-      glifo="${MAPA_LIDO[$nome]}"
-      [ -f "$ORIGEM/$glifo.svg" ] && printf '%s\t%s\t%s\n' "$(_dir_de "$tam" "$nome")" "$nome" "$glifo"
+      arte="$(_arte "$nome" "${MAPA_LIDO[$nome]}")" && printf '%s\t%s\t%s\n' "$(_dir_de "$tam" "$nome")" "$nome" "$arte"
     done
   done
 }
 
 _conferir() {
-  local dir nome glifo divergentes=0 ausentes=0 orfaos=0 total=0 arq alvo tam ctx
-  while IFS=$'\t' read -r dir nome glifo; do
+  local dir nome arte divergentes=0 ausentes=0 orfaos=0 total=0 arq alvo tam ctx
+  while IFS=$'\t' read -r dir nome arte; do
     total=$((total + 1))
     alvo="$BASE/$dir/$nome.svg"
     if [ ! -f "$alvo" ]; then
       ausentes=$((ausentes + 1))
-    elif [ "$(_com_traco "$ORIGEM/$glifo.svg" "${TRACO[${dir%%/*}]}")" != "$(cat "$alvo")" ]; then
+    elif [ "$(_com_traco "$arte" "${TRACO[${dir%%/*}]}")" != "$(cat "$alvo")" ]; then
       divergentes=$((divergentes + 1))
     fi
   done < <(_desejado)
@@ -181,11 +201,11 @@ _conferir() {
 }
 
 _aplicar() {
-  local dir nome glifo arq mudou=0 postos=0 removidos=0 rc tam ctx
+  local dir nome arte arq mudou=0 postos=0 removidos=0 rc tam ctx
 
-  while IFS=$'\t' read -r dir nome glifo; do
+  while IFS=$'\t' read -r dir nome arte; do
     set +e
-    meow_escrever "$BASE/$dir/$nome.svg" "$(_com_traco "$ORIGEM/$glifo.svg" "${TRACO[${dir%%/*}]}")" 644
+    meow_escrever "$BASE/$dir/$nome.svg" "$(_com_traco "$arte" "${TRACO[${dir%%/*}]}")" 644
     rc=$?
     set -e
     case "$rc" in

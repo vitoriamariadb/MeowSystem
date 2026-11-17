@@ -45,6 +45,8 @@ declare -A APELIDO=(
   [repoman]="64x64/apps/cs-sources.svg"
 )
 
+while IFS= read -r _d; do unset "AUTORAL[$_d]" "APELIDO[$_d]"; done < <(meow_destravados)
+
 MAPA_HICOLOR="$RAIZ/packs/meowsystem/icones/apps-hicolor.map"
 declare -A DO_HICOLOR=()
 if [ -f "$MAPA_HICOLOR" ]; then

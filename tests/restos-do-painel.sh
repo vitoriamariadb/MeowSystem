@@ -128,6 +128,10 @@ const aplicativo = (extra) => Object.assign({ id: "google-chrome", nome: "Chrome
   trava: null, trava_pack: null, mapa: null, traco: null }, extra);
 const ficha = (app) => ctx.escolhaDeIcone(app, async () => { chamadas.releituras += 1; });
 const porControle = (painel, nome) => painel.todos().filter((e) => e.dataset.controle === nome);
+let terminou = false;
+process.on("exit", (codigo) => {
+  if (!terminou && codigo === 0) { console.error("FALHOU: o teste parou no meio, com uma promessa que nunca voltou"); process.exitCode = 2; }
+});
 
 (async () => {
   // --- a espera do trabalho ---------------------------------------------------
@@ -184,21 +188,25 @@ const porControle = (painel, nome) => painel.todos().filter((e) => e.dataset.con
   checa(agora.termo === "chro" && agora.itens.join() === "da-busca-chro",
         "a resposta da busca velha, chegando depois, não pinta a lista da busca de agora", JSON.stringify(agora));
 
-  // --- a trava é estado, e não sumiço -------------------------------------------
+  // --- a trava não apaga nada: o desenho aparece e o clique destrava -----------
   zerar(); glifos();
   const trava = "chrome de brinquedo já tem desenho convertido do projeto.";
-  painel = ficha(aplicativo({ trava }));
-  let apagados = porControle(painel, "icone:travado");
-  checa(apagados.length === 1 && porControle(painel, "icone:desenho").length === 1 && porControle(painel, "icone:usar").length === 1,
-        "com a trava do traço, o pack e o «Usar» ficam, e o traço fica apagado na pasta dele");
-  checa(apagados.every((b) => b.getAttribute("aria-disabled") === "true" && b.dataset.dica === "Chrome de brinquedo já tem desenho convertido do projeto."),
-        "o desenho apagado diz que não vale (aria-disabled), e o porquê vai para a dica com maiúscula");
   painel = ficha(aplicativo({ trava, trava_pack: "o ícone é decidido por outro passo." }));
-  const usarTravado = porControle(painel, "icone:usar")[0];
-  checa(porControle(painel, "icone:travado").length === 2 && usarTravado && usarTravado.getAttribute("aria-disabled") === "true",
-        "com as duas travas, tudo fica apagado e o «Usar» fica à vista, desabilitado");
-  checa(painel.textContent.includes("O ícone é decidido por outro passo."),
-        "e o porquê aparece escrito no rodapé da ficha, não só na dica");
+  checa(porControle(painel, "icone:travado").length === 0 && porControle(painel, "icone:desenho").length === 2,
+        "com as duas travas, os dois desenhos aparecem como desenho normal");
+  checa(!painel.todos().some((b) => b.getAttribute("aria-disabled") === "true" || b.disabled
+        || /decidido por outro passo|convertido do projeto/i.test(b.dataset.dica || "")),
+        "nada fica apagado, e nenhuma dica diz o porquê da trava");
+  checa(!painel.textContent.includes("O ícone é decidido por outro passo."),
+        "e o porquê não vira texto no rodapé da ficha");
+  await porControle(painel, "icone:desenho")[0].clicar();
+  painel = ficha(aplicativo({ trava, trava_pack: "o ícone é decidido por outro passo." }));
+  chamadas.api.length = 0;
+  respostas = () => ({ erro: "parado aqui" });
+  await porControle(painel, "icone:usar")[0].clicar();
+  const pedido = chamadas.api.find((c) => c.rota === "/api/app-icone");
+  checa(pedido && pedido.corpo.destravar === true, "o «Usar» num desenho travado pede ao servidor para destravar",
+        JSON.stringify(pedido));
 
   // --- o desfazer da escolha no pack -------------------------------------------
   zerar();
@@ -239,6 +247,7 @@ const porControle = (painel, nome) => painel.todos().filter((e) => e.dataset.con
         && !ctx.botaoAutomatico(item(), "", () => true),
         "e não existe sem aceitar vazio, com fábrica vazia, ou já no vazio");
 
+  terminou = true;
   if (falhas.length) {
     for (const f of falhas) console.error("FALHOU: " + f);
     process.exit(1);

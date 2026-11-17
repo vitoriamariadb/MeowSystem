@@ -135,9 +135,9 @@ def main():
             checa(not os.path.exists(os.path.dirname(COMP)) or not os.listdir(os.path.dirname(COMP)), "o cache do compositor saiu")
             checa(os.path.isfile(os.path.join(LIBEXEC, "cosmic-comp")), "o compositor em uso ficou")
             checa(os.path.isfile(os.path.join(BACKUP, "f")), "o backup recente ficou")
-            pag.wait_for_function("() => document.querySelector('[data-controle=\"espaco:liberar\"]') && "
-                                  "document.querySelector('[data-controle=\"espaco:liberar\"]').disabled", timeout=30000)
-            checa(pag.locator("[data-preco]").count() == 0, "sem o que liberar, o botão fica parado e sem preço")
+            pag.wait_for_function("() => ESP.dados && ESP.dados.liberavel <= 0"
+                                  " && !document.querySelector('[data-controle=\"espaco:liberar\"]')", timeout=30000)
+            checa(pag.locator("[data-preco]").count() == 0, "sem o que liberar, o botão some, e o preço junto")
             checa(pag.locator('li.linha[data-espaco="Applets"]').count() == 0, "a linha dos Applets sumiu com o espaço")
 
             print("4. com um build em curso, o botão não corta")
@@ -151,8 +151,8 @@ def main():
             pag.evaluate("() => { ESP.quando = 0; carregarEspaco(); }")
             pag.wait_for_function("() => ESP.dados && ESP.dados.ocupado === true", timeout=30000)
             pag.wait_for_timeout(300)
-            checa(pag.locator('[data-controle="espaco:liberar"]').is_disabled(), "Liberar fica parado")
-            checa("build em curso" in pag.locator(".espaco-acao").get_attribute("data-dica"), "e a dica diz que há build em curso")
+            checa(pag.locator('[data-controle="espaco:liberar"]').count() == 0, "com build em curso, o Liberar não aparece")
+            checa(not pag.locator(".espaco-acao").get_attribute("data-dica"), "e nada de dica dizendo o porquê")
             fcntl.flock(fd, fcntl.LOCK_UN)
             os.close(fd)
 

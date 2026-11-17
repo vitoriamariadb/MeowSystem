@@ -68,8 +68,8 @@ def p185(pag):
     ir(pag, "criar/icones")
     acervo_do_arquivos(pag)
     livres = pag.locator('[data-controle="icone:desenho"]').count()
-    travados = pag.locator('[data-controle="icone:travado"]').count()
-    confere(livres > 100 and travados <= 2, f"Arquivos › Do acervo: os desenhos do pack se escolhem ({livres} livres, {travados} travados)")
+    travados = pag.locator('.grade-glifos button[aria-disabled], .grade-glifos button[disabled]').count()
+    confere(livres > 100 and travados == 0, f"Arquivos › Do acervo: os desenhos do pack se escolhem ({livres} livres, {travados} apagados)")
     abas = [t.split(" (")[0] for t in pag.locator('[data-controle^="acervo:aba="]').all_inner_texts()]
     confere(abas == ["Apps", "Sistema", "Biblioteca"], f"o acervo se divide nas três pastas do tema, como as abas ({abas})")
     confere(pag.locator(".desenho summary").count() == 0, "sem pasta com nome de acervo por cima delas")
@@ -80,13 +80,12 @@ def p185(pag):
     pag.locator('[data-controle="acervo:aba=apps"]').click()
     pag.wait_for_timeout(600)
     usar = pag.locator('[data-controle="icone:usar"]')
-    confere(usar.count() == 1 and usar.is_visible(), "o «Usar» está sempre no cartão")
-    confere(usar.get_attribute("aria-disabled") == "true", "e fica desabilitado enquanto nada foi escolhido")
+    confere(usar.count() == 1 and not usar.is_visible(), "enquanto nada foi escolhido, o «Usar» não aparece")
     alvo = pag.locator('[data-controle="icone:desenho"]').nth(3)
     nome = alvo.get_attribute("data-dica") or alvo.inner_text()
     alvo.click()
     pag.wait_for_timeout(600)
-    confere(usar.get_attribute("aria-disabled") is None, "o clique no quadro escolhe: o «Usar» habilita")
+    confere(usar.is_visible() and usar.is_enabled(), "o clique no quadro escolhe: o «Usar» aparece")
     confere(pag.locator('[data-controle="icone:desenho"]').nth(3).get_attribute("aria-pressed") == "true",
             "e o quadro escolhido fica marcado")
     foto(pag, "p185-escolhido.png")
@@ -141,11 +140,11 @@ def p186(pag, svg):
         src_antes = pag.locator(cartao).first.get_attribute("src")
         abrir_ficha(pag, alvo)
         usar = pag.locator('[data-controle="trocar:usar"]')
-        confere(usar.get_attribute("aria-disabled") == "true", f"{aba}: a ficha abre com o «Usar» à vista, desabilitado")
+        confere(not usar.is_visible(), f"{aba}: a ficha abre sem o «Usar», que só aparece com um desenho escolhido")
         pag.locator(f'[data-controle="trocar:opcao"][data-nome="{origem}"]').first.click()
-        confere(usar.get_attribute("aria-disabled") is None
+        confere(usar.is_visible() and usar.is_enabled()
                 and pag.locator(f'[data-controle="trocar:opcao"][data-nome="{origem}"]').first.get_attribute("aria-pressed") == "true",
-                f"{aba}: um clique num desenho do acervo escolhe e habilita o «Usar»")
+                f"{aba}: um clique num desenho do acervo escolhe e mostra o «Usar»")
         confere(pag.locator(f'[data-controle="trocar:aba={aba}"]').get_attribute("aria-pressed") == "true",
                 f"{aba}: escolher um desenho não apaga a aba marcada da ficha")
         foto(pag, f"p186-{aba}-acervo.png")
@@ -184,15 +183,34 @@ def p186(pag, svg):
             f"um desenho da Biblioteca ({origem}) vira o ícone do Sistema {alvo}")
     foto(pag, "sistema-da-biblioteca.png")
     herdado = pag.locator('[data-controle="trocar:desenho"][data-nome="application-certificate"]').first
-    confere(herdado.is_disabled() and "MeowSystem" in (herdado.get_attribute("data-dica") or ""),
-            "um ícone que o tema herda de outro não finge: fica desabilitado e a dica diz de quem é",
-            herdado.get_attribute("data-dica"))
+    confere(herdado.count() == 1 and herdado.is_enabled() and herdado.get_attribute("data-dica") == "Trocar este ícone",
+            "um ícone que o tema herda de outro é um cartão normal, sem dica de porquê",
+            herdado.get_attribute("data-dica") if herdado.count() else "")
+    confere(pag.locator('#conteudo .grade-apps button.app[disabled], #conteudo .grade-apps button.app[aria-disabled]').count() == 0,
+            "nenhum cartão do acervo fica apagado")
+    abrir_ficha(pag, "application-certificate")
+    pag.locator('[data-controle="trocar:opcao"]').first.click()
+    pag.locator('[data-controle="trocar:usar"]').click()
+    esperar_trocado(pag)
+    herdado_no_pack = os.path.join(dracula, "sistema", "application-certificate.svg")
+    confere(os.path.isfile(herdado_no_pack) and "<svg" in open(herdado_no_pack, encoding="utf-8").read(),
+            "o clique destrava: o ícone herdado ganha desenho próprio no tema em edição")
+    confere(pag.locator('[data-controle="trocar:desenho"][data-nome="application-certificate"][data-levado]').count() == 1,
+            "e o cartão passa a mostrar que foi trocado")
     ir(pag, "novo/icones")
     pag.locator('[data-controle="icones:aba=sistema"]').click()
     pag.wait_for_timeout(1500)
     sem = pag.locator('[data-controle="trocar:desenho"]').first
-    confere(sem.get_attribute("aria-disabled") == "true" and sem.is_disabled(),
-            "num tema ainda não guardado, o cartão não finge: fica desabilitado com o motivo na dica")
+    confere(sem.count() == 1 and sem.is_enabled() and not sem.get_attribute("aria-disabled"),
+            "num tema ainda não guardado, o cartão funciona")
+    nome_sem = sem.get_attribute("data-nome")
+    sem.click()
+    pag.wait_for_selector(f'[data-trocar="{nome_sem}"]', timeout=30000)
+    pag.locator('[data-controle="trocar:opcao"]').first.click()
+    pag.locator('[data-controle="trocar:usar"]').click()
+    esperar_trocado(pag)
+    confere(pag.evaluate("() => !!rascunho().pack && PACKS.some((p) => p.id === rascunho().pack)"),
+            "e o «Usar» guarda o tema novo e troca o ícone no mesmo gesto")
 
 
 def p187(pag):
@@ -237,9 +255,9 @@ def p188(pag):
     destino = pag.locator('[data-controle="sino:evento"]')
     confere(destino.input_value() == "audio-volume-change", "o destino padrão do sino é o volume")
     gravar = pag.locator('[data-controle="sino:gravar"]')
-    confere(gravar.get_attribute("aria-disabled") == "true", "sem nome, «Gerar Sons» fica desabilitado")
+    confere(gravar.count() == 1 and not gravar.is_visible(), "sem nome, «Gerar Sons» não aparece")
     pag.locator('[data-controle="sino:nome"]').fill("Sino da Vitória")
-    confere(gravar.get_attribute("aria-disabled") == "false", "com nome, «Gerar Sons» habilita")
+    confere(gravar.is_visible() and gravar.is_enabled(), "com nome, «Gerar Sons» aparece")
     destino.select_option("message-new-instant")
     arq = os.path.join(casa.RAIZ_B, "packs", "dracula", "sons", "stereo", "notification", "message-new-instant.oga")
     antes = open(arq, "rb").read()

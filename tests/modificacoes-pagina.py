@@ -133,14 +133,15 @@ MOLDE_JS = """
 () => [...document.querySelectorAll('article.cartao-mod')].map((a) => ({
   id: a.dataset.cartao,
   chaves: a.querySelectorAll('.cabeca-cartao > [role=switch]').length,
-  menus: a.querySelectorAll('.cabeca-cartao > [data-controle^="modificacao:menu:"],'
+  menus: a.querySelectorAll('.cabeca-cartao > .menu-vazio,'
     + ' .cabeca-cartao > details.menu-mod > summary[data-controle^="modificacao:menu:"]').length,
+  apagados: a.querySelectorAll('.cabeca-cartao [disabled], .cabeca-cartao [aria-disabled="true"]').length,
   titulo: (a.querySelector('.nome-mod h3') || {}).textContent || '',
   pilula: (a.querySelector('.nome-mod .estado-pilula') || {}).textContent || '',
   marca: a.querySelectorAll('.cabeca-cartao > .marca-app').length,
   ordem: [...a.querySelector('.cabeca-cartao').children].map((f) => f.matches('.marca-app') ? 'marca'
     : f.matches('.nome-mod') ? 'nome' : f.matches('[role=switch]') ? 'chave'
-    : f.matches('details.menu-mod, [data-controle^="modificacao:menu:"]') ? 'menu' : f.className).join('|'),
+    : f.matches('details.menu-mod, .menu-vazio') ? 'menu' : f.className).join('|'),
 }))
 """
 
@@ -171,8 +172,9 @@ def main():
             molde = pag.evaluate(MOLDE_JS)
             checa(len(molde) >= 5, f"a página tem os cartões ({len(molde)})")
             for c in molde:
-                checa(c["chaves"] == 1 and c["menus"] == 1 and c["marca"] == 1 and c["titulo"].strip() and c["pilula"].strip(),
-                      f"o cartão {c['id']} tem ícone, nome, situação, um interruptor e um «⋮» ({c['pilula'].strip()!r})")
+                checa(c["chaves"] == 1 and c["menus"] == 1 and c["marca"] == 1 and c["titulo"].strip() and c["pilula"].strip()
+                      and c["apagados"] == 0,
+                      f"o cartão {c['id']} tem ícone, nome, situação, um interruptor e o lugar do «⋮», sem nada apagado ({c['pilula'].strip()!r})")
             checa(len({c["ordem"] for c in molde}) == 1, f"todos na mesma ordem ({sorted({c['ordem'] for c in molde})})")
             checa(any(c["id"] == "enfeite" for c in molde), "o módulo novo vira cartão sem ninguém o listar")
             foto("p134-modificacoes-1920")
