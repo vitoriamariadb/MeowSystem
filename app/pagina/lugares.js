@@ -304,6 +304,7 @@ const LUGAR_EXTENSOES = {
     { c: "BUILDS_AO_ENTRAR", r: "Recompilar ao entrar" },
     { c: "COMPOSITOR", r: "Compositor" },
     { c: "GRAFICOS", r: "Compartilhar tela" },
+    { c: "DOCK", r: "Dock da casa" },
   ],
   espaco: [
     { a: "espaco_liberar", r: "Apagar arquivos recriáveis" },

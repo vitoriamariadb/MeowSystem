@@ -554,9 +554,9 @@ graf conferir; rc=$?
 confere "conferir sai 3" '[ "$rc" = 3 ]'
 
 printf '\n20. o resto da instalação enxerga o portal\n'
-confere "o install tem a etapa, depois da gpu" 'grep -q "etapa_compositor etapa_gpu etapa_graficos etapa_extensoes_tema" "$RAIZ/install.sh" && sed -n "/^etapa_graficos()/,/^}/p" "$RAIZ/install.sh" | grep -q "EXTENSOES_FUNDO=1 .*extensoes_gesto.sh\" instalar graficos"'
+confere "o install tem a etapa, depois da gpu" 'grep -q "etapa_compositor etapa_gpu etapa_graficos etapa_dock etapa_extensoes_tema" "$RAIZ/install.sh" && sed -n "/^etapa_graficos()/,/^}/p" "$RAIZ/install.sh" | grep -q "EXTENSOES_FUNDO=1 .*extensoes_gesto.sh\" instalar graficos"'
 confere "a chave GRAFICOS está no exemplo e na tabela chave-etapa" 'grep -q "^GRAFICOS=\"sim\"" "$RAIZ/meow.conf.exemplo" && grep -qP "^GRAFICOS\tgraficos\tnao$" "$RAIZ/assets/contratos/chave-etapa.tsv"'
-confere "o doctor confere o portal logo depois do compositor" 'grep -q "areas patches graficos relogio" "$RAIZ/bin/meow" && grep -q "^chk_graficos()" "$RAIZ/bin/meow" && grep -q "^fix_graficos()" "$RAIZ/bin/meow"'
+confere "o doctor confere o portal logo depois do compositor" 'grep -q "areas patches graficos dock relogio" "$RAIZ/bin/meow" && grep -q "^chk_graficos()" "$RAIZ/bin/meow" && grep -q "^fix_graficos()" "$RAIZ/bin/meow"'
 confere "o grupo graficos entra nos pacotes de compilar quando o portal está instalado" \
   'versoes "xdg-desktop-portal-cosmic=$VER1"; env HOME="$CASA" PATH="$FALSO:$PATH" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$ESTADO" MEOW_CONF="$CASA/.config/meow/meow.conf" EXTENSOES=- COMPOSITOR=nao FILES_MENU=nao bash -c ". \"$RAIZ/lib/comum.sh\"; meow_grupos_de_compilar" | grep -qx graficos'
 confere "GRAFICOS=nao tira o grupo" '! env HOME="$CASA" PATH="$FALSO:$PATH" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$ESTADO" MEOW_CONF="$CASA/.config/meow/meow.conf" EXTENSOES=- COMPOSITOR=nao FILES_MENU=nao GRAFICOS=nao bash -c ". \"$RAIZ/lib/comum.sh\"; meow_grupos_de_compilar" | grep -qx graficos'

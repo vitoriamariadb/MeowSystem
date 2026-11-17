@@ -121,6 +121,7 @@ PORTATIL=(
   wallpaper-base.sh
   gpu-do-compositor.sh
   graficos.sh
+  dock.sh
   deb.sh
   espaco.sh
   levantamento.sh
@@ -165,6 +166,7 @@ MAQUINA=(
   logo-do-pack-pessoal-pagina.py
   zapzap-tema-de-conversa.py
   graficos-fonte-real.sh
+  dock-fonte-real.sh
   icone-e-fonte-no-tema.sh
 )
 

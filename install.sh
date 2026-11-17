@@ -1336,6 +1336,27 @@ etapa_graficos() {
   return $?
 }
 
+etapa_dock() {
+  passo "Dock da casa (o casamento de janela por padrão, build em segundo plano e o shim)"
+  if [ "${DOCK:-sim}" = nao ]; then
+    DOCK=nao "$MEOW_RAIZ/scripts/dock.sh" reverter
+    return $?
+  fi
+  local rc mudou=0
+  if ! DOCK=sim "$MEOW_RAIZ/scripts/dock.sh" estado 2>/dev/null | grep -qx 'build=sim'; then
+    if "$MEOW_RAIZ/scripts/garantir_builds.sh" estado 2>/dev/null | grep -qx 'construindo=sim'; then
+      meow_info "a dock: o build já corre em segundo plano"
+    else
+      DOCK=sim "$MEOW_RAIZ/scripts/garantir_builds.sh" --fundo; rc=$?
+      [ "$rc" = "$MEOW_ERRO" ] && return "$MEOW_ERRO"
+      [ "$rc" = "$MEOW_DIVERGENTE" ] && mudou=1
+    fi
+  fi
+  DK_COMPILAR=nao DOCK=sim "$MEOW_RAIZ/scripts/dock.sh" aplicar; rc=$?
+  [ "$rc" = "$MEOW_OK" ] && [ "$mudou" = 1 ] && return "$MEOW_DIVERGENTE"
+  return "$rc"
+}
+
 etapa_gpu() {
   passo "GPU do compositor (a placa dedicada)"
   GPU_COMPOSITOR="${GPU_COMPOSITOR:-dedicada}" "$MEOW_RAIZ/scripts/gpu_compositor.sh" aplicar
@@ -2059,7 +2080,7 @@ main() {
                 etapa_logo etapa_icones_indice etapa_wallpaper etapa_ocultar etapa_nomes etapa_absolutos etapa_ocultar_casa etapa_janela_dock
                 etapa_lancador_apt etapa_som etapa_terminal etapa_prompt etapa_fzf etapa_fastfetch_logo etapa_bloco_terminal etapa_files_menu etapa_cursor etapa_flatpak_tema etapa_escritorio etapa_apps
                 etapa_assets etapa_vigia_flatpak etapa_vigia_steam etapa_vigia_heroic etapa_vigia_discord etapa_vigia_qt etapa_vigia_apt etapa_vigia_derivados
-                etapa_extensoes etapa_compositor etapa_gpu etapa_graficos etapa_extensoes_tema etapa_midia etapa_lancador etapa_autostart etapa_arquivos_filhos etapa_autoreparo)
+                etapa_extensoes etapa_compositor etapa_gpu etapa_graficos etapa_dock etapa_extensoes_tema etapa_midia etapa_lancador etapa_autostart etapa_arquivos_filhos etapa_autoreparo)
   if [ -n "$so_etapas" ]; then
     local pedida escolhida escolhidas=()
     for pedida in ${so_etapas//,/ }; do
@@ -2221,6 +2242,9 @@ fim_dos_builds() {
   grep -qx 'compositor_estado=pendente' <<< "$estado" && oque="O compositor"
   if grep -qx 'menu_estado=pendente' <<< "$estado"; then
     if [ -n "$oque" ]; then oque="$oque e o Menu do Arquivos"; verbo="compilam"; vale="valem"; else oque="O Menu do Arquivos"; fi
+  fi
+  if grep -qx 'dock_estado=pendente' <<< "$estado"; then
+    if [ -n "$oque" ]; then oque="$oque e a dock"; verbo="compilam"; vale="valem"; else oque="A dock"; fi
   fi
   if grep -qx 'graficos_estado=pendente' <<< "$estado"; then
     if [ -z "$oque" ]; then

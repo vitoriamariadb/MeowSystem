@@ -71,6 +71,9 @@ meow_desinstalar() {
   if [ -x "$MEOW_RAIZ/scripts/graficos.sh" ]; then
     "$MEOW_RAIZ/scripts/graficos.sh" reverter || true
   fi
+  if [ -x "$MEOW_RAIZ/scripts/dock.sh" ]; then
+    "$MEOW_RAIZ/scripts/dock.sh" reverter || true
+  fi
 
   if compgen -G "$MEOW_ESTADO/backups/*-sistema" >/dev/null; then
     "$MEOW_RAIZ/bin/meow" desfazer --lancador || true

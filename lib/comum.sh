@@ -382,6 +382,8 @@ meow_grupos_de_compilar() {
   [ "${q:-sim}" = sim ] && meow_pacote_instalado cosmic-files && printf 'menu-arquivos\n'
   q="${GRAFICOS:-}"; [ -n "$q" ] || q="$(meow_conf_valor GRAFICOS 2>/dev/null)" || q=sim
   [ "${q:-sim}" != nao ] && meow_pacote_instalado xdg-desktop-portal-cosmic && printf 'graficos\n'
+  q="${DOCK:-}"; [ -n "$q" ] || q="$(meow_conf_valor DOCK 2>/dev/null)" || q=sim
+  [ "${q:-sim}" != nao ] && meow_pacote_instalado cosmic-applets && printf 'dock\n'
   return 0
 }
 
