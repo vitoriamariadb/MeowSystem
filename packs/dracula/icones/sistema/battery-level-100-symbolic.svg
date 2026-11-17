@@ -1,3 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" version="1.1">
- <path style="fill:currentColor" d="M 6,1 V 2 H 3 V 14 C 3,14.55 3.446,15 4,15 H 12 C 12.554,15 13,14.55 13,14 V 2 H 10 V 1 Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>battery-level-100-symbolic — bateria em vela: 100%; a vela queima até o nível da carga, com a chama acesa no pavio</title>
+  <path fill="currentColor" d="M2.6,13.5 H13.4 Q13.4,15.3 11.6,15.3 H4.4 Q2.6,15.3 2.6,13.5 Z"/>
+  <path fill="currentColor" d="M5.2,5.8 Q5.2,5.3 5.7,5.3 H10.3 Q10.8,5.3 10.8,5.8 V13.5 H5.2 Z"/>
+  <path fill="currentColor" d="M5.2,5.9 Q4.3,6.9 4.5,7.7 Q4.9,8.2 5.2,7.6 Z"/>
+  <path fill="currentColor" d="M8,0.25 C8.9,1.45 9.5,2.25 9.5,3.05 A1.5,1.5 0 0 1 6.5,3.05 C6.5,2.25 7.1,1.45 8,0.25 Z"/>
 </svg>

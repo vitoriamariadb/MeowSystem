@@ -13,7 +13,7 @@ Pedido de 17/11: workflows liberados sem teto de agentes nem de cota nesta leva 
 limitação de uso […] aumentarmos a qualidade do produto como um todo»).
 
 | P231 vagas no pack e no criador (D) | `.meow-wt-produto` / `bloco/produto` | workflow no ar (3 agentes) |
-| P232 arte do Dracula na barra (E) | `.meow-wt-arte-dracula2` / `bloco/arte-dracula2` | espera o P220 voltar; nasce do `bloco/arte-botoes` |
+| P232 arte do Dracula na barra (E) | `.meow-wt-arte-dracula2` / `bloco/arte-dracula2` | desenhada, falta conferir: Soneca (morcego da noite e do dia em contorno, vagas `soneca-desperto-symbolic` e `soneca-ronronar-symbolic` no `sistema.map`), notificação (sino com morcego, corvo chegando, sino com teia), Wi-Fi em ecolocalização, cabo em corrente e bateria em vela no lugar (39 vagas, com `ac-adapter`); teia e as baterias frasco e ampulheta em `packs/dracula/variantes/` (fora de `icones/`, que não aceita subpasta); traço convertido em silhueta, porque o `icones_sistema.sh` injeta a espessura do MeowSystem em todo `stroke="currentColor"`; testes de ícone e procedência verdes; falta quem usa escolher na folha antigo × novo × variantes |
 | P233 arte do MeowSystem (F) | `.meow-wt-arte-meow` / `bloco/arte-meow` | workflow no ar (2 agentes) |
 | P234 papéis dia e noite (G) | `.meow-wt-papeis` / `bloco/papeis` | workflow no ar (2 agentes) |
 

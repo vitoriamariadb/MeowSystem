@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>battery-level-50-symbolic — bateria em ampulheta, variante: 50%; a areia de cima é a carga que resta</title>
+  <path fill="currentColor" d="M3,1.2 Q3,0.6 3.6,0.6 H12.4 Q13,0.6 13,1.2 V2 H3 Z"/>
+  <path fill="currentColor" d="M3,14 H13 V14.8 Q13,15.4 12.4,15.4 H3.6 Q3,15.4 3,14.8 Z"/>
+  <path fill="currentColor" d="M3,2 H4 V14 H3 Z M12,2 H13 V14 H12 Z"/>
+  <path fill="currentColor" opacity="0.3" d="M4.8,2.6 H11.2 C11.2,5.3 9,6.6 8.6,8 C9,9.4 11.2,10.7 11.2,13.4 H4.8 C4.8,10.7 7,9.4 7.4,8 C7,6.6 4.8,5.3 4.8,2.6 Z"/>
+  <clipPath id="cima50"><rect x="0" y="5.4" width="16" height="2.6"/></clipPath>
+  <path fill="currentColor" clip-path="url(#cima50)" d="M4.8,2.6 H11.2 C11.2,5.3 9,6.6 8.6,8 C9,9.4 11.2,10.7 11.2,13.4 H4.8 C4.8,10.7 7,9.4 7.4,8 C7,6.6 4.8,5.3 4.8,2.6 Z"/>
+  <clipPath id="baixo50"><rect x="0" y="10.9" width="16" height="2.6"/></clipPath>
+  <path fill="currentColor" clip-path="url(#baixo50)" d="M4.8,2.6 H11.2 C11.2,5.3 9,6.6 8.6,8 C9,9.4 11.2,10.7 11.2,13.4 H4.8 C4.8,10.7 7,9.4 7.4,8 C7,6.6 4.8,5.3 4.8,2.6 Z"/>
+  <path fill="currentColor" d="M7.7,8 H8.3 V10.9 H7.7 Z"/>
+</svg>
