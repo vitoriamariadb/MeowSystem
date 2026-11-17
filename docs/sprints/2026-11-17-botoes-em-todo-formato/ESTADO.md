@@ -14,7 +14,7 @@ limitação de uso […] aumentarmos a qualidade do produto como um todo»).
 
 | P231 vagas no pack e no criador (D) | `.meow-wt-produto` / `bloco/produto` | workflow no ar (3 agentes) |
 | P232 arte do Dracula na barra (E) | `.meow-wt-arte-dracula2` / `bloco/arte-dracula2` | espera o P220 voltar; nasce do `bloco/arte-botoes` |
-| P233 arte do MeowSystem (F) | `.meow-wt-arte-meow` / `bloco/arte-meow` | workflow no ar (2 agentes) |
+| P233 arte do MeowSystem (F) | `.meow-wt-arte-meow` / `bloco/arte-meow` | conferido e corrigido (`b2aaa8a7`, `2ac2d2cc`); testes de ícone e procedência verdes; falta quem usa escolher na folha (no lugar: arranhão, novelo, peixe; em `biblioteca/`: espinhas, gato deitado, tigela); depois, integrar |
 | P234 papéis dia e noite (G) | `.meow-wt-papeis` / `bloco/papeis` | conferido (`4d461716`, `e76a0d33`): 6 pares em `packs/*/wallpapers/pares/<cena>-{dia,noite}.svg`; na integração, casar com a declaração de par do P231; folha em `fotos/pares-dia-e-noite.jpg` para quem usa |
 
 ## Próximo passo
