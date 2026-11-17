@@ -2811,6 +2811,27 @@ PY
   && ok "a prévia do pack só usa arte do próprio pack: o dock e a pasta do Dracula não trazem um traço do meowsystem, e vice-versa, nem quando o flavor pedido não é do pack" \
   || falha "a prévia do pack misturou arte de outro pack" "$resultado"
 
+resultado="$(python3 - "$RAIZ/packs" <<'PY'
+import hashlib, os, re, sys
+ruins = []
+for pack in sorted(os.listdir(sys.argv[1])):
+    d = os.path.join(sys.argv[1], pack)
+    proc = os.path.join(d, "PROCEDENCIA.md")
+    if not os.path.isfile(proc):
+        continue
+    for n, l in enumerate(open(proc, encoding="utf-8"), 1):
+        m = re.match(r"\| `(icones/[^`]+)` \|.*\| `([0-9a-f]{64})` \|\s*$", l)
+        if not m or not os.path.isfile(os.path.join(d, m.group(1))):
+            continue
+        if hashlib.sha256(open(os.path.join(d, m.group(1)), "rb").read()).hexdigest() != m.group(2):
+            ruins.append(f"{pack}/PROCEDENCIA.md:{n} {m.group(1)}")
+print("; ".join(ruins) if ruins else "limpo")
+PY
+)"
+[ "$resultado" = "limpo" ] \
+  && ok "o sha256 de cada linha do PROCEDENCIA é o do desenho que está no pack" \
+  || falha "PROCEDENCIA com sha256 de outra versão do desenho" "$resultado"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack de terceiro é honrado de ponta a ponta"
