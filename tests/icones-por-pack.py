@@ -93,19 +93,17 @@ def decodificado(src):
     return src
 
 
-def abrir_um_app(pag, sem_desenho_do_pack=False, pular=0):
+def abrir_um_app(pag):
     aba(pag, "apps")
     if pag.locator(".desenho").count():
         pag.locator('[data-controle="desenho:volta"]').click()
         pag.wait_for_timeout(400)
-    botao = pag.locator("button.app[data-app]").nth(pular)
+    botao = pag.locator("button.app[data-app]").first
     app = botao.get_attribute("data-app")
     botao.click()
     pag.wait_for_selector(".desenho .oficina-cartao", timeout=60000)
     pag.wait_for_function("() => !document.querySelector('.desenho-olho .bt[data-estado=\"carregando\"]')", timeout=60000)
     pag.wait_for_timeout(800)
-    if sem_desenho_do_pack and pag.locator('[data-controle="oficina:usar"]').is_disabled() and pular < 20:
-        return abrir_um_app(pag, True, pular + 1)
     confere(pag.locator(".grade-apps").count() == 0, "a ficha do ícone abre no lugar da grade")
     return app
 
@@ -213,7 +211,8 @@ def main():
                 pag.set_viewport_size({"width": 1920, "height": 1080})
 
             partir_de(pag, "dracula")
-            app = abrir_um_app(pag, sem_desenho_do_pack=True)
+            app = abrir_um_app(pag)
+            pag.locator('.desenho section[data-gerador] .oficina-cartao[data-src]').first.click()
             pag.locator('[data-controle="oficina:usar"]').click()
             pag.wait_for_selector("#d-salvo:not([hidden])", timeout=60000)
             guardado = pag.evaluate("() => rascunho().pack")
