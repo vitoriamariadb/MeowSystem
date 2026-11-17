@@ -5153,6 +5153,7 @@ NOME_DA_CONFERENCIA = {
     "fontes": "Fontes",
     "estadovelho": "Arquivos antigos do MeowSystem",
     "vizinhos": "Desligar o que conflita",
+    "efeito": "Ícones e fontes que o COSMIC usa",
     "logo": "Mascote",
     "indice": "Lista dos ícones do tema",
 }
