@@ -780,6 +780,294 @@
     ],
     "tamanho_bytes": 564
   },
+  "cosmic-applet-battery-level-0-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 0%, carregando",
+    "nome": "cosmic-applet-battery-level-0-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 491
+  },
+  "cosmic-applet-battery-level-0-limited-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 0%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-0-limited-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 593
+  },
+  "cosmic-applet-battery-level-0-limited-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 0%, carga limitada",
+    "nome": "cosmic-applet-battery-level-0-limited-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 338
+  },
+  "cosmic-applet-battery-level-0-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 0%",
+    "nome": "cosmic-applet-battery-level-0-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 236
+  },
+  "cosmic-applet-battery-level-10-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 10%, carregando",
+    "nome": "cosmic-applet-battery-level-10-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 875
+  },
+  "cosmic-applet-battery-level-10-limited-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 10%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-10-limited-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 977
+  },
+  "cosmic-applet-battery-level-10-limited-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 10%, carga limitada",
+    "nome": "cosmic-applet-battery-level-10-limited-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 708
+  },
+  "cosmic-applet-battery-level-10-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 10%",
+    "nome": "cosmic-applet-battery-level-10-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 606
+  },
+  "cosmic-applet-battery-level-100-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 100%, carregando",
+    "nome": "cosmic-applet-battery-level-100-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 877
+  },
+  "cosmic-applet-battery-level-100-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 100%",
+    "nome": "cosmic-applet-battery-level-100-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 608
+  },
+  "cosmic-applet-battery-level-20-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 20%, carregando",
+    "nome": "cosmic-applet-battery-level-20-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 877
+  },
+  "cosmic-applet-battery-level-20-limited-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 20%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-20-limited-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 979
+  },
+  "cosmic-applet-battery-level-20-limited-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 20%, carga limitada",
+    "nome": "cosmic-applet-battery-level-20-limited-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 710
+  },
+  "cosmic-applet-battery-level-20-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 20%",
+    "nome": "cosmic-applet-battery-level-20-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 608
+  },
+  "cosmic-applet-battery-level-35-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 35%, carregando",
+    "nome": "cosmic-applet-battery-level-35-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 878
+  },
+  "cosmic-applet-battery-level-35-limited-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 35%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-35-limited-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 980
+  },
+  "cosmic-applet-battery-level-35-limited-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 35%, carga limitada",
+    "nome": "cosmic-applet-battery-level-35-limited-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 711
+  },
+  "cosmic-applet-battery-level-35-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 35%",
+    "nome": "cosmic-applet-battery-level-35-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 609
+  },
+  "cosmic-applet-battery-level-5-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 5%, carregando",
+    "nome": "cosmic-applet-battery-level-5-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 875
+  },
+  "cosmic-applet-battery-level-5-limited-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 5%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-5-limited-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 977
+  },
+  "cosmic-applet-battery-level-5-limited-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 5%, carga limitada",
+    "nome": "cosmic-applet-battery-level-5-limited-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 708
+  },
+  "cosmic-applet-battery-level-5-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 5%",
+    "nome": "cosmic-applet-battery-level-5-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 606
+  },
+  "cosmic-applet-battery-level-50-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 50%, carregando",
+    "nome": "cosmic-applet-battery-level-50-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 875
+  },
+  "cosmic-applet-battery-level-50-limited-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 50%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-50-limited-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 977
+  },
+  "cosmic-applet-battery-level-50-limited-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 50%, carga limitada",
+    "nome": "cosmic-applet-battery-level-50-limited-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 708
+  },
+  "cosmic-applet-battery-level-50-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 50%",
+    "nome": "cosmic-applet-battery-level-50-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 606
+  },
+  "cosmic-applet-battery-level-65-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 65%, carregando",
+    "nome": "cosmic-applet-battery-level-65-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 878
+  },
+  "cosmic-applet-battery-level-65-limited-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 65%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-65-limited-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 980
+  },
+  "cosmic-applet-battery-level-65-limited-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 65%, carga limitada",
+    "nome": "cosmic-applet-battery-level-65-limited-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 711
+  },
+  "cosmic-applet-battery-level-65-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 65%",
+    "nome": "cosmic-applet-battery-level-65-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 609
+  },
+  "cosmic-applet-battery-level-80-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 80%, carregando",
+    "nome": "cosmic-applet-battery-level-80-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 877
+  },
+  "cosmic-applet-battery-level-80-limited-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 80%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-80-limited-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 979
+  },
+  "cosmic-applet-battery-level-80-limited-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 80%, carga limitada",
+    "nome": "cosmic-applet-battery-level-80-limited-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 710
+  },
+  "cosmic-applet-battery-level-80-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 80%",
+    "nome": "cosmic-applet-battery-level-80-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 608
+  },
+  "cosmic-applet-battery-level-90-charging-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 90%, carregando",
+    "nome": "cosmic-applet-battery-level-90-charging-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 875
+  },
+  "cosmic-applet-battery-level-90-tigela.svg": {
+    "descricao": "bateria na tigela de ração, 90%",
+    "nome": "cosmic-applet-battery-level-90-tigela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 606
+  },
   "crystal.svg": {
     "cores_dominantes": [
       "#cdd6f4"
@@ -7117,6 +7405,22 @@
       "frameworks"
     ],
     "tamanho_bytes": 282
+  },
+  "window-close-espinhas.svg": {
+    "descricao": "fechar: espinhas de peixe em X",
+    "nome": "window-close-espinhas",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1184
+  },
+  "window-minimize-gato.svg": {
+    "descricao": "minimizar: gato deitado",
+    "nome": "window-minimize-gato",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 561
   },
   "workflow.svg": {
     "cores_dominantes": [
