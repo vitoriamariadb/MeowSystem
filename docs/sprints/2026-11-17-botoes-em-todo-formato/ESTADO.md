@@ -11,7 +11,7 @@
 | P235 janelas do sistema sem ícone (H) | `.meow-wt-janelas` / `bloco/janelas` | workflow no ar (2 agentes); medido pelo coordenador: o diálogo de arquivos é `com.system76.CosmicFilesDialog` |
 | P236 parte 1, o dock casa por padrão (I) | `.meow-wt-dock` / `bloco/dock` | workflow no ar (3 agentes) |
 | P236 parte 2, padrões no `appid.map` | `bloco/janelas`, depois do P235 | espera o H voltar |
-| P237 pastas do Dracula com cena (J) | `.meow-wt-pastas-dracula` / `bloco/pastas-dracula` | implementado: as nove com cena, corpo e borda do `folder.svg`, `PROCEDENCIA.md` no lugar; folha antigo × novo em `fotos/P237-pastas-antigo-novo.png` da árvore; espera o conferente e a aprovação de quem usa antes do merge |
+| P237 pastas do Dracula com cena (J) | `.meow-wt-pastas-dracula` / `bloco/pastas-dracula` | conferido e corrigido: as nove com cena sobre a colina do `folder.svg`; downloads, música, imagens, modelos e área de trabalho redesenhados para o papel ler em 16 px (seta-morcego com bandeja, colcheia, retrato pendurado, molde cheio, espelho-tela); testes de ícone e `app-completo.py --aba tema` verdes; folha antigo × novo em `fotos/P237-pastas-antigo-novo.png` da árvore; espera a aprovação de quem usa antes do merge |
 
 Pedido de 17/11: workflows liberados sem teto de agentes nem de cota nesta leva («Sem limitação de percentual e sem
 limitação de uso […] aumentarmos a qualidade do produto como um todo»).

@@ -1113,7 +1113,7 @@ desenho deste projeto, com o corpo das sete path a path (as costas no
 | arquivo | desenho de | licença | desde | o símbolo |
 |---|---|---|---|---|
 | `icones/sistema/folder.svg` | desenho deste projeto | GPL-3.0 | 2026-10-09 | nenhum: é a pasta comum, só o corpo |
-| `icones/sistema/user-desktop.svg` | desenho deste projeto | GPL-3.0 | 2026-10-09 | o espelho gótico (P237, 17/11/2026): a moldura no `mauve` `#BD93F9`, o vidro no `sky` `#8BE9FD`, o reflexo no `text` `#F8F8F2` |
+| `icones/sistema/user-desktop.svg` | desenho deste projeto | GPL-3.0 | 2026-10-09 | o espelho gótico largo num pé, que lê como tela (P237, 17/11/2026): a moldura e o pé no `mauve` `#BD93F9`, o remate no `lavender` `#D6ACFF`, o vidro no `sky` `#8BE9FD`, o reflexo no `text` `#F8F8F2` |
 | `icones/apps/discord-b.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `ed90ae11fb78d1eace76f8348ace3b36b9e2b57873afc03ee52254d0d7dacdb6` |
 | `icones/apps/org.gnome.Nautilus.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `83d560953d1e340d9912a8fba54c20d8c5e6e746750a840608b7373cc83dc3b2` |
 | `icones/sistema/user-home.svg` | desenho deste projeto | GPL-3.0 | 2026-11-17 | o castelo na colina (P237): o castelo no `mauve` `#BD93F9`, a janela acesa e a lua no `yellow` `#F1FA8C`, a colina no `mantle` `#21222C` |
@@ -1131,17 +1131,19 @@ desenho deste projeto, com o corpo das sete path a path (as costas no
 **As nove ganham cena — 17/11/2026, P237.** O glifo chapado no meio de cada pasta especial vira uma cena no traço
 da casa assombrada do `folder.svg`, desenho deste projeto (GPL-3.0), gerada forma a forma por script. O corpo e a
 borda não mudam: as costas no `surface0`, a frente no `surface1`, o traço de 1,5 em `#A267F6`. Todo tom da cena é
-slot do flavor `dracula`; nada fica fora da paleta. Cada pasta guarda a cor de antes, que é o que lê em 16 px:
+slot do flavor `dracula`; nada fica fora da paleta. A colina do `folder.svg`, no `surface0`, fica atrás de cada cena
+(menos no retrato, que pende na parede, e no castelo, que tem a dele). Cada pasta guarda a cor de antes, que é o que
+lê em 16 px, e o objeto que diz o papel (a seta, a colcheia, a moldura, a tela) é o que sobra em 16 px:
 
 | arquivo | a cena | as cores |
 |---|---|---|
 | `icones/sistema/folder-documents.svg` | grimório aberto, marcador e vela acesa | páginas no `text`, linhas e lombada no `blue`, capa no `mauve`, marcador no `red`, castiçal no `peach`, chama no `yellow` e no `peach` |
-| `icones/sistema/folder-download.svg` | morcego mergulhando, as asas formam a seta, a bandeja embaixo | morcego, rastro e bandeja no `green`, olhos no `base` |
-| `icones/sistema/folder-music.svg` | órgão de tubos com notas no ar | tubos no `mauve` e no `lavender`, console no `base`, teclado no `text`, notas no `pink`, no `yellow` e no `lavender` |
-| `icones/sistema/folder-pictures.svg` | retrato em moldura gótica, lua sobre as colinas | moldura no `peach`, céu no `base`, lua no `yellow`, colinas no `blue` |
+| `icones/sistema/folder-download.svg` | morcego mergulhando de cabeça: o corpo é a haste, as asas a ponta da seta, as orelhas o bico; a bandeja em U embaixo | morcego e bandeja no `green`, olhos e nervuras das asas no `base` |
+| `icones/sistema/folder-music.svg` | órgão de tubos e uma colcheia dupla no ar | tubos no `mauve` e no `lavender`, console no `base`, teclado no `text`, colcheia no `pink`, nota pequena no `yellow` |
+| `icones/sistema/folder-pictures.svg` | retrato com frontão, pendurado num prego, lua sobre as colinas | moldura, cordão e prego no `peach`, céu e cravos no `base`, lua no `yellow`, colinas no `blue` |
 | `icones/sistema/folder-publicshare.svg` | corvo mensageiro diante da lua, carta no bico | corvo no `mantle`, lua e olho no `yellow`, carta no `text` com o lacre no `red` |
-| `icones/sistema/folder-templates.svg` | castiçal aceso e o molde dele repetido em tracejado | vela no `text`, castiçal no `peach`, chama no `yellow` e no `peach`, moldes no `mauve` |
-| `icones/sistema/folder-videos.svg` | lanterna mágica projetando um morcego | lanterna no `base` e no `peach`, facho e projeção no `yellow`, morcego no `mantle` |
+| `icones/sistema/folder-templates.svg` | castiçal aceso e, ao lado, o molde dele em tracejado | vela no `text`, castiçal no `peach`, chama no `yellow` e no `peach`, molde no `mauve` |
+| `icones/sistema/folder-videos.svg` | lanterna mágica projetando um morcego | lanterna no `peach`, lente no `base` com o brilho no `yellow`, facho e projeção no `yellow`, morcego no `mantle` |
 | `icones/sistema/user-home.svg` | o castelo na colina com uma janela acesa | ver a linha dele acima |
 | `icones/sistema/user-desktop.svg` | espelho gótico de moldura ornada | ver a linha dele acima |
 
