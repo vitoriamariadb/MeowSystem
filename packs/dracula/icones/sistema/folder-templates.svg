@@ -2,16 +2,15 @@
   <title>folder-templates — pasta Modelos</title>
   <path fill="#383a4c" d="M 0.91,7.27 A 3.22,3.22 0 0 1 4.13,4.05 L 14.59,4.05 Q 15.55,4.05 16.2,4.69 L 19.84,8.29 Q 20.49,8.93 21.45,8.93 L 43.71,8.93 A 3.22,3.22 0 0 1 46.93,12.15 L 46.93,39.55 A 4.29,4.29 0 0 1 42.64,43.84 L 5.2,43.84 A 4.29,4.29 0 0 1 0.91,39.55 Z" stroke="#A267F6" stroke-width="1.5" stroke-linejoin="round"/>
   <path fill="#44475a" d="M 0.91,16.44 A 4.08,4.08 0 0 1 4.99,12.36 L 42.85,12.36 A 4.08,4.08 0 0 1 46.93,16.44 L 46.93,39.55 A 4.29,4.29 0 0 1 42.64,43.84 L 5.2,43.84 A 4.29,4.29 0 0 1 0.91,39.55 Z" stroke="#A267F6" stroke-width="1.5" stroke-linejoin="round"/>
-  <!-- PILHA DE DUAS FOLHAS, e a silhueta e que carrega a leitura — 16/09/2026
-       A primeira tentativa (folha + esquadro) foi reprovada por um motivo que
-       nao era estetico: "a pagina branca lisa e quase o mesmo pixel-blob de
-       folder-documents; a 24px os dois viram a mesma coisa, e o usuario nao
-       distingue Documentos de Modelos no menu". A correcao tinha de mudar o
-       CONTORNO, nao o preenchimento — duas folhas sobrepostas contra uma folha
-       resolve, marca interna nao (some a 24px).
-       Da folha de tras so aparece o "L" roxo de 3.5u (1.75px a 24px), que e o
-       que diz "mais de uma". O roxo fica sobre o CORPO da pasta (3.41:1) e
-       nunca sobre o branco, onde daria 2.26:1 e sumiria. -->
-  <path fill="#BD93F9" d="M 20.3,20.5 L 32.2,20.5 A 0.8,0.8 0 0 1 33,21.3 L 33,33.2 L 20.3,33.2 Z"/>
-  <path fill="#F8F8F2" d="M 15.8,24.8 L 28.7,24.8 A 0.8,0.8 0 0 1 29.5,25.6 L 29.5,37.2 A 0.8,0.8 0 0 1 28.7,38 L 15.8,38 A 0.8,0.8 0 0 1 15,37.2 L 15,25.6 A 0.8,0.8 0 0 1 15.8,24.8 Z"/>
+  <path fill="none" stroke="#bd93f9" stroke-opacity="0.55" stroke-width="1.1" stroke-dasharray="2.4 1.4" stroke-linejoin="round" transform="translate(22 0)" d="M 10.6,40.2 C 10.6,38.6 12.6,38 14.2,37.8 L 14.2,33.6 L 12,33.6 C 11.6,33.6 11.4,33.2 11.6,32.8 L 12.6,31.6 L 12.6,22.6 Q 15,21.8 17.4,22.6 L 17.4,31.6 L 18.4,32.8 C 18.6,33.2 18.4,33.6 18,33.6 L 15.8,33.6 L 15.8,37.8 C 17.4,38 19.4,38.6 19.4,40.2 Z"/>
+  <path fill="none" stroke="#bd93f9" stroke-opacity="0.55" stroke-width="1.2" stroke-linecap="round" transform="translate(22 0)" d="M 15,20.6 L 15,18"/>
+  <path fill="none" stroke="#bd93f9" stroke-opacity="0.8" stroke-width="1.1" stroke-dasharray="2.4 1.4" stroke-linejoin="round" transform="translate(11 0)" d="M 10.6,40.2 C 10.6,38.6 12.6,38 14.2,37.8 L 14.2,33.6 L 12,33.6 C 11.6,33.6 11.4,33.2 11.6,32.8 L 12.6,31.6 L 12.6,22.6 Q 15,21.8 17.4,22.6 L 17.4,31.6 L 18.4,32.8 C 18.6,33.2 18.4,33.6 18,33.6 L 15.8,33.6 L 15.8,37.8 C 17.4,38 19.4,38.6 19.4,40.2 Z"/>
+  <path fill="none" stroke="#bd93f9" stroke-opacity="0.8" stroke-width="1.2" stroke-linecap="round" transform="translate(11 0)" d="M 15,20.6 L 15,18"/>
+  <path fill="#ffb86c" d="M 10.6,40.2 C 10.6,38.6 12.6,38 14.2,37.8 L 14.2,33.6 L 12,33.6 C 11.6,33.6 11.4,33.2 11.6,32.8 L 12.6,31.4 L 17.4,31.4 L 18.4,32.8 C 18.6,33.2 18.4,33.6 18,33.6 L 15.8,33.6 L 15.8,37.8 C 17.4,38 19.4,38.6 19.4,40.2 Z"/>
+  <path fill="#f8f8f2" d="M 12.6,31.6 L 12.6,22.6 Q 15,21.8 17.4,22.6 L 17.4,31.6 Z"/>
+  <path fill="#f8f8f2" d="M 12.6,22.8 L 12.6,27.4 A 0.75,0.75 0 0 0 14.1,27.4 L 14.1,23.2 Z"/>
+  <path fill="none" stroke="#282a36" stroke-width="0.7" stroke-linecap="round" d="M 15,22.2 L 15,20.8"/>
+  <circle fill="#f1fa8c" fill-opacity="0.22" cx="15" cy="18.60" r="6.46"/>
+  <path fill="#f1fa8c" d="M 15,14.6 C 16.14,16.98 17.86,18.00 17.86,18.54 A 2.86,2.86 0 0 1 12.14,18.54 C 12.14,18.00 13.86,16.98 15,14.6 Z"/>
+  <path fill="#ffb86c" d="M 15,17.80 C 16.43,18.80 16.43,19.67 16.43,19.67 A 1.43,1.43 0 0 1 13.57,19.67 C 13.57,19.67 13.57,18.80 15,17.80 Z"/>
 </svg>
