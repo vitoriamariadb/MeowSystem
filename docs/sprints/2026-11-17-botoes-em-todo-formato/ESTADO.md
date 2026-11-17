@@ -9,6 +9,8 @@
 
 | Quadro de arte (Soneca no pack, botões no criador e no MeowSystem, notificação, rede, bateria, papéis SVG dia e noite) | <https://claude.ai/artifact/WkX5Moc3PoYQt6H1rkzZrP> | publicado 17/11; esperando as escolhas (coleção `escolhas`) para virar sprints e o workflow de desenho |
 | P235 janelas do sistema sem ícone (H) | `.meow-wt-janelas` / `bloco/janelas` | workflow no ar (2 agentes); medido pelo coordenador: o diálogo de arquivos é `com.system76.CosmicFilesDialog` |
+| P236 parte 1, o dock casa por padrão (I) | `.meow-wt-dock` / `bloco/dock` | workflow no ar (3 agentes) |
+| P236 parte 2, padrões no `appid.map` | `bloco/janelas`, depois do P235 | espera o H voltar |
 
 Pedido de 17/11: workflows liberados sem teto de agentes nem de cota nesta leva («Sem limitação de percentual e sem
 limitação de uso […] aumentarmos a qualidade do produto como um todo»).
