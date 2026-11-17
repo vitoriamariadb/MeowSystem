@@ -5,7 +5,7 @@
 | tarefa | estado | commit |
 | --- | --- | --- |
 | P206 os escolhidos viram padrão | feita | ver `git log` |
-| P208 pastas com borda | a fazer | |
+| P208 pastas com borda | feita | ver `git log` |
 | P207 botões de janela | a fazer | |
 
 ## P206
@@ -16,3 +16,8 @@
 - Prova: tema montado com HOME temporário, sem o mapa escolhido e com ele, dá o mesmo sha256 nos 13 ids.
 - O instalador corta o `\n` final do SVG (`meow_escrever "$(cat …)"`), então o sha do tema bate com o do arquivo
   sem o `\n` final: achado colateral, fora deste bloco.
+
+## P208
+- As dez pastas ganham o traço de 1,5 em `#A267F6` (o mauve do meio entre `dracula` e `alucard`) nas costas e na
+  frente: 3,2:1 contra `#3b3552` e 3,19:1 contra `#F0F0F6`; o `tests/pastas-do-pack.sh` mede.
+- Os `folder-symbolic`, `folder-new-symbolic` e `user-home-symbolic` são simbólicos (`currentColor`) e ficam.

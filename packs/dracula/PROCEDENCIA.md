@@ -1116,7 +1116,7 @@ desenho deste projeto, com o corpo das sete path a path (as costas no
 | `icones/sistema/user-desktop.svg` | desenho deste projeto | GPL-3.0 | 2026-10-09 | o monitor, a tela no `sky` `#8BE9FD` e a moldura no `text` `#F8F8F2` |
 | `icones/apps/discord-b.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `ed90ae11fb78d1eace76f8348ace3b36b9e2b57873afc03ee52254d0d7dacdb6` |
 | `icones/apps/org.gnome.Nautilus.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `83d560953d1e340d9912a8fba54c20d8c5e6e746750a840608b7373cc83dc3b2` |
-| `icones/sistema/user-home.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `a5940e7d51f303ce2155e85b821a882dce48601965d851a8b42e727229c04705` |
+| `icones/sistema/user-home.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `01628153ac3657b43f8b57618b66c26f6af0f88b8c4b815e4eecf0693956d232` |
 | `icones/biblioteca/discord-c.svg` | rascunho de `.trabalho-icones/svg/`, escolhido por quem usa em 23/10/2026; fonte: P96 |  | GPL-3.0 | 2026-10-23 | `a95a5d3627d5a52e75df661d6bd91298028b6ef98cd316c0c8fe747fb236789e` |
 | `icones/biblioteca/guvcview-2.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `0837663a400537c5b16267dbcc93449ba6a0e2e1ff1921883e499e99c358fd86` |
 | `icones/apps/com.beholder.app.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `628f8875287e7df8738676b75f6a5a9efaecc294871745ef5b58b2a28abf29b3` |
@@ -1125,6 +1125,8 @@ desenho deste projeto, com o corpo das sete path a path (as costas no
 | `icones/biblioteca/md.obsidian.Obsidian.svg` | antes em `icones/apps/resgatados/md.obsidian.Obsidian.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `34c59583036f62791019fe541256187b86eca7d189be4095fe07cd489218bf8f` |
 | `icones/biblioteca/mozc.svg` | antes em `icones/apps/resgatados/mozc.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `1aa34d54a761057283bf8f47d13f11df61ee883486c38d22f8484951614ba779` |
 | `icones/biblioteca/org.telegram.desktop.svg` | antes em `icones/apps/resgatados/org.telegram.desktop.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `0cb159785c0a08c35992095f7a545b6ff02200bc58b4da149c0f19e25f16f9a4` |
+
+**A borda das dez — 16/11/2026, P208.** Sobre o fundo do lançador (`#3b3552`) a aba e o corpo sumiam. As costas e a frente das dez (`folder`, os sete `folder-*`, `user-home`, `user-desktop`) ganham o mesmo traço de 1,5 em `#A267F6`, o mauve do meio entre o do `dracula` (`#BD93F9`) e o do `alucard` (`#853AF2`): 3,2:1 contra `#3b3552` e 3,19:1 contra o `base` do `alucard` (`#F0F0F6`). A borda da frente risca a aba; a silhueta e os símbolos não mudam.
 
 **O que ficou fora da paleta, dito para não parecer esquecido.** No
 `folder-download.svg`, o castelo (`#423E4D`, a 0,0222 do `surface0`) e a lua
