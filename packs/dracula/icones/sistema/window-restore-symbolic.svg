@@ -1,6 +1,6 @@
-<svg height="16" width="16" xmlns="http://www.w3.org/2000/svg">
-    <g color="currentColor" font-weight="400" font-family="sans-serif" white-space="normal" fill="currentColor">
-        <path d="M4 6v6h6V6zm1 1h4v4H5z" style="line-height:normal;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:currentColor;text-transform:none;text-orientation:mixed;shape-padding:0;isolation:auto;mix-blend-mode:normal" overflow="visible"/>
-        <path d="M6 4v1h5v5h1V4z" style="line-height:normal;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:currentColor;text-transform:none;text-orientation:mixed;shape-padding:0;isolation:auto;mix-blend-mode:normal" overflow="visible" opacity=".5"/>
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>window-restore-symbolic — restaurar: duas lápides</title>
+  <clipPath id="fora-da-frente"><path clip-rule="evenodd" d="M0,0 H16 V16 H0 Z M-0.1,16.5 L-0.1,10.1 A6,6 0 0 1 11.9,10.1 L11.9,16.5 Z"/></clipPath>
+  <path fill="currentColor" fill-rule="evenodd" clip-path="url(#fora-da-frente)" d="M5.4,10.6 L5.4,5.9 A4.7,4.7 0 0 1 14.8,5.9 L14.8,10.6 Z M7.3,8.7 L7.3,5.9 A2.8,2.8 0 0 1 12.9,5.9 L12.9,8.7 Z"/>
+  <path fill="currentColor" fill-rule="evenodd" d="M1.2,14.8 L1.2,10.1 A4.7,4.7 0 0 1 10.6,10.1 L10.6,14.8 Z M3.1,12.9 L3.1,10.1 A2.8,2.8 0 0 1 8.7,10.1 L8.7,12.9 Z"/>
 </svg>

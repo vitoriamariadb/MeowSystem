@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | P206 os escolhidos viram padrão | feita | ver `git log` |
 | P208 pastas com borda | feita | ver `git log` |
-| P207 botões de janela | a fazer | |
+| P207 botões de janela | feita | ver `git log` |
 
 ## P206
 - Os 11 desenhos escolhidos da `biblioteca/` mudam para `apps/` (uma versão por ícone, o precedente da P96), com a
@@ -21,3 +21,8 @@
 - As dez pastas ganham o traço de 1,5 em `#A267F6` (o mauve do meio entre `dracula` e `alucard`) nas costas e na
   frente: 3,2:1 contra `#3b3552` e 3,19:1 contra `#F0F0F6`; o `tests/pastas-do-pack.sh` mede.
 - Os `folder-symbolic`, `folder-new-symbolic` e `user-home-symbolic` são simbólicos (`currentColor`) e ficam.
+
+## P207
+- Os cinco `window-*-symbolic` viram silhuetas cheias em `currentColor` (sem traço): minimizar é um morcego
+  pousado embaixo, maximizar a moldura de um caixão, restaurar duas lápides, destacar um fantasma saindo da janela e
+  fechar dois ossos cruzados. O `icones_sistema.sh` os pinta com o `text` do flavor, em 22 px e no escalável.
