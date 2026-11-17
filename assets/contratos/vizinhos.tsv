@@ -23,6 +23,8 @@
 #   `$DESENV` (a pasta dos projetos), `$ZD` (o ZDOTDIR), `$APPS` (o applications/ do home),
 #   `$UNI` (o systemd/user do home) e `$SBIN` (o /usr/local/sbin) no começo de <arquivo>, e
 #   no <fim> da unidade, são trocados; nada mais é expandido, e o motivo não leva aspas nem `$`.
+#   Num arquivo dividido por máquina, as linhas de um bloco `case "$MAQUINA" in <outro hostname>)  # maquina`
+#   até `esac  # maquina` não contam (nem vivas, nem desligadas), e um corte não atravessa a borda de um bloco.
 #   O meow doctor desliga sozinho, na ordem deste arquivo, todo item pronto que ela não devolveu
 #   (VIZINHOS_DESATIVAR no meow.conf).
 

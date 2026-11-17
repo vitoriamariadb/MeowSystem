@@ -93,7 +93,7 @@ checa(soma == contados, "o total que cada pasta anuncia é o número de itens de
     {k: (soma.get(k), contados.get(k)) for k in set(soma) | set(contados) if soma.get(k) != contados.get(k)}))
 
 FORA = {"pastas", "mimetypes", "previa-arcticons", "upstream", "tray-terceiros", "wallpapers",
-        "sistema", "mascote"}
+        "mascote"}
 versionados = subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icones"],
                              capture_output=True, text=True).stdout.split()
 sem_grupo = set()
@@ -118,7 +118,7 @@ for rel in subprocess.run(["git", "-C", raiz, "ls-files", "packs", "assets/icone
     if h not in oferecidos:
         sobra.setdefault(h, rel)
 fora_da_regra = sorted(r for r in sobra.values()
-                       if not ("/icones/pastas/" in r or "/icones/sistema/" in r
+                       if not ("/icones/pastas/" in r
                                or "/mascote/" in r
                                or r.endswith("/logo.svg") or r.endswith("resgatados-antes-e-depois.png")))
 print("  versionados únicos menos oferecíveis: %d — %s" % (
@@ -153,9 +153,10 @@ checa(ordem_m and ordem_m[0].startswith("pack:meowsystem:")
       "com o MeowSystem em edição só as pastas dele aparecem, nenhuma do Dracula", repr(ordem_m))
 
 import re  # noqa: E402
-de_sistema = sorted({it["grupo"] for it in itens if "/icones/sistema/" in caminho_de(it)})
-checa(de_sistema and all(g.get("aba") == "sistema" for g in grupos if g["id"] in de_sistema),
-      "a pasta sistema/ entra na ficha, na aba Sistema (P203)", repr(de_sistema))
+abas_do_sistema = {g["id"]: g.get("aba") for g in grupos if g["id"].endswith(":sistema")}
+checa(set(abas_do_sistema) >= {"pack:dracula:sistema", "pack:meowsystem:sistema"}
+      and set(abas_do_sistema.values()) == {"sistema"},
+      "a pasta sistema/ de cada pack entra na ficha, na aba Sistema (P203)", repr(abas_do_sistema))
 fora_das_tres = [g["id"] for g in grupos if g["pack"] and ":autorais:" not in g["id"]
                  and not re.match(r"^pack:[a-z0-9-]+:(apps|sistema|biblioteca)(/[^:]+)?(:png)?$", g["id"])]
 checa(not fora_das_tres, "todo grupo de pack é apps/, sistema/ ou biblioteca/, ou os autorais", repr(fora_das_tres))

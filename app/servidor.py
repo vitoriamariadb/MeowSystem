@@ -299,35 +299,30 @@ RE_DURACAO = re.compile(r"^\d+(?:[.,]\d+)?[smhd]$")
 DOMINIOS = {
     "LOGO_ROTACAO": {
         "chave": "LOGO_MODO",
-        "vale_com": "rotacao",
         "quando": lambda v: bool(v) and v != "rotacao",
         "porque": "Ela só liga a rotação quando o mascote é escolhido girando — "
                   "hoje não tem efeito nenhum.",
     },
     "LOGO": {
         "chave": "LOGO_MODO",
-        "vale_com": "fixo",
         "quando": lambda v: v == "hora",
         "porque": "Por horário quem escolhe são os mascotes de dia e de noite; "
                   "esta só entra quando um daqueles dois não está na lista.",
     },
     "FORMA_MARGEM_PAINEL": {
         "chave": "FORMA_PAINEL_SOLTO",
-        "vale_com": "sim",
         "quando": lambda v: v == "nao",
         "porque": "A margem só é desenhada quando o painel está solto da "
                   "borda: assim, o compositor descarta este número calado.",
     },
     "FORMA_MARGEM_DOCK": {
         "chave": "FORMA_DOCK_SOLTO",
-        "vale_com": "sim",
         "quando": lambda v: v == "nao",
         "porque": "A margem só é desenhada quando a dock está solta da "
                   "borda: assim, o compositor descarta este número calado.",
     },
     "FASTFETCH_LOGO_GATO": {
         "chave": "FASTFETCH_LOGO_MODO",
-        "vale_com": "fixo",
         "quando": lambda v: bool(v) and v != "fixo",
         "porque": "Ela só vale com a escolha em \u201cfixo\u201d. Em "
                   "\u201chora\u201d o terminal segue o mascote do dock; em "
@@ -1076,31 +1071,6 @@ def _mapa_de_convertidos_do_usuario():
             or os.path.join(os.path.dirname(CONF), "icones-convertidos.map"))
 
 
-def _lista_de_destravados():
-    return (os.environ.get("MEOW_ICONES_DESTRAVADOS")
-            or os.path.join(os.path.dirname(CONF), "icones-destravados.list"))
-
-
-def destravados():
-    try:
-        with open(_lista_de_destravados(), encoding="utf-8") as fh:
-            return {l.strip() for l in fh if l.strip() and not l.startswith("#")}
-    except OSError:
-        return set()
-
-
-def destravar(nomes):
-    novos = [n for n in dict.fromkeys(nomes)
-             if n and re.match(r"^[A-Za-z0-9._+-]{1,120}$", n) and n not in destravados()]
-    if not novos:
-        return []
-    caminho = _lista_de_destravados()
-    os.makedirs(os.path.dirname(caminho) or ".", exist_ok=True)
-    with open(caminho, "a", encoding="utf-8") as fh:
-        fh.write("".join(n + "\n" for n in novos))
-    return novos
-
-
 def _oficina_do_usuario(*partes):
     xdg = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
     return os.path.join(xdg, "meowsystem", *partes)
@@ -1194,7 +1164,7 @@ def _dominada_por(chave):
     if not regra["quando"](valor):
         return None
     return {"chave": regra["chave"], "titulo": _titulo_de(regra["chave"]),
-            "valor": valor, "porque": regra["porque"], "vale_com": regra.get("vale_com", "")}
+            "valor": valor, "porque": regra["porque"]}
 
 
 def _opcoes_fechadas(chave, ajuda, inline, padrao):
@@ -2081,15 +2051,7 @@ def _adotar_leitura(chaves):
             pass
 
 
-_MESMO_HORARIO_TRAVA = threading.Lock()
-
-
 def ligar_mesmo_horario(ligar):
-    with _MESMO_HORARIO_TRAVA:
-        return _ligar_mesmo_horario(ligar)
-
-
-def _ligar_mesmo_horario(ligar):
     arq = _arquivo_do_mesmo_horario()
     brutos = valores_brutos()
     if ligar:
@@ -3860,8 +3822,9 @@ ACOES = {
         "argv": _meow("logo", "@ARG@"), "arg": "gatos",
         "escreve": True, "sudo": False, "confirma": False,
         "indisponivel": _gato_so_nos_modos(("fixo",), "fixo"),
-        "ajuda": "Põe no dock o mascote escolhido, e ele fica. Se o mascote seguia "
-                 "o relógio ou girava sozinho, o clique o deixa sempre o mesmo.",
+        "ajuda": "Põe no dock o mascote escolhido, e ele fica. Quando o mascote segue "
+                 "o relógio ou gira sozinho, este botão fica apagado e diz onde "
+                 "mudar.",
     },
     "logo_girar": {
         "rotulo": "Próximo mascote",
@@ -3870,8 +3833,8 @@ ACOES = {
         "argv": _meow("logo", "girar"),
         "escreve": True, "sudo": False, "confirma": False,
         "indisponivel": _gato_so_nos_modos(("rotacao",), "rotacao"),
-        "ajuda": "Se o mascote não estava girando, o clique "
-                 "o põe para girar e já troca.",
+        "ajuda": "Só tem efeito quando o mascote está girando; fora disso o "
+                 "botão fica apagado e diz onde mudar.",
     },
     "wallpaper": {
         "resumo": True,
@@ -5178,7 +5141,7 @@ NOME_DA_CONFERENCIA = {
     "fontes": "Fontes",
     "estadovelho": "Arquivos antigos do MeowSystem",
     "vizinhos": "Desligar o que conflita",
-    "efeito": "Ícones e fontes que o COSMIC usa",
+    "efeito": "Ícones e fontes em uso",
     "logo": "Mascote",
     "indice": "Lista dos ícones do tema",
 }
@@ -5540,8 +5503,9 @@ def _iniciar_agora(acao_id, argumento, confirmado=False, seco=False, pasta_de_en
     if acao is None:
         return (None, "ação desconhecida")
 
-    if (indisponivel(acao_id) or {}).get("feito"):
-        return (None, "«%s» não teria efeito agora" % acao["rotulo"])
+    if indisponivel(acao_id):
+        return (None, "«%s» não teria efeito agora — o cartão diz por quê"
+                      % acao["rotulo"])
 
     if acao.get("confirma") and not confirmado:
         return (None, {
@@ -6904,8 +6868,6 @@ class Manipulador(BaseHTTPRequestHandler):
 
     def _trava_do_pack(self, d, rotulo, donos=None, travas=None):
         icone = (d.get("icone") or "").strip()
-        if destravados() & {d.get("id"), icone}:
-            return None
         intocaveis, prefixos, curados, _convertidos = (
             self._travas_do_arcticons() if travas is None else travas)
         motivo = self._motivo_da_trava((intocaveis, prefixos, curados, ()),
@@ -7120,6 +7082,8 @@ class Manipulador(BaseHTTPRequestHandler):
                         "caminho": caminho,
                         "_texto": self._sem_acento(" ".join(
                             [glifo, rotulo] + textos.get(os.path.normpath(caminho), [])))}
+                if g["tipo"] == "png":
+                    item["trava"] = "Feito à mão em PNG: vale no tema quando ganhar a versão em vetor"
                 no_mapa = do_mapa.get(os.path.normpath(caminho)) if pack else None
                 if no_mapa:
                     item.update(pack=pack["id"], desenho=no_mapa["desenho"])
@@ -7312,34 +7276,7 @@ class Manipulador(BaseHTTPRequestHandler):
                 "grupo": item.get("grupo"), "pack": item.get("pack"),
                 "desenho": item.get("desenho")}
 
-    def _png_como_desenho(self, item):
-        mod = modulo_pack()
-        with open(item["caminho"], "rb") as fh:
-            dados = fh.read(4 << 20)
-        if dados[:8] != b"\x89PNG\r\n\x1a\n" or len(dados) < 24:
-            return None
-        largura, altura = struct.unpack(">II", dados[16:24])
-        if not (0 < largura <= 4096 and 0 < altura <= 4096):
-            return None
-        base = os.path.splitext(os.path.basename(item["caminho"]))[0]
-        destino = os.path.join(mod.pasta_de_enviados(), "de-png", base + ".svg")
-        os.makedirs(os.path.dirname(destino), exist_ok=True)
-        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" width="%d" height="%d">'
-               '<image width="%d" height="%d" href="data:image/png;base64,%s"/></svg>\n'
-               % (largura, altura, largura, altura, largura, altura, base64.b64encode(dados).decode("ascii")))
-        with open(destino + ".parcial", "w", encoding="utf-8") as fh:
-            fh.write(svg)
-        os.replace(destino + ".parcial", destino)
-        return dict(item, caminho=destino, tipo="desenho")
-
     def _escolher_desenho(self, app, item):
-        if item.get("tipo") == "png":
-            try:
-                item = self._png_como_desenho(item)
-            except OSError as e:
-                return self._json({"erro": "não consegui ler o PNG: %s" % e}, 500)
-            if not item:
-                return self._json({"erro": "o arquivo não é um PNG que se leia"}, 409)
         if item.get("tipo") != "desenho":
             return self._json({"erro": "este desenho não entra como está no tema"}, 409)
         d = next((x for x in self._desktops() if x["id"] == app), None) or {"id": app}
@@ -7365,12 +7302,6 @@ class Manipulador(BaseHTTPRequestHandler):
         remover = bool(corpo.get("remover"))
         if not app or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
             return self._json({"erro": "aplicativo inválido"}, 400)
-        if corpo.get("destravar") is True and not remover:
-            d = next((x for x in self._desktops() if x["id"] == app), None) or {}
-            try:
-                destravar([app, (d.get("icone") or "").strip()])
-            except OSError as e:
-                return self._json({"erro": "não consegui destravar: %s" % e}, 500)
 
         if corpo.get("pack") and not remover:
             pack, _desenhos, _aviso = self._desenhos_do_pack_no_ar()
@@ -7443,8 +7374,6 @@ class Manipulador(BaseHTTPRequestHandler):
         linha = "%s:%s:%s%s" % (app, glifo, cor, ":alias" if repetido else "")
         try:
             _gravar_escolha(caminho, app, linha, ":")
-            if app in destravados() and os.path.isfile(_mapa_de_convertidos_do_usuario()):
-                _gravar_escolha(_mapa_de_convertidos_do_usuario(), app, None, ":")
         except OSError as e:
             return self._json({"erro": "não consegui guardar a escolha: %s" % e}, 500)
         mod = modulo_pack()
@@ -8174,8 +8103,6 @@ class Manipulador(BaseHTTPRequestHandler):
     def _motivo_da_trava(self, travas, nomes, rotulo, vigor=None, do_pack=()):
         intocaveis, prefixos, curados, convertidos = travas
         nomes = [n for n in nomes if n]
-        if destravados() & set(nomes):
-            return None
         if any(n in intocaveis or (prefixos and n.startswith(prefixos)) for n in nomes):
             return "Fica como está, por pedido seu; só a oficina «Gerar ícone» o troca"
         if any(n in curados for n in nomes):
@@ -8273,7 +8200,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/criar":
             return self._no_pack_aprimorado(consulta.get("aprimorar", [""])[0] == "1",
-                                            self._api_criar_ler, consulta, trazer=False)
+                                            self._api_criar_ler, consulta)
 
         if caminho == "/api/sons":
             return self._api_sons(consulta)
@@ -8369,19 +8296,11 @@ class Manipulador(BaseHTTPRequestHandler):
                    for s in catalogo]
         return self._json({"pack": ident, "eventos": eventos})
 
-    def _no_pack_aprimorado(self, aprimorar, fazer, dados, trazer=True):
+    def _no_pack_aprimorado(self, aprimorar, fazer, dados):
         mod = modulo_pack()
         if not (aprimorar and mod):
             return fazer(dados)
-        no_ar = _pack_no_ar()
-        if trazer and no_ar and mod.motivo_para_nao_aprimorar(no_ar):
-            try:
-                mod.trazer_para_a_casa(no_ar)
-            except mod.Recusa as e:
-                return self._json({"erro": texto_na_tela(str(e))}, 409)
-            except OSError as e:
-                return self._json({"erro": "não consegui trazer o tema para a sua casa: %s" % e}, 500)
-        with mod.aprimorando(no_ar):
+        with mod.aprimorando(_pack_no_ar()):
             return fazer(dados)
 
     def _api_pack_cores(self, corpo):
@@ -8444,18 +8363,12 @@ class Manipulador(BaseHTTPRequestHandler):
                             cores_do_desenho = _cores_do_traco(fh.read(300000))
                     except OSError:
                         cores_do_desenho = []
-                levado = i["levado"]
-                if levado and ident:
+                if i["levado"] and ident:
                     url = self._url_do_levado(mod, ident, pasta, i["nome"], cores) or url
-                herdado = pasta == "sistema" and dir_editado and mod.trava_de_sistema(dir_editado, i["arq"])
-                meu = os.path.join(dir_editado, "icones", "sistema", i["nome"] + ".svg") if herdado else ""
-                if meu and os.path.isfile(meu) and not os.path.islink(meu):
-                    _ICONES_DECLARADOS.add(os.path.normpath(meu))
-                    url = "/previa?tipo=arquivo&id=%s&m=%d" % (quote(meu, safe=""), os.stat(meu).st_mtime_ns)
-                    levado = True
+                trava = mod.trava_de_sistema(dir_editado, i["arq"]) if pasta == "sistema" and dir_editado else ""
                 icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
-                                      "grupo": i.get("grupo", ""), "levado": levado, "url": url,
-                                      "cores": cores_do_desenho})
+                                      "grupo": i.get("grupo", ""), "levado": i["levado"], "url": url,
+                                      "cores": cores_do_desenho, "trava": texto_na_tela(trava) if trava else ""})
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:

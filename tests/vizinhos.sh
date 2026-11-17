@@ -76,7 +76,7 @@ cp -a "$ZD/functions/sistema.zsh" "$T/sistema-original.zsh"
 rodar() {
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" ZDOTDIR="$ZD" VIZINHOS_ETC="$ETC" \
       VIZINHOS_DESENV="$DESENV" VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
-      VIZINHOS_SBIN="$T/real-sbin" bash "$V" "$@"
+      VIZINHOS_SBIN="$T/real-sbin" VIZINHOS_MAQUINA=MeowSystem bash "$V" "$@"
 }
 
 printf '\n1. o inventário\n'
@@ -312,10 +312,20 @@ doutor() {
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" ZDOTDIR="$ZD" VIZINHOS_ETC="$ETC" \
       VIZINHOS_DESENV="$DESENV" VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
       MEOW_RAIZ="$RAIZ" XDG_CONFIG_HOME="$CASA/.config" XDG_STATE_HOME="$CASA/.local/state" \
-      VIZINHOS_SBIN="$T/real-sbin" "$@" \
+      VIZINHOS_SBIN="$T/real-sbin" VIZINHOS_MAQUINA=MeowSystem "$@" \
       bash -c 'source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow"); "$0"' "$f" 2>&1
 }
 retrato() { (cd "$1" && find . -path ./.local/state -prune -o -printf '%p %s %T@\n' | sort); }
+sem_gemeas() {
+  INIS="$(awk -F'\t' '$1 == "item" && $3 == "bloco" { print $5 }' "$RAIZ/assets/contratos/vizinhos.tsv")" awk '
+    BEGIN { n = split(ENVIRON["INIS"], ini, "\n") }
+    FNR == NR { if (sub(/^#vizinhos:[a-z0-9-]*# /, "")) marcada[$0] = 1; next }
+    /^case "[$]MAQUINA" in Meow-portatil[)]  # maquina$/ { nb = 1 }
+    !nb && ($0 in marcada) { for (i = 1; i <= n; i++) if (ini[i] != "" && index($0, ini[i])) next }
+    { print }
+    /^esac  # maquina$/ { nb = 0 }' "$1" "$1" > "$1.sem" && cat "$1.sem" > "$1" && rm -f "$1.sem"
+}
+sem_o_notebook() { awk '/^case "[$]MAQUINA" in Meow-portatil[)]  # maquina$/ { d = 1 } !d { print } /^esac  # maquina$/ { d = 0 }' "$1"; }
 
 printf '\n9. as cópias reais da Aurora: o doctor corta o que está pronto, uma vez só\n'
 REAL="${SUITE_CASA_REAL:-$HOME}/.config/zsh"
@@ -338,7 +348,10 @@ if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" 
   printf '#!/bin/sh\necho "systemctl $*" >> "%s/systemctl-real.log"\nexit 0\n' "$T" > "$T/bin/systemctl"; chmod 755 "$T/bin/systemctl"
   cp "$REAL/install.sh" "$REAL/env.zsh" "$ZD/"
   cp "$REAL/functions/sistema.zsh" "$ZD/functions/"
+  while IFS= read -r f; do sem_gemeas "$f"; done < <(find "$ZD" "$T/real-sbin" -type f)
   find "$ZD" "$T/real-sbin" -type f -exec sed -i -e '/#vizinhos+:[a-z0-9-]*#/d' -e 's/^#vizinhos:[a-z0-9-]*# //' {} +
+  so_notebook() { awk '/^case "[$]MAQUINA" in Meow-portatil[)]  # maquina$/ { d = 1 } d { print } /^esac  # maquina$/ { d = 0 }' "$1"; }
+  notebook_antes="$(so_notebook "$ZD/scripts/ritual-aurora-self-heal.sh")"
   cp -a "$ZD" "$T/real-original"
   NOVOS="aurora-fastfetch-link aurora-fastfetch-passo aurora-completion-meow aurora-icone-applib aurora-stubs-ocultar aurora-gato-pop aurora-spicetify-instalar"
   NOVOS="$NOVOS aurora-painel-fantasma-instalar aurora-painel-fantasma-ligar aurora-painel-fantasma-passo"
@@ -374,6 +387,7 @@ if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" 
   confere "as três unidades esperam a Aurora ler o corte" \
     '[ ! -e "$T/systemctl-real.log" ] && for u in $UNIDADES; do [ -f "$UD/$u" ] || exit 1; done'
   confere "o self-heal cortado passa bash -n" 'bash -n "$ZD/scripts/ritual-aurora-self-heal.sh"'
+  confere "e os blocos do notebook ficam como estavam" '[ "$notebook_antes" = "$(so_notebook "$ZD/scripts/ritual-aurora-self-heal.sh")" ]'
   confere "o install.sh cortado passa bash -n" 'bash -n "$ZD/install.sh"'
   confere "o script do qBittorrent cortado passa bash -n" 'bash -n "$ZD/scripts/aurora-qbittorrent-config.sh"'
   confere "o tema sai do script do qBittorrent: as duas chaves do tema cortadas, o resto da config vivo" \
@@ -381,7 +395,7 @@ if [ -f "$REAL/scripts/ritual-aurora-self-heal.sh" ] && [ -f "$REAL/install.sh" 
      && ! grep -v "^#vizinhos:" "$ZD/scripts/aurora-qbittorrent-config.sh" | grep -qE "Preferences/General/(UseCustomUITheme|CustomUIThemePath)=[$]" \
      && grep -qE "^  \"Preferences/General/Locale=" "$ZD/scripts/aurora-qbittorrent-config.sh"'
   confere "o vigia do painel sai inteiro do self-heal: nenhuma linha viva cita o aurora-painel-fantasma" \
-    '! grep -v "^#vizinhos:" "$ZD/scripts/ritual-aurora-self-heal.sh" | grep -qE "aurora-painel-fantasma[.](timer|sh)"'
+    '! sem_o_notebook "$ZD/scripts/ritual-aurora-self-heal.sh" | grep -v "^#vizinhos:" | grep -qE "aurora-painel-fantasma[.](timer|sh)"'
   if command -v zsh >/dev/null 2>&1; then
     confere "o env.zsh cortado passa zsh -n" 'zsh -n "$ZD/env.zsh"'
     confere "o sistema.zsh cortado passa zsh -n" 'zsh -n "$ZD/functions/sistema.zsh"'
@@ -448,7 +462,7 @@ printf 'item\ttoy-unidade\tunidade\t$UNI/toy.timer\ttoy-instalar\t$SBIN/self-hea
 rodar() {
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" ZDOTDIR="$ZD" VIZINHOS_ETC="$ETC" \
       VIZINHOS_DESENV="$DESENV" VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
-      VIZINHOS_CONTRATO="$CT" VIZINHOS_SBIN="$T/sbin" bash "$V" "$@"
+      VIZINHOS_CONTRATO="$CT" VIZINHOS_SBIN="$T/sbin" VIZINHOS_MAQUINA=MeowSystem bash "$V" "$@"
 }
 
 printf '\n10. fim - corta uma linha só, e o --restaurar a devolve byte a byte\n'
@@ -591,6 +605,151 @@ confere "o motivo da divergência vem na primeira linha, antes dos avisos" \
 rodar --desativar-prontos >/dev/null 2>&1
 confere "o --desativar-prontos corta o vivo" 'grep -qF "#vizinhos+:toy-saida-viva#" "$ZD/scripts/saida-viva.sh"'
 confere "e deixa o desligado à mão como estava" '[ "$md5a" = "$(md5sum < "$ZD/scripts/saida-mao.sh")" ]'
+
+printf '\n17. os blocos de máquina do repositório dividido: cada máquina só enxerga o que é dela\n'
+CT17="$T/contrato17.tsv"; ETC17="$T/etc17"; mkdir -p "$ETC17"
+printf 'item\tmaq-instalar\tbloco\t$ZD/scripts/self-heal.sh\tinstall_user_if_diff "$SRC/maq.timer"\tmaq[.]service\t-\tmotivo de brinquedo\n' > "$CT17"
+printf 'item\tmaq-unidade\tunidade\t$UNI/maq.timer\tmaq-instalar\t$SBIN/self-heal.sh\t-\tmotivo de brinquedo\n' >> "$CT17"
+printf 'item\tmaq-vivo\tbloco\t$ZD/scripts/self-heal.sh\tinstall_if_diff "$SRC/vivo.conf"\t-\t-\tmotivo de brinquedo\n' >> "$CT17"
+cat > "$T/self-heal17.sh" <<'FIM'
+#!/bin/bash
+SRC=/x
+MAQUINA="$(cat /proc/sys/kernel/hostname 2>/dev/null)"
+echo comum
+case "$MAQUINA" in MeowSystem)  # maquina
+#vizinhos:maq-instalar# install_user_if_diff "$SRC/maq.timer"
+#vizinhos:maq-instalar# install_user_if_diff "$SRC/maq.service"
+install_if_diff "$SRC/vivo.conf"
+esac  # maquina
+case "$MAQUINA" in Meow-portatil)  # maquina
+install_user_if_diff "$SRC/maq.timer"
+install_user_if_diff "$SRC/maq.service"
+install_if_diff "$SRC/vivo.conf"
+esac  # maquina
+echo depois
+FIM
+cat > "$T/atravessa17.sh" <<'FIM'
+#!/bin/bash
+MAQUINA="$(cat /proc/sys/kernel/hostname 2>/dev/null)"
+echo antes do bloco
+case "$MAQUINA" in MeowSystem)  # maquina
+echo dentro do bloco
+esac  # maquina
+FIM
+cat > "$T/vigia17.sh" <<'FIM'
+#!/bin/bash
+MAQUINA="$(cat /proc/sys/kernel/hostname 2>/dev/null)"
+case "$MAQUINA" in MeowSystem)  # maquina
+gsettings set org.gnome.desktop.interface cursor-theme Outro
+esac  # maquina
+echo nada
+FIM
+printf '#!/bin/sh\necho "systemctl $*" >> "%s/systemctl17.log"\nexit 0\n' "$T" > "$T/bin/systemctl"; chmod 755 "$T/bin/systemctl"
+casa17() {
+  CASA="$T/c17-$1"; ZD="$CASA/.config/zsh"; ESTADO="$CASA/.local/state/meowsystem"; UD="$CASA/.config/systemd/user"
+  rm -rf "$CASA"; mkdir -p "$ZD/scripts" "$ESTADO" "$UD/timers.target.wants" "$UD/default.target.wants" "$CASA/sbin"
+  cp "$T/self-heal17.sh" "$ZD/scripts/self-heal.sh"; cp "$T/self-heal17.sh" "$CASA/sbin/self-heal.sh"
+  cp "$T/atravessa17.sh" "$ZD/scripts/atravessa.sh"; cp "$T/vigia17.sh" "$ZD/scripts/vigia.sh"; chmod 755 "$ZD/scripts/vigia.sh"
+  printf '[Timer]\nOnCalendar=hourly\n' > "$UD/maq.timer"
+  printf '[Service]\nExecStart=/bin/true\n' > "$UD/maq.service"
+  ln -s ../maq.timer "$UD/timers.target.wants/maq.timer"
+  printf '[Service]\nExecStart=%%h/.config/zsh/scripts/vigia.sh\n' > "$UD/vigia.service"
+  ln -s ../vigia.service "$UD/default.target.wants/vigia.service"
+  : > "$T/systemctl17.log"
+}
+rodar17() {
+  local m="$1"; shift
+  env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" ZDOTDIR="$ZD" VIZINHOS_ETC="$ETC17" \
+      VIZINHOS_DESENV="$CASA/sem-projetos" VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
+      VIZINHOS_CONTRATO="$CT17" VIZINHOS_SBIN="$CASA/sbin" VIZINHOS_MAQUINA="$m" bash "$V" "$@"
+}
+bloco17() { awk -v h="$2" '$0 ~ "^case \"[$]MAQUINA\" in " h "[)]" { d = 1 } d { print } d && /^esac  # maquina$/ { d = 0 }' "$1"; }
+
+casa17 Meow-portatil
+printf 'data\titem\ttipo\tarquivo\tcopia\tacao\n2026-10-27T20:23:45\tmaq-instalar\tbloco\t%s\t\trestaurado\n2026-10-27T20:23:45\tmaq-vivo\tbloco\t%s\t\trestaurado\n' \
+  "$ZD/scripts/self-heal.sh" "$ZD/scripts/self-heal.sh" > "$ESTADO/vizinhos-desativados.tsv"
+md5a="$(md5sum < "$ZD/scripts/self-heal.sh")"
+saida="$(rodar17 Meow-portatil --prontos 2>&1)"; rc=$?
+confere "no notebook, a cópia comentada do desktop não deixa nada pronto" '[ "$rc" = 0 ] && ! printf "%s" "$saida" | grep -q "repetem"'
+lista="$(rodar17 Meow-portatil --listar)"
+confere "o trecho que ela devolveu no notebook segue ativo, devolvido por ela" 'printf "%s\n" "$lista" | grep -qP "^maq-instalar\tativo, devolvido por você\t"'
+confere "e a unidade do notebook espera, sem contar a marca do bloco do desktop" 'printf "%s\n" "$lista" | grep -qP "^maq-unidade\tesperando a Aurora ler o corte\t"'
+rodar17 Meow-portatil --desativar-prontos >/dev/null 2>&1
+confere "o --desativar-prontos do notebook não muda o self-heal nem desliga a unidade" \
+  '[ "$md5a" = "$(md5sum < "$ZD/scripts/self-heal.sh")" ] && [ -f "$UD/maq.timer" ] && [ -L "$UD/timers.target.wants/maq.timer" ] && [ ! -s "$T/systemctl17.log" ]'
+rodar17 Meow-portatil --restaurar maq-instalar >/dev/null 2>&1
+confere "o --restaurar do notebook não descomenta o bloco do desktop" '[ "$md5a" = "$(md5sum < "$ZD/scripts/self-heal.sh")" ]'
+confere "a escrita que só o bloco do desktop faz não entra no inventário do notebook" '! rodar17 Meow-portatil --inventario | grep -q "vigia.sh"'
+
+casa17 Meow-portatil
+notebook_antes="$(bloco17 "$ZD/scripts/self-heal.sh" MeowSystem)"
+rodar17 Meow-portatil --desativar-prontos >/dev/null 2>&1
+confere "sem o registro dela, o notebook corta só no bloco do notebook" \
+  '[ "$(bloco17 "$ZD/scripts/self-heal.sh" MeowSystem)" = "$notebook_antes" ] && [ "$(bloco17 "$ZD/scripts/self-heal.sh" Meow-portatil | grep -c "^#vizinhos:maq-")" = 3 ]'
+rodar17 Meow-portatil --restaurar maq-instalar >/dev/null 2>&1
+confere "e o --restaurar do notebook devolve só o bloco do notebook, com a marca do desktop no lugar" \
+  '[ "$(bloco17 "$ZD/scripts/self-heal.sh" MeowSystem)" = "$notebook_antes" ] && ! bloco17 "$ZD/scripts/self-heal.sh" Meow-portatil | grep -q "^#vizinhos:maq-instalar#"'
+
+casa17 MeowSystem
+lista="$(rodar17 MeowSystem --listar)"
+confere "no desktop, o trecho segue desligado" 'printf "%s\n" "$lista" | grep -qP "^maq-instalar\tdesativado\t"'
+confere "e a linha ativa nos dois blocos é única no do desktop" 'printf "%s\n" "$lista" | grep -qP "^maq-vivo\tativo\t"'
+confere "a escrita do bloco do desktop entra no inventário do desktop" 'rodar17 MeowSystem --inventario | grep -q "^cursor	~/.config/zsh/scripts/vigia.sh	"'
+cp "$ZD/scripts/self-heal.sh" "$T/self-heal17-antes.sh"
+notebook_antes="$(bloco17 "$ZD/scripts/self-heal.sh" Meow-portatil)"
+rodar17 MeowSystem --desativar-prontos >/dev/null 2>&1
+confere "o --desativar-prontos do desktop corta a linha viva do desktop" \
+  'bloco17 "$ZD/scripts/self-heal.sh" MeowSystem | grep -qxF "#vizinhos:maq-vivo# install_if_diff \"\$SRC/vivo.conf\""'
+confere "e nunca toca o bloco do notebook" '[ "$(bloco17 "$ZD/scripts/self-heal.sh" Meow-portatil)" = "$notebook_antes" ]'
+confere "a unidade do desktop sai, porque a marca do bloco do desktop chegou ao instalado" \
+  '[ ! -e "$UD/maq.timer" ] && grep -qx "systemctl --user disable --now maq.timer" "$T/systemctl17.log"'
+rodar17 MeowSystem --restaurar maq-vivo >/dev/null 2>&1
+confere "o --restaurar do desktop devolve o arquivo byte a byte" 'cmp -s "$ZD/scripts/self-heal.sh" "$T/self-heal17-antes.sh"'
+printf 'item\tmaq-atravessa\tbloco\t$ZD/scripts/atravessa.sh\techo antes do bloco\t^echo dentro do bloco$\t-\tmotivo de brinquedo\n' >> "$CT17"
+md5a="$(md5sum < "$ZD/scripts/atravessa.sh")"
+saida="$(rodar17 MeowSystem --desativar maq-atravessa 2>&1)"; rc=$?
+confere "um corte que atravessa a borda de um bloco de máquina é recusado, sem mudar nada" \
+  '[ "$rc" = 2 ] && printf "%s" "$saida" | grep -q "atravessa a borda" && [ "$md5a" = "$(md5sum < "$ZD/scripts/atravessa.sh")" ] && [ ! -d "$ESTADO/vizinhos/maq-atravessa" ]'
+
+mkdir -p "$ZD/functions"
+printf '#!/bin/bash\ngsettings set org.gnome.desktop.interface cursor-theme Outro\n' > "$ZD/scripts/so-desktop.sh"
+printf '#!/bin/bash\ngsettings set org.gnome.desktop.interface cursor-theme Outro\n' > "$ZD/scripts/so-desktop-mao.sh"
+cat > "$ZD/scripts/cura.sh" <<'FIM'
+#!/bin/bash
+MAQUINA="$(cat /proc/sys/kernel/hostname 2>/dev/null)"
+case "$MAQUINA" in MeowSystem)  # maquina
+"$HOME/.config/zsh/scripts/so-desktop.sh"
+esac  # maquina
+echo nada
+FIM
+cat > "$ZD/functions/maq.zsh" <<'FIM'
+maq_func() {
+  case "$MAQUINA" in MeowSystem)  # maquina
+  "$HOME/.config/zsh/scripts/so-desktop-mao.sh"
+  esac  # maquina
+}
+FIM
+printf '[Service]\nExecStart=%%h/.config/zsh/scripts/cura.sh\n' > "$UD/cura.service"
+ln -s ../cura.service "$UD/default.target.wants/cura.service"
+inv_desktop="$(rodar17 MeowSystem --inventario)"; inv_notebook="$(rodar17 Meow-portatil --inventario)"
+confere "o script que só o bloco do desktop chama entra no inventário do desktop, pela unidade e pela função" \
+  'printf "%s\n" "$inv_desktop" | grep -q "scripts/so-desktop.sh" && printf "%s\n" "$inv_desktop" | grep -q "scripts/so-desktop-mao.sh"'
+confere "e não entra no do notebook, nem pela unidade, nem pela função" \
+  '! printf "%s\n" "$inv_notebook" | grep -q "scripts/so-desktop"'
+
+printf 'item\tmaq-saida\tsaida\t$ZD/scripts/saida17.sh\t-\t-\t-\tmotivo de brinquedo\n' >> "$CT17"
+cat > "$ZD/scripts/saida17.sh" <<'FIM'
+#!/bin/bash
+printf '%s\n' "saida17.sh: motivo de brinquedo"; exit 0  #vizinhos+:maq-saida#
+MAQUINA="$(cat /proc/sys/kernel/hostname 2>/dev/null)"
+case "$MAQUINA" in MeowSystem)  # maquina
+echo so no desktop  #vizinhos+:maq-saida#
+esac  # maquina
+FIM
+rodar17 Meow-portatil --restaurar maq-saida >/dev/null 2>&1
+confere "o --restaurar de uma saída no notebook não apaga a linha marcada do bloco do desktop" \
+  '! grep -q "exit 0  #vizinhos+:maq-saida#" "$ZD/scripts/saida17.sh" && bloco17 "$ZD/scripts/saida17.sh" MeowSystem | grep -qxF "echo so no desktop  #vizinhos+:maq-saida#"'
+rm -f "$T/bin/systemctl"
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'vizinhos: tudo verde\n'; exit 0; fi

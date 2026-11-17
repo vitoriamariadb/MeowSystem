@@ -29,7 +29,39 @@ APPS_CASA="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 UNI="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 SBIN="${VIZINHOS_SBIN:-/usr/local/sbin}"
 CONTRATO="${VIZINHOS_CONTRATO:-$RAIZ/assets/contratos/vizinhos.tsv}"
+MAQUINA="${VIZINHOS_MAQUINA:-$(cat /proc/sys/kernel/hostname 2>/dev/null || uname -n)}"
 export LC_ALL=C
+
+AWK_MAQUINA='
+function borda_de_maquina(l) {
+  return l ~ /^[[:space:]]*case[[:space:]]+"[$]MAQUINA"[[:space:]]+in[[:space:]].*[)][[:space:]]+# maquina[[:space:]]*$/ ||
+         l ~ /^[[:space:]]*esac[[:space:]]+# maquina[[:space:]]*$/
+}
+function de_outra_maquina(l,   h, n, i, p, era) {
+  if (l ~ /^[[:space:]]*case[[:space:]]+"[$]MAQUINA"[[:space:]]+in[[:space:]].*[)][[:space:]]+# maquina[[:space:]]*$/) {
+    h = l; sub(/^[[:space:]]*case[[:space:]]+"[$]MAQUINA"[[:space:]]+in[[:space:]]+/, "", h); sub(/[)][^)]*$/, "", h)
+    gsub(/[[:space:]"]/, "", h)
+    outra_maquina = 1; n = split(h, p, "|")
+    for (i = 1; i <= n; i++) if (p[i] == maquina) outra_maquina = 0
+    return outra_maquina
+  }
+  if (l ~ /^[[:space:]]*esac[[:space:]]+# maquina[[:space:]]*$/) { era = outra_maquina; outra_maquina = 0; return era }
+  return outra_maquina
+}'
+
+_awk_maquina() { local prog="$1"; shift; awk -v maquina="$MAQUINA" "$AWK_MAQUINA$prog" "$@"; }
+
+_desta_maquina() { _awk_maquina '{ print (de_outra_maquina($0) ? "" : $0) }' "$1" 2>/dev/null; }
+
+_tem() {
+  [ -r "$1" ] || return 1
+  TEXTO="$2" _awk_maquina '!de_outra_maquina($0) && index($0, ENVIRON["TEXTO"]) { achou = 1; exit } END { exit !achou }' "$1" 2>/dev/null
+}
+
+_vezes() {
+  [ -r "$1" ] || { echo 0; return 0; }
+  TEXTO="$2" _awk_maquina '!de_outra_maquina($0) && index($0, ENVIRON["TEXTO"]) { n++ } END { print n + 0 }' "$1" 2>/dev/null
+}
 
 _zdotdir() {
   local z=""
@@ -73,17 +105,18 @@ FIM
 VERBO='gsettings[[:space:]]+set|dconf[[:space:]]+(write|load|reset)|sed[[:space:]]+(-[a-zA-Z]*i|--in-place)|>>?[[:space:]]*["'"'"'$~/]|(^|[^[:alnum:]_.-])(tee|cp|mv|install|ln|rm|rsync|touch|mkdir|chmod|unlink|truncate)[[:space:]]|gtk-update-icon-cache|update-desktop-database|fc-cache|write_text|write_bytes|shutil[.](copy|move|rmtree)|os[.](replace|rename|remove|unlink|chmod|symlink)|open[(][^)]*["'"'"'][wa]|pkill|killall|kill[[:space:]]|systemctl[[:space:]]+(--user[[:space:]]+)?(restart|stop|start|enable|disable|mask|kill)|spicetify[[:space:]]+(apply|config|backup|restore)'
 
 _varrer() {
-  awk -F'\t' -v terr="$TERRITORIOS" -v verbo="$VERBO" '
+  awk -F'\t' -v terr="$TERRITORIOS" -v verbo="$VERBO" -v maquina="$MAQUINA" "$AWK_MAQUINA"'
     BEGIN {
       n = split(terr, ls, "\n")
       for (i = 1; i <= n; i++) { split(ls[i], p, "\t"); tn[i] = p[1]; tr[i] = p[2] }
     }
     {
       chave = $1; arq = $2; ini = $3 + 0; fim = $4 + 0
-      visto = 0; morto = 0; ln = 0
+      visto = 0; morto = 0; ln = 0; outra_maquina = 0
       for (v in var) delete var[v]
       while ((getline l < arq) > 0) {
         ln++
+        if (de_outra_maquina(l)) continue
         # O aviso de desativado pode morar no comentário logo acima da função.
         if (ln < ini) { if (ln >= ini - 6 && l ~ /DESATIVAD/) visto = 1; else if (ln < ini - 6) visto = 0; continue }
         if (fim > 0 && ln > fim) break
@@ -190,7 +223,7 @@ _seguir() {
   [ "$n" -ge 3 ] && return 0
   while IFS= read -r r; do
     [ -n "$r" ] && _seguir "$r" "$g" "$e" $((n + 1))
-  done < <(grep -vE '^[[:space:]]*(#|//)' "$f" | _refs "$f")
+  done < <(_desta_maquina "$f" | grep -vE '^[[:space:]]*(#|//)' | _refs "$f")
 }
 
 _ativa_usuario() {
@@ -303,7 +336,7 @@ _arestas() {
     }' "$funcs" "$ZD"/aliases.zsh "$ZD"/functions/*.zsh "$@" 2>/dev/null | sort -u
 }
 
-_corpo() { sed -n "${2},${3}p" "$1"; }
+_corpo() { _desta_maquina "$1" | sed -n "${2},${3}p"; }
 
 _gatilhos_do_shell() {
   local nome arq ini fim rc k g e via r quem alvo tmpf
@@ -508,8 +541,8 @@ _ultimo() {
 
 _desativado() {
   case "$1" in
-    saida) grep -qF -- "$(_marca_saida "$3")" "$2" 2>/dev/null ;;
-    bloco) grep -qF -- "$(_marca_bloco "$3")" "$2" 2>/dev/null ;;
+    saida) _tem "$2" "$(_marca_saida "$3")" ;;
+    bloco) _tem "$2" "$(_marca_bloco "$3")" ;;
     mover|unidade) local u; u="$(_ultimo "$3")"
            [ ! -e "$2" ] && [ "${u%%$'\t'*}" = "desativado" ] && [ -e "${u#*$'\t'}" ] ;;
     *) return 1 ;;
@@ -534,11 +567,11 @@ _estado() {
   [ "${u%%$'\t'*}" = "restaurado" ] && { echo restaurado; return 0; }
   case "$tipo" in
     bloco)
-      n="$(grep -cF -- "$ini" "$arq" 2>/dev/null)"
+      n="$(_vezes "$arq" "$ini")"
       [ "${n:-0}" = 0 ] && { echo mudou; return 0; }
       [ "$n" -gt 1 ] && { echo repetido; return 0; } ;;
     unidade)
-      grep -qF -- "$(_marca_bloco "$ini")" "$fim" 2>/dev/null || { echo esperando; return 0; } ;;
+      _tem "$fim" "$(_marca_bloco "$ini")" || { echo esperando; return 0; } ;;
   esac
   echo pronto
 }
@@ -618,7 +651,7 @@ _wants_da_unidade() {
 _desativar_unidade() {
   local item="$1" arq="$2" ini="$3" fim="$4" nome copia svc w
   nome="$(basename "$arq")"; svc="${arq%.*}.service"
-  if ! grep -qF -- "$(_marca_bloco "$ini")" "$fim" 2>/dev/null; then
+  if ! _tem "$fim" "$(_marca_bloco "$ini")"; then
     meow_info "$item: esperando a Aurora ler o corte ($(_curto "$fim"))"
     return "$MEOW_OK"
   fi
@@ -688,7 +721,7 @@ cmd_desativar() {
   fi
   if [ "$tipo" = "unidade" ]; then _desativar_unidade "$item" "$arq" "$ini" "$fim"; return $?; fi
   if [ "$tipo" = "bloco" ]; then
-    local vezes; vezes="$(grep -cF -- "$ini" "$arq" 2>/dev/null)"
+    local vezes; vezes="$(_vezes "$arq" "$ini")"
     [ "${vezes:-0}" = 0 ] && { meow_erro "$item: o trecho não está mais em $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO"; }
     [ "$vezes" -gt 1 ] && { meow_erro "$item: o trecho não é único em $(_curto "$arq") ($vezes vezes) — nada foi mudado"; return "$MEOW_ERRO"; }
   fi
@@ -710,13 +743,19 @@ cmd_desativar() {
         awk 'BEGIN { l = ENVIRON["LINHA"] } NR == 1 && /^#!/ { print; print l; next } NR == 1 { print l } { print }' "$arq" > "$tmp" ;;
     bloco)
       marca="$(_marca_bloco "$item")"
-      INI="$ini" FIM_RE="$fim" M="$marca" awk 'BEGIN { ini = ENVIRON["INI"]; fim = ENVIRON["FIM_RE"]; m = ENVIRON["M"] }
-        !dentro && !feito && index($0, ini) { dentro = 1 }
+      INI="$ini" FIM_RE="$fim" M="$marca" _awk_maquina '
+        BEGIN { ini = ENVIRON["INI"]; fim = ENVIRON["FIM_RE"]; m = ENVIRON["M"] }
+        { outra = de_outra_maquina($0) }
+        !dentro && !feito && !outra && index($0, ini) { dentro = 1 }
+        dentro && borda_de_maquina($0) { atravessa = 1; exit }
         dentro { print m $0; if (fim == "" || ($0 ~ fim && !index($0, ini))) { dentro = 0; feito = 1 }; next }
         { print }
-        END { if (dentro) exit 3 }' "$arq" > "$tmp"
-      if [ $? = 3 ]; then rm -f "$tmp"; _largar_copia "$copia"; meow_erro "$item: o fim do trecho não aparece em $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO"; fi
-      if ! grep -qF -- "$marca" "$tmp"; then rm -f "$tmp"; _largar_copia "$copia"; meow_erro "$item: o trecho não está mais em $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO"; fi ;;
+        END { if (atravessa) exit 4; if (dentro) exit 3 }' "$arq" > "$tmp"
+      case $? in
+        3) rm -f "$tmp"; _largar_copia "$copia"; meow_erro "$item: o fim do trecho não aparece em $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO" ;;
+        4) rm -f "$tmp"; _largar_copia "$copia"; meow_erro "$item: o trecho atravessa a borda de um bloco de máquina em $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO" ;;
+      esac
+      if ! _tem "$tmp" "$marca"; then rm -f "$tmp"; _largar_copia "$copia"; meow_erro "$item: o trecho não está mais em $(_curto "$arq") — nada foi mudado"; return "$MEOW_ERRO"; fi ;;
   esac
   if ! _sintaxe_ok "$tmp" "$arq"; then
     rm -f "$tmp"; _largar_copia "$copia"
@@ -750,9 +789,10 @@ _restaurar_um() {
   if [ ! -f "$arq" ] || ! _desativado "$tipo" "$arq" "$item"; then meow_ok "$item já estava ativo"; return "$MEOW_OK"; fi
   tmp="$(mktemp "$arq.vizinhos.XXXXXX")" || return "$MEOW_ERRO"
   case "$tipo" in
-    saida) marca="$(_marca_saida "$item")"; grep -vF -- "$marca" "$arq" > "$tmp" ;;
+    saida) marca="$(_marca_saida "$item")"
+           M="$marca" _awk_maquina 'BEGIN { m = ENVIRON["M"] } !de_outra_maquina($0) && index($0, m) { next } { print }' "$arq" > "$tmp" ;;
     bloco) marca="$(_marca_bloco "$item")"
-           M="$marca" awk 'BEGIN { m = ENVIRON["M"] } index($0, m) == 1 { print substr($0, length(m) + 1); next } { print }' "$arq" > "$tmp" ;;
+           M="$marca" _awk_maquina 'BEGIN { m = ENVIRON["M"] } { outra = de_outra_maquina($0) } !outra && index($0, m) == 1 { print substr($0, length(m) + 1); next } { print }' "$arq" > "$tmp" ;;
   esac
   chmod --reference="$arq" "$tmp" 2>/dev/null
   mv -f "$tmp" "$arq" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
