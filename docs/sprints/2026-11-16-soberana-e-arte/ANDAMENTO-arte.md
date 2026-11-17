@@ -26,3 +26,10 @@
 - Os cinco `window-*-symbolic` viram silhuetas cheias em `currentColor` (sem traço): minimizar é um morcego
   pousado embaixo, maximizar a moldura de um caixão, restaurar duas lápides, destacar um fantasma saindo da janela e
   fechar dois ossos cruzados. O `icones_sistema.sh` os pinta com o `text` do flavor, em 22 px e no escalável.
+
+## Conferência (16/11)
+- P206: tema montado com HOME temporário, master contra branch, id a id: só os 14 nomes da P206 mudam; os 13
+  escolhidos batem o sha256 (6 deles sem o `\n` final, o corte do instalador). TSV: só as linhas novas diferem.
+- P208 e P207: renderizados em 16/24/32/48/128 nos dois fundos; borda a 3,2:1 e 3,19:1.
+- `tests/icones-por-pack.py`: o «Usar» clica uma variação gerada antes de usar (linha 215), sem depender de
+  botão desligado; a integração concilia com a P204/P210.
