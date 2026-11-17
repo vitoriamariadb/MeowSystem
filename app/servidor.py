@@ -5141,6 +5141,7 @@ NOME_DA_CONFERENCIA = {
     "fontes": "Fontes",
     "estadovelho": "Arquivos antigos do MeowSystem",
     "vizinhos": "Desligar o que conflita",
+    "efeito": "Ícones e fontes em uso",
     "logo": "Mascote",
     "indice": "Lista dos ícones do tema",
 }
