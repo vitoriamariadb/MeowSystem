@@ -128,6 +128,7 @@ PORTATIL=(
   pacotes-numa-lista.sh
   comum-carrega-limpo.sh
   destrava.sh
+  navegadores-gtk.sh
 )
 
 MAQUINA=(

@@ -551,6 +551,7 @@ registro 57 'a interface é soberana' && ! grep -q 'motivoIndisponivel\|disabled
   && ! grep -q 'Feito à mão em PNG' "$RAIZ/app/servidor.py" \
   && ok "57: a interface é soberana: nenhum controle desliga com dica de porquê, e o gesto liga o modo" \
   || falha "57: voltou o controle desligado com dica de porquê"
+cobre 58 navegadores-gtk.sh 'o reverter devolve cada perfil ao JSON de antes' scripts/temas-de-apps/chromium/manifesto.sh 'system_theme'
 
 sem_linha=""; total=0
 while read -r n; do
