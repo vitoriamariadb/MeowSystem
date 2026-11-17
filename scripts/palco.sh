@@ -142,16 +142,22 @@ _dizer() {
     "$(cat "$PALCO_DIR/tela")" "$RT" "$(cat "$PALCO_DIR/wayland")" "$(cat "$PALCO_DIR/barramento")"
 }
 
+_palco_dir() {
+  [ -f "$PALCO_DIR/.palco" ]
+}
+
 _subir() {
   local comp n i w x="" xw=() ativ
   if _vivo; then _dizer; return 0; fi
+  [ -d "$PALCO_DIR" ] && ! _palco_dir && [ -n "$(ls -A "$PALCO_DIR" 2>/dev/null)" ] \
+    && _erro "recuso: $PALCO_DIR já existe e não é um palco"
   _descer
   command -v Xvfb >/dev/null || _erro "falta o Xvfb: sudo apt install xvfb"
   command -v dbus-run-session >/dev/null || _erro "falta o dbus-run-session: sudo apt install dbus-bin"
   comp="$(_compositor)"
   [ -x "$comp" ] || _erro "falta o compositor ($comp)"
   n="$(_tela_livre)" || _erro "nenhuma tela X livre entre :90 e :199"
-  mkdir -p "$PALCO_DIR" && chmod 700 "$PALCO_DIR" || _erro "não consigo criar $PALCO_DIR"
+  mkdir -p "$PALCO_DIR" && chmod 700 "$PALCO_DIR" && : > "$PALCO_DIR/.palco" || _erro "não consigo criar $PALCO_DIR"
   mkdir -p "$RT" "$CASA" && chmod 700 "$RT" "$CASA"
   _copiar "${COPIAS[@]}"
   : > "$GRUPOS"
@@ -224,7 +230,7 @@ _janelas() {
 
 _descer() {
   local p i m resto telas
-  [ -d "$PALCO_DIR" ] || return 0
+  _palco_dir || return 0
   telas="$(cat "$PALCO_DIR/tela" 2>/dev/null) $(_xwayland 2>/dev/null)"
   resto="$(_nossos)"
   [ -n "$resto" ] && kill -TERM $resto 2>/dev/null
