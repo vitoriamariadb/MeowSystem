@@ -92,9 +92,14 @@ checa(chaves.get("desperto", {}).get("padrao") == "Desperto" and chaves.get("ron
       "o criador recebe os dois textos da Soneca com o padrão do pino", repr(textos))
 checa(chaves.get("ronronar", {}).get("valor") == "Descansando", "o Dracula em edição mostra Descansando",
       repr(chaves))
+rotulos = {i["nome"]: i["rotulo"] for i in lido.get("sistema", []) if i["grupo"] == "soneca"}
+checa(rotulos == {"soneca-desperto-symbolic": "Desperto", "soneca-ronronar-symbolic": "Descansando"},
+      "a vaga da Soneca tem o nome que o pack dá ao modo", repr(rotulos))
 lido = chamar(m._api_criar_ler, {"base": ["meowsystem"]})
 valores = {c["chave"]: c["valor"] for t in lido.get("textos", []) for c in t["chaves"]}
 checa(valores == {"desperto": "", "ronronar": ""}, "o MeowSystem em edição fica no padrão", repr(valores))
+rotulos = {i["rotulo"] for i in lido.get("sistema", []) if i["grupo"] == "soneca"}
+checa(rotulos == {"Desperto", "Ronronar"}, "no MeowSystem a vaga fica Ronronar", repr(rotulos))
 
 arq = os.path.join(meu, "pack.json")
 r = chamar(m._api_criar, {"id": "meu-dracula", "tipo": "textos", "extensao": "soneca", "textos": {"ronronar": "Sono"}})

@@ -8495,6 +8495,9 @@ class Manipulador(BaseHTTPRequestHandler):
             textos = _textos_das_extensoes(mod, ident and mod.pack_para_ler(ident) or base)
         except mod.Recusa:
             textos = []
+        nomes_do_pack = {(t["extensao"], c["padrao"]): c["valor"] for t in textos for c in t["chaves"] if c["valor"]}
+        for i in icones.get("sistema", []):
+            i["rotulo"] = nomes_do_pack.get((i["grupo"], i["rotulo"]), i["rotulo"])
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[], textos=textos))
         try:
