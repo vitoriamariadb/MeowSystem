@@ -119,7 +119,7 @@ fotos do acervo continuam em `wallpapers/CREDITOS.md`; o `sha256` de cada desenh
 |---|---|---|---|---|---|
 | telhados: gato no telhado, sol e varal de dia, lua e janelas acesas de noite | `wallpapers/pares/telhados-dia.svg` | `wallpapers/pares/telhados-noite.svg` | MeowSystem | GPL-3.0-or-later | 2026-11-17 |
 | janela: gato de costas no parapeito, vaso e céu de dia, estrelas e reflexo de noite | `wallpapers/pares/janela-dia.svg` | `wallpapers/pares/janela-noite.svg` | MeowSystem | GPL-3.0-or-later | 2026-11-17 |
-| patinhas e novelos, em padrão | `wallpapers/pares/patinhas-dia.svg` | `wallpapers/pares/patinhas-noite.svg` | MeowSystem | GPL-3.0-or-later | 2026-11-17 |
+| patinhas: quatro trilhas de pegadas, cada uma até o seu novelo, na mesma disposição de dia e de noite | `wallpapers/pares/patinhas-dia.svg` | `wallpapers/pares/patinhas-noite.svg` | MeowSystem | GPL-3.0-or-later | 2026-11-17 |
 
 ## O que NÃO é deste pack, e mora em `assets/`
 
