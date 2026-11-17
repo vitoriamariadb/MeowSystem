@@ -10,7 +10,7 @@
 
 ## Próximo passo
 1. Feito 17/11: os três blocos e o origin integrados; suíte inteira 158/159 e o vermelho restante (`app-completo.py`, a pasta com borda) corrigido e verde; merge no `master`; push.
-3. Coordenador: apagar a árvore em cache `~/.cache/meowsystem/cosmic-comp/cosmic-comp-0.1~1793802426~24.04~ec674cd`
-   não é preciso (a P205 a reextrai sozinha); rodar `meow compositor` a partir do `master` integrado.
+3. Feito 17/11: `meow compositor` a partir do `master` `8b62f13c`; a árvore reextraída aplicou os 8 patches e o binário traz os 8
+   marcadores, AURORA-COMPOE-NA-ESCOLHIDA-1 incluído.
 4. Quem usa: sair e entrar na sessão. Conferir: só Pop e OS na barra; `sudo -A journalctl -b -t cosmic-comp | grep -c
    "import for wrong devices"` = 0 depois de horas com as duas telas.
