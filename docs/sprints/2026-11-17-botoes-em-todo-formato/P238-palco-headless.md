@@ -19,6 +19,10 @@ Um palco isolado, `scripts/palco.sh`, que qualquer agente usa para toda consulta
    outro modo headless que ele tenha), porque só ele desenha o SSD com a arte do pack; se não subir, um wlroots
    headless (`WLR_BACKENDS=headless`, `cage` ou `sway`) com `grim` para a foto, e dizer em voz alta o que esse palco
    NÃO prova (o SSD do COSMIC). Pacote que precisar de apt: devolva o comando exato ao coordenador, que instala.
+   Plano B, sugerido por quem usa («ou usar o workspace os», «ou só o monitor da tela direita»): para o que só o
+   COSMIC real prova, abrir a janela direto na área de trabalho «OS» ou na tela da direita, sem roubar o foco nem
+   trocar a área que ela está vendo (medir: o `zcosmic_toplevel_manager` move a janela de área e de tela; ver se a
+   janela pisca na área dela antes de mover, e se o foco volta). Só se o headless não provar o caso.
 3. Comandos: `palco.sh subir`, `palco.sh rodar <cmd…>` (app dentro do palco), `palco.sh foto <saida.png>`
    (tela inteira ou recorte), `palco.sh janelas` (a sonda `appid_sonda.py --janelas` contra o palco),
    `palco.sh descer` (mata só o que o palco subiu). Idempotente; `descer` sem palco não é erro.
