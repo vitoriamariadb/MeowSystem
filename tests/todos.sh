@@ -167,6 +167,7 @@ MAQUINA=(
   graficos-fonte-real.sh
   icone-e-fonte-no-tema.sh
   palco.sh
+  area-os.sh
 )
 
 SEM_PULO=(

@@ -28,3 +28,21 @@ O `scripts/palco.sh` ganha o modo «na área» (`palco.sh rodar --area OS <app>`
   janela que o tinha.
 - Na máquina (coordenador, depois do `meow compositor` e do login): `MEOW_AREA=OS zenity --info` não aparece na
   área dela.
+
+## Medido (agente do bloco, 17/11)
+- `patches/cosmic-comp-area-do-cliente.patch` (`AURORA-AREA-DO-CLIENTE-1`), `req`, antes do
+  `cosmic-comp-nomes-nas-duas-telas.patch`, que segue o último. A série inteira aplica com `-F0` e sem
+  deslocamento no fonte do `ec674cd` (o instalado e o que o shim aponta) pelo `compositor_patches.sh aplicar`.
+  O fonte do `66524a0`, a última linha de `patches/versao`, não está nesta máquina.
+- O pid vem das credenciais do soquete Wayland e, no X11, do `_NET_WM_PID`. Janela filha segue a mãe. O nome casa
+  sem o U+2007 do `AREAS_NOMES`. Sem `MEOW_TELA`, vale a área da tela ativa.
+- `cargo build --release` limpo, sem aviso; `cargo test --lib area_do_cliente`: 7 de 7.
+- Palco headless com o binário do patch (`AREA_OS_COMPOSITOR=<binário> tests/area-os.sh`): duas áreas, Pop e OS.
+  A janela com `MEOW_AREA=OS` nasce em OS, tanto pelo Wayland quanto pelo X11. Pop segue visível, OS não fica
+  urgente, o foco segue na janela que o tinha, e a foto de Pop não muda nem um pixel. Com nome ou tela que não
+  existem, o comportamento é o de fábrica, com uma linha no log. Sem o patch (a mesma série, sem ele), a janela
+  nasce em Pop e toma o foco.
+- `palco.sh areas` (a sonda `appid_sonda.py --areas`) e `palco.sh rodar --area <nome> [--tela <saída>] <cmd…>`:
+  roda na sessão de quem chama e recusa sem sessão, com compositor sem o marcador, área que não existe ou área na
+  tela. Com o build de hoje (sem o patch), o `tests/area-os.sh` prova a recusa e sai `pulado` até o
+  `meow compositor`.
