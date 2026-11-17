@@ -13,6 +13,8 @@
 | P236 parte 2, padrões no `appid.map` | `bloco/janelas`, depois do P235 | espera o H voltar |
 | P237 pastas do Dracula com cena (J) | `.meow-wt-pastas-dracula` / `bloco/pastas-dracula` (do `bloco/arte-botoes`) | workflow no ar (2 agentes) |
 
+Queda da sessão em 17/11 (fim da tarde): 6 workflows e o agente da ampulheta pararam no meio, com as árvores limpas e os commits salvos. Retomados com `resumeFromRunId` (o agente que já tinha terminado volta do cache). Commits que já existiam: A `6a379c22`, `1fa64bb2`; B até `83cb20f2` (P215 a P219 novas); D `3bf3632f`, `05d071ea` e Soneca `67741ed` (worktree `../meowsystem-soneca-p231`); H, I e J sem commit ainda.
+
 Achados para a próxima leva: `scripts/icones_sistema.sh` injeta a espessura do MeowSystem em todo traço `currentColor` de qualquer pack (pack de terceiro com traço fino sai engordado); `wifi.svg`, `battery.svg` e `plugged-into-power` das Configurações no desenho antigo (MeowSystem).
 
 Pedido de 17/11: workflows liberados sem teto de agentes nem de cota nesta leva («Sem limitação de percentual e sem
