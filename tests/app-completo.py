@@ -973,7 +973,7 @@ class Percurso:
                               pasta: [...p.querySelectorAll(".p-arq img.pasta-pack")].length,
                               pasta_cheia: [...p.querySelectorAll(".p-arq img.pasta-pack")].slice(0, 1).some((i) => {
                                   const t = decodeURIComponent(i.src.split(",").slice(1).join(","));
-                                  return /fill="#[0-9a-fA-F]{3,8}"|fill:#[0-9a-fA-F]{3,8}/.test(t) && !/stroke="#|stroke:#/.test(t); }),
+                                  return /fill="#[0-9a-fA-F]{3,8}"|fill:#[0-9a-fA-F]{3,8}/.test(t); }),
                               neutro: p.querySelectorAll(".p-dock svg.neutro").length };
             }
             return saida; }""")
