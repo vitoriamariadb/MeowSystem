@@ -12,6 +12,11 @@
 Pedido de 17/11: workflows liberados sem teto de agentes nem de cota nesta leva («Sem limitação de percentual e sem
 limitação de uso […] aumentarmos a qualidade do produto como um todo»).
 
+| P231 vagas no pack e no criador (D) | `.meow-wt-produto` / `bloco/produto` | workflow no ar (3 agentes) |
+| P232 arte do Dracula na barra (E) | `.meow-wt-arte-dracula2` / `bloco/arte-dracula2` | espera o P220 voltar; nasce do `bloco/arte-botoes` |
+| P233 arte do MeowSystem (F) | `.meow-wt-arte-meow` / `bloco/arte-meow` | workflow no ar (2 agentes) |
+| P234 papéis dia e noite (G) | `.meow-wt-papeis` / `bloco/papeis` | workflow no ar (2 agentes) |
+
 ## Próximo passo
 1. Criar as duas árvores a partir do `master` e lançar os dois workflows (4 agentes: 2 por bloco).
 2. Integrar cada bloco em `integracao/2026-11-17` quando o conferente voltar; suíte inteira; `master`; push.
