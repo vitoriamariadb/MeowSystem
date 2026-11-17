@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <title>battery-symbolic — bateria em vela: inteira; a vela queima até o nível da carga, com a chama acesa no pavio e a sombra da vela inteira atrás</title>
-  <path fill="currentColor" d="M2.6,13.5 H13.4 Q13.4,15.3 11.6,15.3 H4.4 Q2.6,15.3 2.6,13.5 Z"/>
-  <path fill="currentColor" d="M5.2,5.8 Q5.2,5.3 5.7,5.3 H10.3 Q10.8,5.3 10.8,5.8 V13.5 H5.2 Z"/>
-  <path fill="currentColor" d="M5.2,5.9 Q4.3,6.9 4.5,7.7 Q4.9,8.2 5.2,7.6 Z"/>
-  <path fill="currentColor" d="M8,0.25 C8.9,1.45 9.5,2.25 9.5,3.05 A1.5,1.5 0 0 1 6.5,3.05 C6.5,2.25 7.1,1.45 8,0.25 Z"/>
+  <title>battery-symbolic — bateria em ampulheta: inteira; a areia de cima é a carga que resta, e a gasta fica apagada no vidro</title>
+  <path fill="currentColor" d="M2,0 H14 V1 H2 Z M2,15 H14 V16 H2 Z"/>
+  <path fill="currentColor" opacity="0.3" d="M3,1 H13 V3.5 C13,6.3 9,6.9 9,8 C9,9.1 13,9.7 13,12.5 V15 H3 V12.5 C3,9.7 7,9.1 7,8 C7,6.9 3,6.3 3,3.5 Z"/>
+  <clipPath id="areia"><rect x="0" y="1" width="16" height="7"/></clipPath>
+  <path fill="currentColor" clip-path="url(#areia)" d="M3,1 H13 V3.5 C13,6.3 9,6.9 9,8 C9,9.1 13,9.7 13,12.5 V15 H3 V12.5 C3,9.7 7,9.1 7,8 C7,6.9 3,6.3 3,3.5 Z"/>
 </svg>
