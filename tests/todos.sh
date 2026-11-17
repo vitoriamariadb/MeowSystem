@@ -167,6 +167,7 @@ MAQUINA=(
   zapzap-tema-de-conversa.py
   graficos-fonte-real.sh
   icone-e-fonte-no-tema.sh
+  palco.sh
 )
 
 SEM_PULO=(
