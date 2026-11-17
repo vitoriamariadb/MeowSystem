@@ -171,7 +171,7 @@ def sondar_janelas(limite=3.0):
     return [(v["app_id"], v["titulo"]) for v in punhos.values()]
 
 
-def sondar_areas(limite=3.0):
+def sondar_areas(limite=3.0, ativar=None):
     runtime = os.environ.get("XDG_RUNTIME_DIR") or "/run/user/%d" % os.getuid()
     disp = os.environ.get("WAYLAND_DISPLAY") or "wayland-0"
     caminho = disp if disp.startswith("/") else os.path.join(runtime, disp)
@@ -261,6 +261,14 @@ def sondar_areas(limite=3.0):
                 s.sendall(msg(1, 0, struct.pack("<I", retorno[0])))
             elif obj == retorno[0] and op == 0:
                 fase[0] += 1
+                if fase[0] >= 4 and ativar is not None and "ext_workspace_manager_v1" in ligadas:
+                    alvo = [h for h, a in areas.items() if limpo(a["nome"]).strip("\u2007 ") == ativar]
+                    ativar = None
+                    if alvo:
+                        s.sendall(msg(alvo[0], 1) + msg(ligadas["ext_workspace_manager_v1"], 0))
+                        retorno[0] = novo_id()
+                        s.sendall(msg(1, 0, struct.pack("<I", retorno[0])))
+                        continue
                 if fase[0] >= 4:
                     s.close()
                     return areas, list(janelas.values()), sorted(ligadas)
@@ -323,6 +331,18 @@ def main(argv):
             print("%s\t%s" % (limpo(app_id) or SEM_APP_ID, limpo(titulo)))
         return 0
 
+    if modo == "--ativar":
+        alvo = argv[2] if len(argv) > 2 else ""
+        try:
+            areas, _, _ = sondar_areas(ativar=alvo)
+        except (OSError, LookupError) as erro:
+            print("sem sessão Wayland utilizável: %s" % erro, file=sys.stderr)
+            return 3
+        if not any(limpo(a["nome"]).strip("\u2007 ") == alvo for a in areas.values()):
+            print("a sessão não tem área «%s»" % alvo, file=sys.stderr)
+            return 3
+        return 0
+
     if modo == "--areas":
         try:
             areas, janelas, ligadas = sondar_areas()
@@ -365,7 +385,7 @@ def main(argv):
                 print("%s\t%s\t%s" % (limpo(app_id), etapa or "-", e["caminho"] if e else "-"))
         return 0
 
-    print("uso: appid_sonda.py [--janelas|--areas|--parque|--casar [--sem-ponte]|--sugerir]",
+    print("uso: appid_sonda.py [--janelas|--areas|--ativar <nome>|--parque|--casar [--sem-ponte]|--sugerir]",
           file=sys.stderr)
     return 2
 

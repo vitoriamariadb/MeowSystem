@@ -33,8 +33,10 @@ grep -A1 '^+        let was_activated = !marcada$' "$PATCH" | grep -q 'workspace
 sed -n '/^+        } else if marcada {$/,/^+            None$/p' "$PATCH" > "$T/ramo"
 grep -q 'append_focus_stack' "$T/ramo" && ! grep -qE 'add_workspace_state|KeyboardFocusTarget|set_active|activate' "$T/ramo" \
   && ok "a marcada entra na pilha da área dela sem foco, sem urgente e sem trocar a área visível" || falha "o ramo da marcada mexe no foco ou na área"
-[ "$(grep -c '^+            return (!marcada$' "$PATCH")" = 2 ] \
-  && ok "a tela cheia e a pilha não devolvem foco à marcada" || falha "falta tirar o foco da marcada na tela cheia ou na pilha"
+grep -A8 '^+        let area_marcada = parent_placement$' "$PATCH" | grep -q 'active_space(saida)' \
+  && ok "a área que já está na tela ativa fica na fábrica, com o foco" || falha "a marcada nasce sem foco na área que está na tela"
+grep -A12 '^+++ b/src/xwayland.rs$' "$PATCH" | grep -qF '.area_do_cliente(&CosmicSurface::from(window.clone()), &output)' \
+  && ok "o _NET_ACTIVE_WINDOW da marcada fora da área visível é ignorado" || falha "o pedido de ativação X11 da marcada troca a área"
 grep -q '"MEOW_AREA sem área com esse nome: a janela nasce na área ativa"' "$PATCH" \
   && ok "nome que não existe: fábrica e uma linha no log" || falha "nome que não existe some calado"
 sed '/^+#\[cfg(test)\]$/,$d' "$PATCH" | grep -E '^\+' | grep -qiE 'zenity|chrome|firefox|"OS"|"Pop"' \
@@ -155,6 +157,15 @@ if [ -n "$COMP" ]; then
   j="$(esperar "area-x11-$$")"
   [ "$j" = "janela	zenity	area-x11-$$	OS	-" ] && areas | grep -qxF "janela	zenity	area-pop-$$	Pop	foco" \
     && ok "no X11, pelo _NET_WM_PID, também nasce em OS e o foco fica" || falha "a marcada no X11: «$j»"
+  if command -v xdotool >/dev/null; then
+    "$PALCO" rodar xdotool search --name "area-x11-$$" windowactivate >/dev/null
+    sleep 1
+    a="$(areas)"
+    grep -qxF "area	Pop	ativa" <<< "$a" && grep -qxF "janela	zenity	area-x11-$$	OS	-" <<< "$a" \
+      && ok "o _NET_ACTIVE_WINDOW da marcada não leva a tela para OS" || falha "a ativação X11 trocou a área: $(tr '\n' ' ' <<< "$a")"
+  else
+    pula "falta xdotool: a ativação X11 da marcada não foi provada"
+  fi
 
   msg="$(sessao_do_palco "$PALCO" rodar --area Pop true 2>&1)"; rc=$?
   [ "$rc" != 0 ] && grep -q 'é a que está na tela' <<< "$msg" && ok "a área visível é recusada: $msg" || falha "rodar --area aceitou a área visível (rc=$rc): $msg"
@@ -172,6 +183,22 @@ if [ -n "$COMP" ]; then
   [ "$j" = "janela	zenity	area-jogos-$$	Pop	foco" ] && ok "nome que não existe: comportamento de fábrica" || falha "nome que não existe: «$j»"
   [ "$(grep -c 'MEOW_AREA sem área com esse nome' "$PALCO_DIR/compositor.log")" = 2 ] \
     && ok "e uma linha no log para cada uma" || falha "o log do compositor não diz: $(grep -c 'MEOW_AREA' "$PALCO_DIR/compositor.log")"
+  "$PALCO" rodar env MEOW_AREA=Pop zenity --info --title="area-visivel-$$" --text=x >/dev/null
+  j="$(esperar "area-visivel-$$")"
+  [ "$j" = "janela	zenity	area-visivel-$$	Pop	foco" ] && ok "a área que está na tela: comportamento de fábrica, com o foco" || falha "a área que está na tela: «$j»"
+
+  "$PALCO" ativar OS || falha "o palco não trocou para OS"
+  sleep 1
+  a="$(areas)"
+  grep -qxF "area	OS	ativa" <<< "$a" && grep -qxF "janela	zenity	area-tela-$$	OS	foco" <<< "$a" \
+    && ok "ao ir até OS, a última marcada tem o foco" || falha "em OS: $(tr '\n' ' ' <<< "$a")"
+  "$PALCO" foto "$T/os.png"
+  dif="$(compare -metric AE "$T/antes.png" "$T/os.png" null: 2>&1)"
+  [ "${dif%% *}" != 0 ] && ok "a tela de OS mostra as marcadas ($dif pixels de diferença)" || falha "a tela de OS é a de Pop"
+  "$PALCO" rodar env MEOW_AREA=OS zenity --info --title="area-os-visivel-$$" --text=x >/dev/null
+  j="$(esperar "area-os-visivel-$$")"
+  [ "$j" = "janela	zenity	area-os-visivel-$$	OS	foco" ] && ok "com OS na tela, a janela nova do app marcado ganha o foco" || falha "com OS na tela: «$j»"
+  [ -n "${AREA_OS_FOTOS:-}" ] && mkdir -p "$AREA_OS_FOTOS" && cp "$T/depois.png" "$AREA_OS_FOTOS/pop.png" && cp "$T/os.png" "$AREA_OS_FOTOS/os.png"
   "$PALCO" descer
 fi
 

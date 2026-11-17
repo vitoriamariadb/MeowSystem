@@ -31,7 +31,7 @@ O registro é [`docs/DECISOES.md`](docs/DECISOES.md): uma linha por decisão que
 - Medição visual ou de janela (foto, barra de título, app_id, diálogo do portal) só pelo palco: `scripts/palco.sh`
   `subir`, `rodar <cmd…>`, `foto <saida.png>`, `janelas`, `descer`. Nada abre na sessão dela; `descer` mata só o
   que o palco subiu. Em paralelo, cada agente com o seu `PALCO_DIR=/tmp/<nome>`. `areas` lista as áreas, a
-  área de cada janela e o foco.
+  área de cada janela e o foco; `ativar <área>` troca a área visível do palco.
 - `palco.sh rodar --area OS <cmd…>` abre na sessão dela, na área «OS», sem passar pela área visível nem roubar o
   foco. Só para o que o palco headless não prova: GPU real, duas telas, escala fracionária, painel e dock. Ele
   recusa se o compositor da sessão não tem o `AURORA-AREA-DO-CLIENTE` ou se a área está na tela.

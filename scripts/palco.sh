@@ -269,6 +269,14 @@ _areas() {
     python3 "$RAIZ/scripts/appid_sonda.py" --areas
 }
 
+_ativar() {
+  [ -n "${1:-}" ] || _erro "uso: palco.sh ativar <área>"
+  _vivo || _erro "o palco não está de pé: palco.sh subir"
+  _conferir
+  env -i HOME="$CASA" PATH="$PATH" XDG_RUNTIME_DIR="$RT" WAYLAND_DISPLAY="$(cat "$PALCO_DIR/wayland")" \
+    python3 "$RAIZ/scripts/appid_sonda.py" --ativar "$1"
+}
+
 _descer() {
   local p i m resto telas
   _palco_dir || return 0
@@ -299,8 +307,9 @@ case "${1:-}" in
   foto)    shift; _foto "$@" ;;
   janelas) _janelas ;;
   areas)   _areas ;;
+  ativar)  shift; _ativar "$@" ;;
   copiar)  shift; _vivo || _erro "o palco não está de pé: palco.sh subir"; _copiar "$@" ;;
   descer)  _descer ;;
-  *) printf 'uso: palco.sh subir | rodar [--area <nome> [--tela <saída>]] <comando…> | foto <saida.png> [LxA+X+Y] | janelas | areas | copiar <caminho do HOME…> | descer\n' >&2
+  *) printf 'uso: palco.sh subir | rodar [--area <nome> [--tela <saída>]] <comando…> | foto <saida.png> [LxA+X+Y] | janelas | areas | ativar <área> | copiar <caminho do HOME…> | descer\n' >&2
      exit 2 ;;
 esac

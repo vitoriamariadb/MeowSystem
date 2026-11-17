@@ -7,7 +7,13 @@
 # troca a área visível, não ganha o foco do teclado e não marca a área urgente:
 # entra na pilha de foco da área dela, para ter o foco quando alguém for até lá.
 # Sem a variável, nada muda. Nome ou tela que não existe: comportamento de
-# fábrica e uma linha no log.
+# fábrica e uma linha no log. Área com esse nome que já está na tela ativa:
+# também a fábrica, com o foco: a variável passa aos filhos do app, e a janela
+# nova dele na área que está na tela ganha o foco como qualquer outra.
+#
+# No X11, o _NET_ACTIVE_WINDOW que o app manda ao se mostrar chegava depois de
+# a janela nascer em OS e trocava a área visível para lá, numa corrida. O pedido
+# de ativação X11 de janela marcada fora da área visível é ignorado.
 #
 # Mover depois de nascer (zcosmic_toplevel_manager_v1.move_to_ext_workspace)
 # deixa a janela um quadro na área visível e rouba o foco até mover (P238). O
@@ -20,11 +26,11 @@
 # AREAS_NOMES põe em volta, e sem MEOW_TELA vale a área da tela ativa.
 #
 # Entra antes do cosmic-comp-nomes-nas-duas-telas.patch, que segue o último da
-# série; os dois aplicam com -F0 e sem deslocamento no ec674cd.
+# série. Aplica com -F0 sem deslocamento no ec674cd e com 4 linhas no f2beba6.
 #
 --- a/src/shell/mod.rs
 +++ b/src/shell/mod.rs
-@@ -3056,7 +3056,14 @@
+@@ -3056,7 +3056,20 @@
                  Some((handle, parent_output, anchor))
              });
  
@@ -32,7 +38,13 @@
 +        let area_marcada = parent_placement
 +            .is_none()
 +            .then(|| self.area_do_cliente(&window, &seat.active_output()))
-+            .flatten();
++            .flatten()
++            .filter(|(handle, saida)| {
++                saida != &seat.active_output()
++                    || self
++                        .active_space(saida)
++                        .is_some_and(|space| &space.handle != handle)
++            });
 +        let marcada = area_marcada.is_some();
 +        let (workspace_handle, mut output, parent_geometry) = match parent_placement.or_else(|| {
 +            area_marcada.map(|(handle, saida)| (Some(handle), saida, None))
@@ -40,7 +52,7 @@
              Some(placement) => placement,
              None => {
                  let handle = match pending_activation {
-@@ -3106,7 +3113,8 @@
+@@ -3106,7 +3119,8 @@
          let mut workspace_state = workspace_state.update();
  
          let workspace_output = workspace.output.clone();
@@ -50,36 +62,12 @@
              && (workspace_output != seat.active_output() || active_handle != workspace.handle);
          let workspace_handle = workspace.handle;
          let is_dialog = layout::is_dialog(&window);
-@@ -3118,7 +3126,9 @@
-                 workspace_state.add_workspace_state(&workspace_handle, WState::Urgent);
-             }
- 
--            return (workspace_output == seat.active_output() && active_handle == workspace_handle)
-+            return (!marcada
-+                && workspace_output == seat.active_output()
-+                && active_handle == workspace_handle)
-                 .then_some(KeyboardFocusTarget::Fullscreen(window));
-         }
- 
-@@ -3134,7 +3144,9 @@
-             if was_activated {
-                 workspace_state.add_workspace_state(&workspace_handle, WState::Urgent);
-             }
--            return (workspace_output == seat.active_output() && active_handle == workspace_handle)
-+            return (!marcada
-+                && workspace_output == seat.active_output()
-+                && active_handle == workspace_handle)
-                 .then_some(KeyboardFocusTarget::Element(focused));
-         }
- 
-@@ -3188,6 +3200,11 @@
+@@ -3188,6 +3202,9 @@
  
          let new_target = if should_be_minimized {
              None
 +        } else if marcada {
-+            if workspace_output != seat.active_output() || active_handle != workspace_handle {
-+                self.append_focus_stack(mapped, &seat);
-+            }
++            self.append_focus_stack(mapped, &seat);
 +            None
          } else if (workspace_output == seat.active_output() && active_handle == workspace_handle)
              || should_be_sticky
@@ -88,7 +76,7 @@
          new_target
      }
  
-+    fn area_do_cliente(
++    pub fn area_do_cliente(
 +        &self,
 +        window: &CosmicSurface,
 +        tela_ativa: &Output,
@@ -236,3 +224,25 @@
 +        assert_eq!(area_escolhida("", None, "eDP-1", areas()), None);
 +    }
 +}
+--- a/src/xwayland.rs
++++ b/src/xwayland.rs
+@@ -1267,6 +1267,19 @@
+         _currently_active_window: Option<X11Surface>,
+     ) {
+         if let Some(surface) = window.wl_surface() {
++            {
++                let shell = self.common.shell.read();
++                let output = shell.seats.last_active().active_output();
++                if shell.element_for_surface(&surface).is_some_and(|element| {
++                    shell.space_for(element).map(|space| space.handle)
++                        != shell.active_space(&output).map(|space| space.handle)
++                }) && shell
++                    .area_do_cliente(&CosmicSurface::from(window.clone()), &output)
++                    .is_some()
++                {
++                    return;
++                }
++            }
+             self.activate_surface(&surface, None);
+         }
+     }
