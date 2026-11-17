@@ -15,6 +15,7 @@ limitação de uso […] aumentarmos a qualidade do produto como um todo»).
 | H | P235 janelas do sistema sem ícone | `.meow-wt-janelas` / `bloco/janelas` | retomado, sem commit ainda; medido: o diálogo de arquivos é `com.system76.CosmicFilesDialog` |
 | I | P236 parte 1, dock casa por padrão | `.meow-wt-dock` / `bloco/dock` | retomado, sem commit ainda |
 | H2 | P236 parte 2, padrões no `appid.map` | `bloco/janelas` | espera o H voltar («Os dois», AskUserQuestion 17/11) |
+| K | P238 palco headless | `.meow-wt-palco` / `bloco/palco` | conferido (`c49f28f6`, `ad8fa961`): `scripts/palco.sh` sobe o `cosmic-comp` do build com `COSMIC_BACKEND=winit` num `Xvfb`, barramento, runtime e casa próprios; provado em `tests/palco.sh`: a sessão dela não ganha toplevel e o barramento dela não vê nada do palco, `descer` mata só o que subiu (outro palco e processo alheio sobrevivem), a foto do SSD sai com os botões do pack; A, B e H retomam com o palco, cada um com seu `PALCO_DIR=/tmp/<nome>` |
 | J | P237 pastas do Dracula com cena | `.meow-wt-pastas-dracula` / `bloco/pastas-dracula` | retomado, sem commit ainda |
 
 Quadro de arte: <https://claude.ai/artifact/WkX5Moc3PoYQt6H1rkzZrP>, aprovado inteiro («Tudo aprovado»), virou P230 a
