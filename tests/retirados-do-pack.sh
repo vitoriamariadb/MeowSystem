@@ -26,7 +26,7 @@ completar() {
     bash "$T/raiz/scripts/completar_icones.sh" 2>&1
 }
 
-NOME=com.system76.CosmicFiles
+NOME=com.system76.CosmicMonitor
 printf '<svg xmlns="http://www.w3.org/2000/svg"/>\n' > "$ALVO/$NOME.svg"
 saida="$(completar)"
 [ ! -e "$ALVO/$NOME.svg" ] \
@@ -40,6 +40,13 @@ saida="$(completar)"
 [ -e "$ALVO/$NOME.svg" ] \
   && ok "com o desenho do pack escolhido para o $NOME, o completar deixa o arquivo onde está" \
   || falha "o completar apagou o desenho que o pack escolheu para o $NOME" "$saida"
+
+rm -f "$CASA/.config/meow/icones-escolhidos.map"
+printf '<svg xmlns="http://www.w3.org/2000/svg"/>\n' > "$ALVO/com.system76.CosmicFiles.svg"
+saida="$(completar)"
+[ -e "$ALVO/com.system76.CosmicFiles.svg" ] \
+  && ok "sem escolha, o com.system76.CosmicFiles fica no tema: o apps.map do Dracula o veste (P206)" \
+  || falha "o completar retirou o com.system76.CosmicFiles que o pack Dracula veste" "$saida"
 
 [ "$falhas" -eq 0 ] || exit 1
 printf 'retirados-do-pack: tudo certo\n'

@@ -8,5 +8,6 @@ packs/*/temas/capturados/** byte-exact
 packs/*/apps/*.qbtheme byte-exact
 packs/*/wallpapers/** byte-exact
 packs/*/sons/** byte-exact
+packs/CAMINHOS-DE-ANTES.tsv byte-exact
 
 .github/workflows/anonymity-check.yml ia-literal

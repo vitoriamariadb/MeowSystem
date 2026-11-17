@@ -575,6 +575,23 @@ else
   falha "o ícone nosso da Steam não voltou ao de fábrica (conferir=$rc_c aplicar=$rc_a segunda=$rc_a2)" "$(cat "$SS/steam_tray_mono.png")"
 fi
 
+: > "$T/sem-escolhas.map"
+fontes_p206="$(amb env MEOW_ICONES_ESCOLHAS="$T/sem-escolhas.map" MEOW_PACK_DIR=dracula \
+  python3 "$RAIZ/scripts/pack.py" fontes 2>/dev/null)"
+fora_p206=""
+for par in org.kde.ghostwriter:org.gnome.gitlab.somas.Apostrophe com.system76.CosmicFiles:org.gnome.Nautilus \
+           com.system76.CosmicTerm:org.gnome.Terminal io.github.cosmic_utils.camera:009-crystal-ball \
+           com.system76.CosmicSettings:spell-variant com.system76.CosmicViewer:galaxy \
+           com.system76.CosmicEdit:ghostwriter2 be.alexandervanhee.gradia:enchanted-mirror gradia:enchanted-mirror \
+           org.gnome.Calculator:retro partitionmanager:app-launcher com.obsproject.Studio:observatory \
+           btop:020-halloween com.system76.CosmicStore:gift; do
+  grep -qxF "${par%%:*}	packs/dracula/icones/apps/${par#*:}.svg	pack:dracula" <<< "$fontes_p206" \
+    || fora_p206="$fora_p206 ${par%%:*}"
+done
+[ -z "$fora_p206" ] \
+  && ok "sem o mapa escolhido, os 13 apps que quem usa escolheu em 16/11 vestem o desenho dela pelo pack (P206)" \
+  || falha "o pack Dracula não veste o escolhido de 16/11 em:$fora_p206"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "o pack Dracula cumpre o que a P74 pediu"
