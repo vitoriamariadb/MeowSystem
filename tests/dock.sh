@@ -28,11 +28,13 @@ confere "a segunda tentativa só roda depois de o casamento exato falhar" \
   'grep -B3 "^+            } else if let Some(entry) = find_app_by_pattern" "$PATCH_REAL" | grep -q "^             if let Some(entry) = fde::find_app_by_id(&self.desktop_entries, unicase_appid)"'
 confere "as três regras, em ordem: maiúscula, sufixo de papel, prefixo de domínio" \
   'grep -A3 "^+    by_id(app_id)" "$PATCH_REAL" | tr -d "\n" | grep -q "by_id(app_id)+        .or_else(|| strip_role_suffix(app_id).and_then(by_id))+        .or_else(|| find_app_by_reverse_domain_prefix(desktop_entries, app_id))"'
+confere "os ids do Proton e do Wine ficam com o fallback de fábrica, pelo título" \
+  'grep -qF "+    if app_id.is_empty() || app_id == \"steam_app_default\" || app_id.ends_with(\".exe\") {" "$PATCH_REAL" && grep -q "^+    fn proton_and_wine_ids_are_left_to_the_title_fallback" "$PATCH_REAL"'
 confere "os seis sufixos de papel, nem um a mais" \
   'grep -qF "+const ROLE_SUFFIXES: [&str; 6] = [\"Prompter\", \"Prompt\", \"Dialog\", \"Portal\", \"Helper\", \"Agent\"];" "$PATCH_REAL"'
 confere "nenhum comentário novo no patch" '! grep -E "^\+[[:space:]]*//" "$PATCH_REAL"'
-confere "o shim é o do portal com os nomes da dock" \
-  'diff <(sed -e "s/DOCK-SHIM/PORTAL-SHIM/; s#/usr/bin/cosmic-app-list#/usr/libexec/xdg-desktop-portal-cosmic#; s#meow/dock#meow/graficos#; s/cosmic-applets 2/xdg-desktop-portal-cosmic 2/; s#/cosmic-app-list\"#/xdg-desktop-portal-cosmic\"#" "$RAIZ/scripts/dock_shim.sh") "$RAIZ/scripts/portal_shim.sh" >/dev/null'
+confere "o shim escolhe o build como o do portal, com os nomes da dock" \
+  'escolha() { sed -n "1,/MEOW_SHIM_SO_DIZER/p" "$1"; }; diff <(escolha "$RAIZ/scripts/dock_shim.sh" | sed -e "s/DOCK-SHIM/PORTAL-SHIM/; s#/usr/bin/cosmic-app-list#/usr/libexec/xdg-desktop-portal-cosmic#; s#meow/dock#meow/graficos#; s/cosmic-applets 2/xdg-desktop-portal-cosmic 2/; s#/cosmic-app-list\"#/xdg-desktop-portal-cosmic\"#") <(escolha "$RAIZ/scripts/portal_shim.sh") >/dev/null'
 
 printf '\n1. o upstream sintético: um repositório git local no lugar do github\n'
 (
@@ -75,7 +77,7 @@ cat > "$FALSO/cargo" <<FIM
 echo "cargo \$* alvo=\$CARGO_TARGET_DIR" >> "$T/cargo.log"
 [ -f "$T/cargo-falha" ] && { echo "error: could not compile"; exit 101; }
 mkdir -p "\$CARGO_TARGET_DIR/release"
-{ printf '#!/bin/sh\necho build "\$@"\n'; grep -h MEOW- cosmic-app-list/src/app.rs | sed 's/^/# /'; } > "\$CARGO_TARGET_DIR/release/cosmic-app-list"
+{ printf '#!/bin/sh\necho build "\$@"\n[ "\$1" = fica ] && { echo \$\$ >> "$T/vivas"; exec sleep 60; }\n'; grep -h MEOW- cosmic-app-list/src/app.rs | sed 's/^/# /'; } > "\$CARGO_TARGET_DIR/release/cosmic-app-list"
 [ -f "$T/sem-marcador" ] && sed -i '/MEOW-/d' "\$CARGO_TARGET_DIR/release/cosmic-app-list"
 chmod 755 "\$CARGO_TARGET_DIR/release/cosmic-app-list"
 FIM
@@ -159,6 +161,16 @@ cp "$LIBEXEC/$VER1/marcadores" "$T/m"; echo MEOW-OUTRO >> "$LIBEXEC/$VER1/marcad
 confere "com um marcador que o binário não tem, a dock do pacote" '[ "$(shim MEOW_SHIM_SO_DIZER=1 bash "$SHIM")" = "$T/fabrica/cosmic-app-list" ]'
 cp "$T/m" "$LIBEXEC/$VER1/marcadores"
 rm -f "$LIBEXEC/$VER1/quedas"
+for i in 1 2 3; do
+  shim bash "$SHIM" fica > "$T/tela.$i" 2>&1 &
+  for _ in $(seq 50); do [ -s "$T/tela.$i" ] && break; sleep 0.1; done
+done
+confere "uma dock por tela: três subidas vivas na janela rodam o build e não contam como queda" \
+  'for i in 1 2 3; do [ "$(cat "$T/tela.$i")" = "build fica" ] || exit 1; done; [ ! -e "$LIBEXEC/$VER1/ruim" ]' "$(cat "$T"/tela.*)"
+kill $(cat "$T/vivas" 2>/dev/null) 2>/dev/null; wait 2>/dev/null
+confere "as que morreram na janela contam: a próxima subida cai na fábrica e marca o build" \
+  '[ "$(shim bash "$SHIM")" = fabrica ] && [ -e "$LIBEXEC/$VER1/ruim" ]'
+rm -f "$LIBEXEC/$VER1/quedas" "$LIBEXEC/$VER1/ruim"
 shim bash "$SHIM" >/dev/null; shim bash "$SHIM" >/dev/null
 confere "duas subidas que não passam da janela: a terceira cai na fábrica e marca o build" \
   '[ "$(shim bash "$SHIM")" = fabrica ] && [ -e "$LIBEXEC/$VER1/ruim" ]'

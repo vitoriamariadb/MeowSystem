@@ -1,5 +1,5 @@
 diff --git a/cosmic-app-list/src/app.rs b/cosmic-app-list/src/app.rs
-index 9703da3..3128d3e 100755
+index 9703da3..63752b8 100755
 --- a/cosmic-app-list/src/app.rs
 +++ b/cosmic-app-list/src/app.rs
 @@ -610,6 +610,61 @@ pub fn menu_control_padding() -> Padding {
@@ -48,7 +48,7 @@ index 9703da3..3128d3e 100755
 +    desktop_entries: &'a [DesktopEntry],
 +    app_id: &str,
 +) -> Option<&'a DesktopEntry> {
-+    if app_id.is_empty() {
++    if app_id.is_empty() || app_id == "steam_app_default" || app_id.ends_with(".exe") {
 +        return None;
 +    }
 +    let by_id = |id: &str| {
@@ -79,7 +79,7 @@ index 9703da3..3128d3e 100755
              } else {
                  tracing::error!(id = info.app_id, "could not find desktop entry for app");
                  let mut fallback_entry = fde::DesktopEntry::from_appid(info.app_id.clone());
-@@ -2564,3 +2627,169 @@ impl AsMimeTypes for DndPathBuf {
+@@ -2564,3 +2627,176 @@ impl AsMimeTypes for DndPathBuf {
          Some(Cow::Owned(self.0.to_str()?.as_bytes().to_vec()))
      }
  }
@@ -235,6 +235,13 @@ index 9703da3..3128d3e 100755
 +    #[test]
 +    fn empty_id_matches_nothing() {
 +        assert_eq!(matched(&["org.example.App"], ""), None);
++    }
++
++    #[test]
++    fn proton_and_wine_ids_are_left_to_the_title_fallback() {
++        let ids = ["steam_app_default", "Game.Launcher"];
++        assert_eq!(matched(&ids, "steam_app_default"), None);
++        assert_eq!(matched(&ids, "Game.Launcher.exe"), None);
 +    }
 +
 +    #[test]

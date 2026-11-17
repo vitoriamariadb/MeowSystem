@@ -27,14 +27,17 @@ if [ "${MEOW_SHIM_SO_DIZER:-0}" = "1" ]; then
 fi
 
 if [ "$usar_build" = "1" ]; then
-  n="$(cat "$dir/quedas" 2>/dev/null)"
-  case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  n=0
+  while read -r pid; do
+    case "$pid" in ''|*[!0-9]*) continue ;; esac
+    kill -0 "$pid" 2>/dev/null || n=$((n + 1))
+  done < <(cat "$dir/quedas" 2>/dev/null)
   if [ "$n" -ge "$limite" ]; then
     date -Is > "$dir/ruim" 2>/dev/null
     exec "$fabrica" "$@"
   fi
-  { printf '%s\n' "$((n + 1))" > "$dir/quedas"; } 2>/dev/null || exec "$fabrica" "$@"
-  [ "$(cat "$dir/quedas" 2>/dev/null)" = "$((n + 1))" ] || exec "$fabrica" "$@"
+  { printf '%s\n' "$$" >> "$dir/quedas"; } 2>/dev/null || exec "$fabrica" "$@"
+  grep -qx -- "$$" "$dir/quedas" 2>/dev/null || exec "$fabrica" "$@"
   (
     for fd in /proc/"$BASHPID"/fd/*; do
       fd="${fd##*/}"
