@@ -202,7 +202,7 @@ _dono_do_soquete() {
 }
 
 _rodar_na_area() {
-  local area="${1:-}" tela="" soquete pid areas log
+  local area="${1:-}" tela="" soquete pid areas
   local uso="uso: palco.sh rodar --area <nome> [--tela <saída>] <comando…>"
   case "$area" in ''|-*) _erro "$uso" ;; esac
   shift
@@ -222,11 +222,10 @@ _rodar_na_area() {
   areas="$(python3 "$RAIZ/scripts/appid_sonda.py" --areas 2>/dev/null | awk -F'\t' -v a="$area" '$1 == "area" && $2 == a { print $3 }')"
   [ -n "$areas" ] || _erro "recuso: a sessão não tem área «$area»"
   grep -q 'ativa' <<< "$areas" && _erro "recuso: a área «$area» é a que está na tela"
-  log="$(mktemp "${TMPDIR:-/tmp}/palco-area.XXXXXX")" || _erro "não consigo criar o registro do app"
   if [ -n "$tela" ]; then
-    MEOW_AREA="$area" MEOW_TELA="$tela" setsid "$@" </dev/null >"$log" 2>&1 &
+    MEOW_AREA="$area" MEOW_TELA="$tela" setsid "$@" </dev/null >/dev/null 2>&1 &
   else
-    MEOW_AREA="$area" setsid "$@" </dev/null >"$log" 2>&1 &
+    MEOW_AREA="$area" setsid "$@" </dev/null >/dev/null 2>&1 &
   fi
   printf '%s\n' "$!"
 }
