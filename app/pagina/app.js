@@ -1034,6 +1034,10 @@ async function semPonte() {
   if (ok) rodar(ACAO.get("doctor_consertar"), "");
 }
 
+async function esperarOAjuste() {
+  for (let n = 0; n < 4800 && (EM_VOO || ACOMPANHANDO); n++) await new Promise((ok) => setTimeout(ok, 250));
+}
+
 async function esperarOSinoGravado() {
   await FILA_DE_GRAVACAO;
   return !CHAVES_DO_SINO.some((chave) => MUDANCAS.has(chave));
@@ -1052,7 +1056,7 @@ async function rodar(acao, argumento = "", opcoes = {}) {
   const falta = acao.indisponivel || {};
   if (falta.pede && falta.chave && CHAVE.has(falta.chave)) {
     if (!(await gravarAgora({ [falta.chave]: String(falta.pede) }))) return null;
-    for (let n = 0; n < 4800 && (EM_VOO || ACOMPANHANDO); n++) await new Promise((ok) => setTimeout(ok, 250));
+    await esperarOAjuste();
   }
   if (falta.antes && ACAO.has(falta.antes)) {
     const previo = await rodar(ACAO.get(falta.antes), "", { semPerguntar: true });

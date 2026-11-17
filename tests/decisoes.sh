@@ -546,6 +546,9 @@ registro 57 'a interface é soberana' && ! grep -q 'motivoIndisponivel\|disabled
   && ! grep -q 'desligado' "$RAIZ/app/pagina/app.js" \
   && ! grep -q 'aria-disabled' "$RAIZ"/app/pagina/*.js \
   && grep -q 'completarModoQueFazValer' "$RAIZ/app/pagina/app.js" \
+  && grep -q 'clique destrava' "$RAIZ/docs/DECISOES.md" \
+  && grep -q 'meow_destravados' "$RAIZ/scripts/icones_apps_arcticons.sh" \
+  && ! grep -q 'Feito à mão em PNG' "$RAIZ/app/servidor.py" \
   && ok "57: a interface é soberana: nenhum controle desliga com dica de porquê, e o gesto liga o modo" \
   || falha "57: voltou o controle desligado com dica de porquê"
 

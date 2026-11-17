@@ -262,14 +262,10 @@ async function lerRascunhoDoServidor() {
 function packDoAprimorar() {
   return emNovo() ? null : PACKS.find((x) => x.id === rascunho().pack) || null;
 }
-function motivoDoAprimorar() {
-  const p = packDoAprimorar();
-  return p ? p.aprimorar || "" : "Nenhum tema no ar";
-}
 async function gravarCoresNoTema(silencioso = false) {
   const r = rascunho();
   const p = packDoAprimorar();
-  if (!p || motivoDoAprimorar()) return false;
+  if (!p) return false;
   const cores = { ...(r.cores || {}) };
   if (cores.mantle && !cores.crust) cores.crust = cores.mantle;
   if (!Object.keys(cores).length) return true;
@@ -619,15 +615,12 @@ function gradeDoAcervo(pasta, grupo) {
     grade.style.setProperty("--linha-previa", paleta.surface1 || paleta.overlay0 || paleta.text);
   }
   const pack = rascunho().pack && PACKS.find((x) => x.id === rascunho().pack);
-  const semTrocar = (!emNovo() && motivoDoAprimorar()) || "";
   for (const i of itens) {
     const miolo = [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })];
-    const cartao = semTrocar || i.trava
-      ? elemento("div", { class: "app", "data-nome": i.nome, "data-levado": i.levado ? "" : null }, miolo)
-      : elemento("button", { type: "button", class: "app", "data-nome": i.nome, controle: "trocar:desenho",
-        "data-levado": i.levado ? "" : null, dica: "Trocar este ícone",
-        onclick: () => { DESENHO_ABERTO = { pasta, nome: i.nome }; DESENHO_ESCOLHIDO = null; render(); } }, miolo);
-    if (i.levado && pack && !semTrocar) {
+    const cartao = elemento("button", { type: "button", class: "app", "data-nome": i.nome, controle: "trocar:desenho",
+      "data-levado": i.levado ? "" : null, dica: "Trocar este ícone",
+      onclick: () => { DESENHO_ABERTO = { pasta, nome: i.nome }; DESENHO_ESCOLHIDO = null; render(); } }, miolo);
+    if (i.levado && pack) {
       cartao.append(elemento("span", { class: "estado-pilula", "data-estado": "ok", texto: "Trocado" }));
     }
     const outro = fundoDoCartao(i.cores, paleta);
@@ -797,7 +790,7 @@ function envelopeDoSino() {
   svg.innerHTML = `<path class="eixo" d="M4 60H296"/><path data-envelope d="${pts.join(" ")}"/>`;
   return svg;
 }
-function linhaDeSom(s, pack, semTrocar) {
+function linhaDeSom(s, pack) {
   const semPonte = s.ponte && !ESQUEMA.ponte;
   const tocar = s.origem === "pack" && pack ? elemento("button", { type: "button", class: "p",
     "aria-label": "Ouvir " + s.nome.toLowerCase(), dica: "Ouvir", controle: "som:ouvir",
@@ -809,7 +802,7 @@ function linhaDeSom(s, pack, semTrocar) {
     tocar,
     elemento("span", { class: "som-nome" }, [elemento("b", { texto: s.nome }), elemento("small", { texto: s.apelido ? `${s.quando} · ${s.apelido}` : s.quando })]),
     elemento("span", {}, [origem, semPonte ? elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem permissão de sistema" }) : null]),
-    semTrocar ? elemento("span") : botao("Trocar", { class: "bt leve pequeno", controle: "som:trocar", icone: "trocar",
+    botao("Trocar", { class: "bt leve pequeno", controle: "som:trocar", icone: "trocar",
       dica: "Um .oga no lugar deste", onclick: () => campo.click() }), campo,
   ]);
 }
@@ -819,7 +812,6 @@ function sonsDoSistema() {
   if (!SONS || SONS.id !== id) carregarSons(id);
   const pronto = SONS && SONS.id === id && !SONS.carregando;
   const leitura = packNoAr() && !pack ? packNoAr() : pack;
-  const semTrocar = (!emNovo() && motivoDoAprimorar()) || "";
   if (!pronto) return [bloco("Nativo do COSMIC", [elemento("div", { class: "esqueleto fio" })], { class: "fora-erro" })];
   if (SONS.erro) return [bloco("Nativo do COSMIC", [elemento("div", { class: "corpo", texto: "Os sons não abriram" })])];
   const grupos = [["cosmic", "Nativo do COSMIC"], ["apps", null]];
@@ -835,7 +827,7 @@ function sonsDoSistema() {
   }
   for (const [g, titulo] of grupos) {
     const ul = elemento("ul", { class: "sons com-origem" });
-    for (const s of SONS.eventos.filter((x) => x.grupo === g)) ul.append(linhaDeSom(s, leitura, semTrocar));
+    for (const s of SONS.eventos.filter((x) => x.grupo === g)) ul.append(linhaDeSom(s, leitura));
     saida.push(bloco(titulo, [ul]));
   }
   return saida;
@@ -843,7 +835,6 @@ function sonsDoSistema() {
 let SINO_NOME = "";
 let SINO_DESTINO = "audio-volume-change";
 function gravarSino() {
-  if (!emNovo() && motivoDoAprimorar()) return null;
   const eventos = [{ evento: "audio-volume-change", nome: "Volume" }, ...((SONS && SONS.eventos) || [])];
   const nome = elemento("input", { type: "text", class: "campo", value: SINO_NOME, maxlength: "48",
     placeholder: "Nome do som", "aria-label": "Nome do som", controle: "sino:nome" });
@@ -912,7 +903,6 @@ function passoMandar() {
     linhaDoResumo("Mascote", origemDaCategoria(base, "mascote")),
   ]);
   if (!emNovo()) {
-    if (motivoDoAprimorar()) return [bloco(r.nome, [resumo])];
     const aprimorar = botao("Salvar no tema", { class: "bt principal", icone: "tema", controle: "criar:aprimorar",
       onclick: async () => {
         const p = packDoAprimorar();
@@ -957,7 +947,6 @@ function paginaCriar(sub) {
       [icone("voltar"), elemento("span", { texto: "Voltar" })]) : elemento("span"),
     elemento("div", { class: "fila" }, [
       sub === "cores" ? (() => {
-        if (!emNovo() && motivoDoAprimorar()) return null;
         return botao("Guardar", { class: "bt principal", controle: "criar:guardar",
           dica: emNovo() ? "Grava o tema entre os seus" : "Grava no " + r.nome,
           onclick: () => (emNovo() ? guardarTema() : gravarCoresNoTema()) });

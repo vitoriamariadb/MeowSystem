@@ -127,6 +127,7 @@ PORTATIL=(
   glossario.sh
   pacotes-numa-lista.sh
   comum-carrega-limpo.sh
+  destrava.sh
 )
 
 MAQUINA=(

@@ -69,7 +69,7 @@ function escolhaDeIcone(app, recarregar) {
   let cor = (app.traco && app.traco.cor) || (app.mapa && app.mapa.cor) || "mauve";
   const chaveDe = (g) => `${g.grupo}|${g.glifo}`;
   const travaDe = (g) => g.trava || (g.tipo === "traco" ? app.trava : app.trava_pack) || "";
-  const itens = (GLIFOS.app === app.id ? GLIFOS.itens : []).filter((g) => !travaDe(g));
+  const itens = GLIFOS.app === app.id ? GLIFOS.itens : [];
   if (GLIFOS.escolhido === undefined && GLIFOS.app === app.id && !GLIFOS.carregando) {
     const minha = GLIFOS.minha && itens.find((g) => g.arquivo === GLIFOS.minha.arquivo);
     const vestido = app.mapa && itens.find((g) => g.tipo === "traco" && g.glifo === app.mapa.glifo);
@@ -124,6 +124,7 @@ function escolhaDeIcone(app, recarregar) {
       if (!x) return;
       const corpo = x.tipo !== "traco" ? { app: app.id, arquivo: x.arquivo }
         : { app: app.id, glifo: x.glifo, arquivo: x.arquivo, cor };
+      if (travaDe(x)) corpo.destravar = true;
       const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify(corpo) });
       if (r.erro) { torrada(r.erro, "erro"); return; }
       torrada(`${maiuscula(app.nome)}: ${x.glifo}`, "ok");
@@ -146,10 +147,14 @@ function escolhaDeIcone(app, recarregar) {
         if (r.erro) { torrada(r.erro, "erro"); return; }
         await depoisDoIcone(app, "icones_pack", recarregar);
       } }));
-    if (minha.pack && minha.desenho && !GLIFOS.aviso) {
+    if (minha.pack && minha.desenho) {
       botoes.push(botao("Levar para o tema", { class: "bt pequeno", controle: "icone:levar",
         dica: "Vale em toda máquina com este tema",
         onclick: async () => {
+          if (GLIFOS.aviso && CHAVE.has("ICONES_DRACULA")) {
+            if (!(await gravarAgora({ ICONES_DRACULA: "sim" }))) return;
+            await esperarOAjuste();
+          }
           const r = await api("/api/app-icone", { method: "POST", body: JSON.stringify({ app: app.id, pack: minha.pack, desenho: minha.desenho, aprimorar: ROTA.porta === "criar" }) });
           if (r.erro) { torrada(r.erro, "erro"); return; }
           await depoisDoIcone(app, "icones_pack", recarregar);

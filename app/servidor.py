@@ -1076,6 +1076,31 @@ def _mapa_de_convertidos_do_usuario():
             or os.path.join(os.path.dirname(CONF), "icones-convertidos.map"))
 
 
+def _lista_de_destravados():
+    return (os.environ.get("MEOW_ICONES_DESTRAVADOS")
+            or os.path.join(os.path.dirname(CONF), "icones-destravados.list"))
+
+
+def destravados():
+    try:
+        with open(_lista_de_destravados(), encoding="utf-8") as fh:
+            return {l.strip() for l in fh if l.strip() and not l.startswith("#")}
+    except OSError:
+        return set()
+
+
+def destravar(nomes):
+    novos = [n for n in dict.fromkeys(nomes)
+             if n and re.match(r"^[A-Za-z0-9._+-]{1,120}$", n) and n not in destravados()]
+    if not novos:
+        return []
+    caminho = _lista_de_destravados()
+    os.makedirs(os.path.dirname(caminho) or ".", exist_ok=True)
+    with open(caminho, "a", encoding="utf-8") as fh:
+        fh.write("".join(n + "\n" for n in novos))
+    return novos
+
+
 def _oficina_do_usuario(*partes):
     xdg = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
     return os.path.join(xdg, "meowsystem", *partes)
@@ -6879,6 +6904,8 @@ class Manipulador(BaseHTTPRequestHandler):
 
     def _trava_do_pack(self, d, rotulo, donos=None, travas=None):
         icone = (d.get("icone") or "").strip()
+        if destravados() & {d.get("id"), icone}:
+            return None
         intocaveis, prefixos, curados, _convertidos = (
             self._travas_do_arcticons() if travas is None else travas)
         motivo = self._motivo_da_trava((intocaveis, prefixos, curados, ()),
@@ -7093,8 +7120,6 @@ class Manipulador(BaseHTTPRequestHandler):
                         "caminho": caminho,
                         "_texto": self._sem_acento(" ".join(
                             [glifo, rotulo] + textos.get(os.path.normpath(caminho), [])))}
-                if g["tipo"] == "png":
-                    item["trava"] = "Feito à mão em PNG: vale no tema quando ganhar a versão em vetor"
                 no_mapa = do_mapa.get(os.path.normpath(caminho)) if pack else None
                 if no_mapa:
                     item.update(pack=pack["id"], desenho=no_mapa["desenho"])
@@ -7287,7 +7312,34 @@ class Manipulador(BaseHTTPRequestHandler):
                 "grupo": item.get("grupo"), "pack": item.get("pack"),
                 "desenho": item.get("desenho")}
 
+    def _png_como_desenho(self, item):
+        mod = modulo_pack()
+        with open(item["caminho"], "rb") as fh:
+            dados = fh.read(4 << 20)
+        if dados[:8] != b"\x89PNG\r\n\x1a\n" or len(dados) < 24:
+            return None
+        largura, altura = struct.unpack(">II", dados[16:24])
+        if not (0 < largura <= 4096 and 0 < altura <= 4096):
+            return None
+        base = os.path.splitext(os.path.basename(item["caminho"]))[0]
+        destino = os.path.join(mod.pasta_de_enviados(), "de-png", base + ".svg")
+        os.makedirs(os.path.dirname(destino), exist_ok=True)
+        svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" width="%d" height="%d">'
+               '<image width="%d" height="%d" href="data:image/png;base64,%s"/></svg>\n'
+               % (largura, altura, largura, altura, largura, altura, base64.b64encode(dados).decode("ascii")))
+        with open(destino + ".parcial", "w", encoding="utf-8") as fh:
+            fh.write(svg)
+        os.replace(destino + ".parcial", destino)
+        return dict(item, caminho=destino, tipo="desenho")
+
     def _escolher_desenho(self, app, item):
+        if item.get("tipo") == "png":
+            try:
+                item = self._png_como_desenho(item)
+            except OSError as e:
+                return self._json({"erro": "não consegui ler o PNG: %s" % e}, 500)
+            if not item:
+                return self._json({"erro": "o arquivo não é um PNG que se leia"}, 409)
         if item.get("tipo") != "desenho":
             return self._json({"erro": "este desenho não entra como está no tema"}, 409)
         d = next((x for x in self._desktops() if x["id"] == app), None) or {"id": app}
@@ -7313,6 +7365,12 @@ class Manipulador(BaseHTTPRequestHandler):
         remover = bool(corpo.get("remover"))
         if not app or not re.match(r"^[A-Za-z0-9._+-]{1,120}$", app):
             return self._json({"erro": "aplicativo inválido"}, 400)
+        if corpo.get("destravar") is True and not remover:
+            d = next((x for x in self._desktops() if x["id"] == app), None) or {}
+            try:
+                destravar([app, (d.get("icone") or "").strip()])
+            except OSError as e:
+                return self._json({"erro": "não consegui destravar: %s" % e}, 500)
 
         if corpo.get("pack") and not remover:
             pack, _desenhos, _aviso = self._desenhos_do_pack_no_ar()
@@ -7385,6 +7443,8 @@ class Manipulador(BaseHTTPRequestHandler):
         linha = "%s:%s:%s%s" % (app, glifo, cor, ":alias" if repetido else "")
         try:
             _gravar_escolha(caminho, app, linha, ":")
+            if app in destravados() and os.path.isfile(_mapa_de_convertidos_do_usuario()):
+                _gravar_escolha(_mapa_de_convertidos_do_usuario(), app, None, ":")
         except OSError as e:
             return self._json({"erro": "não consegui guardar a escolha: %s" % e}, 500)
         mod = modulo_pack()
@@ -8114,6 +8174,8 @@ class Manipulador(BaseHTTPRequestHandler):
     def _motivo_da_trava(self, travas, nomes, rotulo, vigor=None, do_pack=()):
         intocaveis, prefixos, curados, convertidos = travas
         nomes = [n for n in nomes if n]
+        if destravados() & set(nomes):
+            return None
         if any(n in intocaveis or (prefixos and n.startswith(prefixos)) for n in nomes):
             return "Fica como está, por pedido seu; só a oficina «Gerar ícone» o troca"
         if any(n in curados for n in nomes):
@@ -8211,7 +8273,7 @@ class Manipulador(BaseHTTPRequestHandler):
 
         if caminho == "/api/criar":
             return self._no_pack_aprimorado(consulta.get("aprimorar", [""])[0] == "1",
-                                            self._api_criar_ler, consulta)
+                                            self._api_criar_ler, consulta, trazer=False)
 
         if caminho == "/api/sons":
             return self._api_sons(consulta)
@@ -8307,11 +8369,19 @@ class Manipulador(BaseHTTPRequestHandler):
                    for s in catalogo]
         return self._json({"pack": ident, "eventos": eventos})
 
-    def _no_pack_aprimorado(self, aprimorar, fazer, dados):
+    def _no_pack_aprimorado(self, aprimorar, fazer, dados, trazer=True):
         mod = modulo_pack()
         if not (aprimorar and mod):
             return fazer(dados)
-        with mod.aprimorando(_pack_no_ar()):
+        no_ar = _pack_no_ar()
+        if trazer and no_ar and mod.motivo_para_nao_aprimorar(no_ar):
+            try:
+                mod.trazer_para_a_casa(no_ar)
+            except mod.Recusa as e:
+                return self._json({"erro": texto_na_tela(str(e))}, 409)
+            except OSError as e:
+                return self._json({"erro": "não consegui trazer o tema para a sua casa: %s" % e}, 500)
+        with mod.aprimorando(no_ar):
             return fazer(dados)
 
     def _api_pack_cores(self, corpo):
@@ -8374,12 +8444,18 @@ class Manipulador(BaseHTTPRequestHandler):
                             cores_do_desenho = _cores_do_traco(fh.read(300000))
                     except OSError:
                         cores_do_desenho = []
-                if i["levado"] and ident:
+                levado = i["levado"]
+                if levado and ident:
                     url = self._url_do_levado(mod, ident, pasta, i["nome"], cores) or url
-                trava = mod.trava_de_sistema(dir_editado, i["arq"]) if pasta == "sistema" and dir_editado else ""
+                herdado = pasta == "sistema" and dir_editado and mod.trava_de_sistema(dir_editado, i["arq"])
+                meu = os.path.join(dir_editado, "icones", "sistema", i["nome"] + ".svg") if herdado else ""
+                if meu and os.path.isfile(meu) and not os.path.islink(meu):
+                    _ICONES_DECLARADOS.add(os.path.normpath(meu))
+                    url = "/previa?tipo=arquivo&id=%s&m=%d" % (quote(meu, safe=""), os.stat(meu).st_mtime_ns)
+                    levado = True
                 icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
-                                      "grupo": i.get("grupo", ""), "levado": i["levado"], "url": url,
-                                      "cores": cores_do_desenho, "trava": texto_na_tela(trava) if trava else ""})
+                                      "grupo": i.get("grupo", ""), "levado": levado, "url": url,
+                                      "cores": cores_do_desenho})
         if not ident:
             return self._json(dict(icones, id="", fotos=[], sons=[]))
         try:

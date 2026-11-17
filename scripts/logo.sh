@@ -335,7 +335,9 @@ DIR_BOTOES="$HOME/.local/share/icons/$TEMA_ICONES/scalable/apps"
 
 dock_mudou=0
 if [ -f "$alvo" ]; then
+  _destravados=" $(meow_destravados | tr '\n' ' ') "
   for _b in "${BOTOES_DOCK[@]}"; do
+    case "$_destravados" in *" $_b "*) continue ;; esac
     meow_escrever "$DIR_BOTOES/$_b.svg" "$(cat "$alvo")" 644
     case $? in
       1) mudou=1; dock_mudou=1 ;;

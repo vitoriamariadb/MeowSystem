@@ -29,8 +29,12 @@ declare -A TRACO=( ["48x48/apps"]=1.25 )
 INTOCAVEIS_PREFIXO=(steam_icon_)
 INTOCAVEIS=(fogstripper hefesto-dualsense4unix com.vitoriamaria.HefestoDualsense4Unix)
 
+declare -A DESTRAVADO=()
+while IFS= read -r _d; do DESTRAVADO["$_d"]=1; done < <(meow_destravados)
+
 intocavel() {
   local n="$1" i
+  [ -z "${DESTRAVADO[$n]:-}" ] || return 1
   for i in "${INTOCAVEIS[@]}"; do [ "$n" = "$i" ] && return 0; done
   for i in "${INTOCAVEIS_PREFIXO[@]}"; do case "$n" in "$i"*) return 0 ;; esac; done
   return 1
@@ -43,12 +47,14 @@ _ler_curadoria() {
   while IFS=$'\t' read -r chave ext subdir; do
     case "$chave" in ''|'#'*) continue ;; esac
     [ -n "$ext" ] && [ -n "$subdir" ] || continue
+    [ -z "${DESTRAVADO[$chave]:-}" ] || continue
     CURADO["$chave"]=1
   done < "$RAIZ/assets/icones/curadoria.map"
   return 0
 }
 
 declare -A GLIFO=()
+declare -A DO_USUARIO=()
 declare -A ARTE=()
 declare -A ACERVO=()
 declare -A DUPLO=()
@@ -84,6 +90,12 @@ _ler_mapa() {
     COR["$nome"]="$cor"
     if [ "${marca:-}" = "alias" ]; then ALIAS_OK["$glifo"]=1; ALIAS_OK["cor:$cor"]=1; fi
   done < <(cat "$MAPA"; echo; [ -f "$MAPA_USUARIO" ] && cat "$MAPA_USUARIO"; echo)
+  if [ -f "$MAPA_USUARIO" ]; then
+    while IFS=':' read -r nome _ || [ -n "$nome" ]; do
+      case "$nome" in ''|'#'*) continue ;; esac
+      [ -n "${DESTRAVADO[$nome]:-}" ] && DO_USUARIO["$nome"]=1
+    done < "$MAPA_USUARIO"
+  fi
   return 0
 }
 
@@ -102,6 +114,7 @@ _ler_mapa_convertidos() {
       meow_debug "$nome: arte escolhida na curadoria — o convertido sai de cima"
       continue
     fi
+    [ -z "${DO_USUARIO[$nome]:-}" ] || continue
     if [ -n "${ACERVO[$nome]:-}" ]; then
       DUPLO["$nome"]=1
       continue
@@ -117,6 +130,7 @@ _ler_mapa_convertidos() {
     [ -n "$nome" ] && [ -n "$origem" ] && [ -n "$cor" ] || continue
     if [ "$origem" != "mao" ] && intocavel "$nome"; then continue; fi
     if [ -n "${CURADO[$nome]:-}" ]; then continue; fi
+    [ -z "${DO_USUARIO[$nome]:-}" ] || continue
     unset 'GLIFO[$nome]' 'DUPLO[$nome]'
     ARTE["$nome"]="$ORIGEM_CONV_USUARIO/$nome.svg"
     ACERVO["$nome"]="convertido"

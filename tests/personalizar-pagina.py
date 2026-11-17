@@ -182,12 +182,21 @@ def p186(pag, svg):
     confere(open(os.path.join(dracula, "sistema", arquivo), encoding="utf-8").read() == de_origem,
             f"um desenho da Biblioteca ({origem}) vira o ícone do Sistema {alvo}")
     foto(pag, "sistema-da-biblioteca.png")
-    herdado = pag.locator('#conteudo .grade-apps .app[data-nome="application-certificate"]').first
-    confere(herdado.count() == 1 and herdado.evaluate("(e) => e.tagName") == "DIV" and not herdado.get_attribute("data-dica"),
-            "um ícone que o tema herda de outro aparece, sem ser botão apagado nem dica de porquê",
-            herdado.evaluate("(e) => e.outerHTML.slice(0, 160)") if herdado.count() else "")
+    herdado = pag.locator('[data-controle="trocar:desenho"][data-nome="application-certificate"]').first
+    confere(herdado.count() == 1 and herdado.is_enabled() and herdado.get_attribute("data-dica") == "Trocar este ícone",
+            "um ícone que o tema herda de outro é um cartão normal, sem dica de porquê",
+            herdado.get_attribute("data-dica") if herdado.count() else "")
     confere(pag.locator('#conteudo .grade-apps button.app[disabled], #conteudo .grade-apps button.app[aria-disabled]').count() == 0,
             "nenhum cartão do acervo fica apagado")
+    abrir_ficha(pag, "application-certificate")
+    pag.locator('[data-controle="trocar:opcao"]').first.click()
+    pag.locator('[data-controle="trocar:usar"]').click()
+    esperar_trocado(pag)
+    herdado_no_pack = os.path.join(dracula, "sistema", "application-certificate.svg")
+    confere(os.path.isfile(herdado_no_pack) and "<svg" in open(herdado_no_pack, encoding="utf-8").read(),
+            "o clique destrava: o ícone herdado ganha desenho próprio no tema em edição")
+    confere(pag.locator('[data-controle="trocar:desenho"][data-nome="application-certificate"][data-levado]').count() == 1,
+            "e o cartão passa a mostrar que foi trocado")
     ir(pag, "novo/icones")
     pag.locator('[data-controle="icones:aba=sistema"]').click()
     pag.wait_for_timeout(1500)

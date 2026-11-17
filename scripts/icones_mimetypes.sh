@@ -26,6 +26,7 @@ MAPA="$(python3 "$RAIZ/scripts/pack.py" acervo "$_pack_ref" \
           icones.mimetypes.mapa)" || MAPA=""
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 DESTINO="$HOME/.local/share/icons/$TEMA/scalable/mimetypes"
+LEVADAS="$( [ -n "$_pack_ref" ] && python3 "$RAIZ/scripts/pack.py" levadas "$_pack_ref" mimetypes 2>/dev/null)" || LEVADAS=""
 
 declare -A MAPA_LIDO=()
 _ler_mapa() {
@@ -60,6 +61,11 @@ _desejado() {
   local nome glifo real
   for nome in "${!MAPA_LIDO[@]}"; do
     glifo="${MAPA_LIDO[$nome]}"
+    if [ -n "$LEVADAS" ] && [ -f "$LEVADAS/$nome.svg" ] && [ ! -L "$LEVADAS/$nome.svg" ] \
+       && real="$(meow_dentro "$LEVADAS" "$nome.svg")"; then
+      printf '%s\t%s\n' "$nome" "$real"
+      continue
+    fi
     [ -f "$ORIGEM/$glifo.svg" ] && [ ! -L "$ORIGEM/$glifo.svg" ] \
       && real="$(meow_dentro "$ORIGEM" "$glifo.svg")" \
       && printf '%s\t%s\n' "$nome" "$real"

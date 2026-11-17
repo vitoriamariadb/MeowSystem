@@ -77,6 +77,44 @@ def nada_desligado(pag, onde):
     confere(not dicas, f"{onde}: nenhuma dica diz o porquê de um bloqueio", dicas)
 
 
+def destrava(pag):
+    app_id = "hefesto-dualsense4unix"
+    ir(pag, "criar/icones")
+    pag.wait_for_function("() => typeof APPS !== 'undefined' && APPS && !APPS.carregando", timeout=60000)
+    trava = pag.evaluate("(id) => { const a = (APPS.apps || []).find((x) => x.id === id); return a ? (a.trava || a.trava_pack || '') : null; }", app_id)
+    confere(bool(trava), "o Hefesto chega com trava de intocável", trava)
+    pag.locator(f'button.app[data-app="{app_id}"]').click()
+    pag.wait_for_selector(".desenho", timeout=60000)
+    pag.locator('[data-controle="desenho:fonte=acervo"]').click()
+    pag.wait_for_function("() => GLIFOS.app && !GLIFOS.carregando && GLIFOS.itens.length", timeout=60000)
+    pag.wait_for_timeout(600)
+    nada_desligado(pag, "Ficha de um app travado")
+    desenhos = pag.locator('[data-controle="icone:desenho"]')
+    confere(desenhos.count() > 0 and pag.locator('[data-controle="icone:travado"]').count() == 0,
+            "o acervo do app travado aparece inteiro, como desenho normal", desenhos.count())
+    desenhos.first.click()
+    pag.wait_for_timeout(400)
+    pag.locator('[data-controle="icone:usar"]').click()
+    lista = os.path.join(os.path.dirname(casa.CONF), "icones-destravados.list")
+    import time
+    fim = time.time() + 30
+    while time.time() < fim and not (os.path.isfile(lista) and app_id in open(lista, encoding="utf-8").read()):
+        time.sleep(0.3)
+    confere(os.path.isfile(lista) and app_id in open(lista, encoding="utf-8").read(),
+            "o clique destrava: o app entra em icones-destravados.list")
+    mapas = [os.path.join(os.path.dirname(casa.CONF), m) for m in ("icones-traco.map", "icones-escolhidos.map")]
+    fim = time.time() + 30
+    gravou = lambda: any(os.path.isfile(m) and app_id in open(m, encoding="utf-8").read() for m in mapas)
+    while time.time() < fim and not gravou():
+        time.sleep(0.3)
+    confere(gravou(), "e a escolha vai para o mapa no mesmo gesto")
+    pag.wait_for_function("() => !TRABALHO || !TRABALHO.timer", timeout=120000)
+    pag.evaluate("() => { APPS = null; render(); }")
+    pag.wait_for_function("() => APPS && !APPS.carregando", timeout=60000)
+    depois = pag.evaluate("(id) => { const a = (APPS.apps || []).find((x) => x.id === id); return a ? (a.trava || a.trava_pack || '') : null; }", app_id)
+    confere(not depois, "relido, o app não traz mais trava", depois)
+
+
 def todas_as_paginas(pag):
     for rota in casa.ROTAS + ["novo/icones", "novo/sons", "extensoes", "extensoes/builds", "extensoes/espaco"]:
         ir(pag, rota)
@@ -130,6 +168,7 @@ def main():
             esperar(pag, 800)
             mascote(pag)
             areas(pag)
+            destrava(pag)
             todas_as_paginas(pag)
             confere(not erros, "nenhum erro de página nem diálogo nativo", erros)
             nav.close()
