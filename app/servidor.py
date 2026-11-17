@@ -2056,7 +2056,15 @@ def _adotar_leitura(chaves):
             pass
 
 
+_MESMO_HORARIO_TRAVA = threading.Lock()
+
+
 def ligar_mesmo_horario(ligar):
+    with _MESMO_HORARIO_TRAVA:
+        return _ligar_mesmo_horario(ligar)
+
+
+def _ligar_mesmo_horario(ligar):
     arq = _arquivo_do_mesmo_horario()
     brutos = valores_brutos()
     if ligar:
