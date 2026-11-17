@@ -212,6 +212,7 @@ def main():
 
             partir_de(pag, "dracula")
             app = abrir_um_app(pag)
+            pag.locator('.desenho section[data-gerador] .oficina-cartao[data-src]').first.click()
             pag.locator('[data-controle="oficina:usar"]').click()
             pag.wait_for_selector("#d-salvo:not([hidden])", timeout=60000)
             guardado = pag.evaluate("() => rascunho().pack")

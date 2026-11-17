@@ -34,12 +34,6 @@
 #     alias-heuristico   casamento por semelhança de nome
 #     arte-propria       desenho feito para o projeto
 #
-# O QUE NÃO ENTRA AQUI
-#   Os aplicativos que já têm ARTE AUTORAL no próprio MeowSystem
-#   (assets/icones/autorais/*-dracula.svg) ficam comentados abaixo: aquele
-#   desenho é gerado da paleta pelo gerar_icones_autorais.py e acompanha o
-#   flavor sozinho. Vestir por aqui seria trocar arte viva por arte congelada.
-#
 # AVISO: OS NOMES GENÉRICOS APARECEM FORA DO LANÇADOR — 24/09/2026, P43
 #   Nem toda linha daqui é nome de aplicativo. `starred`, `printer`,
 #   `bluetooth`, `calendar`, `text-editor`, `help-about`, `input-keyboard`,
@@ -75,7 +69,6 @@
 
 io.gitlab.theevilskeleton.Upscaler : apps/io.gitlab.theevilskeleton.Upscaler.svg   # Ampliar — telescópio
 io.github.dvlv.boxbuddyrs : apps/io.github.dvlv.boxbuddyrs.svg   # BoxBuddy — baú (variação)
-org.gnome.Calculator : apps/calculadora.svg   # Calculator — o desenho escolhido por quem usa em 23/10 (P96)
 foundryvtt : apps/foundryvtt.svg   # Foundry VTT — dados
 google-chrome : apps/google-chrome.svg   # Google Chrome [alias-heuristico]
 com.system76.Popsicle : apps/com.system76.Popsicle.svg   # Gravador USB Popsicle — pirulito
@@ -92,17 +85,6 @@ rlogo_icon : apps/rlogo_icon.svg   # R — livro de feitiços
 steam : apps/steam.svg   # Steam [current-nome]
 org.telegram.desktop : apps/org.telegram.desktop.svg   # Telegram [alias-heuristico]
 io.github.flattool.Warehouse : apps/io.github.flattool.Warehouse.svg   # Warehouse — edifício
-
-# A CÂMERA VESTE O DESENHO DO guvcview, E ISSO É ESCOLHA DELE — 16/09/2026
-#   "a camera tem que ter o guvcview.svg". O guvcview saiu da máquina na
-#   limpeza de 15/09; o desenho resgatado dele ficou, sem app para vestir. A
-#   Camera do COSMIC estava de fábrica. Um desenho órfão e um app sem desenho.
-io.github.cosmic_utils.camera : apps/io.github.cosmic_utils.camera.svg   # Câmera — o desenho escolhido por quem usa em 23/10 (P96)
-#   ^ COPIADO de assets/icones/resgatados/guvcview.svg em 17/09/2026. A entrada
-#     apontava para o acervo 'resgatados' do núcleo, de fora do pack — o que
-#     funcionava enquanto o Dracula morava dentro do repositório e deixa de
-#     funcionar no minuto em que alguém clona só o pack. Um pack precisa ser
-#     AUTOCONTIDO; reusar arte do núcleo é copiar, respeitando a licença dela.
 
 # O FIREFOX VESTE O FIREFOX-DRACULA — 23/09/2026, P28 (era o Waterfox; passou ao Firefox em 06/11/2026, P166)
 #   A linha estava lá embaixo, em "sem desenho ainda", como
@@ -463,8 +445,6 @@ discord : apps/discord-b.svg   # Discord — o desenho escolhido por quem usa em
 spotify : apps/com.spotify.Client.svg   # Spotify — o aprovado de 16/09
 opera : apps/opera.svg   # Opera — o desenho escolhido por quem usa em 23/10 (P96)
 com.opera.Opera : apps/opera.svg   # Opera — o desenho escolhido por quem usa em 23/10 (P96)
-gradia : apps/gradia.svg   # Gradia — o vetor da P84
-be.alexandervanhee.gradia : apps/gradia.svg   # Gradia — o vetor da P84
 extensions : apps/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
 org.gnome.Extensions : apps/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
 gnome-extensions : apps/gerenciador-de-extensoes.svg   # Extensões — o vetor da P84
@@ -482,17 +462,9 @@ text-x-markdown : apps/spellbook.svg   # Markdown
 application-x-desktop : apps/gate.svg   # Atalho de aplicativo (.desktop)
 gnome-mime-application-x-desktop : apps/gate.svg   # Atalho de aplicativo (.desktop)
 
-# --- já têm arte autoral no MeowSystem (não entram) -----------------------
-# com.system76.CosmicSettings                -> autorais/cosmic-settings-dracula.svg   # Configurações
-# com.system76.CosmicEdit                    -> autorais/cosmic-edit-dracula.svg   # Editor de Texto
-# com.system76.CosmicFiles                   -> autorais/cosmic-files-dracula.svg   # Gestor de Arquivos
-# com.system76.CosmicStore                   -> autorais/cosmic-store-dracula.svg   # Loja de Aplicativos
-# com.system76.CosmicTerm                    -> autorais/cosmic-term-dracula.svg   # Terminal
-
 # --- sem desenho ainda ----------------------------------------------------
 # com.boxy_svg.BoxySVG : ?   # Boxy SVG
 # com.meowsystem.Painel : ?   # MeowSystem
-# com.obsproject.Studio : ?   # OBS Studio
 
 # --- P96 (23/10/2026) ---
 com.beholder.app             : apps/com.beholder.app.svg   # projeto pessoal — entra no Dracula (P96, 23/10/2026)
@@ -502,3 +474,19 @@ io.github.andrebfarias.Mnemo : apps/mnemo.svg   # projeto pessoal — entra no D
 code                         : apps/vscode.svg   # o desenho do manuais-final, escolhido por quem usa (P96, 23/10/2026)
 vscode                       : apps/vscode.svg   # o desenho do manuais-final, escolhido por quem usa (P96, 23/10/2026)
 com.visualstudio.code        : apps/vscode.svg   # o desenho do manuais-final, escolhido por quem usa (P96, 23/10/2026)
+
+# --- P206 (16/11/2026) ---
+com.system76.CosmicFiles      : apps/org.gnome.Nautilus.svg   # Arquivos — o desenho escolhido por quem usa em 16/11 (P206)
+com.system76.CosmicTerm       : apps/org.gnome.Terminal.svg   # Terminal — o desenho escolhido por quem usa em 16/11 (P206)
+io.github.cosmic_utils.camera : apps/009-crystal-ball.svg   # Câmera — o desenho escolhido por quem usa em 16/11 (P206)
+com.system76.CosmicSettings   : apps/spell-variant.svg   # Configurações — o desenho escolhido por quem usa em 16/11 (P206)
+com.system76.CosmicViewer     : apps/galaxy.svg   # COSMIC Viewer — o desenho escolhido por quem usa em 16/11 (P206)
+com.system76.CosmicEdit       : apps/ghostwriter2.svg   # Editor de Texto — o desenho escolhido por quem usa em 16/11 (P206)
+be.alexandervanhee.gradia     : apps/enchanted-mirror.svg   # Gradia — o desenho escolhido por quem usa em 16/11 (P206)
+gradia                        : apps/enchanted-mirror.svg   # Gradia — o desenho escolhido por quem usa em 16/11 (P206)
+org.gnome.Calculator          : apps/retro.svg   # Calculator — o desenho escolhido por quem usa em 16/11 (P206)
+partitionmanager              : apps/app-launcher.svg   # Gerenciador de partições do KDE — o desenho escolhido por quem usa em 16/11 (P206)
+com.obsproject.Studio         : apps/observatory.svg   # OBS Studio — o desenho escolhido por quem usa em 16/11 (P206)
+btop                          : apps/020-halloween.svg   # btop++ — o desenho escolhido por quem usa em 16/11 (P206)
+com.system76.CosmicStore      : apps/gift.svg   # Loja — o desenho escolhido por quem usa em 16/11 (P206)
+org.kde.ghostwriter           : apps/org.gnome.gitlab.somas.Apostrophe.svg   # ghostwriter — o desenho escolhido por quem usa em 16/11 (P206)

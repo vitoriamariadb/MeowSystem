@@ -154,10 +154,11 @@ checa(ordem_m and ordem_m[0].startswith("pack:meowsystem:")
 
 import re  # noqa: E402
 de_sistema = sorted({it["grupo"] for it in itens if "/icones/sistema/" in caminho_de(it)})
-checa(not de_sistema, "nenhuma pasta de sistema/ na ficha", repr(de_sistema))
+checa(all(re.match(r"^pack:[a-z0-9-]+:sistema$", g) for g in de_sistema),
+      "a pasta sistema/ entra na ficha como a aba Sistema do pack (P203)", repr(de_sistema))
 fora_das_duas = [g["id"] for g in grupos if g["pack"] and ":autorais:" not in g["id"]
-                 and not re.match(r"^pack:[a-z0-9-]+:(apps|biblioteca)(/[^:]+)?(:png)?$", g["id"])]
-checa(not fora_das_duas, "todo grupo de pack é apps/ ou biblioteca/, ou os autorais", repr(fora_das_duas))
+                 and not re.match(r"^pack:[a-z0-9-]+:(apps|biblioteca|sistema)(/[^:]+)?(:png)?$", g["id"])]
+checa(not fora_das_duas, "todo grupo de pack é apps/, sistema/ ou biblioteca/, ou os autorais", repr(fora_das_duas))
 base = {g["id"]: g["tipo"] for g in grupos_m if g["pack"] == "meowsystem"}
 checa(base and base.get("pack:meowsystem:apps") == "traco",
       "o acervo do pack-base aparece como traço", repr(base))

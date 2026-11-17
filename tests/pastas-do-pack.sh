@@ -465,6 +465,37 @@ else
   printf 'pulado: sem Papirus-Dark ou sem papirus-folders, a base do pack não tem de onde copiar\n'
 fi
 
+borda="$(python3 - "$RAIZ/packs/dracula" <<'PY'
+import json, os, re, sys
+d = sys.argv[1]
+claro = json.load(open(os.path.join(d, "paleta.json"), encoding="utf-8"))["flavors"]["alucard"]["base"]
+def lum(h):
+    c = [int(h.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    c = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+def contraste(a, b):
+    a, b = lum(a), lum(b)
+    return (max(a, b) + 0.05) / (min(a, b) + 0.05)
+ruins = []
+for n in ("folder", "folder-documents", "folder-download", "folder-music", "folder-pictures",
+          "folder-publicshare", "folder-templates", "folder-videos", "user-home", "user-desktop"):
+    t = open(os.path.join(d, "icones", "sistema", n + ".svg"), encoding="utf-8").read()
+    corpo = [p for p in re.findall(r"<path\b[^>]*>", t) if "M 0.91,7.27 " in p or "M 0.91,16.44 " in p]
+    cores = {re.search(r'stroke="(#[0-9A-Fa-f]{6})"', p).group(1) if 'stroke="#' in p else "" for p in corpo}
+    if len(corpo) != 2 or len(cores) != 1 or "" in cores:
+        ruins.append(f"{n}: sem a mesma borda nas costas e na frente")
+        continue
+    cor = cores.pop()
+    for fundo in ("#3b3552", claro):
+        if contraste(cor, fundo) < 3:
+            ruins.append(f"{n}: {cor} a {contraste(cor, fundo):.2f}:1 de {fundo}")
+print("\n".join(ruins))
+PY
+)"
+[ -z "$borda" ] \
+  && ok "as dez pastas do Dracula têm a mesma borda, a 3:1 do fundo do lançador e do claro do alucard (P208)" \
+  || falha "a borda das pastas do Dracula não se lê" "$borda"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then
   ok "as pastas vestem a paleta do pack no ar, e o Catppuccin continua o de antes"

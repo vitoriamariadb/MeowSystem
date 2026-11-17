@@ -1,4 +1,4 @@
-# caminho de antes da P96 (23/10/2026)	caminho de hoje (vazio: saiu; quem vestia, veste o escolhido)
+# caminho de antes da P96 (23/10/2026) e da P206 (16/11/2026)	caminho de hoje (vazio: saiu; quem vestia, veste o escolhido)
 docs/pack-minimo/icones/sistema/pastas/folder.svg	docs/pack-minimo/icones/sistema/folder.svg
 packs/catppuccin/CREDITOS.md	packs/meowsystem/CREDITOS.md
 packs/catppuccin/LEIA-ME.md	packs/meowsystem/LEIA-ME.md
@@ -3915,10 +3915,13 @@ packs/dracula/icones/apps/autorais/cosmic-term-alucard.svg	packs/dracula/icones/
 packs/dracula/icones/apps/autorais/cosmic-term-dracula.svg	packs/dracula/icones/apps/cosmic-term-dracula.svg
 packs/dracula/icones/apps/autorais/meowsystem-painel-alucard.svg	packs/dracula/icones/apps/meowsystem-painel-alucard.svg
 packs/dracula/icones/apps/autorais/meowsystem-painel-dracula.svg	packs/dracula/icones/apps/meowsystem-painel-dracula.svg
+packs/dracula/icones/apps/calculadora.svg	packs/dracula/icones/biblioteca/calculadora.svg
 packs/dracula/icones/apps/citrix.svg	packs/dracula/icones/biblioteca/citrix.svg
 packs/dracula/icones/apps/com.discordapp.Discord.svg	packs/dracula/icones/biblioteca/com.discordapp.Discord.svg
+packs/dracula/icones/apps/gradia.svg	packs/dracula/icones/biblioteca/gradia.svg
 packs/dracula/icones/apps/guvcview-lente.svg	packs/dracula/icones/biblioteca/guvcview-lente.svg
 packs/dracula/icones/apps/guvcview.svg	packs/dracula/icones/biblioteca/guvcview.svg
+packs/dracula/icones/apps/io.github.cosmic_utils.camera.svg	packs/dracula/icones/biblioteca/io.github.cosmic_utils.camera.svg
 packs/dracula/icones/apps/net.waterfox.waterfox.svg	packs/dracula/icones/biblioteca/net.waterfox.waterfox.svg
 packs/dracula/icones/apps/org.gnome.Calculator.svg	
 packs/dracula/icones/apps/org.gnome.Shell.Extensions.svg	packs/dracula/icones/biblioteca/org.gnome.Shell.Extensions.svg
@@ -3930,7 +3933,7 @@ packs/dracula/icones/apps/resgatados/com.microsoft.Edge.svg
 packs/dracula/icones/apps/resgatados/discord.svg	packs/dracula/icones/biblioteca/com.discordapp.Discord.svg
 packs/dracula/icones/apps/resgatados/extase-em-4r73.svg	
 packs/dracula/icones/apps/resgatados/guvcview.svg	packs/dracula/icones/biblioteca/guvcview.svg
-packs/dracula/icones/apps/resgatados/io.github.cosmic_utils.camera.svg	packs/dracula/icones/apps/io.github.cosmic_utils.camera.svg
+packs/dracula/icones/apps/resgatados/io.github.cosmic_utils.camera.svg	packs/dracula/icones/biblioteca/io.github.cosmic_utils.camera.svg
 packs/dracula/icones/apps/resgatados/luna.svg	packs/dracula/icones/apps/luna.svg
 packs/dracula/icones/apps/resgatados/md.obsidian.Obsidian.svg	packs/dracula/icones/biblioteca/md.obsidian.Obsidian.svg
 packs/dracula/icones/apps/resgatados/mozc.svg	packs/dracula/icones/biblioteca/mozc.svg
@@ -3950,6 +3953,9 @@ packs/dracula/icones/apps/resgatados/syncthing.svg	packs/dracula/icones/bibliote
 packs/dracula/icones/apps/resgatados/uad-ng.svg	packs/dracula/icones/apps/uad-ng.svg
 packs/dracula/icones/apps/resgatados/whatsapp-linux-app.svg	packs/dracula/icones/apps/whatsapp-linux-app.svg
 packs/dracula/icones/apps/syncthing.svg	packs/dracula/icones/biblioteca/syncthing.svg
+packs/dracula/icones/biblioteca/009-crystal-ball.svg	packs/dracula/icones/apps/009-crystal-ball.svg
+packs/dracula/icones/biblioteca/020-halloween.svg	packs/dracula/icones/apps/020-halloween.svg
+packs/dracula/icones/biblioteca/app-launcher.svg	packs/dracula/icones/apps/app-launcher.svg
 packs/dracula/icones/biblioteca/bag.svg	packs/dracula/icones/apps/bag.svg
 packs/dracula/icones/biblioteca/book.svg	packs/dracula/icones/apps/org.onlyoffice.desktopeditors.svg
 packs/dracula/icones/biblioteca/broom.svg	packs/dracula/icones/apps/broom.svg
@@ -3959,6 +3965,7 @@ packs/dracula/icones/biblioteca/chest-variant.svg	packs/dracula/icones/apps/io.g
 packs/dracula/icones/biblioteca/circle.svg	packs/dracula/icones/apps/md.obsidian.Obsidian.svg
 packs/dracula/icones/biblioteca/dbeaver.svg	packs/dracula/icones/biblioteca/dbeaver-2.svg
 packs/dracula/icones/biblioteca/dice.svg	packs/dracula/icones/apps/foundryvtt.svg
+packs/dracula/icones/biblioteca/enchanted-mirror.svg	packs/dracula/icones/apps/enchanted-mirror.svg
 packs/dracula/icones/biblioteca/eye-ball.svg	packs/dracula/icones/apps/eye-ball.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/Antigravity.svg	packs/dracula/icones/biblioteca/Antigravity.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/Clapper.svg	packs/dracula/icones/apps/com.github.rafostar.Clapper.svg
@@ -3967,7 +3974,7 @@ packs/dracula/icones/biblioteca/feitos-a-mao/FileZilla.svg	packs/dracula/icones/
 packs/dracula/icones/biblioteca/feitos-a-mao/Heroic-Games-Launcher.svg	packs/dracula/icones/biblioteca/Heroic-Games-Launcher.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/Tweaks.svg	packs/dracula/icones/biblioteca/Tweaks.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/box-buddy.svg	packs/dracula/icones/biblioteca/box-buddy.svg
-packs/dracula/icones/biblioteca/feitos-a-mao/calculadora.svg	packs/dracula/icones/apps/calculadora.svg
+packs/dracula/icones/biblioteca/feitos-a-mao/calculadora.svg	packs/dracula/icones/biblioteca/calculadora.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/calendario.svg	packs/dracula/icones/biblioteca/calendario.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/camera.svg	packs/dracula/icones/biblioteca/camera.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/cheese.svg	packs/dracula/icones/biblioteca/cheese.svg
@@ -3986,7 +3993,7 @@ packs/dracula/icones/biblioteca/feitos-a-mao/gimp-48.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/gimp.svg	
 packs/dracula/icones/biblioteca/feitos-a-mao/gnome-folder.svg	
 packs/dracula/icones/biblioteca/feitos-a-mao/gparted.svg	packs/dracula/icones/biblioteca/gparted.svg
-packs/dracula/icones/biblioteca/feitos-a-mao/gradia.svg	packs/dracula/icones/apps/gradia.svg
+packs/dracula/icones/biblioteca/feitos-a-mao/gradia.svg	packs/dracula/icones/biblioteca/gradia.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/hplj1020.svg	packs/dracula/icones/biblioteca/hplj1020.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/krita.svg	packs/dracula/icones/biblioteca/krita.svg
 packs/dracula/icones/biblioteca/feitos-a-mao/linux-toys.svg	packs/dracula/icones/biblioteca/linux-toys.svg
@@ -4000,7 +4007,10 @@ packs/dracula/icones/biblioteca/feitos-a-mao/warehouse.svg	packs/dracula/icones/
 packs/dracula/icones/biblioteca/feitos-a-mao/weylus.svg	
 packs/dracula/icones/biblioteca/feitos-a-mao/whatsapp.svg	
 packs/dracula/icones/biblioteca/full-moon.svg	packs/dracula/icones/apps/full-moon.svg
+packs/dracula/icones/biblioteca/galaxy.svg	packs/dracula/icones/apps/galaxy.svg
 packs/dracula/icones/biblioteca/gate.svg	packs/dracula/icones/apps/gate.svg
+packs/dracula/icones/biblioteca/ghostwriter2.svg	packs/dracula/icones/apps/ghostwriter2.svg
+packs/dracula/icones/biblioteca/gift.svg	packs/dracula/icones/apps/gift.svg
 packs/dracula/icones/biblioteca/graveyard-variant.svg	packs/dracula/icones/apps/graveyard-variant.svg
 packs/dracula/icones/biblioteca/gucview.svg	packs/dracula/icones/apps/guvcview.svg
 packs/dracula/icones/biblioteca/halloween.svg	packs/dracula/icones/apps/halloween.svg
@@ -4014,7 +4024,9 @@ packs/dracula/icones/biblioteca/magician-hat.svg	packs/dracula/icones/apps/magic
 packs/dracula/icones/biblioteca/morcego-dia.svg	packs/dracula/mascote/morcego-dia.svg
 packs/dracula/icones/biblioteca/morcego-noite.svg	packs/dracula/mascote/morcego-noite.svg
 packs/dracula/icones/biblioteca/morcego.svg	packs/dracula/mascote/morcego.svg
+packs/dracula/icones/biblioteca/observatory.svg	packs/dracula/icones/apps/observatory.svg
 packs/dracula/icones/biblioteca/obsidian-papirus.svg	
+packs/dracula/icones/biblioteca/org.gnome.Terminal.svg	packs/dracula/icones/apps/org.gnome.Terminal.svg
 packs/dracula/icones/biblioteca/pirate.svg	packs/dracula/icones/apps/org.qbittorrent.qBittorrent.svg
 packs/dracula/icones/biblioteca/projetos/arcanetab-dracula.svg	packs/dracula/icones/biblioteca/arcanetab-dracula.svg
 packs/dracula/icones/biblioteca/projetos/arcanetab-icon_128x128.png	
@@ -4029,9 +4041,11 @@ packs/dracula/icones/biblioteca/projetos/neurosonancy.png	packs/dracula/icones/b
 packs/dracula/icones/biblioteca/projetos/org.andrebfarias.Crononauta.png	
 packs/dracula/icones/biblioteca/projetos/pdfforge.png	
 packs/dracula/icones/biblioteca/projetos/sigilo.png	
+packs/dracula/icones/biblioteca/retro.svg	packs/dracula/icones/apps/retro.svg
 packs/dracula/icones/biblioteca/saw.svg	packs/dracula/icones/apps/saw.svg
 packs/dracula/icones/biblioteca/scroll.svg	packs/dracula/icones/apps/menulibre.svg
 packs/dracula/icones/biblioteca/spell-book.svg	packs/dracula/icones/apps/rlogo_icon.svg
+packs/dracula/icones/biblioteca/spell-variant.svg	packs/dracula/icones/apps/spell-variant.svg
 packs/dracula/icones/biblioteca/spell.svg	packs/dracula/icones/apps/spell.svg
 packs/dracula/icones/biblioteca/spellbook.svg	packs/dracula/icones/apps/spellbook.svg
 packs/dracula/icones/biblioteca/spider-web.svg	packs/dracula/icones/apps/spider-web.svg

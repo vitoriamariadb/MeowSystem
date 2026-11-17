@@ -29,21 +29,6 @@
     ],
     "tamanho_bytes": 5365
   },
-  "009-crystal-ball.svg": {
-    "cores_dominantes": [
-      "#daf0f6",
-      "#189681",
-      "#1b4450",
-      "#edc555",
-      "#384e64"
-    ],
-    "descricao": "bola de cristal",
-    "nome": "009-crystal-ball",
-    "tags": [
-      "fantasia_magia"
-    ],
-    "tamanho_bytes": 11240
-  },
   "016-galaxy.svg": {
     "cores_dominantes": [
       "#b26cde",
@@ -58,21 +43,6 @@
       "espaco_scifi"
     ],
     "tamanho_bytes": 9807
-  },
-  "020-halloween.svg": {
-    "cores_dominantes": [
-      "#d863bb",
-      "#d9d9d9",
-      "#282942",
-      "#393a59",
-      "#ededed"
-    ],
-    "descricao": "halloween",
-    "nome": "020-halloween",
-    "tags": [
-      "halloween_doces"
-    ],
-    "tamanho_bytes": 9119
   },
   "026-building.svg": {
     "cores_dominantes": [
@@ -260,20 +230,6 @@
       "mitologia"
     ],
     "tamanho_bytes": 8190
-  },
-  "app-launcher.svg": {
-    "cores_dominantes": [
-      "#e3695b",
-      "#85a2d6",
-      "#83ba6e",
-      "#e4e4e4"
-    ],
-    "descricao": "lançador de aplicativos",
-    "nome": "app-launcher",
-    "tags": [
-      "sistema"
-    ],
-    "tamanho_bytes": 2335
   },
   "application-vnd.ms-cab-compressed.svg": {
     "cores_dominantes": [
@@ -2278,21 +2234,6 @@
     ],
     "tamanho_bytes": 16322
   },
-  "enchanted-mirror.svg": {
-    "cores_dominantes": [
-      "#384e64",
-      "#ffcfc3",
-      "#3c5d78",
-      "#2f3450",
-      "#bee5eb"
-    ],
-    "descricao": "espelho encantado",
-    "nome": "enchanted-mirror",
-    "tags": [
-      "fantasia_magia"
-    ],
-    "tamanho_bytes": 5356
-  },
   "enteauth.svg": {
     "cores_dominantes": [
       "#000000",
@@ -2581,21 +2522,6 @@
     ],
     "tamanho_bytes": 9805
   },
-  "galaxy.svg": {
-    "cores_dominantes": [
-      "#b26cde",
-      "#face7a",
-      "#d7f9b7",
-      "#4374d3",
-      "#162680"
-    ],
-    "descricao": "galáxia",
-    "nome": "galaxy",
-    "tags": [
-      "espaco_scifi"
-    ],
-    "tamanho_bytes": 8889
-  },
   "gallows.svg": {
     "cores_dominantes": [
       "#ccc",
@@ -2856,36 +2782,6 @@
       "gotico"
     ],
     "tamanho_bytes": 5644
-  },
-  "ghostwriter2.svg": {
-    "cores_dominantes": [
-      "#2e4c89",
-      "#eef6ff",
-      "#333031",
-      "#231f20",
-      "#b7092b"
-    ],
-    "descricao": "editor Markdown ghostwriter",
-    "nome": "ghostwriter2",
-    "tags": [
-      "aplicativos"
-    ],
-    "tamanho_bytes": 13112
-  },
-  "gift.svg": {
-    "cores_dominantes": [
-      "#fff",
-      "#999cad",
-      "#ef8318",
-      "#231f20",
-      "#ff9518"
-    ],
-    "descricao": "presente",
-    "nome": "gift",
-    "tags": [
-      "halloween_doces"
-    ],
-    "tamanho_bytes": 8545
   },
   "gifts.svg": {
     "cores_dominantes": [
@@ -4393,21 +4289,6 @@
       "transmissão"
     ]
   },
-  "observatory.svg": {
-    "cores_dominantes": [
-      "#b9e9fd",
-      "#83d3fc",
-      "#5294e5",
-      "#e0f9fe",
-      "#4374d3"
-    ],
-    "descricao": "observatório",
-    "nome": "observatory",
-    "tags": [
-      "espaco_scifi"
-    ],
-    "tamanho_bytes": 12735
-  },
   "opera.svg": {
     "descricao": "Opera · feito à mão",
     "nome": "opera",
@@ -4428,20 +4309,6 @@
     "tags": [
       "org.gnome.shell.extensions"
     ]
-  },
-  "org.gnome.Terminal.svg": {
-    "cores_dominantes": [
-      "#393a59",
-      "#6a6577",
-      "#ef7064",
-      "#f9d368"
-    ],
-    "descricao": "terminal do GNOME",
-    "nome": "org.gnome.Terminal",
-    "tags": [
-      "aplicativos"
-    ],
-    "tamanho_bytes": 2555
   },
   "org.kde.kompare.svg": {
     "cores_dominantes": [
@@ -5077,19 +4944,6 @@
     ],
     "tamanho_bytes": 7977
   },
-  "retro.svg": {
-    "cores_dominantes": [
-      "#f4882a",
-      "#f37d16",
-      "#3d3d3d"
-    ],
-    "descricao": "jogos retrô",
-    "nome": "retro",
-    "tags": [
-      "jogos"
-    ],
-    "tamanho_bytes": 2008
-  },
   "rhb.svg": {
     "cores_dominantes": [
       "#6b6b6e",
@@ -5609,21 +5463,6 @@
       "aplicativos"
     ],
     "tamanho_bytes": 20405
-  },
-  "spell-variant.svg": {
-    "cores_dominantes": [
-      "#fff4a5",
-      "#384e64",
-      "#fff9c8",
-      "#d28d2e",
-      "#a5640d"
-    ],
-    "descricao": "feitiço (variação)",
-    "nome": "spell-variant",
-    "tags": [
-      "fantasia_magia"
-    ],
-    "tamanho_bytes": 3448
   },
   "spider.svg": {
     "cores_dominantes": [
@@ -6691,5 +6530,29 @@
       "gotico"
     ],
     "tamanho_bytes": 6871
+  },
+  "io.github.cosmic_utils.camera.svg": {
+    "descricao": "câmera do COSMIC",
+    "nome": "io.github.cosmic_utils.camera",
+    "tags": [
+      "camera",
+      "foto",
+      "webcam"
+    ]
+  },
+  "calculadora.svg": {
+    "descricao": "Calculadora · feito à mão",
+    "nome": "calculadora",
+    "tags": [
+      "calculadora"
+    ]
+  },
+  "gradia.svg": {
+    "descricao": "Gradia · feito à mão",
+    "nome": "gradia",
+    "tags": [
+      "gradia"
+    ],
+    "caixa_da_marca": true
   }
 }
