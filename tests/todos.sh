@@ -122,6 +122,7 @@ PORTATIL=(
   wallpaper-base.sh
   papel-em-par.sh
   creditos-dos-papeis.sh
+  semente-dos-papeis.sh
   gpu-do-compositor.sh
   graficos.sh
   dock.sh

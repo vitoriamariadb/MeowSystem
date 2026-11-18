@@ -24,3 +24,12 @@ feitos em svg. Pra adicionarmos os créditos na página de créditos».
 `apagar-papel`, `fotos-do-pack`) e um teste novo: com HOME temporário e o pack no ar, a semente põe os 12 SVG, a
 segunda passada não escreve nada, e o papel de noite troca pelo de dia com o relógio falso. Foto do bloco Autoria
 no painel (HOME temporário, PID próprio, nunca `--parar`).
+
+## Feito (18/11/2026)
+- `papeis.tsv` nos dois packs, com as seis cenas; o `CREDITOS.md` de cada pack e o `docs/CREDITOS.md` vêm do
+  `creditos_dos_papeis.py` (a tabela escrita à mão do P234 saiu, a gerada a substituiu).
+- `scripts/wallpaper.sh`: `_semear_papeis_do_pack` soma os papéis do `papeis.tsv` à semente de qualquer origem, também
+  na instalação que já tem coleção (`semear-se-faltar`), com o ensaio do doctor dizendo o que falta.
+- `scripts/pack.py`: o verbo `papeis-do-pack`; o nome do papel no acervo segue o `desenhos` quando o arquivo mora nele,
+  senão a pasta `wallpapers/`.
+- `tests/semente-dos-papeis.sh` (no `todos.sh`), com os dois packs de verdade.

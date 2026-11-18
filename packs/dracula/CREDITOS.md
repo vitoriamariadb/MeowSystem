@@ -67,15 +67,13 @@ Os treze desenhos do tulip-orchid (`catedral/`, `cemiterio/`, `noite/`, `ornamen
 (09/10/2026), sob a MIT do `wallpapers/LICENSE`; o repositório nomeado pelas chaves `WALLPAPER_DRACULA_REPO` e
 `WALLPAPER_DRACULA_COMMIT` do `meow.conf` continua valendo para quem o declara.
 
-As três cenas em par dia e noite de `wallpapers/pares/` são desenho deste projeto (P234, 17/11/2026), feitas em
-código, sem bitmap embutido, nas cores da `paleta.json`: `alucard` de dia, `dracula` de noite. O par de uma cena tem a
-mesma composição; muda a luz. O `sha256` de cada arquivo está no [`PROCEDENCIA.md`](PROCEDENCIA.md).
+## Os papéis de parede desenhados
 
 | cena | dia | noite | pack | licença | data |
 |---|---|---|---|---|---|
-| catedral: vitral aceso de dia, velas na nave de noite | `wallpapers/pares/catedral-dia.svg` | `wallpapers/pares/catedral-noite.svg` | Dracula | GPL-3.0-or-later | 2026-11-17 |
-| castelo na colina, com a ponte e a grade levadiça: céu nublado lilás de dia, lua cheia e morcegos de noite | `wallpapers/pares/castelo-dia.svg` | `wallpapers/pares/castelo-noite.svg` | Dracula | GPL-3.0-or-later | 2026-11-17 |
-| campo-santo: névoa clara e corvo pousado de dia, névoa roxa e portão aberto de noite | `wallpapers/pares/camposanto-dia.svg` | `wallpapers/pares/camposanto-noite.svg` | Dracula | GPL-3.0-or-later | 2026-11-17 |
+| Catedral | <img src="wallpapers/pares/catedral-dia.svg" alt="Catedral, de dia" width="200"> | <img src="wallpapers/pares/catedral-noite.svg" alt="Catedral, de noite" width="200"> | Dracula | GPL-3.0-or-later | 17/11/2026 |
+| Castelo | <img src="wallpapers/pares/castelo-dia.svg" alt="Castelo, de dia" width="200"> | <img src="wallpapers/pares/castelo-noite.svg" alt="Castelo, de noite" width="200"> | Dracula | GPL-3.0-or-later | 17/11/2026 |
+| Campo-santo | <img src="wallpapers/pares/camposanto-dia.svg" alt="Campo-santo, de dia" width="200"> | <img src="wallpapers/pares/camposanto-noite.svg" alt="Campo-santo, de noite" width="200"> | Dracula | GPL-3.0-or-later | 17/11/2026 |
 
 ## O que este pack NÃO traz, e de quem herda
 

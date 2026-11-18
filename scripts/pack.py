@@ -5437,19 +5437,40 @@ def papeis_de(dir_pack):
     return saida
 
 
-def pares_no_carrossel(ref=None):
+def _nome_relativo_do_papel(alvo, pasta_do_pack, desenhos):
+    real = os.path.realpath(alvo)
+    if desenhos:
+        rel = os.path.relpath(real, os.path.realpath(desenhos))
+        if not rel.startswith(".."):
+            return rel.replace(os.sep, "/")
+    return os.path.relpath(real, os.path.realpath(pasta_do_pack)).replace(os.sep, "/")
+
+
+def papeis_no_carrossel(ref=None):
     o = origem_dos_wallpapers(ref)
-    dir_pack, desenhos = achar(o.get("pack") or "") if o.get("pack") else None, o.get("desenhos")
-    if not dir_pack or not desenhos:
+    dir_pack = achar(o.get("pack") or "") if o.get("pack") else None
+    if not dir_pack:
         return []
-    base = os.path.realpath(desenhos)
+    pasta = os.path.join(dir_pack, "wallpapers")
     saida = []
     for p in papeis_de(dir_pack):
-        if not p["noite"]:
-            continue
-        rels = [os.path.relpath(os.path.realpath(p[lado]), base) for lado in ("dia", "noite")]
-        if all(not r.startswith("..") for r in rels):
-            saida.append((p["cena"], *rels))
+        dia = _nome_relativo_do_papel(p["dia"], pasta, o.get("desenhos"))
+        noite = _nome_relativo_do_papel(p["noite"], pasta, o.get("desenhos")) if p["noite"] else ""
+        saida.append((p["cena"], dia, p["dia"], noite, p["noite"]))
+    return saida
+
+
+def pares_no_carrossel(ref=None):
+    return [(cena, dia, noite) for cena, dia, _a, noite, _b in papeis_no_carrossel(ref) if noite]
+
+
+def papeis_para_semear(ref=None):
+    vistos, saida = set(), []
+    for _cena, dia, abs_dia, noite, abs_noite in papeis_no_carrossel(ref):
+        for rel, alvo in ((dia, abs_dia), (noite, abs_noite)):
+            if rel and rel not in vistos:
+                vistos.add(rel)
+                saida.append((rel, alvo))
     return saida
 
 
@@ -5710,6 +5731,10 @@ def main(argv):
         if verbo == "pares" and len(argv) == 3:
             for cena, dia, noite in pares_no_carrossel(argv[2] or None):
                 print(f"{cena}\t{dia}\t{noite}")
+            return OK
+        if verbo == "papeis-do-pack" and len(argv) == 3:
+            for rel, alvo in papeis_para_semear(argv[2] or None):
+                print(f"{rel}\t{alvo}")
             return OK
         if verbo == "wallpapers" and len(argv) == 3:
             for chave, valor in sorted(origem_dos_wallpapers(argv[2]).items()):
