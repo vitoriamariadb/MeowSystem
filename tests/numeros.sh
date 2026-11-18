@@ -113,6 +113,46 @@ if [ -n "${ACOES:-}" ]; then
   confere app/LEIA-ME.md '[0-9]+ ações, com a saída' "$ACOES" "ações"
 fi
 
+portas_do_painel() {
+  sed -n '/^const PORTAS = \[/,/^\];/s/.*nome: "\([^"]*\)".*/\1/p' "$RAIZ/app/pagina/lugares.js"
+}
+numero_por_extenso() {
+  case "$1" in
+    uma|um) echo 1 ;; duas|dois) echo 2 ;; três) echo 3 ;; quatro) echo 4 ;; cinco) echo 5 ;;
+    seis) echo 6 ;; sete) echo 7 ;; oito) echo 8 ;; nove) echo 9 ;;
+    ''|*[!0-9]*) echo "" ;;
+    *) echo "$1" ;;
+  esac
+}
+PORTAS_LISTA="$(portas_do_painel)"
+PORTAS_N="$(printf '%s\n' "$PORTAS_LISTA" | grep -c .)"
+confere_portas() {
+  local arq="$1" palavra="$2" nomes="$3"
+  if [ -z "$palavra" ] || [ -z "$nomes" ]; then
+    falhou "$arq: não achei o número ou a lista das portas do painel (o texto mudou de forma?)"
+  elif [ "$(numero_por_extenso "$palavra")" != "$PORTAS_N" ]; then
+    falhou "$arq diz «$palavra portas»; o lugares.js tem $PORTAS_N"
+  elif [ "$nomes" != "$PORTAS_LISTA" ]; then
+    falhou "$arq lista as portas «$(printf '%s' "$nomes" | paste -sd, -)»; o lugares.js tem «$(printf '%s' "$PORTAS_LISTA" | paste -sd, -)»"
+  else
+    passou "$arq: as $PORTAS_N portas do painel, na ordem do lugares.js"
+  fi
+}
+if [ "$PORTAS_N" = 0 ]; then
+  falhou "não achei as PORTAS em app/pagina/lugares.js"
+else
+  confere_portas README.md \
+    "$(grep -oE 'em [^ ]+ portas:' "$RAIZ/README.md" | head -n1 | cut -d' ' -f2)" \
+    "$(awk '/^## /{f=($0=="## O painel")} f' "$RAIZ/README.md" | grep -oE '<b>[^<]+</b>' | sed 's|</\{0,1\}b>||g')"
+  confere_portas app/LEIA-ME.md \
+    "$(grep -oE 'lugares\.js +as [^ ]+ portas' "$RAIZ/app/LEIA-ME.md" | head -n1 | awk '{print $3}')" \
+    "$(awk '/^## /{f=($0=="## As portas")} f' "$RAIZ/app/LEIA-ME.md" | sed -n 's/^| \*\*\([^*]*\)\*\* |.*/\1/p')"
+  _frase_portas="$(grep -oE '`meow abrir`: [^ ]+ portas, [^.]*\.' "$RAIZ/docs/ESTADO-FINAL.md" | head -n1)"
+  confere_portas docs/ESTADO-FINAL.md \
+    "$(printf '%s' "$_frase_portas" | cut -d' ' -f3)" \
+    "$(printf '%s' "$_frase_portas" | grep -oE '\*\*[^*]+\*\*' | tr -d '*')"
+fi
+
 lista_do_script() {
   awk '
     /^OCULTAR=\(/           { dentro = 1; next }

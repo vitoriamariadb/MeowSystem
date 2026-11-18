@@ -19,7 +19,7 @@ app/
   servidor.py     lê o conf, escreve pelo meow_conf_definir, roda as ações
   pagina/
     index.html    o esqueleto (nenhum nome de chave nele)
-    lugares.js    as cinco portas e o que cada uma mostra
+    lugares.js    as seis portas e o que cada uma mostra
     app.js        monta a tela a partir do que o servidor derivou
     paginas.js    Tema, Personalizar e Manter
     oficina.js    o seletor e a oficina de ícones
@@ -37,6 +37,7 @@ app/
 | **Ajustes** | barra e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
 | **Manutenção** | o doctor e o **Consertar**, as pendências, **Exportar ajustes** e **Importar ajustes** |
 | **Extensões** | as abas **Applets** (um cartão por applet: Instalar, Adicionar à barra, Remover) e **Builds** (compositor, menu do Arquivos e cada applet, com **Recompilar**), e **Adicionar repositório** |
+| **Modificações** | um cartão por programa que recebe o tema: ligar, desligar, aplicar, e as correções de cada um |
 
 Cada controle grava ao soltar e aplica só o que a chave governa. A barra de cima tem
 **Desfazer**, **Buscar** e **Reiniciar a barra**.
