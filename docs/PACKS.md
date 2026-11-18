@@ -765,6 +765,7 @@ bandeja (`bandeja`) são dois blocos com os mesmos campos:
 | `mapa` | o arquivo `nome:glifo` que liga cada nome do sistema ao desenho |
 | `herda` | o pack de quem vêm `desenhos` e `mapa`, quando este não traz os seus |
 | `pintar` | o papel da paleta (`text`, por exemplo) com que o traço é pintado, no flavor do pack no ar |
+| `traco` | só em `sistema`: a espessura do traço `currentColor` por tamanho, `{"22x22": 4, "scalable": 2.5}`; pack que não declara fica com o traço que desenhou |
 
 ```json fragmento
 "icones": {

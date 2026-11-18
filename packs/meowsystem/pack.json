@@ -47,7 +47,11 @@
     },
     "sistema": {
       "desenhos": "icones/sistema/",
-      "mapa": "icones/sistema.map"
+      "mapa": "icones/sistema.map",
+      "traco": {
+        "22x22": 4,
+        "scalable": 2.5
+      }
     },
     "bandeja": {
       "desenhos": "icones/sistema/",

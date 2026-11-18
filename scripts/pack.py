@@ -251,6 +251,7 @@ CAMPOS_COM_LEITOR = {
     "fontes.herda",
     "icones.mimetypes.flavor",
     "icones.sistema.pintar",
+    "icones.sistema.traco.*",
     "icones.gerador",
     "icones.autorais.gerar",
     "icones.base.origem.*",
@@ -1063,6 +1064,7 @@ def _dir_capturas(ref, dir_pack):
 
 
 BLOCOS_DE_STATUS = ("sistema", "bandeja")
+TAMANHOS_DO_SISTEMA = ("22x22", "scalable")
 
 
 def icones_de_status(ref, bloco, flavor=""):
@@ -1094,6 +1096,21 @@ def icones_de_status(ref, bloco, flavor=""):
             return {"desenhos": pasta.rstrip(os.sep), "mapa": arq, "cor": cor}
         r = campo(r, f"icones.{bloco}.herda")
     raise Recusa(f"o pack {ref!r} não declara icones.{bloco}")
+
+
+def traco_do_sistema(ref):
+    ref = _ref_ativa(ref)
+    vistos, r = set(), ref
+    while r and r not in vistos:
+        vistos.add(r)
+        if not achar(r):
+            break
+        if isinstance(campo(r, "icones.sistema.desenhos"), str) and isinstance(campo(r, "icones.sistema.mapa"), str):
+            traco = campo(r, "icones.sistema.traco")
+            return {t: v for t, v in traco.items() if t in TAMANHOS_DO_SISTEMA and isinstance(v, (int, float))
+                    and not isinstance(v, bool) and v > 0} if isinstance(traco, dict) else {}
+        r = campo(r, "icones.sistema.herda")
+    return {}
 
 
 def _ref_ativa(ref):
@@ -2251,6 +2268,12 @@ def validar(ref, silencioso=False):
         pintar = bloco.get("pintar")
         _exigir(pintar is None or pintar in SLOTS,
                 f"icones.{cat}.pintar: {pintar!r} não é um papel da paleta ({', '.join(SLOTS)})")
+    traco = (ic.get("sistema") or {}).get("traco")
+    _exigir(traco is None or (isinstance(traco, dict) and traco
+                              and all(t in TAMANHOS_DO_SISTEMA and isinstance(v, (int, float))
+                                      and not isinstance(v, bool) and v > 0 for t, v in traco.items())),
+            f"icones.sistema.traco: um objeto {{tamanho: espessura}} com tamanho em {', '.join(TAMANHOS_DO_SISTEMA)} "
+            "e espessura maior que zero")
     oc = (p.get("lancador") or {}).get("ocultar") if isinstance(p.get("lancador"), dict) else None
     if p.get("lancador") is not None:
         _exigir(isinstance(p.get("lancador"), dict) and isinstance(oc, list)
@@ -5668,6 +5691,10 @@ def main(argv):
         if verbo == "icones-de-status" and len(argv) in (4, 5):
             achado = icones_de_status(argv[2] or None, argv[3], argv[4] if len(argv) == 5 else "")
             print(f"{achado['desenhos']}\t{achado['mapa']}\t{achado['cor']}")
+            return OK
+        if verbo == "traco-do-sistema" and len(argv) == 3:
+            for tamanho, espessura in sorted(traco_do_sistema(argv[2] or None).items()):
+                print(f"{tamanho}={espessura}")
             return OK
         if verbo == "pintados" and len(argv) in (4, 5):
             temporario = len(argv) == 5 and argv[4] == "--temporario"
