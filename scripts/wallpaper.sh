@@ -1520,11 +1520,26 @@ cmd_semear_se_faltar() {
   _com_os_papeis_do_pack "$rc"
 }
 
+_nomes_dos_papeis_do_pack() {
+  local rel arq nome
+  while IFS=$'\t' read -r rel arq; do
+    [ -n "$rel" ] || continue
+    nome="${SEMENTE_PREFIXO}-${rel//\//-}"
+    case "${rel##*.}" in svg|SVG) nome="${nome%.*}.png" ;; esac
+    printf '%s\n' "$nome"
+  done < <(python3 "$RAIZ/scripts/pack.py" papeis-do-pack "$_PACK_NO_AR" 2>/dev/null)
+}
+
 _semear_origem_se_faltar() {
   local n marca="$MEOW_ESTADO/wallpaper-semeado" rc origem="${SEMENTE_FOTOS:-$SEMENTE_REPO}"
+  local proprios arq do_pack=0
   [ -n "$origem" ] || return "$MEOW_OK"
-  compgen -G "$ATIVOS/${SEMENTE_PREFIXO}-*" >/dev/null && return "$MEOW_OK"
-  n="$(quantas 2>/dev/null)"; n="${n:-0}"
+  proprios="$(_nomes_dos_papeis_do_pack)"
+  for arq in "$ATIVOS/${SEMENTE_PREFIXO}"-*; do
+    [ -e "$arq" ] || continue
+    if grep -qxF -- "${arq##*/}" <<< "$proprios"; then do_pack=$((do_pack + 1)); else return "$MEOW_OK"; fi
+  done
+  n="$(quantas 2>/dev/null)"; n="$(( ${n:-0} - do_pack ))"
   [ "$n" -lt 2 ] || [ "$(cat "$marca" 2>/dev/null)" != "$origem" ] || return "$MEOW_OK"
   if meow_seco; then
     if [ -n "$SEMENTE_FOTOS" ]; then

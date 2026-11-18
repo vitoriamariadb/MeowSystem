@@ -92,6 +92,39 @@ rodar "$PACKS" soma dracula aplicar HORA_FALSA=12:00 >/dev/null 2>&1
 [ "$(cut -f1 "$FIXADO")" = "$A/som-pares-torre-dia.png" ] \
   && ok "de dia volta ao papel de dia" || falha "o dia não devolveu o par" "$(cat "$FIXADO")"
 
+REDE="$T/rede"; mkdir -p "$REDE"
+cat > "$REDE/curl" <<CURL
+#!/bin/sh
+saida=""; url=""
+while [ \$# -gt 0 ]; do
+  case "\$1" in
+    -o) saida="\$2"; shift 2 ;;
+    --max-time|--proto|--proto-redir) shift 2 ;;
+    -*) shift ;;
+    *) url="\$1"; shift ;;
+  esac
+done
+case "\$url" in
+  https://api.github.com/*) printf '{"tree":[{"type":"blob","path":"landscapes/lago.png"}]}' ;;
+  https://*) [ -n "\$saida" ] && cp "$ACERVO/alheia.png" "\$saida" ;;
+  *) exit 1 ;;
+esac
+CURL
+chmod 755 "$REDE/curl"
+
+casa cat-com-rede
+rodar "$RAIZ/packs" meowsystem mocha semear-se-faltar PATH="$REDE:$FALSO:$PATH" >"$T/c1" 2>&1
+[ -f "$A/cat-landscapes-lago.png" ] && [ "$(find "$A" -maxdepth 1 -name 'cat-pares-*.png' | wc -l)" = 6 ] \
+  && ok "meowsystem: o Catppuccin continua descendo e os seis pares entram junto" || falha "meowsystem: a semente não somou" "$(ls "$A"; cat "$T/c1")"
+
+casa cat-sem-rede
+rodar "$RAIZ/packs" meowsystem mocha semear-se-faltar >"$T/c2" 2>&1
+rodar "$RAIZ/packs" meowsystem mocha semear-se-faltar MEOW_DRY_RUN=1 >"$T/c3" 2>&1; rc=$?
+[ "$rc" = 1 ] && grep -q 'semearia os papéis de parede do pack' "$T/c3" \
+  && ok "meowsystem instalado sem rede: os pares não passam pelo Catppuccin que falta" || falha "os pares calaram o Catppuccin que falta (rc=$rc)" "$(ls "$A"; cat "$T/c2" "$T/c3")"
+rodar "$RAIZ/packs" meowsystem mocha semear-se-faltar PATH="$REDE:$FALSO:$PATH" >"$T/c4" 2>&1
+[ -f "$A/cat-landscapes-lago.png" ] && ok "meowsystem: com a rede de volta, o Catppuccin desce" || falha "o Catppuccin não desceu depois" "$(ls "$A"; cat "$T/c4")"
+
 for alvo in "dracula dracula tulip" "meowsystem mocha cat"; do
   set -- $alvo
   casa "real-$1"
