@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" version="1.1">
- <path style="opacity:0.3;fill:currentColor" class="error" d="M 6,1 V 2 H 3 V 14 C 3,14.554 3.446,15 4,15 H 11 V 6 H 13 V 2 H 10 V 1 Z"/>
- <path style="fill:currentColor" class="error" d="M 3,12 V 14 C 3,14.554 3.446,15 4,15 H 11 V 12 Z"/>
- <path style="fill:currentColor" class="error" d="M 12,7 V 11 L 12.25,13 H 13.75 L 14,11 V 7 Z M 12,14 V 16 H 14 V 14 Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>battery-level-10-symbolic — bateria em ampulheta: 10%; a areia de cima é a carga que resta, e a gasta fica apagada no vidro</title>
+  <path fill="currentColor" d="M2,0 H14 V1 H2 Z M2,15 H14 V16 H2 Z"/>
+  <path fill="currentColor" opacity="0.3" d="M3,1 H13 V3.5 C13,6.3 9,6.9 9,8 C9,9.1 13,9.7 13,12.5 V15 H3 V12.5 C3,9.7 7,9.1 7,8 C7,6.9 3,6.3 3,3.5 Z"/>
+  <clipPath id="areia"><rect x="0" y="7" width="16" height="1"/><rect x="0" y="6" width="7" height="1"/><rect x="9" y="6" width="7" height="1"/></clipPath>
+  <path fill="currentColor" clip-path="url(#areia)" d="M3,1 H13 V3.5 C13,6.3 9,6.9 9,8 C9,9.1 13,9.7 13,12.5 V15 H3 V12.5 C3,9.7 7,9.1 7,8 C7,6.9 3,6.3 3,3.5 Z"/>
 </svg>

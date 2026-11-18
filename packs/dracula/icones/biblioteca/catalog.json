@@ -6554,5 +6554,645 @@
       "gradia"
     ],
     "caixa_da_marca": true
+  },
+  "ac-adapter-vela.svg": {
+    "descricao": "bateria em vela, na tomada",
+    "nome": "ac-adapter-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1000
+  },
+  "battery-caution-charging-vela.svg": {
+    "descricao": "bateria em vela, 5%, carregando",
+    "nome": "battery-caution-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1391
+  },
+  "battery-caution-vela.svg": {
+    "descricao": "bateria em vela, 5%",
+    "nome": "battery-caution-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1407
+  },
+  "battery-good-vela.svg": {
+    "descricao": "bateria em vela, boa",
+    "nome": "battery-good-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1107
+  },
+  "battery-level-0-charging-vela.svg": {
+    "descricao": "bateria em vela, 0%, carregando",
+    "nome": "battery-level-0-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1791
+  },
+  "battery-level-0-vela.svg": {
+    "descricao": "bateria em vela, 0%",
+    "nome": "battery-level-0-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1807
+  },
+  "battery-level-10-charging-vela.svg": {
+    "descricao": "bateria em vela, 10%, carregando",
+    "nome": "battery-level-10-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1393
+  },
+  "battery-level-10-vela.svg": {
+    "descricao": "bateria em vela, 10%",
+    "nome": "battery-level-10-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1033
+  },
+  "battery-level-100-charged-vela.svg": {
+    "descricao": "bateria em vela, 100%, carregada",
+    "nome": "battery-level-100-charged-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1012
+  },
+  "battery-level-100-vela.svg": {
+    "descricao": "bateria em vela, 100%",
+    "nome": "battery-level-100-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 653
+  },
+  "battery-level-20-charging-vela.svg": {
+    "descricao": "bateria em vela, 20%, carregando",
+    "nome": "battery-level-20-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1393
+  },
+  "battery-level-20-vela.svg": {
+    "descricao": "bateria em vela, 20%",
+    "nome": "battery-level-20-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1033
+  },
+  "battery-level-40-charging-vela.svg": {
+    "descricao": "bateria em vela, 40%, carregando",
+    "nome": "battery-level-40-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1478
+  },
+  "battery-level-40-vela.svg": {
+    "descricao": "bateria em vela, 40%",
+    "nome": "battery-level-40-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1118
+  },
+  "battery-level-50-charging-vela.svg": {
+    "descricao": "bateria em vela, 50%, carregando",
+    "nome": "battery-level-50-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1464
+  },
+  "battery-level-50-vela.svg": {
+    "descricao": "bateria em vela, 50%",
+    "nome": "battery-level-50-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1104
+  },
+  "battery-level-70-charging-vela.svg": {
+    "descricao": "bateria em vela, 70%, carregando",
+    "nome": "battery-level-70-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1472
+  },
+  "battery-level-70-vela.svg": {
+    "descricao": "bateria em vela, 70%",
+    "nome": "battery-level-70-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1112
+  },
+  "battery-level-80-charging-vela.svg": {
+    "descricao": "bateria em vela, 80%, carregando",
+    "nome": "battery-level-80-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1471
+  },
+  "battery-level-80-vela.svg": {
+    "descricao": "bateria em vela, 80%",
+    "nome": "battery-level-80-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1111
+  },
+  "battery-level-90-charging-vela.svg": {
+    "descricao": "bateria em vela, 90%, carregando",
+    "nome": "battery-level-90-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1471
+  },
+  "battery-level-90-vela.svg": {
+    "descricao": "bateria em vela, 90%",
+    "nome": "battery-level-90-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1111
+  },
+  "battery-vela.svg": {
+    "descricao": "bateria em vela, inteira",
+    "nome": "battery-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 646
+  },
+  "cosmic-applet-battery-level-0-limited-charging-vela.svg": {
+    "descricao": "bateria em vela, 0%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-0-limited-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2096
+  },
+  "cosmic-applet-battery-level-0-limited-vela.svg": {
+    "descricao": "bateria em vela, 0%, carga limitada",
+    "nome": "cosmic-applet-battery-level-0-limited-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 2088
+  },
+  "cosmic-applet-battery-level-10-limited-charging-vela.svg": {
+    "descricao": "bateria em vela, 10%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-10-limited-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1698
+  },
+  "cosmic-applet-battery-level-10-limited-vela.svg": {
+    "descricao": "bateria em vela, 10%, carga limitada",
+    "nome": "cosmic-applet-battery-level-10-limited-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1349
+  },
+  "cosmic-applet-battery-level-20-limited-charging-vela.svg": {
+    "descricao": "bateria em vela, 20%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-20-limited-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1698
+  },
+  "cosmic-applet-battery-level-20-limited-vela.svg": {
+    "descricao": "bateria em vela, 20%, carga limitada",
+    "nome": "cosmic-applet-battery-level-20-limited-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1349
+  },
+  "cosmic-applet-battery-level-35-limited-charging-vela.svg": {
+    "descricao": "bateria em vela, 35%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-35-limited-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1783
+  },
+  "cosmic-applet-battery-level-35-limited-vela.svg": {
+    "descricao": "bateria em vela, 35%, carga limitada",
+    "nome": "cosmic-applet-battery-level-35-limited-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1434
+  },
+  "cosmic-applet-battery-level-5-limited-charging-vela.svg": {
+    "descricao": "bateria em vela, 5%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-5-limited-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1696
+  },
+  "cosmic-applet-battery-level-5-limited-vela.svg": {
+    "descricao": "bateria em vela, 5%, carga limitada",
+    "nome": "cosmic-applet-battery-level-5-limited-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1688
+  },
+  "cosmic-applet-battery-level-50-limited-charging-vela.svg": {
+    "descricao": "bateria em vela, 50%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-50-limited-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1769
+  },
+  "cosmic-applet-battery-level-50-limited-vela.svg": {
+    "descricao": "bateria em vela, 50%, carga limitada",
+    "nome": "cosmic-applet-battery-level-50-limited-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1420
+  },
+  "cosmic-applet-battery-level-65-limited-charging-vela.svg": {
+    "descricao": "bateria em vela, 65%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-65-limited-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1779
+  },
+  "cosmic-applet-battery-level-65-limited-vela.svg": {
+    "descricao": "bateria em vela, 65%, carga limitada",
+    "nome": "cosmic-applet-battery-level-65-limited-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1430
+  },
+  "cosmic-applet-battery-level-80-limited-charging-vela.svg": {
+    "descricao": "bateria em vela, 80%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-80-limited-charging-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1776
+  },
+  "cosmic-applet-battery-level-80-limited-vela.svg": {
+    "descricao": "bateria em vela, 80%, carga limitada",
+    "nome": "cosmic-applet-battery-level-80-limited-vela",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1427
+  },
+  "ac-adapter-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, na tomada",
+    "nome": "ac-adapter-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 937
+  },
+  "battery-caution-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 5%, carregando",
+    "nome": "battery-caution-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 944
+  },
+  "battery-caution-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 5%",
+    "nome": "battery-caution-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 960
+  },
+  "battery-good-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, boa",
+    "nome": "battery-good-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 583
+  },
+  "battery-level-0-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 0%, carregando",
+    "nome": "battery-level-0-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 759
+  },
+  "battery-level-0-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 0%",
+    "nome": "battery-level-0-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 775
+  },
+  "battery-level-10-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 10%, carregando",
+    "nome": "battery-level-10-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 948
+  },
+  "battery-level-10-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 10%",
+    "nome": "battery-level-10-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 588
+  },
+  "battery-level-100-charged-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 100%, carregada",
+    "nome": "battery-level-100-charged-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 949
+  },
+  "battery-level-100-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 100%",
+    "nome": "battery-level-100-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 590
+  },
+  "battery-level-20-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 20%, carregando",
+    "nome": "battery-level-20-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 948
+  },
+  "battery-level-20-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 20%",
+    "nome": "battery-level-20-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 588
+  },
+  "battery-level-40-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 40%, carregando",
+    "nome": "battery-level-40-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 948
+  },
+  "battery-level-40-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 40%",
+    "nome": "battery-level-40-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 588
+  },
+  "battery-level-50-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 50%, carregando",
+    "nome": "battery-level-50-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 947
+  },
+  "battery-level-50-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 50%",
+    "nome": "battery-level-50-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 587
+  },
+  "battery-level-70-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 70%, carregando",
+    "nome": "battery-level-70-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 947
+  },
+  "battery-level-70-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 70%",
+    "nome": "battery-level-70-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 587
+  },
+  "battery-level-80-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 80%, carregando",
+    "nome": "battery-level-80-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 947
+  },
+  "battery-level-80-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 80%",
+    "nome": "battery-level-80-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 587
+  },
+  "battery-level-90-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 90%, carregando",
+    "nome": "battery-level-90-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 947
+  },
+  "battery-level-90-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 90%",
+    "nome": "battery-level-90-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 587
+  },
+  "battery-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, inteira",
+    "nome": "battery-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 583
+  },
+  "cosmic-applet-battery-level-0-limited-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 0%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-0-limited-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 946
+  },
+  "cosmic-applet-battery-level-0-limited-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 0%, carga limitada",
+    "nome": "cosmic-applet-battery-level-0-limited-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 938
+  },
+  "cosmic-applet-battery-level-10-limited-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 10%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-10-limited-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1135
+  },
+  "cosmic-applet-battery-level-10-limited-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 10%, carga limitada",
+    "nome": "cosmic-applet-battery-level-10-limited-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 786
+  },
+  "cosmic-applet-battery-level-20-limited-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 20%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-20-limited-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1135
+  },
+  "cosmic-applet-battery-level-20-limited-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 20%, carga limitada",
+    "nome": "cosmic-applet-battery-level-20-limited-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 786
+  },
+  "cosmic-applet-battery-level-35-limited-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 35%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-35-limited-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1135
+  },
+  "cosmic-applet-battery-level-35-limited-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 35%, carga limitada",
+    "nome": "cosmic-applet-battery-level-35-limited-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 786
+  },
+  "cosmic-applet-battery-level-5-limited-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 5%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-5-limited-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1131
+  },
+  "cosmic-applet-battery-level-5-limited-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 5%, carga limitada",
+    "nome": "cosmic-applet-battery-level-5-limited-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1123
+  },
+  "cosmic-applet-battery-level-50-limited-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 50%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-50-limited-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1134
+  },
+  "cosmic-applet-battery-level-50-limited-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 50%, carga limitada",
+    "nome": "cosmic-applet-battery-level-50-limited-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 785
+  },
+  "cosmic-applet-battery-level-65-limited-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 65%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-65-limited-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1134
+  },
+  "cosmic-applet-battery-level-65-limited-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 65%, carga limitada",
+    "nome": "cosmic-applet-battery-level-65-limited-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 785
+  },
+  "cosmic-applet-battery-level-80-limited-charging-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 80%, carga limitada, carregando",
+    "nome": "cosmic-applet-battery-level-80-limited-charging-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 1134
+  },
+  "cosmic-applet-battery-level-80-limited-frasco.svg": {
+    "descricao": "bateria em frasco de sangue, 80%, carga limitada",
+    "nome": "cosmic-applet-battery-level-80-limited-frasco",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 785
+  },
+  "network-wired-disconnected-teia.svg": {
+    "descricao": "cabo em teia, desconectado, a teia rasgada",
+    "nome": "network-wired-disconnected-teia",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 3314
+  },
+  "network-wired-teia.svg": {
+    "descricao": "cabo em teia, ligado, a teia inteira",
+    "nome": "network-wired-teia",
+    "tags": [
+      "sistema"
+    ],
+    "tamanho_bytes": 3381
   }
 }

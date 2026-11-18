@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>battery-level-20-vela — bateria em vela: 20%; a vela queima até o nível da carga, com a chama acesa no pavio e a sombra da vela inteira atrás</title>
+  <path fill="currentColor" d="M2.6,13.5 H13.4 Q13.4,15.3 11.6,15.3 H4.4 Q2.6,15.3 2.6,13.5 Z"/>
+  <mask id="em-volta-da-chama"><rect width="16" height="16" fill="#fff"/><path fill="#000" stroke="#000" stroke-width="1.6" stroke-linejoin="round" d="M8,6.01 C8.9,7.21 9.5,8.01 9.5,8.81 A1.5,1.5 0 0 1 6.5,8.81 C6.5,8.01 7.1,7.21 8,6.01 Z"/><rect x="0" y="10.36" width="16" height="0.7" fill="#000"/></mask>
+  <path fill="currentColor" opacity="0.3" mask="url(#em-volta-da-chama)" d="M5.2,5.8 Q5.2,5.3 5.7,5.3 H10.3 Q10.8,5.3 10.8,5.8 V13.5 H5.2 Z"/>
+  <path fill="currentColor" d="M5.2,11.56 Q5.2,11.06 5.7,11.06 H10.3 Q10.8,11.06 10.8,11.56 V13.5 H5.2 Z"/>
+  <path fill="currentColor" d="M8,6.01 C8.9,7.21 9.5,8.01 9.5,8.81 A1.5,1.5 0 0 1 6.5,8.81 C6.5,8.01 7.1,7.21 8,6.01 Z"/>
+</svg>
