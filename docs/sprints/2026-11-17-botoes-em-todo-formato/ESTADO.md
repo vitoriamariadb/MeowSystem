@@ -16,6 +16,7 @@ limitação de uso […] aumentarmos a qualidade do produto como um todo»).
 | I | P236 parte 1, dock casa por padrão | `.meow-wt-dock` / `bloco/dock` | retomado, sem commit ainda |
 | H2 | P236 parte 2, padrões no `appid.map` | `bloco/janelas` | espera o H voltar («Os dois», AskUserQuestion 17/11) |
 | K | P238 palco headless | `.meow-wt-palco` / `bloco/palco` | pronto (`c49f28f6`, `ad8fa961`, `3c61f045`): cosmic-comp winit no Xvfb, SSD do COSMIC com a arte do pack, sem apt; levado por merge para A, B e H, retomados 17/11 com a regra do palco no prompt |
+| L | P239 janela nasce na área OS | `.meow-wt-area-os` / `bloco/area-os` (com o palco) | pronto (`965fc247`, `aef83d8d`, `3726b272`): `cosmic-comp-area-do-cliente.patch` (req, `AURORA-AREA-DO-CLIENTE-1`), `MEOW_AREA`/`MEOW_TELA` no ambiente do app; provado no palco com o binário compilado (ec674cd e f2beba6, 38 ok); `palco.sh rodar --area`, `areas`, `ativar`; vale na máquina só depois do `meow compositor` e do login; falta a linha do DECISOES e o `cobre` do `tests/decisoes.sh` |
 | J | P237 pastas do Dracula com cena | `.meow-wt-pastas-dracula` / `bloco/pastas-dracula` | pronto (`07fb3279`, `5f5afecd`); aprovado por quem usa 17/11 («Aprovo e aplica»); APLICADO no tema real (icones_pastas.sh, 10 ok) |
 
 Quadro de arte: <https://claude.ai/artifact/WkX5Moc3PoYQt6H1rkzZrP>, aprovado inteiro («Tudo aprovado»), virou P230 a
