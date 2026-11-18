@@ -8,7 +8,7 @@ prova no código. O texto de antes de cada linha mora no histórico do git.
 |---|---|---|
 | 1 | Base de ícones do Dracula: **As duas**, `circle` na frente e `main` atrás | «todos os drácula feitos» |
 | 2 | PNG feito à mão vira vetor validado por RMSE; o PNG sai só quando o vetor passa | «pedimos pro agente criar e validamos» |
-| 3 | O seletor, a aba Sistema e a Biblioteca mostram só o acervo do pack em edição (e dos que ele herda, até o primeiro pack do projeto); ícone de um pack nunca aparece no outro | sim de 26/10: «o que eu falei hoje sobrescreve» |
+| 3 | O seletor, a aba Sistema e a Biblioteca mostram só o acervo do pack em edição (e dos que ele herda, até o primeiro pack do projeto); ícone de um pack nunca aparece no outro; o pack que não declara `icones.sistema` veste o do pack de `heranca`, e o desenho próprio do pack vence nome a nome | sim de 26/10: «o que eu falei hoje sobrescreve»; sim de 18/11/2026 (AskUserQuestion): «As duas coisas» |
 | 4 | `calcdeirao` fica fora do pack; `jogos`, `rede` e `clima2` entram | projeto pessoal fora do pack (23/09) |
 | 5 | Askpass da Aurora ativo; o segredo mora só no arquivo 600 dele, fora do repositório, e a senha nunca vai para commit nem documento | «askpass ativa» (15/10) |
 | 6 | GPU do compositor na placa dedicada, detectada em cada máquina: `COSMIC_RENDER_DEVICE="0x<vendor>:0x<device>"` no `/etc/environment`, gravado pela ponte root (`gpu-compositor`); com uma GPU só não há linha; `GPU_COMPOSITOR="padrao"` no `meow.conf` não toca | «tudo nvidia de fato» (17/09), «sim por favor» (15/10); sim de 28/10: «Pensa num produto universal. Pra ser usado em outras máquinas no meu caso é a 4060 aí reapontamos pra lá» |

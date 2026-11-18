@@ -1094,8 +1094,15 @@ def icones_de_status(ref, bloco, flavor=""):
                     raise Recusa(f"icones.{bloco}.pintar: a paleta {flavor!r} não tem {pintar!r}")
                 cor = cores[pintar].lower()
             return {"desenhos": pasta.rstrip(os.sep), "mapa": arq, "cor": cor}
-        r = campo(r, f"icones.{bloco}.herda")
+        r = _pai_do_bloco(r, bloco)
     raise Recusa(f"o pack {ref!r} não declara icones.{bloco}")
+
+
+def _pai_do_bloco(ref, bloco):
+    pai = campo(ref, f"icones.{bloco}.herda")
+    if not pai and bloco == "sistema":
+        pai = campo(ref, "heranca")
+    return pai
 
 
 def traco_do_sistema(ref):
@@ -1109,7 +1116,7 @@ def traco_do_sistema(ref):
             traco = campo(r, "icones.sistema.traco")
             return {t: v for t, v in traco.items() if t in TAMANHOS_DO_SISTEMA and isinstance(v, (int, float))
                     and not isinstance(v, bool) and v > 0} if isinstance(traco, dict) else {}
-        r = campo(r, "icones.sistema.herda")
+        r = _pai_do_bloco(r, "sistema")
     return {}
 
 

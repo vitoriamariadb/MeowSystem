@@ -2776,9 +2776,9 @@ else
 fi
 saida="$(amb env HOME="$T/casa-b" PACK="$ID" FLAVOR="$ID" "$RAIZ/scripts/icones_sistema.sh" --conferir 2>&1)"; rc=$?
 if [ "$rc" = "3" ] && [[ "$saida" == *"não declara icones.sistema"* ]]; then
-  ok "e o icones_sistema.sh, sem icones.sistema, também pula: a herança por heranca não traz o desenho do outro pack"
+  ok "e o icones_sistema.sh, sem icones.sistema e sem heranca, também pula (com heranca o pack veste o do pai: tests/pack-pessoal-veste-o-pai.sh)"
 else
-  falha "o icones_sistema.sh vestiu o pack de terceiro com o acervo do outro (rc=$rc)" "$saida"
+  falha "o icones_sistema.sh vestiu com o acervo do outro um pack sem icones.sistema e sem heranca (rc=$rc)" "$saida"
 fi
 
 resultado="$(amb python3 - "$RAIZ" <<'PY'
