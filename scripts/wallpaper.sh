@@ -1471,11 +1471,75 @@ _semear_de_pasta() {
   return "$MEOW_OK"
 }
 
+_semear_papeis_do_pack() {
+  [ -z "${WALLPAPER_SEMENTE_REPO:-}" ] || return "$MEOW_OK"
+  local linhas; linhas="$(python3 "$RAIZ/scripts/pack.py" papeis-do-pack "$_PACK_NO_AR" 2>/dev/null)" || linhas=""
+  [ -n "$linhas" ] || return "$MEOW_OK"
+  criar_pastas || return "$MEOW_ERRO"
+  local n=0 svg_sem=0 rel arq nome destino tmp vetor
+  while IFS=$'\t' read -r rel arq; do
+    [ -n "$rel" ] && [ -f "$arq" ] || continue
+    vetor=0
+    case "${rel##*.}" in
+      svg|SVG) if meow_tem rsvg-convert; then vetor=1; else svg_sem=$((svg_sem + 1)); continue; fi ;;
+    esac
+    nome="${SEMENTE_PREFIXO}-${rel//\//-}"
+    [ "$vetor" = 1 ] && nome="${nome%.*}.png"
+    destino="$ATIVOS/$nome"
+    [ -e "$destino" ] && [ ! "$arq" -nt "$destino" ] && continue
+    esta_banida "$nome" && continue
+    if meow_seco; then meow_muda "semearia $nome (papel do pack)"; n=$((n + 1)); continue; fi
+    tmp="$(mktemp -p "$ATIVOS" ".meow.XXXXXX")" || return "$MEOW_ERRO"
+    if [ "$vetor" = 1 ]; then
+      rsvg-convert -w 3840 -h 2160 -f png -o "$tmp" -- "$arq" 2>/dev/null
+    else
+      cp -- "$arq" "$tmp" 2>/dev/null
+    fi
+    if [ -s "$tmp" ]; then
+      meow_guardar_antes "$destino"; mv -f "$tmp" "$destino"; n=$((n + 1))
+    else
+      rm -f "$tmp"; meow_aviso "não consegui semear $rel"
+    fi
+  done <<< "$linhas"
+  [ "$svg_sem" -gt 0 ] && meow_aviso "$svg_sem papel(éis) do pack ficaram de fora: sem o rsvg-convert não há como rasterizá-los"
+  [ "$n" -gt 0 ] || return "$MEOW_OK"
+  meow_seco || meow_ok "$n papel(éis) do pack semeados"
+  return "$MEOW_DIVERGENTE"
+}
+
+_com_os_papeis_do_pack() {
+  local rc="$1" rc_p=0
+  _semear_papeis_do_pack || rc_p=$?
+  [ "$rc" = "$MEOW_OK" ] && [ "$rc_p" != "$MEOW_OK" ] && rc="$rc_p"
+  return "$rc"
+}
+
 cmd_semear_se_faltar() {
+  local rc=0
+  _semear_origem_se_faltar || rc=$?
+  _com_os_papeis_do_pack "$rc"
+}
+
+_nomes_dos_papeis_do_pack() {
+  local rel arq nome
+  while IFS=$'\t' read -r rel arq; do
+    [ -n "$rel" ] || continue
+    nome="${SEMENTE_PREFIXO}-${rel//\//-}"
+    case "${rel##*.}" in svg|SVG) nome="${nome%.*}.png" ;; esac
+    printf '%s\n' "$nome"
+  done < <(python3 "$RAIZ/scripts/pack.py" papeis-do-pack "$_PACK_NO_AR" 2>/dev/null)
+}
+
+_semear_origem_se_faltar() {
   local n marca="$MEOW_ESTADO/wallpaper-semeado" rc origem="${SEMENTE_FOTOS:-$SEMENTE_REPO}"
+  local proprios arq do_pack=0
   [ -n "$origem" ] || return "$MEOW_OK"
-  compgen -G "$ATIVOS/${SEMENTE_PREFIXO}-*" >/dev/null && return "$MEOW_OK"
-  n="$(quantas 2>/dev/null)"; n="${n:-0}"
+  proprios="$(_nomes_dos_papeis_do_pack)"
+  for arq in "$ATIVOS/${SEMENTE_PREFIXO}"-*; do
+    [ -e "$arq" ] || continue
+    if grep -qxF -- "${arq##*/}" <<< "$proprios"; then do_pack=$((do_pack + 1)); else return "$MEOW_OK"; fi
+  done
+  n="$(quantas 2>/dev/null)"; n="$(( ${n:-0} - do_pack ))"
   [ "$n" -lt 2 ] || [ "$(cat "$marca" 2>/dev/null)" != "$origem" ] || return "$MEOW_OK"
   if meow_seco; then
     if [ -n "$SEMENTE_FOTOS" ]; then
@@ -1485,7 +1549,7 @@ cmd_semear_se_faltar() {
     fi
     return "$MEOW_DIVERGENTE"
   fi
-  cmd_semear; rc=$?
+  _semear_origem; rc=$?
   [ "$(cat "$marca" 2>/dev/null)" = "$origem" ] || { mkdir -p "$MEOW_ESTADO" && printf '%s\n' "$origem" > "$marca"; }
   return "$rc"
 }
@@ -1520,6 +1584,12 @@ _semear_fotos() {
 }
 
 cmd_semear() {
+  local rc=0
+  _semear_origem || rc=$?
+  _com_os_papeis_do_pack "$rc"
+}
+
+_semear_origem() {
   meow_tem python3 || { meow_erro "python3 não encontrado"; return "$MEOW_SEM_DEPENDENCIA"; }
   criar_pastas
 

@@ -537,6 +537,10 @@ par, que fica como está. `licenca` vazia vale a do pack. O
 `scripts/creditos_dos_papeis.py` escreve a seção «Os papéis de parede desenhados»
 do `CREDITOS.md` do pack e do `docs/CREDITOS.md` a partir dela, com a miniatura de
 cada lado; o painel mostra o mesmo no bloco **Autoria** do passo Papel de parede.
+Os arquivos que o `papeis.tsv` nomeia entram na pasta de papéis de quem usa pela semente
+do pack, **somados** à origem que ele declara (`repo`, `desenhos` ou `fotos`), com o prefixo
+dela e o caminho sem barras (`cat-pares-janela-dia.png`); SVG vira PNG 3840×2160, o que já
+estava e o que ela baniu não voltam, e a segunda passada não escreve nada.
 
 **`extensoes.<id>.textos`** troca os textos de uma extensão da casa, onde `<id>` é
 o nome do pino (`soneca`) e cada chave é uma das que o `TEMA_TEXTOS` do pino

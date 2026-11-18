@@ -148,3 +148,14 @@ Se você redistribuir este repositório ou algo derivado dele:
 | o material **Catppuccin** | manter o aviso de copyright MIT |
 | os **papéis de parede** | nada a fazer aqui: eles não estão no repositório |
 | o **código e os desenhos deste projeto** | GPL-3.0 |
+
+## Os papéis de parede desenhados
+
+| cena | dia | noite | pack | licença | data |
+|---|---|---|---|---|---|
+| Catedral | <img src="../packs/dracula/wallpapers/pares/catedral-dia.svg" alt="Catedral, de dia" width="200"> | <img src="../packs/dracula/wallpapers/pares/catedral-noite.svg" alt="Catedral, de noite" width="200"> | Dracula | GPL-3.0-or-later | 17/11/2026 |
+| Castelo | <img src="../packs/dracula/wallpapers/pares/castelo-dia.svg" alt="Castelo, de dia" width="200"> | <img src="../packs/dracula/wallpapers/pares/castelo-noite.svg" alt="Castelo, de noite" width="200"> | Dracula | GPL-3.0-or-later | 17/11/2026 |
+| Campo-santo | <img src="../packs/dracula/wallpapers/pares/camposanto-dia.svg" alt="Campo-santo, de dia" width="200"> | <img src="../packs/dracula/wallpapers/pares/camposanto-noite.svg" alt="Campo-santo, de noite" width="200"> | Dracula | GPL-3.0-or-later | 17/11/2026 |
+| Telhados | <img src="../packs/meowsystem/wallpapers/pares/telhados-dia.svg" alt="Telhados, de dia" width="200"> | <img src="../packs/meowsystem/wallpapers/pares/telhados-noite.svg" alt="Telhados, de noite" width="200"> | MeowSystem | GPL-3.0-or-later | 17/11/2026 |
+| Janela | <img src="../packs/meowsystem/wallpapers/pares/janela-dia.svg" alt="Janela, de dia" width="200"> | <img src="../packs/meowsystem/wallpapers/pares/janela-noite.svg" alt="Janela, de noite" width="200"> | MeowSystem | GPL-3.0-or-later | 17/11/2026 |
+| Patinhas | <img src="../packs/meowsystem/wallpapers/pares/patinhas-dia.svg" alt="Patinhas, de dia" width="200"> | <img src="../packs/meowsystem/wallpapers/pares/patinhas-noite.svg" alt="Patinhas, de noite" width="200"> | MeowSystem | GPL-3.0-or-later | 17/11/2026 |
