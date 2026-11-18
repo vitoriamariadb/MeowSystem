@@ -14,6 +14,7 @@ pasta_de() {
   case "$1" in
     bat|btop) echo "btop-bat" ;;
     qt5ct|gtk|qt) echo "toolkits-gtk-qt" ;;
+    chrome|edge|brave|chromium) echo "chromium" ;;
     *) echo "$1" ;;
   esac
 }

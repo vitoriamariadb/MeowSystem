@@ -28,6 +28,7 @@ declare -A TETO=(
   [krita]=0
   [obs]=0
   [firefox]=0
+  [chromium]=0
 )
 
 citacoes_em_codigo() {

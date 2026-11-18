@@ -21,6 +21,9 @@ conferir() {
   padrao="$(sed -n 's/^APPS_ATIVOS="\([^"]*\)".*/\1/p' "$r/meow.conf.exemplo" | head -n 1)"
   IFS=',' read -ra _slugs <<< "${padrao// /}"
   for slug in "${_slugs[@]}"; do alcancadas+="$(pasta_de "$slug") "; done
+  for slug in chrome edge brave chromium; do
+    [ "$(pasta_de "$slug")" = chromium ] || queixa "o slug $slug de um meow.conf antigo não chega ao módulo chromium"
+  done
   for alvo in "$r"/scripts/temas-de-apps/*/manifesto.sh; do
     [ -f "$alvo" ] || continue
     pasta="${alvo%/manifesto.sh}"; pasta="${pasta##*/}"
