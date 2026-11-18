@@ -13,6 +13,16 @@
   falta medir dentro da sessão para saber se a divergência é do SSH.
 - nitro-5: doctor sai 0.
 
+## O que se mediu depois do install de 18/11 (coordenador, 18h, por SSH, só leitura)
+- Desktop, já no pack `meowsystem` e com a leva de 17/11: `meow doctor` sai 0. `logo`, `lancador` e `janeladock`
+  («2 ponte(s) de app_id conformes») estão `ok`. As linhas `logo` e `janeladock` da manhã não se repetem.
+- O log das 5h do desktop termina em «~~ lancador o mimeinfo.cache do home é mais velho que um lançador» e
+  «erro lancador — continua fora depois do conserto»: o conserto rodou e a conferência seguinte continuou divergente.
+  O install das 15h pôs o cache em dia.
+- Portátil: `meow doctor` sai 1 só por «tema 'mocha-mauve' divergente: 6 de 187 arquivos», que o conserto acerta.
+- O que sobra desta sprint é o `lancador`: o conserto que não fecha. `logo` e `janeladock` só voltam a ela se o log
+  das 5h de 19/11 os trouxer de novo.
+
 ## A causa
 Não medida. Três hipóteses a provar em teste, uma por linha: o `logo` confere um arquivo que o conserto não escreve
 quando não há applet de logo; o `lancador` não refaz o `mimeinfo.cache` depois de escrever o `.desktop`; o
