@@ -29,7 +29,7 @@ lado da regra.
 | Papirus / Papirus-Dark | pacote `papirus-icon-theme` do sistema | GPL-3.0 | sim | sim, sob GPL |
 | `catppuccin/papirus-folders` | `~/.cache/meowsystem/upstream/papirus-folders/` | GPL-3.0 | sim | sim, sob GPL |
 | desenho autoral | `packs/<id>/icones/apps/` e os `leitura-*.svg` de `packs/meowsystem/icones/sistema/` | deste projeto | — | — |
-| **desenho do traço, sistema** | `packs/meowsystem/icones/sistema/` — **137** glifos (as famílias de estado da barra, energia, mídia, janelas e as páginas das Configurações, P131), no traço do Arcticons | deste projeto | — | — |
+| **desenho do traço, sistema** | `packs/meowsystem/icones/sistema/` — **137** glifos (as famílias de estado da barra, energia, mídia, janelas e as páginas das Configurações, P131), no traço do Arcticons; os botões da janela, o `+`, a notificação, a rede e a bateria redesenhados no P233 (17/11/2026), com desenho nosso: arranhão em X, novelo pousado, caixa de papelão aberta, duas caixas empilhadas, cruz com pontas de almofadinha, guizo de coleira, Wi-Fi de bigodes, cabo de novelo e peixe que vira espinha; as **38** variantes do P233 que esperam a escolha de quem usa moram em `biblioteca/` (`window-close-espinhas.svg`, `window-minimize-gato.svg` e a bateria inteira na tigela de ração, os `cosmic-applet-battery-level-*-tigela.svg`) | deste projeto | — | — |
 
 ## Dois acervos com nome parecido, e cada um veste uma coisa
 
