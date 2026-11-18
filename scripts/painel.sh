@@ -142,13 +142,44 @@ reciclar() {
   return "$MEOW_OK"
 }
 
+frase_das_reciclagens() {
+  local n vezes=vezes
+  n="$(meow_painel_reciclagens_do_boot)"
+  [ "$n" = 1 ] && vezes=vez
+  if meow_painel_desistiu; then
+    meow_frase "O vigia reiniciou a barra $n $vezes desde que o computador ligou e desistiu até ele ligar de novo."
+  elif [ "$n" -gt 0 ]; then
+    meow_frase "O vigia reiniciou a barra $n $vezes desde que o computador ligou."
+  fi
+}
+
+linha_das_reciclagens() {
+  printf 'reciclagens : %s de %s neste boot' "$(meow_painel_reciclagens_do_boot)" "$MEOW_PAINEL_RECICLAGENS_POR_BOOT"
+  meow_painel_desistiu && printf ' — desisti até o próximo boot'
+  printf '\n'
+}
+
+reciclagens() {
+  local n
+  n="$(meow_painel_reciclagens_do_boot)"
+  if meow_painel_desistiu; then
+    meow_aviso "o laço desistiu do painel neste boot: reciclou $n vezes e ele não desenha"
+    return "$MEOW_DIVERGENTE"
+  fi
+  [ "$n" -gt 0 ] && printf 'o laço reciclou o painel %s de %s vezes neste boot\n' "$n" "$MEOW_PAINEL_RECICLAGENS_POR_BOOT"
+  return "$MEOW_OK"
+}
+
 frases_do_estado() {
   local espera
-  if meow_painel_fantasma; then
+  if meow_painel_fantasma && meow_painel_desistiu; then
+    meow_frase "A barra está parada: o programa dela está aberto, mas não desenha."
+  elif meow_painel_fantasma; then
     meow_frase "A barra está parada: o programa dela está aberto, mas não desenha. O vigia a reinicia sozinho."
   else
     meow_frase "A barra está desenhando normalmente."
   fi
+  frase_das_reciclagens
   espera="$(meow_painel_espera_supervisor)"
   if [ "$espera" = "nao-medida" ]; then
     meow_frase "O sistema já reiniciou a barra desde que o computador ligou, e o tempo de espera até a próxima vez não pôde ser medido."
@@ -177,11 +208,14 @@ estado() {
   sup="$(meow_painel_do_supervisor || true)"
   nossos="$(meow_painel_nossos | tr '\n' ' ' || true)"
   printf 'painel      : do supervisor=%s  nossos=%s\n' "${sup:-<nenhum>}" "${nossos:-<nenhum>}"
-  if meow_painel_fantasma; then
+  if meow_painel_fantasma && meow_painel_desistiu; then
+    printf 'desenhando  : NÃO — painel vivo sem desenhar (fantasma). O laço desistiu até o próximo boot\n'
+  elif meow_painel_fantasma; then
     printf 'desenhando  : NÃO — painel vivo sem desenhar (fantasma). O laço o recicla sozinho\n'
   else
     printf 'desenhando  : sim\n'
   fi
+  linha_das_reciclagens
   espera="$(meow_painel_espera_supervisor)"
   if [ "$espera" = "nao-medida" ]; then
     printf 'supervisor  : reiniciou o painel, e a espera não foi medida (o formato do log mudou)\n'
@@ -205,7 +239,7 @@ _sair() {
 
 laco() {
   local pid sono nascimento vida tentativas=0 janela_ini sup
-  local ultimo_fantasma=0 agora_f
+  local ultimo_fantasma=0 agora_f gasto
   janela_ini="$(date +%s)"
 
   trap '_sair' TERM INT
@@ -214,11 +248,15 @@ laco() {
     if sup="$(meow_painel_do_supervisor)"; then
       agora_f="$(date +%s)"
       if meow_painel_fantasma && [ $(( agora_f - ultimo_fantasma )) -ge 600 ]; then
-        echo "o painel do supervisor (pid $sup) está vivo e NÃO desenha — reciclando"
         ultimo_fantasma="$agora_f"
-        kill -TERM "$sup" 2>/dev/null
-        sleep 10
-        continue
+        meow_painel_gastar_reciclagem_do_boot; gasto=$?
+        if [ "$gasto" = 0 ]; then
+          echo "o painel do supervisor (pid $sup) está vivo e NÃO desenha — reciclando"
+          kill -TERM "$sup" 2>/dev/null
+          sleep 10
+          continue
+        fi
+        [ "$gasto" = 1 ] && echo "DESISTI do painel que não desenha: $MEOW_PAINEL_RECICLAGENS_POR_BOOT reciclagens neste boot"
       fi
       meow_painel_nossos | while read -r p; do
         [ -n "$p" ] && { echo "cedendo a vez ao painel do supervisor (pid $sup); encerrando o nosso (pid $p)"; kill -TERM "$p" 2>/dev/null; }
@@ -230,12 +268,16 @@ laco() {
     if pgrep -x cosmic-panel >/dev/null 2>&1 && [ -z "${pid:-}" ]; then
       agora_f="$(date +%s)"
       if meow_painel_fantasma && [ $(( agora_f - ultimo_fantasma )) -ge 600 ]; then
-        echo "painel vivo que NÃO desenha — reciclando"
         ultimo_fantasma="$agora_f"
-        meow_painel_nossos | while read -r p; do kill -TERM "$p" 2>/dev/null; done
-        meow_painel_desta_casa | while read -r p; do kill -TERM "$p" 2>/dev/null; done
-        sleep 10
-        continue
+        meow_painel_gastar_reciclagem_do_boot; gasto=$?
+        if [ "$gasto" = 0 ]; then
+          echo "painel vivo que NÃO desenha — reciclando"
+          meow_painel_nossos | while read -r p; do kill -TERM "$p" 2>/dev/null; done
+          meow_painel_desta_casa | while read -r p; do kill -TERM "$p" 2>/dev/null; done
+          sleep 10
+          continue
+        fi
+        [ "$gasto" = 1 ] && echo "DESISTI do painel que não desenha: $MEOW_PAINEL_RECICLAGENS_POR_BOOT reciclagens neste boot"
       fi
       sleep 10
       continue
@@ -302,13 +344,15 @@ case "${1:-estado}" in
   teto)     teto ;;
   laco)     laco ;;
   reciclar) reciclar ;;
+  reciclagens) reciclagens ;;
   estado)   estado ;;
   -h|--help)
-    printf 'uso: painel.sh [conferir|teto|laco|reciclar|estado]\n\n'
+    printf 'uso: painel.sh [conferir|teto|laco|reciclar|reciclagens|estado]\n\n'
     printf '  conferir  clampa o raio ao que cabe na barra, se for preciso\n'
     printf '  teto      mostra a conta (altura, teto, estado do compositor)\n'
     printf '  laco      o supervisor; é o ExecStart de meow-painel.service\n'
     printf '  reciclar  SIGTERM no painel, pela porta única\n'
+    printf '  reciclagens  quantas vezes o laço reciclou o painel neste boot, e se desistiu\n'
     printf '  estado    diagnóstico de uma tela\n'
     ;;
   *) meow_erro "verbo desconhecido: $1"; exit "$MEOW_ERRO" ;;

@@ -120,9 +120,17 @@ meow_painel_sinal_applet_de_notificacoes_ausente() {
   ! pgrep -f '^(/[^ ]*/)?cosmic-applet-notifications( |$)' >/dev/null 2>&1
 }
 
-meow_painel_sinal_render_no_pid() {
-  journalctl --user -b --no-pager _PID="$1" 2>/dev/null \
-    | grep -qiE 'failed to render|erroneous egl|protocol error|error 1 on object'
+MEOW_PAINEL_ENXURRADA_DE_RAIO=20
+
+meow_painel_sinal_render_com_enxurrada_de_raio() {
+  local pid="$1" vida="$2" desde n
+  desde="$(date -d "@$(( $(date +%s) - vida ))" '+%Y-%m-%d %H:%M:%S' 2>/dev/null)"
+  [ -n "$desde" ] || desde="$vida seconds ago"
+  n="$(journalctl --user -b --since "$desde" --no-pager 2>/dev/null \
+    | grep -cE 'cosmic_corner_radius_layer_v1|corner radius too large')"
+  [ "${n:-0}" -ge "$MEOW_PAINEL_ENXURRADA_DE_RAIO" ] || return 1
+  journalctl --user -b --no-pager _PID="$pid" 2>/dev/null \
+    | grep -qiE 'failed to render|erroneous egl'
 }
 
 meow_painel_sinal_protocolo_na_sessao() {
@@ -144,8 +152,40 @@ meow_painel_fantasma() {
 
   meow_painel_sinal_notificacoes_sem_conexao "$pid" && return 0
   meow_painel_sinal_applet_de_notificacoes_ausente "$vida" && return 0
-  meow_painel_sinal_render_no_pid "$pid" && return 0
+  meow_painel_sinal_render_com_enxurrada_de_raio "$pid" "$vida" && return 0
   meow_painel_sinal_protocolo_na_sessao "$vida" && return 0
+  return 1
+}
+
+MEOW_PAINEL_RECICLAGENS_POR_BOOT=2
+
+meow_painel_contador_do_boot() {
+  printf '%s/meowsystem/painel-reciclagens' "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+}
+
+meow_painel_reciclagens_do_boot() {
+  local n
+  n="$(cat "$(meow_painel_contador_do_boot)" 2>/dev/null)"
+  case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  printf '%s' "$n"
+}
+
+meow_painel_desistiu() {
+  [ "$(meow_painel_reciclagens_do_boot)" -ge "$MEOW_PAINEL_RECICLAGENS_POR_BOOT" ]
+}
+
+meow_painel_gastar_reciclagem_do_boot() {
+  local contador n
+  contador="$(meow_painel_contador_do_boot)"
+  n="$(meow_painel_reciclagens_do_boot)"
+  if [ "$n" -lt "$MEOW_PAINEL_RECICLAGENS_POR_BOOT" ]; then
+    mkdir -p "${contador%/*}" 2>/dev/null
+    printf '%s' "$(( n + 1 ))" > "$contador"
+    return 0
+  fi
+  [ -e "$contador.avisado" ] && return 2
+  : > "$contador.avisado"
+  meow_notificar "A barra não desenha" "Reiniciei $n vezes e desisti até o computador ligar de novo."
   return 1
 }
 

@@ -585,8 +585,12 @@ chk_forma() {
 }
 
 chk_painel() {
+  local reciclagens desistiu=0
+  reciclagens="$(rodar_painel "$RAIZ" reciclagens 2>&1)" || desistiu=1
+  [ "$desistiu" = 1 ] && printf '%s\n' "$reciclagens"
   MEOW_DRY_RUN=1 rodar_painel "$RAIZ" conferir 2>&1
   local rc=$?
+  [ "$desistiu" = 0 ] && [ -n "$reciclagens" ] && printf '%s\n' "$reciclagens"
   if [ -d "/run/user/$(id -u)/systemd" ] \
      && [ "$(systemctl --user is-active meow-painel.service 2>/dev/null)" != "active" ] \
      && [ -f "$HOME/.config/systemd/user/meow-painel.service" ]; then
