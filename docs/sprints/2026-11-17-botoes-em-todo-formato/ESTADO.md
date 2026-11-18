@@ -40,7 +40,10 @@ Integração 2, 18/11 madrugada: A, B, D, H, I e L no `master` (`ca38a423`, com 
 da Vitória com a identidade dela (a conta AndreBFarias só lê o repositório): `d5e2990`, mesma árvore do `67741ed`
 conferido, e o pino aponta para ela. Decisões 59 a 62 no registro. Install real limpo (3 passagens, 75 etapas);
 `chromium` pendente com o Chrome aberto; o compositor com o P239 compila em segundo plano e vale no próximo login.
-Em voo: bloco M (P240, os pares de papel no ar pelo `papeis.tsv`), em `.meow-wt-papeis-no-ar`.
+Bloco M (P240) integrado em seguida (`c374a050`): os seis pares semeados em `ativos/` nas duas máquinas, decisão 63.
+A leva inteira (A a M) está no `master` com push e instalada no nitro-5 e no desktop; o `Meow-portatil` estava fora da
+rede. Falta na mão: fechar Chrome e Edge e rodar `./install.sh --etapa apps` (o `chromium` fica pendente com eles
+abertos); sair e entrar na sessão para o compositor com o P239, a dock nova e os ícones da barra.
 
 ## Próximo passo
 1. Esperar os blocos retomados. Integrar em `integracao/2026-11-17` (worktree `../.meow-wt-integracao` com a branch
