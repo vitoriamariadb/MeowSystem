@@ -751,6 +751,52 @@ confere "o --restaurar de uma saída no notebook não apaga a linha marcada do b
   '! grep -q "exit 0  #vizinhos+:maq-saida#" "$ZD/scripts/saida17.sh" && bloco17 "$ZD/scripts/saida17.sh" MeowSystem | grep -qxF "echo so no desktop  #vizinhos+:maq-saida#"'
 rm -f "$T/bin/systemctl"
 
+printf '\n18. o conserto do libadwaita do Flatpak sai inteiro, e o $HOME/ do contrato não sai da casa (P249)\n'
+CASA="$T/c18"; ZD="$CASA/.config/zsh"; ESTADO="$CASA/.local/state/meowsystem"; UD="$CASA/.config/systemd/user"
+mkdir -p "$ZD" "$CASA/.local/bin" "$ESTADO" "$UD/default.target.wants" "$T/etc18" "$T/fora18"
+cat > "$CASA/.local/bin/corrigir-flatpaks-libadwaita" <<'FIM'
+#!/usr/bin/env bash
+APPS_LOCAIS="$HOME/.local/share/applications"
+update-desktop-database "$APPS_LOCAIS" 2>/dev/null || true
+FIM
+chmod 755 "$CASA/.local/bin/corrigir-flatpaks-libadwaita"
+printf '[Service]\nExecStart=%%h/.local/bin/corrigir-flatpaks-libadwaita\n' > "$UD/corrigir-flatpaks-libadwaita.service"
+printf '[Path]\nPathChanged=%%h/.local/share/flatpak/exports/share/applications\n' > "$UD/corrigir-flatpaks-libadwaita.path"
+ln -s ../corrigir-flatpaks-libadwaita.path "$UD/default.target.wants/corrigir-flatpaks-libadwaita.path"
+cp -a "$CASA" "$T/c18-antes"
+rodar18() {
+  env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" ZDOTDIR="$ZD" VIZINHOS_ETC="$T/etc18" \
+      VIZINHOS_DESENV="$CASA/sem-projetos" VIZINHOS_CRONTAB="$T/sem-cron" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
+      VIZINHOS_SBIN="$CASA/sbin" VIZINHOS_MAQUINA=nitro-5 VIZINHOS_CONTRATO="${CT18:-$RAIZ/assets/contratos/vizinhos.tsv}" bash "$V" "$@"
+}
+saida="$(rodar18 --conferir 2>&1)"; rc=$?
+confere "antes, a linha do doctor acusa o conserto do libadwaita no lançador" \
+  '[ "$rc" = 4 ] && printf "%s" "$saida" | grep -q "1 duplicata"'
+lista="$(rodar18 --listar)"
+confere "o contrato conhece o conserto do libadwaita, e o \$HOME/ do caminho vira a casa" \
+  'printf "%s\n" "$lista" | grep -qP "^flatpaks-libadwaita\tativo\t~/.local/bin/corrigir-flatpaks-libadwaita$"'
+confere "os atalhos da Steam e o vigia do painel fantasma não saem: fazem o que o MeowSystem não faz" \
+  '! printf "%s\n" "$lista" | grep -qE "^(aurora-steam-atalhos|spellbook-painel-fantasma)[[:space:]]"'
+rodar18 --desativar-prontos >/dev/null 2>&1
+confere "o --desativar-prontos põe a saída no topo, e o script passa bash -n" \
+  'sed -n 2p "$CASA/.local/bin/corrigir-flatpaks-libadwaita" | grep -q "exit 0  #vizinhos+:" && bash -n "$CASA/.local/bin/corrigir-flatpaks-libadwaita"'
+saida="$(rodar18 --conferir 2>&1)"; rc=$?
+confere "depois, a linha do doctor não acusa duplicata nova" '[ "$rc" = 0 ]'
+rodar18 --restaurar todos >/dev/null 2>&1
+confere "o --restaurar devolve o script byte a byte" 'diff -r -x state "$T/c18-antes" "$CASA" >/dev/null'
+printf '#!/usr/bin/env bash\necho fora\n' > "$T/fora18/escapa"
+printf '#!/usr/bin/env bash\necho alvo\n' > "$T/fora18/alvo"
+ln -s "$T/fora18/alvo" "$CASA/.local/bin/link18"
+{
+  printf 'item\tescapa18\tsaida\t$HOME/../fora18/escapa\t-\t-\tscripts/flatpak_tema.sh:cmd_runtime\tteste\n'
+  printf 'item\tlink18\tsaida\t$HOME/.local/bin/link18\t-\t-\tscripts/flatpak_tema.sh:cmd_runtime\tteste\n'
+} > "$T/ct18.tsv"; CT18="$T/ct18.tsv"
+antes18="$(md5sum "$T/fora18/escapa" "$T/fora18/alvo")"
+rodar18 --desativar escapa18 >/dev/null 2>&1; rc_e=$?
+rodar18 --desativar link18 >/dev/null 2>&1; rc_l=$?
+confere "um \$HOME/ com .. ou com link é recusado, e nada fora da casa nem o link mudam (rc=$rc_e/$rc_l)" \
+  '[ "$rc_e" = 2 ] && [ "$rc_l" = 2 ] && [ "$antes18" = "$(md5sum "$T/fora18/escapa" "$T/fora18/alvo")" ] && [ -L "$CASA/.local/bin/link18" ] && [ ! -d "$ESTADO/vizinhos/escapa18" ] && [ ! -d "$ESTADO/vizinhos/link18" ]'
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'vizinhos: tudo verde\n'; exit 0; fi
 printf 'vizinhos: %s falha(s)\n' "$falhas"; exit 1

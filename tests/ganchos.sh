@@ -63,6 +63,10 @@ printf '#!/usr/bin/env bash\nprintf "higiene\\n" >> "%s"\n' "$LOG" > "$R/scripts
 cat > "$R/scripts/readme.sh" <<EOF
 #!/usr/bin/env bash
 printf 'readme %s\n' "\$*" >> "$LOG"
+if [ -f "$T/captura" ] && [ "\$*" = "--commit" ]; then
+  date +%s%N > captura.png && git add captura.png \
+    && git -c user.name=teste -c user.email=teste@exemplo.invalid commit -q -m "docs(readme): regerado do código" && exit 1
+fi
 exit "\$(cat "$T/rc" 2>/dev/null || echo 0)"
 EOF
 printf 'x\n' > "$R/a"
@@ -147,6 +151,25 @@ printf '0\n' > "$T/rc"
 g -C "$R" push -q origem master >/dev/null 2>&1 && ok "o push passa com o README em dia" || falha "o push foi barrado com o README em dia"
 [ "$(g -C "$T/remoto.git" rev-parse master 2>/dev/null)" = "$(g -C "$R" rev-parse master)" ] \
   && ok "o remoto recebeu o master" || falha "o remoto não recebeu o master"
+
+g clone -q "$T/remoto.git" "$T/segue" >/dev/null 2>&1
+g -C "$T/segue" config core.hooksPath "$GLOBAL"
+(cd "$T/segue" && bash scripts/ganchos.sh instalar >/dev/null 2>&1)
+printf 's\n' > "$R/s"; g -C "$R" add s; g -C "$R" commit -q -m seis >/dev/null 2>&1
+g -C "$R" push -q origem master >/dev/null 2>&1
+: > "$LOG"; : > "$T/captura"
+g -C "$T/segue" pull -q --ff-only >/dev/null 2>&1
+[ "$(g -C "$T/segue" rev-parse HEAD)" = "$(g -C "$T/segue" rev-parse origin/master)" ] && ! grep -q '^readme' "$LOG" \
+  && ok "o pull que só alcança o tronco não regera o README nem deixa commit de captura (P250)" \
+  || falha "o pull que só alcança o tronco deixou o master à frente do origin/master" "$(cat "$LOG"; g -C "$T/segue" log --oneline -3)"
+g -C "$T/segue" checkout -q -b junta
+printf 'j\n' > "$T/segue/j"; g -C "$T/segue" add j; g -C "$T/segue" commit -q -m junta >/dev/null 2>&1
+g -C "$T/segue" checkout -q master
+: > "$LOG"
+g -C "$T/segue" merge -q --no-ff --no-edit junta >/dev/null 2>&1
+grep -qx 'readme --commit' "$LOG" && ok "o merge que traz trabalho ao master, na árvore de integração, regera o README" \
+  || falha "o merge de integração no master não chamou o readme" "$(cat "$LOG")"
+rm -f "$T/captura"
 
 g -C "$R" worktree add -q "$T/velha" -b velha >/dev/null 2>&1
 rm -f "$T/velha/scripts/higiene.sh"
