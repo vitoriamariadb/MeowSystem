@@ -11,8 +11,8 @@ pack `meowsystem`.
 | --- | --- | --- |
 | A vagas | P242, P246, P241 | implementado em `7aa71d8c` (`../.meow-wt-vagas`, `bloco/vagas`): 15 afetados verdes; o conferente (agente, high) confere e corrige desde 16h10, com a suíte inteira |
 | B applets e arte | P243, P247 | escritas; pedem quadro de arte aprovado antes de qualquer agente |
-| C CI | P244 | implementado em `9b4f4f42` (`../.meow-wt-ci3`, `bloco/ci3`): os 6 vermelhos verdes num `ubuntu:26.04` limpo, suíte portátil 128 verdes, 2 pulados, 0 vermelhos em 56m15s, limite do workflow em 80 min; o diff tem 25 linhas e quem confere é o coordenador |
-| D doctor e documentos | P245, P248, P249, P250 | árvore `../.meow-wt-doctor-docs`, `bloco/doctor-docs`, feita em 18/11 18h; implementa (agente, high) → confere e corrige (agente, high) |
+| C CI | P244 | implementado em `9b4f4f42` (`../.meow-wt-ci3`, `bloco/ci3`): os 6 vermelhos verdes num `ubuntu:26.04` limpo, suíte portátil 128 verdes, 2 pulados, 0 vermelhos em 56m15s, limite do workflow em 80 min; conferido pelo coordenador (8 afetados verdes na máquina de casa, mais `e803ca21`: o doctor procura o Papirus na mesma raiz que o install) e **integrado** em `be2cedfe` |
+| D doctor e documentos | P245, P248, P249, P250 | árvore `../.meow-wt-doctor-docs`, `bloco/doctor-docs`, no ar desde 18/11 18h20; implementa (agente, high) → confere e corrige (agente, high) |
 | E portal | P251 | escrita; achado do install de 18/11 |
 
 Quatro agentes nesta primeira rodada (dois por bloco, em sequência dentro do bloco; A e C ao mesmo tempo, com
@@ -51,7 +51,7 @@ contagem de simbólicos depois dela continuou 0 nos dois.
 
 ## Próximo passo
 1. A árvore de integração é `../.meow-wt-integracao-18` (`integracao/2026-11-18`), já com os documentos da leva.
-2. Bloco C: entra na integração depois dos afetados verdes na máquina de casa.
+2. Bloco C: integrado. A prova no runner de verdade é o run do push final.
 3. Bloco A: entra quando o conferente voltar com a suíte inteira e a folha dos ícones.
 4. Bloco D em voo; depois o E (P251). Bloco B só depois do quadro de arte aprovado.
 5. No fim: suíte inteira na integração, `master`, push, run verde no GitHub (número aqui), install nos três PCs pelo
