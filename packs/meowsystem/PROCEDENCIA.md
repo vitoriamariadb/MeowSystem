@@ -560,3 +560,14 @@ luz. A ficha de cada cena está no `CREDITOS.md`.
 | `wallpapers/pares/janela-noite.svg` | desenho deste projeto, gerado em código (formas, gradientes e padrões), nas cores do flavor `mocha` da `paleta.json`; par noite da cena `janela` (P234, 17/11/2026) |  | GPL-3.0-or-later | 2026-11-17 | `79c5eb9e77d6e18cc9c23b4bd18f367c27042e8f0617799dd8119df35af58187` |
 | `wallpapers/pares/patinhas-dia.svg` | desenho deste projeto, gerado em código (formas, gradientes e padrões), nas cores do flavor `latte` da `paleta.json`; par dia da cena `patinhas` (P234, 17/11/2026) |  | GPL-3.0-or-later | 2026-11-17 | `3eb2a7f171baa578d7b385be084d281439e24edc70182b5d7a6294a042c93096` |
 | `wallpapers/pares/patinhas-noite.svg` | desenho deste projeto, gerado em código (formas, gradientes e padrões), nas cores do flavor `mocha` da `paleta.json`; par noite da cena `patinhas` (P234, 17/11/2026) |  | GPL-3.0-or-later | 2026-11-17 | `71f7a5a3a331ba92b658672eba76b044f4d36427029cb858dcaa396ad363103a` |
+
+## O desligar e os três pontos com tema de gato — P253 (18/11/2026)
+
+Duas propostas para cada vaga, fora do `sistema.map`: o `system-shutdown.svg` e o `view-more-horizontal.svg` de hoje seguem no mapa até quem usa escolher.
+
+| arquivo | de onde | lido de | licença | copiado em | sha256 |
+|---|---|---|---|---|---|
+| `icones/sistema/system-shutdown-orelhas.svg` | desenho deste projeto, 18/11/2026 (P253), desligar: o anel de força com duas orelhas de gato e a barra no meio; contorno em `currentColor` no traço do P233 |  | GPL-3.0 | 2026-11-18 | `98cbc8b730e2c167e65a4fc04d4ee8685ef6b2e82377d58ba6cabb9050db38bf` |
+| `icones/sistema/system-shutdown-gato.svg` | desenho deste projeto, 18/11/2026 (P253), desligar: o gato enrolado dormindo fecha o anel, com a cabeça de olhos fechados de um lado da abertura e a ponta do rabo do outro; contorno em `currentColor` no traço do P233 |  | GPL-3.0 | 2026-11-18 | `28a9fc0e81030774d58fe01dbb0e7aa0251d56e7b677f3aa826e36648c6eb308` |
+| `icones/sistema/view-more-patas.svg` | desenho deste projeto, 18/11/2026 (P253), mais opções: três almofadinhas de pata no lugar dos três pontos, só preenchimento em `currentColor` |  | GPL-3.0 | 2026-11-18 | `126d93a2dc3047c6ce2809746ea5365586de94deb4e48e1ebef688e6490e2c7f` |
+| `icones/sistema/view-more-novelos.svg` | desenho deste projeto, 18/11/2026 (P253), mais opções: três novelos no lugar dos três pontos; contorno em `currentColor` no traço do P233 |  | GPL-3.0 | 2026-11-18 | `3a8166127adc3d52228f1bb23f3b67278bac209ae13251381468707bcf73d54b` |
