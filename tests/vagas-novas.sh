@@ -80,10 +80,13 @@ for pid in ("meowsystem", "dracula"):
     checa(set(soneca) == SONECA, "%s: o grupo Soneca tem as duas vagas" % pid, repr(sorted(soneca)))
     checa({i["rotulo"] for i in soneca.values()} == {"Desperto", "Ronronar"}, "%s: as vagas da Soneca com nome curto" % pid)
 
-sem = pack.sistema_do_pack(pack.achar("dracula"))
+sem = pack.sistema_do_pack(pack.achar("meowsystem"))
 checa(all(os.path.realpath(a).startswith(os.path.realpath(os.environ["XDG_DATA_HOME"]))
           for n, a, *_ in sem if n in SONECA),
       "sem o desenho no pack, a vaga mostra o padrão que o applet instalou")
+com = pack.sistema_do_pack(pack.achar("dracula"))
+checa({n for n, a, *_ in com if n in SONECA and os.path.realpath(a).startswith(os.path.realpath(pack.achar("dracula")))} == SONECA,
+      "com o desenho no pack, as duas vagas da Soneca vêm do pack")
 
 lido = chamar(m._api_criar_ler, {"base": ["dracula"]})
 textos = {t["extensao"]: t for t in lido.get("textos", [])}
@@ -143,8 +146,8 @@ grep -q 'M2 2l12 12' "$tema/scalable/actions/window-close-symbolic.svg" 2>/dev/n
   && ok "o fechar trocado no criador chega ao tema instalado" || falha "o fechar trocado não chegou" "$(cat "$T/aplicar")"
 grep -q 'M2 2l12 12' "$tema/scalable/status/soneca-desperto-symbolic.svg" 2>/dev/null \
   && ok "a vaga Desperto da Soneca chega ao tema, em status" || falha "a vaga da Soneca não chegou" "$(ls -R "$tema" | head -20)"
-[ ! -e "$tema/scalable/status/soneca-ronronar-symbolic.svg" ] \
-  && ok "a vaga sem desenho no pack fica com o padrão do applet, no hicolor" || falha "o Ronronar saiu sem desenho"
+[ -e "$tema/scalable/status/soneca-ronronar-symbolic.svg" ] && ! grep -q 'M2 2l12 12' "$tema/scalable/status/soneca-ronronar-symbolic.svg" \
+  && ok "a vaga não trocada herda o desenho do pack de origem" || falha "o Ronronar não herdou o desenho do Dracula"
 amb PACK=meu-dracula FLAVOR=dracula "$RAIZ/scripts/icones_sistema.sh" --aplicar >/dev/null 2>&1
 [ $? = 0 ] && ok "a segunda passada não escreve nada" || falha "a segunda passada escreveu"
 
