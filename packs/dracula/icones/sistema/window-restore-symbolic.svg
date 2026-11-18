@@ -1,6 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <title>window-restore-symbolic — restaurar: duas lápides</title>
-  <clipPath id="fora-da-frente"><path clip-rule="evenodd" d="M0,0 H16 V16 H0 Z M-0.1,16.5 L-0.1,10.1 A6,6 0 0 1 11.9,10.1 L11.9,16.5 Z"/></clipPath>
-  <path fill="currentColor" fill-rule="evenodd" clip-path="url(#fora-da-frente)" d="M5.4,10.6 L5.4,5.9 A4.7,4.7 0 0 1 14.8,5.9 L14.8,10.6 Z M7.3,8.7 L7.3,5.9 A2.8,2.8 0 0 1 12.9,5.9 L12.9,8.7 Z"/>
-  <path fill="currentColor" fill-rule="evenodd" d="M1.2,14.8 L1.2,10.1 A4.7,4.7 0 0 1 10.6,10.1 L10.6,14.8 Z M3.1,12.9 L3.1,10.1 A2.8,2.8 0 0 1 8.7,10.1 L8.7,12.9 Z"/>
+  <title>window-restore-symbolic — restaurar: a grade levadiça meio erguida no portal</title>
+  <path fill="currentColor" d="M1,1 H15 V3 H1 Z M1,3 H3 V15 H1 Z M13,3 H15 V15 H13 Z M3,5 H13 V6 H3 Z M4,3 H6 V7 L5,9.5 L4,7 Z M7,3 H9 V7 L8,9.5 L7,7 Z M10,3 H12 V7 L11,9.5 L10,7 Z"/>
 </svg>
