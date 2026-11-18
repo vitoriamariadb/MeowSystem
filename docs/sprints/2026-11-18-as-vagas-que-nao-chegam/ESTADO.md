@@ -9,10 +9,10 @@ pack `meowsystem`.
 
 | bloco | tarefas | situação |
 | --- | --- | --- |
-| A vagas | P242, P246, P241 | no ar desde 18/11 15h30: `../.meow-wt-vagas`, `bloco/vagas`; implementa (agente, high) → confere e corrige (agente, high) |
+| A vagas | P242, P246, P241 | implementado em `7aa71d8c` (`../.meow-wt-vagas`, `bloco/vagas`): 15 afetados verdes; o conferente (agente, high) confere e corrige desde 16h10, com a suíte inteira |
 | B applets e arte | P243, P247 | escritas; pedem quadro de arte aprovado antes de qualquer agente |
-| C CI | P244 | no ar desde 18/11 15h30: `../.meow-wt-ci3`, `bloco/ci3`; implementa (agente, high) → confere e corrige (agente, high) |
-| D doctor e documentos | P245, P248, P249, P250 | escritas |
+| C CI | P244 | implementado em `9b4f4f42` (`../.meow-wt-ci3`, `bloco/ci3`): os 6 vermelhos verdes num `ubuntu:26.04` limpo, suíte portátil 128 verdes, 2 pulados, 0 vermelhos em 56m15s, limite do workflow em 80 min; o diff tem 25 linhas e quem confere é o coordenador |
+| D doctor e documentos | P245, P248, P249, P250 | árvore `../.meow-wt-doctor-docs`, `bloco/doctor-docs`, feita em 18/11 18h; implementa (agente, high) → confere e corrige (agente, high) |
 | E portal | P251 | escrita; achado do install de 18/11 |
 
 Quatro agentes nesta primeira rodada (dois por bloco, em sequência dentro do bloco; A e C ao mesmo tempo, com
@@ -40,10 +40,19 @@ log. Uma chamada direta a `scripts/icones_sistema.sh --conferir` em cada PC da V
 resultado dela («340 a instalar») não vale como medida, porque sem o conf o script adota o pack `meowsystem`; a
 contagem de simbólicos depois dela continuou 0 nos dois.
 
+## O que o bloco C achou (18/11)
+- O `ubuntu-latest` do GitHub já é o Ubuntu 26.04 (coreutils do uutils), não o 24.04.
+- Causas: checkout raso sem os commits antigos e sem as tags (`chaves-aposentadas`, `deb`); o `sleep` do uutils
+  copiado com outro nome sai na hora (`trava-herdada`); o teste lia a fonte, o `cosmic-comp` e o Papirus da máquina
+  (`doctor-veredito`, `garantir-builds`, `maquina-nova`).
+- Imagem de contêiner para repetir: `localhost/meow-ci3-base` (podman, com `--init` e a pasta `/run/user/1001/systemd`).
+- Fora do escopo, para uma sprint futura: `tests/seco.sh` depende de `systemd --user`; o `tests/temas-de-apps.sh`
+  depende de o PID 1 colher processo morto; `estilo.sh` e `extensoes-install.sh` seguem pulados no runner.
+
 ## Próximo passo
-1. Quando o implementador de A ou de C voltar: lançar o conferente do bloco (suíte inteira só nele; as duas suítes
-   não rodam ao mesmo tempo).
-2. Integrar cada bloco em `integracao/2026-11-18` assim que o conferente volta.
-3. Bloco D (P245, P248, P249, P250) quando A ou C liberar a vaga; depois o E (P251).
-4. Bloco B só depois do quadro de arte aprovado.
-5. No fim: `master`, push, run verde no GitHub, install nos três PCs pelo coordenador.
+1. A árvore de integração é `../.meow-wt-integracao-18` (`integracao/2026-11-18`), já com os documentos da leva.
+2. Bloco C: entra na integração depois dos afetados verdes na máquina de casa.
+3. Bloco A: entra quando o conferente voltar com a suíte inteira e a folha dos ícones.
+4. Bloco D em voo; depois o E (P251). Bloco B só depois do quadro de arte aprovado.
+5. No fim: suíte inteira na integração, `master`, push, run verde no GitHub (número aqui), install nos três PCs pelo
+   coordenador.
