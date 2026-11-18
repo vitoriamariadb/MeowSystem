@@ -33,7 +33,8 @@ Integração parcial 17/11 ~21h (pedido «Quero que integrar instalar e pushar s
 outros pcs»): C, E, F, G, J e K no `master` por `integracao/2026-11-17`; 13 testes afetados verdes; install real limpo
 (2 passagens, 74 etapas, nada mais a escrever); push sem esperar a suíte inteira, que roda na árvore
 `.meow-wt-integracao-17` e o vermelho que ela pegar sai num push seguinte. Os demais blocos entram do mesmo jeito
-assim que o conferente de cada um voltar.
+assim que o conferente de cada um voltar. Desktop `MeowSystem` (repositório em `/mnt/Apate`): pull e install por
+SSH no mesmo dia, limpo (2 passagens, 74 etapas); `Meow-portatil` fora da rede, fica para quando voltar.
 
 ## Próximo passo
 1. Esperar os blocos retomados. Integrar em `integracao/2026-11-17` (worktree `../.meow-wt-integracao` com a branch
