@@ -47,6 +47,21 @@ PROPRIO="$(cat "$TEMA/scalable/status/audio-volume-high-symbolic.svg")"
 [ "$PROPRIO" != "$PAI" ] && [[ "$PROPRIO" == *"<circle"* ]] \
   && ok "o desenho próprio do pack vence o herdado, nome a nome" \
   || falha "o desenho do pai ficou no lugar do próprio"
+grep -q 'stroke-width="1"' "$TEMA/scalable/status/audio-volume-high-symbolic.svg" \
+  && grep -q 'stroke-width="2.5"' "$TEMA/scalable/status/network-wireless-signal-weak-symbolic.svg" \
+  && ok "o desenho herdado sai com o traço do pai (2,5) e o próprio com o que o pack desenhou (1)" \
+  || falha "o traço do pai engordou o desenho próprio, ou o herdado perdeu o dele"
+python3 - "$MEU/pack.json" <<'PY2'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+d["icones"]["sistema"] = {"traco": {"22x22": 3, "scalable": 1.5}}
+json.dump(d, open(sys.argv[1], "w", encoding="utf-8"))
+PY2
+amb "$RAIZ/scripts/icones_sistema.sh" --aplicar >/dev/null 2>&1
+grep -q 'stroke-width="1.5"' "$TEMA/scalable/status/audio-volume-high-symbolic.svg" \
+  && grep -q 'stroke-width="2.5"' "$TEMA/scalable/status/network-wireless-signal-weak-symbolic.svg" \
+  && ok "o traço que o pack pessoal declara vale só para o desenho próprio; o herdado segue com o do pai" \
+  || falha "o traço declarado pelo pack pessoal não foi para o desenho próprio"
 [ -f "$TEMA/scalable/actions/window-close-symbolic.svg" ] \
   && ok "os outros nomes seguem com o desenho do pai" \
   || falha "o desenho próprio apagou os herdados"

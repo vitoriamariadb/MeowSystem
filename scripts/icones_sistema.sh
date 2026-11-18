@@ -14,6 +14,7 @@ BASE="$HOME/.local/share/icons/$TEMA"
 
 TAMANHOS=(22x22 scalable)
 declare -A TRACO=()
+declare -A TRACO_PROPRIO=()
 CONTEXTOS=(status actions devices)
 CONTRATOS=("$RAIZ/assets/contratos/nomes-de-sistema.tsv" "$RAIZ/assets/contratos/nomes-das-extensoes.tsv")
 declare -A CONTEXTO=()
@@ -135,12 +136,25 @@ _pronto() {
 _ler_traco() {
   local ref tam largura
   TRACO=()
+  TRACO_PROPRIO=()
   ref="$(meow_pack_dir)"
   [ -n "$ref" ] || ref="$(meow_pack_padrao_dir || true)"
   while IFS='=' read -r tam largura; do
     [ -n "$tam" ] && [ -n "$largura" ] && TRACO["$tam"]="$largura"
   done < <(python3 "$RAIZ/scripts/pack.py" traco-do-sistema "$ref" 2>/dev/null || true)
+  while IFS='=' read -r tam largura; do
+    [ -n "$tam" ] && [ -n "$largura" ] && TRACO_PROPRIO["$tam"]="$largura"
+  done < <(python3 "$RAIZ/scripts/pack.py" traco-do-sistema "$ref" proprio 2>/dev/null || true)
   return 0
+}
+
+_traco_de() {
+  local arte="$1" tam="$2"
+  if [ -n "$LEVADAS" ] && [ "${arte#"$LEVADAS"/}" != "$arte" ]; then
+    printf '%s' "${TRACO_PROPRIO[$tam]:-}"
+  else
+    printf '%s' "${TRACO[$tam]:-}"
+  fi
 }
 
 _levadas() {
@@ -195,7 +209,7 @@ _conferir() {
     alvo="$BASE/$dir/$nome.svg"
     if [ ! -f "$alvo" ]; then
       ausentes=$((ausentes + 1))
-    elif [ "$(_com_traco "$arte" "${TRACO[${dir%%/*}]:-}")" != "$(cat "$alvo")" ]; then
+    elif [ "$(_com_traco "$arte" "$(_traco_de "$arte" "${dir%%/*}")")" != "$(cat "$alvo")" ]; then
       divergentes=$((divergentes + 1))
     fi
   done < <(_desejado)
@@ -221,7 +235,7 @@ _aplicar() {
 
   while IFS=$'\t' read -r dir nome arte; do
     set +e
-    meow_escrever "$BASE/$dir/$nome.svg" "$(_com_traco "$arte" "${TRACO[${dir%%/*}]:-}")" 644
+    meow_escrever "$BASE/$dir/$nome.svg" "$(_com_traco "$arte" "$(_traco_de "$arte" "${dir%%/*}")")" 644
     rc=$?
     set -e
     case "$rc" in
