@@ -1086,6 +1086,8 @@ def icones_de_status(ref, bloco, flavor=""):
                 raise Recusa(f"icones.{bloco}: {desenhos!r} ou {mapa!r} não existe no pack {r!r}")
             cor = ""
             pintar = campo(ref, f"icones.{bloco}.pintar")
+            if pintar is None and not campo(ref, f"icones.{bloco}.herda"):
+                pintar = campo(r, f"icones.{bloco}.pintar")
             if pintar:
                 if pintar not in SLOTS:
                     raise Recusa(f"icones.{bloco}.pintar: {pintar!r} não é um papel da paleta")

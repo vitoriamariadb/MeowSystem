@@ -73,6 +73,24 @@ amb "$RAIZ/scripts/icones_sistema.sh" --aplicar >/dev/null 2>&1
 [ $? = 0 ] && [ "$antes" = "$(cd "$TEMA" && find . -type f | sort | xargs sha256sum)" ] \
   && ok "a segunda passada não escreve nada" || falha "a segunda passada escreveu"
 
+for casa in "$T/casa-dracula" "$T/casa-filho"; do
+  mkdir -p "$casa/.local/share/icons/MeowSystem-Icons"
+  cp "$TEMA/index.theme" "$casa/.local/share/icons/MeowSystem-Icons/index.theme"
+done
+FILHO="$T/casa-filho/.local/share/meowsystem/packs/meu-do-dracula"
+mkdir -p "$FILHO/icones/sistema"
+cp "$RAIZ/packs/dracula/paleta.json" "$FILHO/paleta.json"
+printf '{"formato": 2, "id": "meu-do-dracula", "nome": "Meu do Dracula", "heranca": "dracula", "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}, "icones": {"autorais": {}, "apps": {}}}\n' > "$FILHO/pack.json"
+env -i PATH="$FALSO:$PATH" HOME="$T/casa-dracula" USER="${USER:-t}" LANG=C.UTF-8 NO_COLOR=1 \
+  MEOW_RAIZ="$RAIZ" PACK=dracula FLAVOR=dracula "$RAIZ/scripts/icones_sistema.sh" --aplicar >/dev/null 2>&1
+env -i PATH="$FALSO:$PATH" HOME="$T/casa-filho" USER="${USER:-t}" LANG=C.UTF-8 NO_COLOR=1 \
+  MEOW_RAIZ="$RAIZ" PACK=meu-do-dracula FLAVOR=dracula "$RAIZ/scripts/icones_sistema.sh" --aplicar >/dev/null 2>&1
+dracula="$(cd "$T/casa-dracula/.local/share/icons/MeowSystem-Icons" && find . -type f | sort | xargs sha256sum)"
+filho="$(cd "$T/casa-filho/.local/share/icons/MeowSystem-Icons" && find . -type f | sort | xargs sha256sum)"
+[ "$(printf '%s\n' "$filho" | wc -l)" -ge 100 ] && [ "$filho" = "$dracula" ] \
+  && ok "o pack pessoal nascido do Dracula veste o do Dracula byte a byte, pintado na cor que o Dracula pede" \
+  || falha "o pack pessoal nascido do Dracula saiu diferente do Dracula" "$(diff <(printf '%s\n' "$dracula") <(printf '%s\n' "$filho") | head -4)"
+
 if [ "$falhas" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$falhas" >&2
   exit 1
