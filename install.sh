@@ -364,7 +364,7 @@ etapa_pacotes() {
     [ -n "$b" ] && [ -n "$p" ] || continue
     meow_tem "$b" || faltam+=("$p")
   done < "$MEOW_RAIZ/assets/pacotes/sistema.tsv"
-  [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
+  [ -d "${MEOW_ICONES_SISTEMA:-/usr/share/icons}/Papirus-Dark" ] || faltam+=(papirus-icon-theme)
   [ -d /usr/share/fonts/opentype/fira ] || ! apt-cache show pop-fonts >/dev/null 2>&1 \
     || faltam+=(pop-fonts)
 

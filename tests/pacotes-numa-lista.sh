@@ -12,6 +12,9 @@ awk -F'\t' 'NF != 2 || $1 == "" || $2 == "" {exit 1}' "$LISTA" && ok "cada linha
 grep -q 'assets/pacotes/sistema.tsv' "$RAIZ/install.sh" && ok "o install lê a lista" || falha "o install não lê a lista"
 ! grep -q 'NECESSARIOS' "$RAIZ/install.sh" && ok "e não guarda outra cópia dela" || falha "o install ainda tem a lista própria"
 grep -q 'cut -f2 assets/pacotes/sistema.tsv' "$RAIZ/.github/workflows/testes.yml" && ok "o CI instala a mesma lista" || falha "o CI tem a lista dele"
+papirus() { grep -F 'faltam+=(papirus-icon-theme)' "$1" | sed 's/^ *//'; }
+[ -n "$(papirus "$RAIZ/install.sh")" ] && [ "$(papirus "$RAIZ/install.sh")" = "$(papirus "$RAIZ/bin/meow")" ] \
+  && ok "o install e o doctor procuram o Papirus na mesma raiz" || falha "o install e o doctor procuram o Papirus em raízes diferentes"
 
 printf '\no .deb depende de tudo o que a lista pede (a ponte, o tests/doctor-veredito.sh confere)\n'
 depende="$(sed -n 's/^Depends: //p' "$RAIZ/packaging/deb/control" | tr -d ' ' | tr ',' '\n' | sed 's/(.*//')"

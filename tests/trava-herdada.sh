@@ -11,7 +11,9 @@ ok() { printf 'ok: %s\n' "$1"; }
 falha() { printf 'FALHOU: %s\n%s\n' "$1" "${2:-}" >&2; falhas=$((falhas + 1)); }
 
 ESTADO="$T/estado"; mkdir -p "$ESTADO" "$T/bin"
-cp "$(command -v sleep)" "$T/bin/spotify"
+mkfifo "$T/cano"
+dormente() { printf '#!/bin/bash\nexec 3<>"%s"\nread -r -t "$1" -u 3\n' "$T/cano" > "$1"; chmod 755 "$1"; }
+dormente "$T/bin/spotify"
 travar() {
   env -i PATH="$PATH" HOME="$T" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$ESTADO" NO_COLOR=1 \
     bash -c '. "$MEOW_RAIZ/lib/comum.sh" || exit 2; meow_travar; rc=$?; printf "rc=%s\n" "$rc"; [ "$rc" = 0 ] && sleep "${1:-0}"' _ "${1:-0}" 2>&1
@@ -49,7 +51,7 @@ fi
 for c in sudo pkexec su apt apt-get pkill killall systemd-run notify-send just make; do
   printf '#!/bin/sh\necho "%s $*" >> "%s/recusas.log"\nexit 1\n' "$c" "$T" > "$T/bin/$c"; chmod 755 "$T/bin/$c"
 done
-cp "$(command -v sleep)" "$T/bin/cargo"
+dormente "$T/bin/cargo"
 semear() {
   CASA="$T/casa-$1"; E="$CASA/.local/state/meowsystem"; C="$CASA/.cache/meowsystem"
   mkdir -p "$E/extensoes/.target/release/deps" "$C/cosmic-comp/cosmic-comp-1.0/target/release" "$CASA/.config/meow"
@@ -96,7 +98,7 @@ else
   falha "o Liberar cortou o alvo dos applets sob um cargo órfão" "$s"
 fi
 
-cp "$(command -v sleep)" "$T/just"
+dormente "$T/just"
 mkdir -p "$T/raiz/scripts"; cp -a "$RAIZ/bin" "$RAIZ/lib" "$T/raiz/"; : > "$T/raiz/install.sh"
 printf '#!/bin/bash\n: > "%s"\nexec "%s" 60\n' "$T/receita-viva" "$T/just" > "$T/raiz/scripts/compositor_patches.sh"
 chmod 755 "$T/raiz/scripts/compositor_patches.sh"
