@@ -22,8 +22,8 @@ battery-empty-symbolic:cosmic-applet-battery-level-0:alias
 battery-full-charged-symbolic:cosmic-applet-battery-level-100-charging:alias
 battery-full-charging-symbolic:cosmic-applet-battery-level-100-charging:alias
 battery-full-symbolic:cosmic-applet-battery-level-100:alias
-battery-good-charging-symbolic:cosmic-applet-battery-level-65-charging:alias
-battery-good-symbolic:cosmic-applet-battery-level-65:alias
+battery-good-charging-symbolic:cosmic-applet-battery-level-50-charging:alias
+battery-good-symbolic:cosmic-applet-battery-level-50:alias
 battery-level-0-symbolic:cosmic-applet-battery-level-0:alias
 battery-level-10-symbolic:cosmic-applet-battery-level-10:alias
 battery-level-100-symbolic:cosmic-applet-battery-level-100:alias
@@ -133,14 +133,12 @@ microphone-sensitivity-muted-symbolic:microphone-sensitivity-muted
 multimedia-player-symbolic:multimedia-player
 navbar-closed-symbolic:navbar-closed
 navbar-open-symbolic:navbar-open
-network-vpn-disabled-symbolic:shield:alias
 network-vpn-symbolic:shield:alias
 network-wired-disconnected-symbolic:network-wired-disconnected
 network-wired-symbolic:network-wired
 network-wireless-acquiring-symbolic:network-wireless-acquiring
 network-wireless-disabled-symbolic:network-wireless-disconnected:alias
 network-wireless-disconnected-symbolic:network-wireless-disconnected
-network-wireless-encrypted-symbolic:network-wireless-signal-excellent:alias
 network-wireless-error-symbolic:network-wireless-error
 network-wireless-offline-symbolic:network-wireless-disconnected:alias
 network-wireless-signal-excellent-symbolic:network-wireless-signal-excellent

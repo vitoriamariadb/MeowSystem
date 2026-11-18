@@ -22,7 +22,7 @@ NAO_SAO_NOME_DE_ICONE='^(explicit|glyph|original|plain|regular|meow-icone-que-na
 
 cut -f1 "$SISTEMA" "$EXTENSOES" | grep -v '^#' | sort -u > "$T/contrato"
 
-verificados=0
+pulados=0
 for pino in "$RAIZ"/assets/extensoes/*.pino; do
   id="$(basename "$pino" .pino)"
   grep -q '^TIPO="applet"' "$pino" || continue
@@ -30,9 +30,9 @@ for pino in "$RAIZ"/assets/extensoes/*.pino; do
   fonte="$FONTES/$id/src"
   if [ ! -d "$fonte" ] || ! grep -q "^commit $commit\$" "$FONTES/$id/carimbo" 2>/dev/null; then
     printf 'pulado: o fonte do applet %s no commit %s não está nesta máquina\n' "$id" "${commit:0:8}"
+    pulados=$((pulados + 1))
     continue
   fi
-  verificados=$((verificados + 1))
   fora="$(grep -rhoE '"[a-zA-Z0-9_.-]+-symbolic"' "$fonte" | tr -d '"' | sort -u \
     | grep -vE "$NAO_SAO_NOME_DE_ICONE" | grep -v '\.' | comm -23 - "$T/contrato")"
   [ -z "$fora" ] \
@@ -85,11 +85,24 @@ for par in meowsystem:mocha dracula:dracula; do
   done
   amb "$casa" "$pack" "$flavor" "$RAIZ/scripts/icones_sistema.sh" --aplicar >/dev/null 2>&1
   [ $? = 0 ] && ok "$pack: a segunda passada não escreve nada" || falha "$pack: a segunda passada escreveu"
+  enganam="$(grep -E '^(network-vpn-disabled|network-wireless-encrypted|view-reveal)-symbolic:(network-vpn|shield|network-wireless-signal|image-red-eye-symbolic)' "$mapa")"
+  [ -z "$enganam" ] \
+    && ok "$pack: nenhum nome de estado (VPN desligada, Wi-Fi protegido, mostrar senha) mostra o desenho de outro estado (VPN ligada, sinal cheio, olho riscado)" \
+    || falha "$pack: alias que mostra o estado errado" "$enganam"
+  fora_da_faixa="$(awk -F: '
+    $1 ~ /^battery-(caution|low|good|full)(-charging)?-symbolic$/ && match($2, /level-[0-9]+/) {
+      n = substr($2, RSTART + 6, RLENGTH - 6) + 0
+      if (($1 ~ /caution/ && n > 20) || ($1 ~ /low/ && (n < 20 || n > 29)) \
+          || ($1 ~ /good/ && (n < 30 || n > 59)) || ($1 ~ /full/ && n < 60)) print
+    }' "$mapa")"
+  [ -z "$fora_da_faixa" ] \
+    && ok "$pack: cada nome de bateria do UPower mostra um nível dentro da faixa dele (crítica até 20, baixa até 29, boa até 59)" \
+    || falha "$pack: nome de bateria do UPower ligado a um nível fora da faixa" "$fora_da_faixa"
 done
 
-[ "$verificados" -gt 0 ] || { printf 'pulado: nenhum fonte de applet nesta máquina\n'; exit 3; }
 if [ "$falhas" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$falhas" >&2
   exit 1
 fi
+[ "$pulados" = 0 ] || { printf 'pulado: %s applet(s) sem o fonte nesta máquina\n' "$pulados"; exit 3; }
 exit 0

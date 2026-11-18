@@ -22,8 +22,8 @@ battery-empty-symbolic:battery-level-0-symbolic:alias
 battery-full-charged-symbolic:battery-level-100-charged-symbolic:alias
 battery-full-charging-symbolic:battery-level-100-charged-symbolic:alias
 battery-full-symbolic:battery-level-100-symbolic:alias
-battery-good-charging-symbolic:battery-level-70-charging-symbolic:alias
-battery-good-symbolic:battery-level-70-symbolic:alias
+battery-good-charging-symbolic:battery-level-40-charging-symbolic:alias
+battery-good-symbolic:battery-level-40-symbolic:alias
 battery-level-0-symbolic:battery-level-0-symbolic:alias
 battery-level-10-symbolic:battery-level-10-symbolic:alias
 battery-level-100-symbolic:battery-level-100-symbolic:alias
@@ -134,14 +134,12 @@ microphone-sensitivity-muted-symbolic:microphone-sensitivity-muted-symbolic
 multimedia-player-symbolic:multimedia-player-symbolic
 navbar-closed-symbolic:sidebar-hide-symbolic
 navbar-open-symbolic:sidebar-show-symbolic
-network-vpn-disabled-symbolic:network-vpn-symbolic:alias
 network-vpn-symbolic:network-vpn-symbolic
 network-wired-disconnected-symbolic:network-wired-disconnected-symbolic
 network-wired-symbolic:network-wired-symbolic
 network-wireless-acquiring-symbolic:network-wireless-acquiring-symbolic
 network-wireless-disabled-symbolic:network-wireless-disconnected-symbolic:alias
 network-wireless-disconnected-symbolic:network-wireless-disconnected-symbolic
-network-wireless-encrypted-symbolic:network-wireless-signal-excellent-symbolic:alias
 network-wireless-error-symbolic:network-wireless-error-symbolic
 network-wireless-offline-symbolic:network-wireless-disconnected-symbolic:alias
 network-wireless-signal-excellent-symbolic:network-wireless-signal-excellent-symbolic
@@ -214,7 +212,6 @@ view-more-horizontal-symbolic:view-more-symbolic
 view-more-symbolic:view-more-horizontal-symbolic
 view-refresh-symbolic:view-refresh-symbolic
 view-restore-symbolic:window-restore-symbolic:alias
-view-reveal-symbolic:image-red-eye-symbolic:alias
 window-close-symbolic:window-close-symbolic
 window-maximize-symbolic:window-maximize-symbolic
 window-minimize-symbolic:window-minimize-symbolic
