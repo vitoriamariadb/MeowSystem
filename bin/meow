@@ -1208,7 +1208,7 @@ _pacotes_faltando() {
     [ -n "$bin" ] && [ -n "$pac" ] || continue
     meow_tem "$bin" || faltam+=("$pac")
   done < "$lista"
-  [ -d /usr/share/icons/Papirus-Dark ] || faltam+=(papirus-icon-theme)
+  [ -d "${MEOW_ICONES_SISTEMA:-/usr/share/icons}/Papirus-Dark" ] || faltam+=(papirus-icon-theme)
   python3 -I -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
   [ -d /usr/share/fonts/opentype/fira ] || ! apt-cache show pop-fonts >/dev/null 2>&1 \
     || faltam+=(pop-fonts)
