@@ -546,3 +546,17 @@ sempre neste repositório — tema pessoal, não publicado.
 | `icones/biblioteca/whatsapp.svg` | antes em `icones/sistema/arcticons/whatsapp.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `cf868a8b7c78a0166c1e99a662e1325f6110cf9ea33bbfeee917956be1c4bbdc` |
 | `icones/biblioteca/writer.svg` | antes em `icones/apps/arcticons/writer.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `08531f8d373113f1e10f280b97d655c73336cc7c46421fc5696c82ac45c19964` |
 | `icones/biblioteca/zip.svg` | antes em `icones/apps/arcticons/zip.svg`; uma versão por ícone, P96 (23/10/2026) |  | GPL-3.0 | 2026-10-23 | `003b7b15f3c39c79f3402b690c9a702d60ed7eabf121fdea40e072193b99ac39` |
+
+## Os papéis de parede em par dia e noite — P234 (17/11/2026)
+
+Desenho deste projeto, sem bitmap embutido, 3840×2160 de `viewBox`. O par de uma cena tem a mesma composição; muda a
+luz. A ficha de cada cena está no `CREDITOS.md`.
+
+| arquivo | de onde | lido de | licença | copiado em | sha256 |
+|---|---|---|---|---|---|
+| `wallpapers/pares/telhados-dia.svg` | desenho deste projeto, gerado em código (formas, gradientes e padrões), nas cores do flavor `latte` da `paleta.json`; par dia da cena `telhados` (P234, 17/11/2026) |  | GPL-3.0-or-later | 2026-11-17 | `33c304f20d2ceeddaca587f4b0e1c236490128d26bfd5f173a0656bb27c2a9e9` |
+| `wallpapers/pares/telhados-noite.svg` | desenho deste projeto, gerado em código (formas, gradientes e padrões), nas cores do flavor `mocha` da `paleta.json`; par noite da cena `telhados` (P234, 17/11/2026) |  | GPL-3.0-or-later | 2026-11-17 | `bb2f987717e8fbe3c4330a5078ef850042e06f23b22b6d7e84521280e501b2c8` |
+| `wallpapers/pares/janela-dia.svg` | desenho deste projeto, gerado em código (formas, gradientes e padrões), nas cores do flavor `latte` da `paleta.json`; par dia da cena `janela` (P234, 17/11/2026) |  | GPL-3.0-or-later | 2026-11-17 | `0deeb133ab71b69a572890fc0ee8ebe1e89c191ddc4ef530e8de8a5595c80e9b` |
+| `wallpapers/pares/janela-noite.svg` | desenho deste projeto, gerado em código (formas, gradientes e padrões), nas cores do flavor `mocha` da `paleta.json`; par noite da cena `janela` (P234, 17/11/2026) |  | GPL-3.0-or-later | 2026-11-17 | `79c5eb9e77d6e18cc9c23b4bd18f367c27042e8f0617799dd8119df35af58187` |
+| `wallpapers/pares/patinhas-dia.svg` | desenho deste projeto, gerado em código (formas, gradientes e padrões), nas cores do flavor `latte` da `paleta.json`; par dia da cena `patinhas` (P234, 17/11/2026) |  | GPL-3.0-or-later | 2026-11-17 | `3eb2a7f171baa578d7b385be084d281439e24edc70182b5d7a6294a042c93096` |
+| `wallpapers/pares/patinhas-noite.svg` | desenho deste projeto, gerado em código (formas, gradientes e padrões), nas cores do flavor `mocha` da `paleta.json`; par noite da cena `patinhas` (P234, 17/11/2026) |  | GPL-3.0-or-later | 2026-11-17 | `71f7a5a3a331ba92b658672eba76b044f4d36427029cb858dcaa396ad363103a` |
