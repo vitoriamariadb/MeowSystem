@@ -1201,10 +1201,10 @@ desenho deste projeto, com o corpo das sete path a path (as costas no
 | arquivo | desenho de | licença | desde | o símbolo |
 |---|---|---|---|---|
 | `icones/sistema/folder.svg` | desenho deste projeto | GPL-3.0 | 2026-10-09 | nenhum: é a pasta comum, só o corpo |
-| `icones/sistema/user-desktop.svg` | desenho deste projeto | GPL-3.0 | 2026-10-09 | o monitor, a tela no `sky` `#8BE9FD` e a moldura no `text` `#F8F8F2` |
+| `icones/sistema/user-desktop.svg` | desenho deste projeto | GPL-3.0 | 2026-10-09 | o espelho gótico largo num pé, que lê como tela (P237, 17/11/2026): a moldura e o pé no `mauve` `#BD93F9`, o remate no `lavender` `#D6ACFF`, o vidro no `sky` `#8BE9FD`, o reflexo no `text` `#F8F8F2` |
 | `icones/apps/discord-b.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `ed90ae11fb78d1eace76f8348ace3b36b9e2b57873afc03ee52254d0d7dacdb6` |
 | `icones/apps/org.gnome.Nautilus.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `83d560953d1e340d9912a8fba54c20d8c5e6e746750a840608b7373cc83dc3b2` |
-| `icones/sistema/user-home.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `01628153ac3657b43f8b57618b66c26f6af0f88b8c4b815e4eecf0693956d232` |
+| `icones/sistema/user-home.svg` | desenho deste projeto | GPL-3.0 | 2026-11-17 | o castelo na colina (P237): o castelo no `mauve` `#BD93F9`, a janela acesa e a lua no `yellow` `#F1FA8C`, a colina no `mantle` `#21222C` |
 | `icones/biblioteca/discord-c.svg` | rascunho de `.trabalho-icones/svg/`, escolhido por quem usa em 23/10/2026; fonte: P96 |  | GPL-3.0 | 2026-10-23 | `a95a5d3627d5a52e75df661d6bd91298028b6ef98cd316c0c8fe747fb236789e` |
 | `icones/biblioteca/guvcview-2.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `0837663a400537c5b16267dbcc93449ba6a0e2e1ff1921883e499e99c358fd86` |
 | `icones/apps/com.beholder.app.svg` | manuais-final (a arte do Dracula feita à mão, entregue em 23/10/2026); fonte: P96 |  | GPL-3.0 | 2026-10-23 | `628f8875287e7df8738676b75f6a5a9efaecc294871745ef5b58b2a28abf29b3` |
@@ -1216,10 +1216,24 @@ desenho deste projeto, com o corpo das sete path a path (as costas no
 
 **A borda das dez — 16/11/2026, P208.** Sobre o fundo do lançador (`#3b3552`) a aba e o corpo sumiam. As costas e a frente das dez (`folder`, os sete `folder-*`, `user-home`, `user-desktop`) ganham o mesmo traço de 1,5 em `#A267F6`, o mauve do meio entre o do `dracula` (`#BD93F9`) e o do `alucard` (`#853AF2`): 3,2:1 contra `#3b3552` e 3,19:1 contra o `base` do `alucard` (`#F0F0F6`). A borda da frente risca a aba; a silhueta e os símbolos não mudam.
 
-**O que ficou fora da paleta, dito para não parecer esquecido.** No
-`folder-download.svg`, o castelo (`#423E4D`, a 0,0222 do `surface0`) e a lua
-(`#DDA442`, a 0,0829 do `peach`) não são o corpo, e não mudaram. Com a frente no
-`surface1`, o castelo ficou a 1,13:1 dela, onde estava a 1,26:1.
+**As nove ganham cena — 17/11/2026, P237.** O glifo chapado no meio de cada pasta especial vira uma cena no traço
+da casa assombrada do `folder.svg`, desenho deste projeto (GPL-3.0), gerada forma a forma por script. O corpo e a
+borda não mudam: as costas no `surface0`, a frente no `surface1`, o traço de 1,5 em `#A267F6`. Todo tom da cena é
+slot do flavor `dracula`; nada fica fora da paleta. A colina do `folder.svg`, no `surface0`, fica atrás de cada cena
+(menos no retrato, que pende na parede, e no castelo, que tem a dele). Cada pasta guarda a cor de antes, que é o que
+lê em 16 px, e o objeto que diz o papel (a seta, a colcheia, a moldura, a tela) é o que sobra em 16 px:
+
+| arquivo | a cena | as cores |
+|---|---|---|
+| `icones/sistema/folder-documents.svg` | grimório aberto, marcador e vela acesa | páginas no `text`, linhas e lombada no `blue`, capa no `mauve`, marcador no `red`, castiçal no `peach`, chama no `yellow` e no `peach` |
+| `icones/sistema/folder-download.svg` | morcego mergulhando de cabeça: o corpo é a haste, as asas a ponta da seta, as orelhas o bico; a bandeja em U embaixo | morcego e bandeja no `green`, olhos e nervuras das asas no `base` |
+| `icones/sistema/folder-music.svg` | órgão de tubos e uma colcheia dupla no ar | tubos no `mauve` e no `lavender`, console no `base`, teclado no `text`, colcheia no `pink`, nota pequena no `yellow` |
+| `icones/sistema/folder-pictures.svg` | retrato com frontão, pendurado num prego, lua sobre as colinas | moldura, cordão e prego no `peach`, céu e cravos no `base`, lua no `yellow`, colinas no `blue` |
+| `icones/sistema/folder-publicshare.svg` | corvo mensageiro diante da lua, carta no bico | corvo no `mantle`, lua e olho no `yellow`, carta no `text` com o lacre no `red` |
+| `icones/sistema/folder-templates.svg` | castiçal aceso e, ao lado, o molde dele em tracejado | vela no `text`, castiçal no `peach`, chama no `yellow` e no `peach`, molde no `mauve` |
+| `icones/sistema/folder-videos.svg` | lanterna mágica projetando um morcego | lanterna no `peach`, lente no `base` com o brilho no `yellow`, facho e projeção no `yellow`, morcego no `mantle` |
+| `icones/sistema/user-home.svg` | o castelo na colina com uma janela acesa | ver a linha dele acima |
+| `icones/sistema/user-desktop.svg` | espelho gótico de moldura ornada | ver a linha dele acima |
 
 **O resgate do Nautilus foi junto — 25/09/2026, sprint P65.** A tabela acima
 dizia «nada mais no desenho mudou», e as aberturas do castelo tinham mudado
@@ -1228,7 +1242,7 @@ com a frente; a frase agora as conta. E o mesmo desenho mora fora deste pack:
 antes da P61 sem a seta — o corpo, a lua, o castelo e as aberturas, path a path,
 conferido por `diff` —, e seguia com o `#433F4D` e o `#534B62`. Passou aos mesmos
 dois slots, pela mesma medida: as costas no `surface0`, a frente e as aberturas
-no `surface1`; o castelo e a lua ficaram, como aqui. O resgate é decalque de um
+no `surface1`; o castelo e a lua ficaram. O resgate é decalque de um
 PNG que ela customizou na paleta do Dracula (a autoria `terceiro` do
 `assets/icones/apps-resgatados.map`), aceito com RMSE de até 0,15 contra o
 original a 256 px. O PNG de origem não está mais no disco, mas a troca mede

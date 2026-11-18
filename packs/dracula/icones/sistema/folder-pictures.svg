@@ -2,6 +2,18 @@
   <title>folder-pictures — pasta Imagens</title>
   <path fill="#383a4c" d="M 0.91,7.27 A 3.22,3.22 0 0 1 4.13,4.05 L 14.59,4.05 Q 15.55,4.05 16.2,4.69 L 19.84,8.29 Q 20.49,8.93 21.45,8.93 L 43.71,8.93 A 3.22,3.22 0 0 1 46.93,12.15 L 46.93,39.55 A 4.29,4.29 0 0 1 42.64,43.84 L 5.2,43.84 A 4.29,4.29 0 0 1 0.91,39.55 Z" stroke="#A267F6" stroke-width="1.5" stroke-linejoin="round"/>
   <path fill="#44475a" d="M 0.91,16.44 A 4.08,4.08 0 0 1 4.99,12.36 L 42.85,12.36 A 4.08,4.08 0 0 1 46.93,16.44 L 46.93,39.55 A 4.29,4.29 0 0 1 42.64,43.84 L 5.2,43.84 A 4.29,4.29 0 0 1 0.91,39.55 Z" stroke="#A267F6" stroke-width="1.5" stroke-linejoin="round"/>
-  <circle fill="#F1FA8C" cx="29.2" cy="26.4" r="2.7"/>
-  <path fill="#F8F8F2" d="M 16,38 L 21.3,26.8 L 25.2,34.2 L 27.6,30.6 L 32,38 Z"/>
+  <path fill="none" stroke="#ffb86c" stroke-width="0.9" stroke-linejoin="round" d="M 14.6,21 L 24,15.4 L 33.4,21"/>
+  <circle fill="#ffb86c" cx="24" cy="15.4" r="1.1"/>
+  <rect fill="#ffb86c" x="10" y="20.2" width="28" height="20" rx="1.4"/>
+  <path fill="#ffb86c" d="M 20.4,20.6 Q 24,15.6 27.6,20.6 Z"/>
+  <rect fill="#282a36" x="12.6" y="22.8" width="22.8" height="14.8" rx="0.4"/>
+  <circle fill="#f1fa8c" cx="29.8" cy="27" r="3"/>
+  <circle fill="#282a36" cx="31.1" cy="26" r="2.5"/>
+  <path fill="#6272a4" d="M 12.6,37.6 L 12.6,33.6 Q 16.4,29 20.2,32.4 Q 24.4,28 28.8,31.8 Q 32.4,30 35.4,32.4 L 35.4,37.6 Z"/>
+  <g fill="#282a36">
+    <circle cx="11.3" cy="21.5" r="0.55"/>
+    <circle cx="36.7" cy="21.5" r="0.55"/>
+    <circle cx="11.3" cy="38.9" r="0.55"/>
+    <circle cx="36.7" cy="38.9" r="0.55"/>
+  </g>
 </svg>
