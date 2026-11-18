@@ -222,7 +222,7 @@ system-log-out-symbolic:system-log-out-symbolic
 system-reboot-symbolic:system-reboot-symbolic
 system-restart-symbolic:system-restart-symbolic
 system-search-symbolic:system-search-symbolic
-system-shutdown-symbolic:system-shutdown-symbolic
+system-shutdown-symbolic:system-shutdown-punhal
 system-suspend-symbolic:system-suspend-symbolic
 system-users-symbolic:system-users-symbolic
 tablet-symbolic:tablet-symbolic
@@ -235,7 +235,7 @@ video-x-generic-symbolic:video-x-generic-symbolic
 view-app-grid-symbolic:preferences-desktop-apps-symbolic:alias
 view-fullscreen-symbolic:window-maximize-symbolic:alias
 view-list-symbolic:view-list-symbolic
-view-more-horizontal-symbolic:view-more-symbolic
+view-more-horizontal-symbolic:view-more-luas
 view-more-symbolic:view-more-horizontal-symbolic
 view-refresh-symbolic:view-refresh-symbolic
 view-restore-symbolic:window-restore-symbolic:alias
