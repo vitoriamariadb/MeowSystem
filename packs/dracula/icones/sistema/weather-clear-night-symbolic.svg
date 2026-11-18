@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>weather-clear-night-symbolic — noite limpa: a lua crescente com um morcego atravessando o céu</title>
+  <path fill="currentColor" d="M6.64,2.61 A6.4,6.4 0 1 0 13.2,10.58 A5.2,5.2 0 0 1 6.64,2.61 Z"/>
+  <path fill="currentColor" transform="translate(12 3.6) scale(0.91) translate(-8 -13.35)" d="M 8,12.36 L 8.68,11.28 L 8.95,12.36 Q 9.53,12.63 9.98,12.36 Q 10.79,11.91 11.51,11.1 Q 11.2,12.27 11.29,13.53 Q 10.57,12.99 10.07,14.02 Q 9.44,13.44 8.95,14.43 Q 8.72,15.24 8,15.6 Q 7.28,15.24 7.05,14.43 Q 6.56,13.44 5.93,14.02 Q 5.44,12.99 4.71,13.53 Q 4.8,12.27 4.49,11.1 Q 5.21,11.91 6.02,12.36 Q 6.47,12.63 7.05,12.36 L 7.33,11.28 L 8,12.36 Z"/>
+  <path fill="currentColor" d="M14.2,8.6 L14.6,9.6 L15.6,10 L14.6,10.4 L14.2,11.4 L13.8,10.4 L12.8,10 L13.8,9.6 Z"/>
+</svg>

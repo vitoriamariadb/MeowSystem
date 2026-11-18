@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>disks-symbolic — discos: um caixão com o prato do disco aberto no tampo</title>
+  <path fill="currentColor" fill-rule="evenodd" d="M5.4,0.5 H10.6 L13.2,4.6 L11,15.5 H5 L2.8,4.6 Z M8,3.5 A3.4,3.4 0 1 0 8,10.3 A3.4,3.4 0 1 0 8,3.5 Z M6.2,12.1 H9.8 V13.3 H6.2 Z"/>
+  <circle fill="currentColor" cx="8" cy="6.9" r="1.2"/>
+</svg>

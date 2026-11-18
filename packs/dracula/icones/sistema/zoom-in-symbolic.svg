@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>zoom-in-symbolic — ampliar: a lupa com o cabo de estaca e a cruz de mais na lente</title>
+  <path fill="currentColor" fill-rule="evenodd" d="M6.5,0.8 A5.7,5.7 0 1 0 6.5,12.2 A5.7,5.7 0 1 0 6.5,0.8 Z M6.5,2.4 A4.1,4.1 0 1 1 6.5,10.6 A4.1,4.1 0 1 1 6.5,2.4 Z"/>
+  <path fill="currentColor" d="M5.8,4.2 H7.2 V5.8 H8.8 V7.2 H7.2 V8.8 H5.8 V7.2 H4.2 V5.8 H5.8 Z"/>
+  <path fill="currentColor" d="M9.9,11.5 L11.5,9.9 L14.8,13.2 L15.7,15.7 L13.2,14.8 Z"/>
+</svg>

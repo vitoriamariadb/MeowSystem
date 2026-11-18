@@ -1,6 +1,7 @@
 # nome que o COSMIC pede : desenho em icones/sistema/ [: alias, quando o desenho se repete de propósito]
 # A lista inteira é assets/contratos/nomes-de-sistema.tsv; os desenhos são do dracula-icons (circle, 00a230a2) e os que faltam lá, no mesmo traço.
 
+accessories-screenshot-symbolic:accessories-screenshot-symbolic
 airplane-mode-disabled-symbolic:airplane-mode-disabled-symbolic
 airplane-mode-symbolic:airplane-mode-symbolic
 application-x-executable-symbolic:application-x-executable-symbolic:alias
@@ -37,6 +38,7 @@ battery-level-80-symbolic:battery-level-80-symbolic:alias
 battery-level-90-symbolic:battery-level-90-symbolic:alias
 battery-low-charging-symbolic:battery-level-20-charging-symbolic:alias
 battery-low-symbolic:battery-level-20-symbolic:alias
+battery-missing-symbolic:battery-missing-symbolic
 battery-symbolic:battery-symbolic
 bluetooth-active-symbolic:bluetooth-active-symbolic:alias
 bluetooth-disabled-symbolic:bluetooth-disabled-symbolic:alias
@@ -94,15 +96,18 @@ cosmic-applet-notification-disabled-symbolic:notification-disabled-symbolic
 cosmic-applet-notification-new-symbolic:notification-new-symbolic
 cosmic-applet-notification-symbolic:notification-symbolic
 dialog-error-symbolic:dialog-error-symbolic
+disks-symbolic:disks-symbolic
 display-brightness-symbolic:display-brightness-symbolic
 display-symbolic:video-display-symbolic
 document-edit-symbolic:edit-symbolic:alias
 document-properties-symbolic:document-properties-symbolic
+drive-harddisk-usb-symbolic:drive-harddisk-usb-symbolic
 edit-clear-all-symbolic:edit-clear-symbolic:alias
 edit-clear-symbolic:edit-clear-symbolic
 edit-copy-symbolic:edit-copy-symbolic
 edit-delete-symbolic:edit-delete-symbolic
 edit-symbolic:edit-symbolic
+edit-undo-symbolic:edit-undo-symbolic
 emblem-ok-symbolic:emblem-ok-symbolic
 emblem-system-symbolic:system-run-symbolic:alias
 folder-new-symbolic:folder-new-symbolic
@@ -123,6 +128,7 @@ keyboard-brightness-symbolic:keyboard-brightness-symbolic
 laptop-symbolic:laptop-symbolic
 list-add-symbolic:list-add-symbolic
 list-remove-symbolic:list-remove-symbolic
+media-eject-symbolic:media-eject-symbolic
 media-playback-pause-symbolic:media-playback-pause-symbolic
 media-playback-start-symbolic:media-playback-start-symbolic
 media-skip-backward-symbolic:media-skip-backward-symbolic
@@ -131,15 +137,18 @@ microphone-sensitivity-high-symbolic:microphone-sensitivity-high-symbolic
 microphone-sensitivity-low-symbolic:microphone-sensitivity-low-symbolic
 microphone-sensitivity-medium-symbolic:microphone-sensitivity-medium-symbolic
 microphone-sensitivity-muted-symbolic:microphone-sensitivity-muted-symbolic
+minus-symbolic:minus-symbolic
 multimedia-player-symbolic:multimedia-player-symbolic
 navbar-closed-symbolic:sidebar-hide-symbolic
 navbar-open-symbolic:sidebar-show-symbolic
+network-vpn-disabled-symbolic:vpn-desligada-symbolic
 network-vpn-symbolic:network-vpn-symbolic
 network-wired-disconnected-symbolic:network-wired-disconnected-symbolic
 network-wired-symbolic:network-wired-symbolic
 network-wireless-acquiring-symbolic:network-wireless-acquiring-symbolic
 network-wireless-disabled-symbolic:network-wireless-disconnected-symbolic:alias
 network-wireless-disconnected-symbolic:network-wireless-disconnected-symbolic
+network-wireless-encrypted-symbolic:network-wireless-encrypted-symbolic
 network-wireless-error-symbolic:network-wireless-error-symbolic
 network-wireless-offline-symbolic:network-wireless-disconnected-symbolic:alias
 network-wireless-signal-excellent-symbolic:network-wireless-signal-excellent-symbolic
@@ -148,6 +157,7 @@ network-wireless-signal-none-symbolic:network-wireless-signal-none-symbolic
 network-wireless-signal-ok-symbolic:network-wireless-signal-ok-symbolic
 network-wireless-signal-weak-symbolic:network-wireless-signal-weak-symbolic
 network-wireless-symbolic:network-wireless-symbolic
+network-workgroup-symbolic:network-workgroup-symbolic
 notification-disabled-symbolic:notification-disabled-symbolic:alias
 notification-new-symbolic:notification-new-symbolic:alias
 notification-symbolic:notification-symbolic:alias
@@ -208,12 +218,16 @@ video-display-symbolic:video-display-symbolic:alias
 video-x-generic-symbolic:video-x-generic-symbolic
 view-app-grid-symbolic:preferences-desktop-apps-symbolic:alias
 view-fullscreen-symbolic:window-maximize-symbolic:alias
+view-list-symbolic:view-list-symbolic
 view-more-horizontal-symbolic:view-more-symbolic
 view-more-symbolic:view-more-horizontal-symbolic
 view-refresh-symbolic:view-refresh-symbolic
 view-restore-symbolic:window-restore-symbolic:alias
+view-reveal-symbolic:view-reveal-symbolic
+weather-clear-night-symbolic:weather-clear-night-symbolic
 window-close-symbolic:window-close-symbolic
 window-maximize-symbolic:window-maximize-symbolic
 window-minimize-symbolic:window-minimize-symbolic
 window-pop-out-symbolic:window-pop-out-symbolic
 window-restore-symbolic:window-restore-symbolic
+zoom-in-symbolic:zoom-in-symbolic

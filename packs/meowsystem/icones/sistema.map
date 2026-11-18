@@ -1,6 +1,7 @@
 # nome que o COSMIC pede : desenho em icones/sistema/ [: alias, quando o desenho se repete de propósito]
 # A lista inteira é assets/contratos/nomes-de-sistema.tsv; cada família de estado mora aqui inteira, num traço só.
 
+accessories-screenshot-symbolic:accessories-screenshot
 airplane-mode-disabled-symbolic:airplane-mode-disabled
 airplane-mode-symbolic:airplane-mode
 application-x-executable-symbolic:preferences-X11-applications:alias
@@ -37,6 +38,7 @@ battery-level-80-symbolic:cosmic-applet-battery-level-80:alias
 battery-level-90-symbolic:cosmic-applet-battery-level-90:alias
 battery-low-charging-symbolic:cosmic-applet-battery-level-20-charging:alias
 battery-low-symbolic:cosmic-applet-battery-level-20:alias
+battery-missing-symbolic:battery-missing
 battery-symbolic:cosmic-applet-battery-level-100:alias
 bluetooth-active-symbolic:cosmic-applet-bluetooth-active:alias
 bluetooth-disabled-symbolic:cosmic-applet-bluetooth-disabled:alias
@@ -94,16 +96,20 @@ cosmic-applet-notification-disabled-symbolic:cosmic-applet-notification-disabled
 cosmic-applet-notification-new-symbolic:cosmic-applet-notification-new
 cosmic-applet-notification-symbolic:cosmic-applet-notification
 dialog-error-symbolic:dialog-error
+disks-symbolic:disks
 display-brightness-symbolic:cosmic-applet-battery-display-brightness-high:alias
 display-symbolic:tv:alias
 document-edit-symbolic:edit:alias
 document-properties-symbolic:document-properties
+drive-harddisk-usb-symbolic:drive-harddisk-usb
 edit-clear-all-symbolic:edit-clear:alias
 edit-clear-symbolic:edit-clear
 edit-copy-symbolic:edit-copy
 edit-delete-symbolic:edit-delete
 edit-symbolic:edit
+edit-undo-symbolic:edit-undo
 emblem-ok-symbolic:emblem-ok
+emblem-system-symbolic:emblem-system
 folder-new-symbolic:folder-new
 folder-symbolic:folder
 go-down-symbolic:go-down
@@ -122,6 +128,7 @@ keyboard-brightness-symbolic:keyboard-brightness
 laptop-symbolic:laptop
 list-add-symbolic:list-add
 list-remove-symbolic:list-remove
+media-eject-symbolic:media-eject
 media-playback-pause-symbolic:media-playback-pause
 media-playback-start-symbolic:media-playback-start
 media-skip-backward-symbolic:media-skip-backward
@@ -130,15 +137,18 @@ microphone-sensitivity-high-symbolic:microphone-sensitivity-high
 microphone-sensitivity-low-symbolic:microphone-sensitivity-low
 microphone-sensitivity-medium-symbolic:microphone-sensitivity-medium
 microphone-sensitivity-muted-symbolic:microphone-sensitivity-muted
+minus-symbolic:minus
 multimedia-player-symbolic:multimedia-player
 navbar-closed-symbolic:navbar-closed
 navbar-open-symbolic:navbar-open
+network-vpn-disabled-symbolic:vpn-desligada
 network-vpn-symbolic:shield:alias
 network-wired-disconnected-symbolic:network-wired-disconnected
 network-wired-symbolic:network-wired
 network-wireless-acquiring-symbolic:network-wireless-acquiring
 network-wireless-disabled-symbolic:network-wireless-disconnected:alias
 network-wireless-disconnected-symbolic:network-wireless-disconnected
+network-wireless-encrypted-symbolic:network-wireless-encrypted
 network-wireless-error-symbolic:network-wireless-error
 network-wireless-offline-symbolic:network-wireless-disconnected:alias
 network-wireless-signal-excellent-symbolic:network-wireless-signal-excellent
@@ -147,6 +157,7 @@ network-wireless-signal-none-symbolic:network-wireless-signal-none
 network-wireless-signal-ok-symbolic:network-wireless-signal-ok
 network-wireless-signal-weak-symbolic:network-wireless-signal-weak
 network-wireless-symbolic:network-wireless-signal-excellent:alias
+network-workgroup-symbolic:network-workgroup
 notification-disabled-symbolic:cosmic-applet-notification-disabled:alias
 notification-new-symbolic:cosmic-applet-notification-new:alias
 notification-symbolic:cosmic-applet-notification:alias
@@ -174,6 +185,7 @@ preferences-region-and-language-symbolic:translate
 preferences-sound-symbolic:volume
 preferences-startup-applications-symbolic:rocket-traco
 preferences-system-notifications-symbolic:cosmic-applet-notification:alias
+preferences-system-symbolic:preferences-system
 preferences-system-time-symbolic:clock:alias
 preferences-time-and-language-symbolic:clock
 preferences-vpn-symbolic:shield
@@ -206,13 +218,16 @@ video-display-symbolic:video-display
 video-x-generic-symbolic:video-x-generic
 view-app-grid-symbolic:apps:alias
 view-fullscreen-symbolic:window-maximize:alias
+view-list-symbolic:view-list
 view-more-horizontal-symbolic:view-more-horizontal
 view-more-symbolic:view-more
 view-refresh-symbolic:view-refresh
 view-restore-symbolic:window-restore:alias
 view-reveal-symbolic:image-red-eye:alias
+weather-clear-night-symbolic:weather-clear-night
 window-close-symbolic:window-close
 window-maximize-symbolic:window-maximize
 window-minimize-symbolic:window-minimize
 window-pop-out-symbolic:window-pop-out
 window-restore-symbolic:window-restore
+zoom-in-symbolic:zoom-in
