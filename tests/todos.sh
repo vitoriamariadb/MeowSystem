@@ -61,6 +61,7 @@ PORTATIL=(
   autostart.sh
   arquivos-filhos.sh
   icones-do-sistema.sh
+  vagas-novas.sh
   compositor-shim.sh
   janela-sem-app-id.sh
   nomes-nas-duas-telas.sh
@@ -119,6 +120,8 @@ PORTATIL=(
   apagar-papel.sh
   mapas-fim-de-linha.sh
   wallpaper-base.sh
+  papel-em-par.sh
+  creditos-dos-papeis.sh
   gpu-do-compositor.sh
   graficos.sh
   dock.sh

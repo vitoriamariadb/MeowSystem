@@ -8,7 +8,8 @@ CONTRATO = os.path.join(RAIZ, "assets", "contratos", "nomes-de-sistema.tsv")
 TEMAS = ("Papirus-Dark", "Papirus", "Cosmic", "Adwaita", "hicolor", "breeze-dark")
 PROGRAMAS = ("cosmic-applets", "cosmic-osd", "cosmic-panel", "cosmic-notifications",
              "cosmic-settings", "cosmic-app-library", "cosmic-launcher")
-GRUPOS = {"barra": "Barra e bandeja", "configuracoes": "Configurações", "botoes": "Botões e janelas"}
+GRUPOS = {"barra": "Barra e bandeja", "configuracoes": "Configurações", "janela": "Botões da janela",
+          "botoes": "Botões e janelas"}
 AJUDA = """uso: inventario_do_sistema.py medir | conferir | relatorio <saida.md>
 
   medir      lista os nomes de ícone simbólico que os programas do COSMIC pedem

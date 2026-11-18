@@ -465,7 +465,8 @@ async function carregarAcervo() {
     + `&cores=${encodeURIComponent(JSON.stringify(vinteSeis()))}`;
   const r = await api(`/api/criar?${consulta}`);
   if (!ACERVO || ACERVO.chave !== chave) return;
-  ACERVO = r.erro ? { chave, sistema: [], biblioteca: [] } : { chave, sistema: r.sistema || [], biblioteca: r.biblioteca || [] };
+  ACERVO = r.erro ? { chave, sistema: [], biblioteca: [], textos: [] }
+    : { chave, sistema: r.sistema || [], biblioteca: r.biblioteca || [], textos: r.textos || [] };
   render();
 }
 let PREVIA_DO_RASCUNHO = null;
@@ -524,8 +525,53 @@ function trocarDesenhoDoTema(pasta, nome) {
 }
 let DESENHO_ABERTO = null;
 let DESENHO_ESCOLHIDO = null;
-const GRUPOS_DE_SISTEMA = [["barra", "Barra e bandeja"], ["configuracoes", "Configurações"], ["botoes", "Botões e janelas"],
-  ["pastas", "Pastas"], ["tipos", "Tipos de arquivo"]];
+const GRUPOS_DE_SISTEMA = [["barra", "Barra e bandeja"], ["configuracoes", "Configurações"], ["janela", "Botões da janela"],
+  ["botoes", "Botões e janelas"], ["soneca", "Soneca"], ["pastas", "Pastas"], ["tipos", "Tipos de arquivo"]];
+const BARRAS_DE_TITULO = [["Janela", ["list-add-symbolic"], ["window-minimize-symbolic", "window-maximize-symbolic", "window-close-symbolic"]],
+  ["Janela maximizada", [], ["window-minimize-symbolic", "window-restore-symbolic", "window-close-symbolic"]]];
+function barrasDeTitulo() {
+  const itens = (ACERVO && ACERVO.sistema) || [];
+  const paleta = vinteSeis();
+  const botaoDaBarra = (nome) => {
+    const i = itens.find((x) => x.nome === nome);
+    if (!i) return null;
+    return elemento("button", { type: "button", class: "botao-da-barra", "data-nome": nome, controle: "trocar:barra",
+      "aria-label": maiuscula(i.rotulo || nome), dica: maiuscula(i.rotulo || nome),
+      onclick: () => { DESENHO_ABERTO = { pasta: "sistema", nome }; DESENHO_ESCOLHIDO = null; render(); } },
+      [elemento("img", { src: i.url, alt: "", width: "16", height: "16" })]);
+  };
+  const caixa = elemento("div", { class: "barras-de-titulo" });
+  for (const [rotulo, esquerda, direita] of BARRAS_DE_TITULO) {
+    const barra = elemento("div", { class: "barra-de-titulo", role: "group", "aria-label": rotulo, "data-barra": rotulo }, [
+      elemento("div", { class: "lado" }, esquerda.map(botaoDaBarra)),
+      elemento("span", { class: "titulo", "aria-hidden": "true" }),
+      elemento("div", { class: "lado" }, direita.map(botaoDaBarra)),
+    ]);
+    if (paleta.mantle || paleta.base) barra.style.setProperty("--fundo-da-barra", paleta.mantle || paleta.base);
+    if (paleta.surface1) barra.style.setProperty("--titulo-da-barra", paleta.surface1);
+    caixa.append(barra);
+  }
+  return caixa;
+}
+function textosDaExtensao(t) {
+  const caixa = elemento("div", { class: "textos-da-extensao", role: "group", "aria-label": t.nome, "data-extensao": t.extensao });
+  for (const c of t.chaves) {
+    const campo = elemento("input", { type: "text", class: "campo", value: c.valor || "", placeholder: c.padrao,
+      maxlength: "32", "aria-label": c.padrao, dica: c.padrao, controle: `texto:${t.extensao}:${c.chave}` });
+    campo.addEventListener("change", async () => {
+      const valor = campo.value.trim();
+      if (valor === (c.valor || "")) return;
+      if (!rascunho().pack && !(await garantirPack())) return;
+      const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id: rascunho().pack, tipo: "textos",
+        extensao: t.extensao, textos: { [c.chave]: valor }, aprimorar: !emNovo() }) });
+      if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+      torrada(`${maiuscula(valor || c.padrao)}: salvo`, "ok");
+      await carregarAcervo();
+    });
+    caixa.append(elemento("label", { class: "texto-da-extensao" }, [elemento("span", { texto: c.padrao }), campo]));
+  }
+  return caixa;
+}
 const OUTRA_PASTA = { sistema: "biblioteca", biblioteca: "sistema" };
 const FICHA_ABA = {};
 function fichaDoDesenho(pasta, alvo) {
@@ -665,11 +711,18 @@ function passoIcones() {
     && ACERVO.chave === chaveDoAcervo() && (ACERVO[ABA_ICONES] || []).find((i) => i.nome === DESENHO_ABERTO.nome);
   if (alvo) return [cabeca, fichaNaJanela(fichaDoDesenho(ABA_ICONES, alvo))];
   if (ABA_ICONES === "sistema") {
-    const grades = GRUPOS_DE_SISTEMA.map(([id, titulo]) => [titulo, gradeDoAcervo("sistema", id)]);
-    const cheias = grades.filter(([, g]) => g.querySelector(".app"));
     const pronto = ACERVO && !ACERVO.carregando;
+    const textos = (pronto && ACERVO.textos) || [];
+    const grades = GRUPOS_DE_SISTEMA.map(([id, titulo]) => {
+      const g = gradeDoAcervo("sistema", id);
+      const cheia = !!g.querySelector(".app");
+      const t = BUSCA_ACERVO ? null : textos.find((x) => x.extensao === id);
+      const miolo = [id === "janela" && cheia ? barrasDeTitulo() : null, cheia || !t ? g : null, t ? textosDaExtensao(t) : null];
+      return [titulo, miolo.filter(Boolean), cheia || !!t];
+    });
+    const cheias = grades.filter(([, , cheia]) => cheia);
     const mostrar = cheias.length ? cheias : [[pronto ? "Sistema" : grades[0][0], grades[0][1]]];
-    return [cabeca, ...mostrar.map(([titulo, g]) => bloco(titulo, [elemento("div", { class: "corpo" }, [g])]))];
+    return [cabeca, ...mostrar.map(([titulo, miolo]) => bloco(titulo, [elemento("div", { class: "corpo" }, miolo)]))];
   }
   if (ABA_ICONES === "biblioteca") {
     return [cabeca, bloco("Biblioteca", [elemento("div", { class: "corpo" }, [gradeDoAcervo("biblioteca")])])];
@@ -741,14 +794,41 @@ function galeriaDoTemaNovo(pack) {
   }
   return grade;
 }
+let CREDITOS_PAPEIS = null;
+async function carregarCreditosDosPapeis() {
+  CREDITOS_PAPEIS = { carregando: true, papeis: [] };
+  const r = await api("/api/creditos-papeis");
+  CREDITOS_PAPEIS = { papeis: r.erro ? [] : r.papeis || [] };
+  render();
+}
+function dataCurta(iso) { return iso ? iso.split("-").reverse().join("/") : ""; }
+function creditosDosPapeis() {
+  if (!CREDITOS_PAPEIS) { carregarCreditosDosPapeis(); return null; }
+  if (!CREDITOS_PAPEIS.papeis.length) return null;
+  const lista = elemento("div", { class: "creditos-papeis" });
+  for (const p of CREDITOS_PAPEIS.papeis) {
+    const cena = maiuscula(p.cena);
+    const lado = (url, quando) => url ? elemento("img", { src: url, alt: `${cena}, ${quando}`, loading: "lazy", "data-lado": quando }) : null;
+    lista.append(elemento("figure", { class: "credito-papel", "data-cena": p.cena, "data-pack": p.pack }, [
+      elemento("div", { class: "par" + (p.noite ? "" : " so-um") }, [lado(p.dia, "de dia"), lado(p.noite, "de noite")]),
+      elemento("figcaption", {}, [
+        elemento("strong", { texto: cena }),
+        elemento("span", { texto: p.nome_do_pack }),
+        p.licenca ? elemento("span", { texto: p.licenca }) : null,
+        p.data ? elemento("time", { datetime: p.data, texto: dataCurta(p.data) }) : null,
+      ]),
+    ]));
+  }
+  return bloco("Autoria", [elemento("div", { class: "corpo" }, [lista])]);
+}
 function passoPapel() {
   if (emNovo()) {
     const pack = packDoRascunho();
     return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [galeriaDoTemaNovo(pack)])],
-      { direita: [botaoFotoDoTema()] })];
+      { direita: [botaoFotoDoTema()] }), creditosDosPapeis()].filter(Boolean);
   }
   return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria()])],
-    { direita: [botaoAcervo("parede", "Trazer imagens")] })];
+    { direita: [botaoAcervo("parede", "Trazer imagens")] }), creditosDosPapeis()].filter(Boolean);
 }
 let SONS = null;
 async function carregarSons(id) {

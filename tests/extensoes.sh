@@ -433,7 +433,36 @@ existe "soneca: o pino existe" "$pino"
 grep -qx 'PADRAO="sim"' "$pino" && grep -qx 'TIPO="applet"' "$pino" && grep -qx 'ORDEM=10' "$pino" && ok "soneca: applet, ligado por padrão, depois dos nove" || falha "soneca: TIPO/PADRAO/ORDEM"
 grep -qx 'APP_ID="io.github.meowsystem.Soneca"' "$pino" && grep -qx 'BIN="meowsystem-soneca"' "$pino" && grep -qx 'UPSTREAM=""' "$pino" && grep -qx 'SUBSTITUI=""' "$pino" && ok "soneca: app id, binário e nenhum upstream" || falha "soneca: APP_ID/BIN/UPSTREAM"
 grep -qx 'TEMA="io.github.meowsystem.Soneca"' "$pino" && grep -q '^TEMA_CHAVES="acento:@acento ' "$pino" && ok "soneca: tema e chaves" || falha "soneca: TEMA/TEMA_CHAVES"
-grep -qx 'ICONES="data/icones/io.github.meowsystem.Soneca-symbolic.svg:scalable/apps"' "$pino" && ok "soneca: o ícone simbólico vai para o hicolor" || falha "soneca: ICONES"
+grep -qx 'ICONES="data/icones/io.github.meowsystem.Soneca-symbolic.svg:scalable/apps data/icones/soneca-desperto-symbolic.svg:scalable/status data/icones/soneca-ronronar-symbolic.svg:scalable/status"' "$pino" \
+  && ok "soneca: o ícone do applet e o padrão dos dois modos vão para o hicolor" || falha "soneca: ICONES"
+grep -qx 'TEMA_TEXTOS="desperto:Desperto ronronar:Ronronar"' "$pino" && ok "soneca: os dois textos e o padrão de cada um" || falha "soneca: TEMA_TEXTOS"
+
+echo "== o texto dos modos da Soneca vem do pack, com Desperto e Ronronar de padrão"
+SH="$T/soneca-lar"; mkdir -p "$SH/.local/bin"
+printf '#!/bin/sh\n' > "$SH/.local/bin/meowsystem-soneca"; chmod 755 "$SH/.local/bin/meowsystem-soneca"
+SONECA_CONF="$SH/.config/meowsystem/extensoes/io.github.meowsystem.Soneca/tema.conf"
+SONECA() { env -i PATH="$PATH" HOME="$SH" NO_COLOR=1 USER=t XDG_CONFIG_HOME="$SH/.config" MEOW_ESTADO="$SH/estado" "$@" bash "$RAIZ/scripts/extensoes_tema.sh" 2>&1; }
+saida="$(SONECA PACK=dracula FLAVOR=dracula)"; igual "dracula: escreve o tema da Soneca" "$?" 1
+grep -qx 'texto_desperto = Desperto' "$SONECA_CONF" && grep -qx 'texto_ronronar = Descansando' "$SONECA_CONF" \
+  && ok "dracula: Desperto e Descansando no tema.conf" || falha "dracula: $(cat "$SONECA_CONF" 2>/dev/null)"
+saida="$(SONECA PACK=dracula FLAVOR=dracula)"; igual "dracula: a segunda passada não escreve" "$?" 0
+saida="$(SONECA PACK=meowsystem FLAVOR=mocha)"; igual "meowsystem: troca o tema" "$?" 1
+grep -q '^texto_' "$SONECA_CONF" && falha "meowsystem: texto sem o pack pedir: $(cat "$SONECA_CONF")" \
+  || ok "meowsystem: sem texto no pack, o applet fica com Desperto e Ronronar"
+grep -qx 'acento = #cba6f7' "$SONECA_CONF" && ok "meowsystem: as cores continuam no mesmo arquivo" || falha "meowsystem: $(cat "$SONECA_CONF")"
+NPS="$T/pinos-soneca"; mkdir -p "$NPS"; grep -v '^TEMA_TEXTOS=' "$pino" > "$NPS/soneca.pino"
+saida="$(SONECA EXTENSOES_PINOS="$NPS" PACK=dracula FLAVOR=dracula)"
+grep -q '^texto_' "$SONECA_CONF" && falha "pino sem TEMA_TEXTOS ainda levou texto" || ok "só vai o texto que o pino declara"
+TP="$T/packs-textos"; mkdir -p "$TP/meu" "$TP/torto"
+printf '{"formato": 2, "id": "meu", "nome": "Meu", "heranca": "dracula", "extensoes": {"soneca": {"textos": {"ronronar": "Sono"}}}}\n' > "$TP/meu/pack.json"
+printf '{"formato": 2, "id": "torto", "nome": "Torto", "heranca": "dracula", "extensoes": {"soneca": {"textos": {"ronronar": "linha\\nquebrada"}}}}\n' > "$TP/torto/pack.json"
+cp "$RAIZ/packs/dracula/paleta.json" "$TP/meu/"; cp "$RAIZ/packs/dracula/paleta.json" "$TP/torto/"
+igual "um pack herdeiro troca um texto e herda o outro" \
+  "$(MEOW_PACKS="$TP" python3 "$RAIZ/scripts/pack.py" textos meu soneca | paste -sd' ')" "desperto	Desperto ronronar	Sono"
+(cd "$RAIZ/scripts" && MEOW_PACKS="$TP" python3 -c 'import pack; pack.validar("meu", silencioso=True)' >/dev/null 2>&1) \
+  && ok "o validador aceita o texto de uma linha" || falha "o validador recusou o pack bom"
+(cd "$RAIZ/scripts" && MEOW_PACKS="$TP" python3 -c 'import pack; pack.validar("torto", silencioso=True)' >/dev/null 2>&1) \
+  && falha "o validador aceitou texto em duas linhas" || ok "o validador recusa texto em duas linhas"
 existe "soneca: o ícone do cartão" "$RAIZ/assets/extensoes/icones/soneca.svg"
 saida="$(ESTADO_FORK soneca)"; igual "soneca: o pino passa na validação" "$?" 0
 grep -qx "casa=1" <<< "$saida" && grep -qx "instalada=nao" <<< "$saida" && grep -qx "troca=" <<< "$saida" && ok "soneca: sem binário, nada a trocar" || falha "soneca: estado sem instalar: $saida"

@@ -2980,7 +2980,7 @@ def _acento_da_pagina(flavor, valores):
 
 EXT_CASA = os.path.join(RAIZ, "assets", "extensoes")
 EXT_CHAVES = ("NOME", "DESCRICAO", "URL", "COMMIT", "VERSAO", "APP_ID", "BIN", "UPSTREAM",
-              "SUBSTITUI", "DATA", "ORDEM", "TIPO", "PADRAO", "ATIVA", "PENDENCIA")
+              "SUBSTITUI", "DATA", "ORDEM", "TIPO", "PADRAO", "ATIVA", "PENDENCIA", "TEMA_TEXTOS")
 EXT_TIPOS_DE_BUILD = ("compositor", "menu", "graficos")
 RE_ID_EXT = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 EXT_GESTO = os.path.join(RAIZ, "scripts", "extensoes_gesto.sh")
@@ -3024,6 +3024,38 @@ def _ext_catalogo():
                 achados.append((0 if casa else 1, int(ordem) if ordem.isdigit() else 99, ident, casa, pino))
     achados.sort(key=lambda t: t[:3])
     return [(ident, casa, pino) for _g, _o, ident, casa, pino in achados]
+
+
+def _creditos_dos_papeis():
+    mod = modulo_pack()
+    if not mod:
+        return []
+    saida = []
+    for p in mod.papeis_para_os_creditos():
+        urls = {}
+        for lado in ("dia", "noite"):
+            if p[lado]:
+                _ICONES_DECLARADOS.add(os.path.normpath(p[lado]))
+                urls[lado] = "/previa?tipo=arquivo&id=" + quote(p[lado], safe="")
+        saida.append({"cena": p["cena"], "pack": p["pack"], "nome_do_pack": p["nome_do_pack"],
+                      "licenca": p["licenca"], "data": p["data"],
+                      "dia": urls.get("dia", ""), "noite": urls.get("noite", "")})
+    return saida
+
+
+def _textos_das_extensoes(mod, ref):
+    saida = []
+    for ident, casa, pino in _ext_catalogo():
+        pares = [p.split(":", 1) for p in (pino.get("TEMA_TEXTOS") or "").split() if ":" in p]
+        if not casa or not pares:
+            continue
+        try:
+            valores = mod.textos_da_extensao(ident, ref or None)
+        except mod.Recusa:
+            valores = {}
+        saida.append({"extensao": ident, "nome": pino.get("NOME") or ident,
+                      "chaves": [{"chave": c, "padrao": padrao, "valor": valores.get(c, "")} for c, padrao in pares]})
+    return saida
 
 
 def _ext_ids(so_casa=None):
@@ -8245,6 +8277,9 @@ class Manipulador(BaseHTTPRequestHandler):
         if caminho == "/api/extensoes":
             return self._json(_ext_dados())
 
+        if caminho == "/api/creditos-papeis":
+            return self._json({"papeis": _creditos_dos_papeis()})
+
         if caminho == "/api/modificacoes":
             return self._json(_mod_dados())
 
@@ -8457,8 +8492,15 @@ class Manipulador(BaseHTTPRequestHandler):
                 icones[pasta].append({"de": i["de"], "nome": i["nome"], "rotulo": i["rotulo"],
                                       "grupo": i.get("grupo", ""), "levado": levado, "url": url,
                                       "cores": cores_do_desenho})
+        try:
+            textos = _textos_das_extensoes(mod, ident and mod.pack_para_ler(ident) or base)
+        except mod.Recusa:
+            textos = []
+        nomes_do_pack = {(t["extensao"], c["padrao"]): c["valor"] for t in textos for c in t["chaves"] if c["valor"]}
+        for i in icones.get("sistema", []):
+            i["rotulo"] = nomes_do_pack.get((i["grupo"], i["rotulo"]), i["rotulo"])
         if not ident:
-            return self._json(dict(icones, id="", fotos=[], sons=[]))
+            return self._json(dict(icones, id="", fotos=[], sons=[], textos=textos))
         try:
             dir_pack = mod.pack_para_ler(ident)
         except mod.Recusa as e:
@@ -8470,7 +8512,7 @@ class Manipulador(BaseHTTPRequestHandler):
             fotos.append({"nome": nome, "url": "/previa?tipo=arquivo&id=" + quote(arq, safe="")})
         sons = [{"evento": e, "contexto": c} for c, e, _a in mod.sons_do_pack(dir_pack)
                 if e != "audio-volume-change"]
-        return self._json(dict(icones, id=ident, sons=sons, fotos=fotos))
+        return self._json(dict(icones, id=ident, sons=sons, fotos=fotos, textos=textos))
 
     def _api_criar(self, corpo):
         mod = modulo_pack()
@@ -8566,6 +8608,11 @@ class Manipulador(BaseHTTPRequestHandler):
                         return self._json({"erro": "não consegui converter o sino em Ogg"}, 500)
                     feito = mod.levar_som(ident, ogg, evento)
                 mod.nomear_som(ident, evento, nome)
+            elif tipo == "textos":
+                extensao = str(corpo.get("extensao", ""))
+                if extensao not in {e for e, casa, _p in _ext_catalogo() if casa}:
+                    return self._json({"erro": "não conheço a extensão «%s»" % extensao}, 404)
+                feito = mod.gravar_textos_da_extensao(ident, extensao, corpo.get("textos"))
             elif tipo == "sons":
                 de = str(corpo.get("de", ""))
                 if de not in _packs_no_disco():

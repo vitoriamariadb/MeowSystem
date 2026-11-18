@@ -528,6 +528,23 @@ Os papéis de parede são **separados por pack**: só a coleção do pack no ar 
 sem girar, e trocar de pack troca a coleção. A imagem que não é de pack nenhum
 gira com qualquer um.
 
+**`wallpapers/papeis.tsv`** é a ficha dos papéis desenhados do pack, uma linha por
+cena: `cena`, `dia`, `noite`, `licenca` e `data` (AAAA-MM-DD), separados por tab,
+com `dia` e `noite` relativos a `wallpapers/`. Com os dois, a cena é um **par**: o
+de dia gira de dia, o de noite à noite, e o que está na tela troca pelo par na
+mesma janela de noite do mascote, sem pular de cena. `noite` em `-` é papel sem
+par, que fica como está. `licenca` vazia vale a do pack. O
+`scripts/creditos_dos_papeis.py` escreve a seção «Os papéis de parede desenhados»
+do `CREDITOS.md` do pack e do `docs/CREDITOS.md` a partir dela, com a miniatura de
+cada lado; o painel mostra o mesmo no bloco **Autoria** do passo Papel de parede.
+
+**`extensoes.<id>.textos`** troca os textos de uma extensão da casa, onde `<id>` é
+o nome do pino (`soneca`) e cada chave é uma das que o `TEMA_TEXTOS` do pino
+declara: `{"soneca": {"textos": {"desperto": "Desperto", "ronronar":
+"Descansando"}}}`. Cada texto é uma linha de 1 a 32 caracteres; o que o pack não
+diz vem da herança e, sem ninguém, do padrão do pino. O `extensoes_tema.sh` os
+escreve no `tema.conf` da extensão como `texto_<chave>`.
+
 ---
 
 ## A vitrine

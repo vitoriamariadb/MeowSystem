@@ -49,6 +49,7 @@ const PASSOS = [
       { a: "wallpaper_noite", r: "De noite", b: "Noite" },
       { a: "wallpaper_lado_auto", r: "Separar tons de cores", b: "Separar tons de cores" },
       { a: "wallpaper_banir", r: "Apagar", b: "Apagar" },
+      { e: "creditos", r: "Autoria" },
     ] },
   { id: "sons", nome: "Sons",
     linhas: [

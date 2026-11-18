@@ -264,6 +264,7 @@ CAMPOS_COM_LEITOR = {
     "mascote.desenhos", "mascote.dia", "mascote.noite",
     "lancador.ocultar",
     "som.tema",
+    "extensoes.*.textos.*",
 }
 
 
@@ -2481,6 +2482,10 @@ def validar(ref, silencioso=False):
     for trilha, u in urls(p):
         _exigir(u.startswith("https://"), f"{trilha}: {u!r} — só https é aceito")
 
+    _exigir(not _textos_tortos(p.get("extensoes")),
+            "extensoes: " + ", ".join(_textos_tortos(p.get("extensoes"))) + " — cada texto é uma linha de "
+            f"1 a {TETO_DO_TEXTO_DE_EXTENSAO} caracteres, em extensoes.<id>.textos.<chave>")
+
     if not silencioso and "derivados" in dados:
         bons = claros_derivados(dados)
         deriv = dados["derivados"]
@@ -4693,22 +4698,50 @@ def _com_a_tinta(texto, tinta):
 
 
 CONTRATO_DO_SISTEMA = os.path.join(RAIZ, "assets", "contratos", "nomes-de-sistema.tsv")
+CONTRATO_DAS_EXTENSOES = os.path.join(RAIZ, "assets", "contratos", "nomes-das-extensoes.tsv")
 CONTRATO_DOS_TIPOS = os.path.join(RAIZ, "assets", "contratos", "tipos-de-arquivo.tsv")
-GRUPOS_DO_SISTEMA = ("barra", "configuracoes", "botoes", "pastas", "tipos")
+GRUPOS_DO_SISTEMA = ("barra", "configuracoes", "janela", "botoes", "soneca", "pastas", "tipos")
 ESPESSURA_DA_PREVIA = "2.5"
 
 
 def _contrato_do_sistema():
     saida = {}
+    for contrato in (CONTRATO_DO_SISTEMA, CONTRATO_DAS_EXTENSOES):
+        try:
+            with open(contrato, encoding="utf-8") as fh:
+                for linha in fh:
+                    campos = linha.rstrip("\n").split("\t")
+                    if linha.startswith("#") or len(campos) < 4:
+                        continue
+                    saida.setdefault(campos[0], (campos[2], campos[3]))
+        except (OSError, UnicodeDecodeError):
+            continue
+    return saida
+
+
+def _padrao_das_extensoes(dir_pack):
     try:
-        with open(CONTRATO_DO_SISTEMA, encoding="utf-8") as fh:
-            for linha in fh:
-                campos = linha.rstrip("\n").split("\t")
-                if linha.startswith("#") or len(campos) < 4:
-                    continue
-                saida[campos[0]] = (campos[2], campos[3])
+        with open(CONTRATO_DAS_EXTENSOES, encoding="utf-8") as fh:
+            contrato = {c[0]: c for c in (l.rstrip("\n").split("\t") for l in fh if not l.startswith("#")) if len(c) >= 4}
     except (OSError, UnicodeDecodeError):
-        return {}
+        return []
+    achado = _bloco_herdado(dir_pack, "sistema")
+    if not achado:
+        return []
+    pasta, mapa = achado
+    try:
+        linhas = list(ler_mapa(mapa))
+    except (OSError, UnicodeDecodeError):
+        return []
+    dados = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    saida = []
+    for _num, nome, alvo in linhas:
+        glifo = alvo.split(":", 1)[0].strip()
+        if nome not in contrato or not nome_de_destino(nome) or os.path.isfile(os.path.join(pasta, glifo + ".svg")):
+            continue
+        padrao = os.path.join(dados, "icons", "hicolor", "scalable", contrato[nome][1], nome + ".svg")
+        if os.path.isfile(padrao) and not os.path.islink(padrao):
+            saida.append((nome, padrao))
     return saida
 
 
@@ -4783,6 +4816,9 @@ def sistema_do_pack(dir_pack, cores=None):
             grupo, rotulo = contrato.get(nome, ("barra" if bloco == "bandeja" else "botoes", ""))
             por(nome, cheio, rotulo or _rotulo_do_nome(nome.removesuffix("-symbolic")), None,
                 _previa_do_glifo(_ler_svg(cheio), tinta), grupo)
+    for nome, padrao in _padrao_das_extensoes(dir_pack):
+        grupo, rotulo = contrato[nome]
+        por(nome, padrao, rotulo, None, _previa_do_glifo(_ler_svg(padrao), tinta), grupo)
     for d in pastas_do_pack(dir_pack, cores):
         por(d["nome"], d["caminho"], d["rotulo"], d["svg"], d["svg"], "pastas")
     rotulos_dos_tipos = _rotulos_dos_tipos()
@@ -5252,6 +5288,77 @@ def _na_cadeia(trilha, ref=None):
     return (PACK_BASE, valor) if valor not in (None, "") else (None, None)
 
 
+RE_ID_DE_EXTENSAO = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+RE_CHAVE_DE_TEXTO = re.compile(r"^[a-z][a-z_]*$")
+TETO_DO_TEXTO_DE_EXTENSAO = 32
+
+
+def _texto_de_extensao(valor):
+    return isinstance(valor, str) and 0 < len(valor.strip()) <= TETO_DO_TEXTO_DE_EXTENSAO \
+        and valor == valor.strip() and valor.isprintable()
+
+
+def _textos_tortos(extensoes):
+    if extensoes is None:
+        return []
+    if not isinstance(extensoes, dict):
+        return ["(não é um objeto)"]
+    tortos = []
+    for ext, bloco in extensoes.items():
+        if str(ext).startswith("_"):
+            continue
+        textos = bloco.get("textos", {}) if isinstance(bloco, dict) else None
+        if not RE_ID_DE_EXTENSAO.match(str(ext)) or not isinstance(textos, dict):
+            tortos.append(str(ext))
+            continue
+        tortos += [f"{ext}.{k}" for k, v in textos.items()
+                   if not (RE_CHAVE_DE_TEXTO.match(str(k)) and _texto_de_extensao(v))]
+    return tortos
+
+
+def textos_da_extensao(ext, ref=None):
+    _exigir(RE_ID_DE_EXTENSAO.match(ext or ""), f"{ext!r}: id de extensão que não serve")
+    ref = ref if ref is not None else (os.environ.get("MEOW_PACK_DIR") or PACK_PADRAO)
+    saida, vistos = {}, set()
+    for r in [ref, PACK_BASE]:
+        while r and r not in vistos and achar(r):
+            vistos.add(r)
+            textos = campo(r, f"extensoes.{ext}.textos")
+            for chave, valor in (textos.items() if isinstance(textos, dict) else ()):
+                if RE_CHAVE_DE_TEXTO.match(str(chave)) and _texto_de_extensao(valor):
+                    saida.setdefault(chave, valor)
+            r = campo(r, "heranca")
+    return saida
+
+
+def gravar_textos_da_extensao(ident, ext, textos):
+    _exigir(RE_ID_DE_EXTENSAO.match(ext or ""), f"{ext!r}: id de extensão que não serve")
+    _exigir(isinstance(textos, dict) and textos, "nenhum texto para gravar")
+    for chave, valor in textos.items():
+        _exigir(RE_CHAVE_DE_TEXTO.match(str(chave)), f"{chave!r}: chave de texto que não serve")
+        _exigir(valor == "" or _texto_de_extensao(valor), f"{chave}: uma linha de 1 a {TETO_DO_TEXTO_DE_EXTENSAO} caracteres")
+    dir_pack = pack_da_pessoa(ident)
+
+    def muda(p):
+        blocos = p.setdefault("extensoes", {})
+        atuais = blocos.setdefault(ext, {}).setdefault("textos", {})
+        antes = dict(atuais)
+        for chave, valor in textos.items():
+            if valor == "":
+                atuais.pop(chave, None)
+            else:
+                atuais[chave] = valor
+        if not atuais:
+            blocos[ext].pop("textos")
+        if not blocos[ext]:
+            blocos.pop(ext)
+        if not blocos:
+            p.pop("extensoes")
+        return atuais != antes
+    _mudar_pack_json(dir_pack, muda)
+    return textos_da_extensao(ext, dir_pack)
+
+
 def pasta_do_mascote(ref=None):
     achado = acervo("mascote.desenhos", ref=ref) if ref is None or ref else None
     if not achado:
@@ -5297,6 +5404,72 @@ def origem_dos_wallpapers(ref=None):
 
 
 EXT_FOTO = (".png", ".jpg", ".jpeg", ".webp")
+ARQUIVO_DOS_PAPEIS = "papeis.tsv"
+RE_DATA_DO_PAPEL = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def papeis_de(dir_pack):
+    pasta = os.path.join(dir_pack, "wallpapers")
+    arq = os.path.join(pasta, ARQUIVO_DOS_PAPEIS)
+    if os.path.islink(pasta) or os.path.islink(arq) or not os.path.isfile(arq):
+        return []
+    saida = []
+    with open(arq, encoding="utf-8", errors="replace") as fh:
+        for linha in fh:
+            campos = [c.strip() for c in linha.rstrip("\n").split("\t")]
+            if len(campos) < 5 or campos[0] in ("", "cena") or campos[0].startswith("#"):
+                continue
+            cena, dia, noite, licenca, data = campos[:5]
+            lados = {}
+            for lado, rel in (("dia", dia), ("noite", noite)):
+                if rel in ("", "-"):
+                    continue
+                try:
+                    alvo = _dentro(pasta, rel, ARQUIVO_DOS_PAPEIS)
+                except Recusa:
+                    continue
+                if os.path.isfile(alvo) and not os.path.islink(alvo) and alvo.lower().endswith(EXT_FOTO + (".svg",)):
+                    lados[lado] = alvo
+            if "dia" not in lados:
+                continue
+            saida.append({"cena": cena, "dia": lados["dia"], "noite": lados.get("noite", ""),
+                          "licenca": licenca, "data": data if RE_DATA_DO_PAPEL.match(data) else ""})
+    return saida
+
+
+def pares_no_carrossel(ref=None):
+    o = origem_dos_wallpapers(ref)
+    dir_pack, desenhos = achar(o.get("pack") or "") if o.get("pack") else None, o.get("desenhos")
+    if not dir_pack or not desenhos:
+        return []
+    base = os.path.realpath(desenhos)
+    saida = []
+    for p in papeis_de(dir_pack):
+        if not p["noite"]:
+            continue
+        rels = [os.path.relpath(os.path.realpath(p[lado]), base) for lado in ("dia", "noite")]
+        if all(not r.startswith("..") for r in rels):
+            saida.append((p["cena"], *rels))
+    return saida
+
+
+def papeis_para_os_creditos():
+    saida, vistos = [], set()
+    for raiz in raizes():
+        try:
+            ids = sorted(os.listdir(raiz))
+        except OSError:
+            continue
+        for pid in ids:
+            dir_pack = os.path.join(raiz, pid)
+            if pid in vistos or not os.path.isfile(os.path.join(dir_pack, "pack.json")):
+                continue
+            vistos.add(pid)
+            nome = campo(dir_pack, "nome", pid)
+            licenca = campo(dir_pack, "licenca", "")
+            for p in papeis_de(dir_pack):
+                saida.append(dict(p, pack=pid, nome_do_pack=nome, licenca=p["licenca"] or licenca))
+    return saida
 
 
 def colecoes_alheias(ref=None):
@@ -5529,6 +5702,14 @@ def main(argv):
                 print(f"prefixo\t{p}")
             for n in nomes:
                 print(f"nome\t{n}")
+            return OK
+        if verbo == "textos" and len(argv) == 4:
+            for chave, valor in sorted(textos_da_extensao(argv[3], argv[2] or None).items()):
+                print(f"{chave}\t{valor}")
+            return OK
+        if verbo == "pares" and len(argv) == 3:
+            for cena, dia, noite in pares_no_carrossel(argv[2] or None):
+                print(f"{cena}\t{dia}\t{noite}")
             return OK
         if verbo == "wallpapers" and len(argv) == 3:
             for chave, valor in sorted(origem_dos_wallpapers(argv[2]).items()):

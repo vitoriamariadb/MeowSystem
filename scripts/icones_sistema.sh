@@ -14,7 +14,7 @@ BASE="$HOME/.local/share/icons/$TEMA"
 
 declare -A TRACO=( ["22x22"]=4 ["scalable"]=2.5 )
 CONTEXTOS=(status actions devices)
-CONTRATO="$RAIZ/assets/contratos/nomes-de-sistema.tsv"
+CONTRATOS=("$RAIZ/assets/contratos/nomes-de-sistema.tsv" "$RAIZ/assets/contratos/nomes-das-extensoes.tsv")
 declare -A CONTEXTO=()
 
 _pack_no_ar() {
@@ -40,12 +40,15 @@ _ler_mapa() {
 }
 
 _ler_contexto() {
-  local nome contexto _resto
-  [ -f "$CONTRATO" ] || return 0
-  while IFS=$'\t' read -r nome contexto _resto || [ -n "$nome" ]; do
-    case "$nome" in ''|'#'*) continue ;; esac
-    case "$contexto" in status|actions|devices) CONTEXTO["$nome"]="$contexto" ;; esac
-  done < "$CONTRATO"
+  local nome contexto _resto contrato
+  for contrato in "${CONTRATOS[@]}"; do
+    [ -f "$contrato" ] || continue
+    while IFS=$'\t' read -r nome contexto _resto || [ -n "$nome" ]; do
+      case "$nome" in ''|'#'*) continue ;; esac
+      [ -n "${CONTEXTO[$nome]:-}" ] && continue
+      case "$contexto" in status|actions|devices) CONTEXTO["$nome"]="$contexto" ;; esac
+    done < "$contrato"
+  done
   return 0
 }
 
