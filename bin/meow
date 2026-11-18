@@ -1823,6 +1823,9 @@ cmd_doctor() {
   fi
   for i in "${!CHK_NOME[@]}"; do
     nome="${CHK_NOME[$i]}"
+    if [ "$nome" = "lancador" ] && [ "$mexeu" = "1" ] && [ "${CHK_RC[$i]}" = "0" ]; then
+      CHK_SAIDA[$i]="$(chk_lancador 2>&1)"; CHK_RC[$i]=$?
+    fi
     [ "${CHK_RC[$i]}" = "0" ] && continue
     case "$SEM_CONSERTO" in *" $nome "*)
       meow_pula "$nome: sem conserto automático (${SEM_CONSERTO_RAZAO[$nome]:-é o install.sh que cria})"

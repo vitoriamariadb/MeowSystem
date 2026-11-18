@@ -186,6 +186,24 @@ done
 confere "o lancador vem depois de toda etapa que escreve no home" \
   'printf "%s\n" "$E" | tr -s " \n" "\n\n" | grep -n . | awk -F: "/etapa_lancador\$/ { l = \$1 } /etapa_(atalho|midia|leitura_applet|ocultar_casa|janela_dock)\$/ { if (\$1 > m) m = \$1 } END { exit !(l > m) }"'
 
+printf '\n5. no conserto do doctor, o lançador fecha depois de quem escreve no home (P245)\n'
+rm -f "$T/udd.log" "$APPS"/*.desktop
+desktop "$FLAT/applications/com.boxy_svg.BoxySVG.desktop" 'Type=Application' 'Name=Boxy SVG' \
+  'Exec=/usr/bin/flatpak run --command=boxy-svg com.boxy_svg.BoxySVG @@ %f @@' 'Icon=com.boxy_svg.BoxySVG' \
+  'StartupWMClass=Boxy SVG' 'X-Flatpak=com.boxy_svg.BoxySVG'
+desktop "$APPS/vivo.desktop" 'Type=Application' 'Name=Vivo' 'Exec=true'
+touch -d '2 minutes ago' "$APPS/vivo.desktop"
+printf '[MIME Cache]\n' > "$APPS/mimeinfo.cache"; touch -d '1 minute ago' "$APPS/mimeinfo.cache"
+mkdir -p "$CASA/.config/meow"; cp "$RAIZ/meow.conf.exemplo" "$CASA/.config/meow/meow.conf"
+doc_5="$(env -i PATH="$T/bin:/usr/bin:/bin" HOME="$CASA" MEOW_ESTADO="$ESTADO" NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+  XDG_DATA_DIRS="$FLAT:$LOCAL:$T/sistema" MEOW_APLICATIVOS_SISTEMA="$SIS" MEOW_APLICATIVOS_FLATPAK="$T/vazio" \
+  bash -c 'source <(sed "/^despachar \"\\\$@\"\$/d" "$MEOW_RAIZ/bin/meow")
+    VERIFICAVEIS=(janeladock lancador); cmd_doctor --consertar' 2>&1)"; rc=$?
+confere "as pontes escritas no conserto não deixam o mimeinfo.cache velho para trás (rc=$rc)" \
+  '[ "$rc" = 1 ] && printf "%s" "$doc_5" | grep -q "consertado" && [ -z "$(find "$APPS" -maxdepth 1 -name "*.desktop" -newer "$APPS/mimeinfo.cache")" ]'
+[ "$rc" = 1 ] || printf '%s\n' "$doc_5" | tail -n 8 | sed 's/^/       /'
+rm -f "$FLAT/applications/com.boxy_svg.BoxySVG.desktop" "$APPS"/*.desktop "$APPS/mimeinfo.cache"
+
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'lançador do meow: tudo verde\n'; exit 0; fi
 printf 'lançador do meow: %s falha(s)\n' "$falhas"; exit 1
