@@ -10,11 +10,11 @@ pack `meowsystem`.
 | bloco | tarefas | situação |
 | --- | --- | --- |
 | A vagas | P242, P246, P241 | implementado em `7aa71d8c` (`../.meow-wt-vagas`, `bloco/vagas`): 15 afetados verdes; o conferente (agente, high) confere e corrige desde 16h10, com a suíte inteira (começou 18h15; log em `scratchpad/conf/vagas-suite.log`); 3 correções dele por cima (`626ab324`, `55e4f7ee`, `00b2b10f`); a folha dos ícones foi vista pelo coordenador e está boa |
-| B applets e arte | P243, P247 | `../.meow-wt-arte-vagas`, `bloco/arte-vagas` (nasce do `bloco/vagas`): um agente desenha as vagas e monta a folha desde 18/11 19h; nada entra no `master` sem a folha aprovada por quem usa; os applets (código e publicação) só depois |
+| B applets e arte | P243, P247 | desenhos prontos em `bloco/arte-vagas` (`../.meow-wt-arte-vagas`, 4 commits até `14cc23a0`, 15 afetados verdes): 66 ícones nos dois packs. Quadro para quem usa marcar: <https://claude.ai/artifact/XecxYq2wNqphzvJ7dBdRzj> (coleção `escolhas`; sem marca = aprovado; `_fecho` = revisão fechada). Só entra no `master` depois do fecho. Faltam o conferente, o código dos applets e a publicação |
 | C CI | P244 | implementado em `9b4f4f42` (`../.meow-wt-ci3`, `bloco/ci3`): os 6 vermelhos verdes num `ubuntu:26.04` limpo, suíte portátil 128 verdes, 2 pulados, 0 vermelhos em 56m15s, limite do workflow em 80 min; conferido pelo coordenador (8 afetados verdes na máquina de casa, mais `e803ca21`: o doctor procura o Papirus na mesma raiz que o install) e **integrado** em `be2cedfe` |
 | D doctor e documentos | P245, P248, P249, P250 | conferido (18 afetados e da área verdes; o conferente tirou duas linhas da P249 em `6f68ebe0`) e **integrado** em `6626b957`; decisão 45 com a exceção do pull, sim de 18/11 (`f146793f`) |
 | E portal | P251 | escrita; achado do install de 18/11 |
-| F painel | P252 | pedido de quem usa em 18/11 19h20 («Vira Sprint e dispara agora»): `../.meow-wt-painel-teto`, `bloco/painel-teto`; implementa (agente, high) → confere e corrige (agente, high) |
+| F painel | P252 | implementado em `22fa80b3` (`../.meow-wt-painel-teto`, `bloco/painel-teto`, 18 afetados verdes); o conferente (agente, high) confere desde 18/11 19h45 e adota a cota que volta com o painel saudável, como no Spellbook |
 
 Quatro agentes nesta primeira rodada (dois por bloco, em sequência dentro do bloco; A e C ao mesmo tempo, com
 arquivos disjuntos). Tudo o que está nos arquivos das sprints foi medido pelo coordenador, só com leitura.
