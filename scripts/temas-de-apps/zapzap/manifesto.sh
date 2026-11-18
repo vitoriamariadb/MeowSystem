@@ -49,36 +49,42 @@ _zz_do_pack() {
 _ZZ_CONF="$HOME/.var/app/$_ZZ_APP/config/ZapZap/ZapZap.conf"
 _ZZ_TRAY_DESEJADO="${ZAPZAP_TRAY:-symbolic_light}"
 
-_zz_tray_atual() {
-  [ -f "$_ZZ_CONF" ] || { printf 'default'; return; }
-  local v
-  v="$(awk -F= '/^\[/{s=$0} s=="[system]" && /^tray_theme=/{print $2; exit}' "$_ZZ_CONF")"
-  printf '%s' "${v:-default}"
+_zz_system_ler() {
+  local chave="$1" padrao="$2" v
+  [ -f "$_ZZ_CONF" ] || { printf '%s' "$padrao"; return; }
+  v="$(awk -F= -v c="$chave" '/^\[/{s=$0} s=="[system]" && $1==c{print substr($0, length(c) + 2); exit}' "$_ZZ_CONF")"
+  printf '%s' "${v:-$padrao}"
 }
 
-_zz_conf_com_tray() {
-  local desejado="$1"
+_zz_tray_atual() { _zz_system_ler tray_theme default; }
+
+_zz_conf_system() {
+  local chave="$1" desejado="$2"
   [ -f "$_ZZ_CONF" ] || return 1
-  python3 -I - "$_ZZ_CONF" "$desejado" <<'PY'
-import sys, re
-caminho, valor = sys.argv[1], sys.argv[2]
+  python3 -I - "$_ZZ_CONF" "$chave" "$desejado" <<'PY'
+import sys
+caminho, chave, valor = sys.argv[1], sys.argv[2], sys.argv[3]
 linhas = open(caminho, encoding='utf-8').read().split('\n')
 saida, secao, escrito = [], None, False
 for l in linhas:
     if l.startswith('['):
         if secao == '[system]' and not escrito:
-            saida.append(f'tray_theme={valor}'); escrito = True
+            saida.append(f'{chave}={valor}'); escrito = True
         secao = l.strip()
-    if re.match(r'^tray_theme=', l) and secao == '[system]':
-        saida.append(f'tray_theme={valor}'); escrito = True; continue
+    if secao == '[system]' and '=' in l and l.split('=', 1)[0] == chave:
+        saida.append(f'{chave}={valor}'); escrito = True; continue
     saida.append(l)
 if not escrito:
     if secao != '[system]':
         saida.append('[system]')
-    saida.append(f'tray_theme={valor}')
+    saida.append(f'{chave}={valor}')
 sys.stdout.write('\n'.join(saida))
 PY
 }
+
+_ZZ_CSR_GUARDADO="$_ZZ_CONF.meow-csr-original"
+
+_zz_csr_atual() { _zz_system_ler csr false; }
 
 _ZZ_CSS_DIR="$HOME/.var/app/$_ZZ_APP/data/ZapZap/customizations/global/css"
 _ZZ_CSS="$_ZZ_CSS_DIR/MeowSystem.css"
@@ -249,6 +255,11 @@ meow_app_conferir() {
     return "$MEOW_DIVERGENTE"
   fi
 
+  if [ "$(_zz_csr_atual)" = "true" ]; then
+    meow_muda "ZapZap: a barra própria do ZapZap (csr) desenha botões genéricos no lugar dos do pack"
+    return "$MEOW_DIVERGENTE"
+  fi
+
   _zz_css_conferir || return $?
 
   meow_ok "ZapZap já aparece como '$_ZZ_NOME_NOVO' com o ícone $(_zz_pack_nome)"
@@ -284,13 +295,35 @@ meow_app_aplicar() {
 
   if [ -f "$_ZZ_CONF" ] && [ "$(_zz_tray_atual)" != "$_ZZ_TRAY_DESEJADO" ]; then
     local novo
-    if novo="$(_zz_conf_com_tray "$_ZZ_TRAY_DESEJADO")" && [ -n "$novo" ]; then
+    if novo="$(_zz_conf_system tray_theme "$_ZZ_TRAY_DESEJADO")" && [ -n "$novo" ]; then
       meow_escrever "$_ZZ_CONF" "$novo" 644
       case $? in
         1) mudou=1
            meow_info "ícone da bandeja: $_ZZ_TRAY_DESEJADO (vale quando o ZapZap reabrir)" ;;
         2) meow_aviso "não consegui escrever o ZapZap.conf — bandeja fica como está" ;;
       esac
+    fi
+  fi
+
+  if [ "$(_zz_csr_atual)" = "true" ]; then
+    local sem_csr
+    if sem_csr="$(_zz_conf_system csr false)" && [ -n "$sem_csr" ]; then
+      if meow_seco; then
+        meow_muda "ZapZap: desligaria a barra própria (csr=false); os botões passam a ser os do pack, pelo COSMIC"
+        mudou=1
+      else
+        [ -f "$_ZZ_CSR_GUARDADO" ] || meow_escrever "$_ZZ_CSR_GUARDADO" "true" 644
+        if [ $? = 2 ]; then
+          meow_aviso "não consegui guardar o csr de antes — a barra própria continua"
+        else
+          meow_escrever "$_ZZ_CONF" "$sem_csr" 644
+          case $? in
+            1) mudou=1
+               meow_info "botões da janela: os do pack, pelo COSMIC (vale quando o ZapZap reabrir)" ;;
+            2) meow_aviso "não consegui escrever o ZapZap.conf — a barra própria continua" ;;
+          esac
+        fi
+      fi
     fi
   fi
 
@@ -325,6 +358,26 @@ meow_app_reverter() {
   _zz_css_tirar
   case $? in 1) css_mudou=1 ;; 2) return "$MEOW_ERRO" ;; esac
 
+  if [ -f "$_ZZ_CSR_GUARDADO" ]; then
+    local csr_antes com_csr
+    csr_antes="$(cat "$_ZZ_CSR_GUARDADO" 2>/dev/null)"
+    [ "$csr_antes" = "false" ] || csr_antes=true
+    if meow_seco; then
+      meow_muda "devolveria csr=$csr_antes no ZapZap.conf (a barra própria do ZapZap)"
+      css_mudou=1
+    elif [ ! -f "$_ZZ_CONF" ]; then
+      rm -f -- "$_ZZ_CSR_GUARDADO"
+    elif com_csr="$(_zz_conf_system csr "$csr_antes")" && [ -n "$com_csr" ] \
+         && printf '%s' "$com_csr" > "$_ZZ_CONF" 2>/dev/null; then
+      rm -f -- "$_ZZ_CSR_GUARDADO"
+      css_mudou=1
+      meow_ok "ZapZap: a barra própria voltou (csr=$csr_antes; vale quando o ZapZap reabrir)"
+    else
+      meow_erro "não consegui devolver o csr no ZapZap.conf"
+      return "$MEOW_ERRO"
+    fi
+  fi
+
   if [ ! -L "$_ZZ_ORIGEM" ] && [ ! -f "$_ZZ_GUARDADO" ]; then
     meow_aviso "o .desktop original não está em $(basename "$_ZZ_GUARDADO"); o do flatpak volta na próxima atualização do ZapZap"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -352,7 +405,7 @@ meow_app_reverter() {
 
   if [ -f "$_ZZ_CONF" ] && [ "$tray_atual" != "default" ]; then
     local novo
-    if novo="$(_zz_conf_com_tray default)" && [ -n "$novo" ]; then
+    if novo="$(_zz_conf_system tray_theme default)" && [ -n "$novo" ]; then
       if printf '%s' "$novo" > "$_ZZ_CONF" 2>/dev/null; then
         mudou=1
         meow_ok "ícone da bandeja: default (vale quando o ZapZap reabrir)"

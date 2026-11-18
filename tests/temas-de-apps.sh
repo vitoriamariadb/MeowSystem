@@ -412,6 +412,36 @@ saida="$saida$(mod zapzap reverter)"; rc2=$?
   && ok "zapzap: com «trocar», o nosso entra; o desfazer tira só o nosso, e o CSS dela segue ligado" \
   || falha "zapzap: o desfazer com o CSS dela na pasta tirou demais ou de menos (aplicar=$rc, reverter=$rc2)" "$saida"
 rm -f "$ZZ_PASTA/meu.css"
+ln -sfn "$T/zapzap.desktop" "$CASA/.local/share/flatpak/exports/share/applications/com.rtosta.zapzap.desktop"
+printf '[system]\ntheme=dark\ntray_theme=symbolic_light\n\n[web]\nscroll_animator=true\n' > "$ZZ_CONF"
+mod zapzap aplicar >/dev/null
+sed -i 's/^theme=dark$/csr=true\ncsr_button_theme=adwaita\ntheme=dark/' "$ZZ_CONF"
+zz_csr() { awk -F= '/^\[/{s=$0} s=="[system]" && $1=="csr"{print $2}' "$ZZ_CONF"; }
+saida="$(mod zapzap conferir)"; rc=$?
+[ "$rc" = 1 ] && printf '%s' "$saida" | grep -q 'barra própria' \
+  && ok "zapzap: com a barra própria (csr=true), o conferir acusa os botões genéricos" \
+  || falha "zapzap: o conferir não viu a barra própria (rc=$rc)" "$saida"
+saida="$(mod zapzap aplicar)"; rc=$?
+[ "$rc" = 1 ] && [ "$(zz_csr)" = "false" ] && [ "$(cat "$ZZ_CONF.meow-csr-original" 2>/dev/null)" = "true" ] \
+  && grep -qx 'csr_button_theme=adwaita' "$ZZ_CONF" && grep -qx 'theme=dark' "$ZZ_CONF" && grep -qx 'scroll_animator=true' "$ZZ_CONF" \
+  && printf '%s' "$saida" | grep -q 'botões da janela: os do pack' \
+  && ok "zapzap: aplicar desliga a barra própria (csr=false), guarda o valor de antes e não mexe no resto do conf" \
+  || falha "zapzap: a barra própria não saiu (rc=$rc, csr=$(zz_csr))" "$saida$(cat "$ZZ_CONF")"
+zz_antes="$(zz_sha)$(cat "$ZZ_CONF.meow-csr-original" 2>/dev/null)"
+saida="$(mod zapzap aplicar)"; rc=$?
+saida2="$(mod zapzap conferir)"; rc2=$?
+[ "$rc" = 0 ] && [ "$rc2" = 0 ] && [ "$(zz_sha)$(cat "$ZZ_CONF.meow-csr-original" 2>/dev/null)" = "$zz_antes" ] \
+  && ok "zapzap: sem a barra própria, a segunda passada não escreve nada e o conferir dá 0" \
+  || falha "zapzap: a segunda passada mexeu no csr (aplicar=$rc, conferir=$rc2)" "$saida$saida2"
+saida="$(mod zapzap reverter MEOW_DRY_RUN=1)"; rc=$?
+[ "$(zz_csr)" = "false" ] && [ -f "$ZZ_CONF.meow-csr-original" ] && printf '%s' "$saida" | grep -q 'devolveria csr=true' \
+  && ok "zapzap: o desfazer a seco só diz que devolveria o csr" \
+  || falha "zapzap: o desfazer a seco mexeu no csr (rc=$rc)" "$saida"
+saida="$(mod zapzap reverter)"; rc=$?
+[ "$rc" = 1 ] && [ "$(zz_csr)" = "true" ] && [ ! -e "$ZZ_CONF.meow-csr-original" ] \
+  && grep -qx 'csr_button_theme=adwaita' "$ZZ_CONF" && grep -qx 'scroll_animator=true' "$ZZ_CONF" \
+  && ok "zapzap: desfazer devolve a barra própria como estava (csr=true) e apaga o guardado" \
+  || falha "zapzap: o desfazer não devolveu o csr (rc=$rc, csr=$(zz_csr))" "$saida$(cat "$ZZ_CONF")"
 
 implantar "$CASA/.local/share/flatpak" com.discordapp.Discord
 saida="$(mod discord aplicar)"; rc=$?
@@ -871,6 +901,20 @@ else
   falha "obsidian: o aplicar não tematizou o cofre A da casa de brinquedo" "$saida"
 fi
 a_tematizado="$(sha256sum < "$A/.obsidian/appearance.json" | cut -d' ' -f1)"
+obs_frame() { python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get("frame", "-"))' "$OBS_JSON"; }
+if [ "$(obs_frame)" = "native" ] && [ "$(cat "$OBS_JSON.meow-frame-original" 2>/dev/null)" = "-" ] \
+   && grep -q '"a1":{"path":' "$OBS_JSON" && printf '%s' "$saida" | grep -q 'botões da janela: os do pack'; then
+  ok "obsidian: o aplicar liga a moldura nativa (frame=native), guarda que não havia frame e não perde os cofres"
+else
+  falha "obsidian: a moldura nativa não entrou no obsidian.json (frame=$(obs_frame))" "$saida$(cat "$OBS_JSON")"
+fi
+obs_sha="$(cat "$OBS_JSON" "$OBS_JSON.meow-frame-original" | sha256sum)"
+saida="$(modulo_obsidian aplicar)"
+if printf '%s' "$saida" | grep -q 'rc=0' && [ "$(cat "$OBS_JSON" "$OBS_JSON.meow-frame-original" | sha256sum)" = "$obs_sha" ]; then
+  ok "obsidian: com a moldura nativa, a segunda passada não escreve nada (rc=0)"
+else
+  falha "obsidian: a segunda passada mexeu na moldura ou divergiu" "$saida"
+fi
 
 printf '{\n  "theme": "obsidian",\n  "cssTheme": "Tema de Brinquedo",\n  "enabledCssSnippets": [\n    "dracula_background"\n  ]\n}' \
   > "$B/.obsidian/appearance.json"
@@ -907,6 +951,35 @@ if printf '%s' "$saida" | grep -q 'rc=0' && [ "$(impressao "$B")" = "$b_antes" ]
   ok "obsidian: o segundo desfazer não acha nada a fazer (rc=0)"
 else
   falha "obsidian: o segundo desfazer não devolveu 0, ou mexeu no B" "$saida"
+fi
+printf '{"vaults":{"a1":{"path":"%s","ts":1000,"open":true}},"frame":"hidden","cli":true}' "$A" > "$OBS_JSON"
+saida="$(modulo_obsidian conferir)"
+if printf '%s' "$saida" | grep -q 'moldura própria (frame=hidden)'; then
+  ok "obsidian: com a moldura própria (frame=hidden), o conferir acusa os botões genéricos"
+else
+  falha "obsidian: o conferir não viu a moldura própria" "$saida"
+fi
+saida="$(modulo_obsidian aplicar)"
+if [ "$(obs_frame)" = "native" ] && [ "$(cat "$OBS_JSON.meow-frame-original" 2>/dev/null)" = "hidden" ] \
+   && grep -q '"cli":true' "$OBS_JSON"; then
+  ok "obsidian: o aplicar troca frame=hidden por native e guarda o hidden"
+else
+  falha "obsidian: a troca da moldura própria pela nativa não fechou" "$saida$(cat "$OBS_JSON")"
+fi
+obs_sha="$(cat "$OBS_JSON" | sha256sum)"
+saida="$(MEOW_DRY_RUN=1 modulo_obsidian reverter)"
+if printf '%s' "$saida" | grep -q 'devolveria a moldura de antes (frame=hidden)' \
+   && [ "$(cat "$OBS_JSON" | sha256sum)" = "$obs_sha" ] && [ -f "$OBS_JSON.meow-frame-original" ]; then
+  ok "obsidian: o desfazer a seco só diz que devolveria a moldura"
+else
+  falha "obsidian: o desfazer a seco mexeu na moldura" "$saida"
+fi
+saida="$(modulo_obsidian reverter)"
+if [ "$(obs_frame)" = "hidden" ] && [ ! -e "$OBS_JSON.meow-frame-original" ] && grep -q '"a1":{"path":' "$OBS_JSON" \
+   && grep -q '"cli":true' "$OBS_JSON"; then
+  ok "obsidian: o desfazer devolve frame=hidden, apaga o guardado e não perde os cofres"
+else
+  falha "obsidian: o desfazer não devolveu a moldura (frame=$(obs_frame))" "$saida$(cat "$OBS_JSON")"
 fi
 
 CASA9="$T/casa9"; mkdir -p "$CASA9/.config/spicetify"
