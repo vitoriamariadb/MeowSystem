@@ -36,6 +36,12 @@ outros pcs»): C, E, F, G, J e K no `master` por `integracao/2026-11-17`; 13 tes
 assim que o conferente de cada um voltar. Desktop `MeowSystem` (repositório em `/mnt/Apate`): pull e install por
 SSH no mesmo dia, limpo (2 passagens, 74 etapas); `Meow-portatil` fora da rede, fica para quando voltar.
 
+Integração 2, 18/11 madrugada: A, B, D, H, I e L no `master` (`ca38a423`, com push). Soneca publicada pelo desktop
+da Vitória com a identidade dela (a conta AndreBFarias só lê o repositório): `d5e2990`, mesma árvore do `67741ed`
+conferido, e o pino aponta para ela. Decisões 59 a 62 no registro. Install real limpo (3 passagens, 75 etapas);
+`chromium` pendente com o Chrome aberto; o compositor com o P239 compila em segundo plano e vale no próximo login.
+Em voo: bloco M (P240, os pares de papel no ar pelo `papeis.tsv`), em `.meow-wt-papeis-no-ar`.
+
 ## Próximo passo
 1. Esperar os blocos retomados. Integrar em `integracao/2026-11-17` (worktree `../.meow-wt-integracao` com a branch
    nova) na ordem C, E, F, G, J (arte), D (vagas, casando o par do G), A, B, H, H2, I; resolver o `PROCEDENCIA.md` do
