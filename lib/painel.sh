@@ -144,16 +144,21 @@ meow_painel_sinal_protocolo_na_sessao() {
 meow_painel_fantasma() {
   local pid vida
   pid="$(pgrep -x cosmic-panel 2>/dev/null | head -1)"
-  [ -n "$pid" ] || return 1
+  [ -n "$pid" ] || return 2
 
   vida="$(ps -o etimes= -p "$pid" 2>/dev/null | tr -d ' ')"
-  case "$vida" in ''|*[!0-9]*) return 1 ;; esac
-  [ "$vida" -ge 20 ] || return 1
+  case "$vida" in ''|*[!0-9]*) return 2 ;; esac
+  [ "$vida" -ge 20 ] || return 2
 
+  MEOW_PAINEL_SINAL="sinal 1, notificações sem conexão"
   meow_painel_sinal_notificacoes_sem_conexao "$pid" && return 0
+  MEOW_PAINEL_SINAL="sinal 2, applet de notificações ausente"
   meow_painel_sinal_applet_de_notificacoes_ausente "$vida" && return 0
+  MEOW_PAINEL_SINAL="sinal 3, render com enxurrada de raio"
   meow_painel_sinal_render_com_enxurrada_de_raio "$pid" "$vida" && return 0
+  MEOW_PAINEL_SINAL="sinal 4, erro de protocolo na sessão"
   meow_painel_sinal_protocolo_na_sessao "$vida" && return 0
+  MEOW_PAINEL_SINAL=""
   return 1
 }
 
@@ -185,8 +190,15 @@ meow_painel_gastar_reciclagem_do_boot() {
   fi
   [ -e "$contador.avisado" ] && return 2
   : > "$contador.avisado"
-  meow_notificar "A barra não desenha" "Reiniciei $n vezes e desisti até o computador ligar de novo."
+  meow_notificar "A barra não desenha" "Reiniciei $n vezes e desisti." critical
   return 1
+}
+
+meow_painel_zerar_reciclagens_do_boot() {
+  local contador
+  contador="$(meow_painel_contador_do_boot)"
+  [ -e "$contador" ] || [ -e "$contador.avisado" ] || return 1
+  rm -f "$contador" "$contador.avisado"
 }
 
 meow_painel_do_supervisor() {
