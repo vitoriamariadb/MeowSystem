@@ -120,9 +120,9 @@ item	aurora-qbittorrent-tema	bloco	$ZD/scripts/aurora-qbittorrent-config.sh	  "P
 
 # O que ainda fazia em dobro em 18/11 (P249, P252). O conserto dos apps libadwaita do Flatpak e o vigia do
 # painel fantasma do Spellbook saem inteiros: o script todo é o que o MeowSystem já faz (o laço do painel
-# desiste depois de duas reciclagens por boot e avisa uma vez, desde a P252). Os atalhos de jogo da Steam do
+# desiste depois de duas reciclagens seguidas e avisa uma vez, desde a P252). Os atalhos de jogo da Steam do
 # zsh dela (lançam pelo steam-resiliente.sh, que cura o cliente zumbi) fazem o que o MeowSystem não faz: ficam,
 # e a decisão está na fila. O lançador do Chrome do self-heal, o vigia do greeter e o Alt+F2 do painel não são
 # duplicata: ficam com a Aurora.
 item	flatpaks-libadwaita	saida	$HOME/.local/bin/corrigir-flatpaks-libadwaita	-	-	scripts/flatpak_tema.sh:cmd_runtime	o override dos apps libadwaita e o runtime GNOME validado são do MeowSystem (flatpak_tema.sh e o meow-flatpak.path, conferidos pelo meow doctor)
-item	spellbook-painel-fantasma	saida	$ZD/aurora/aurora-painel-fantasma.sh	-	-	lib/painel.sh:meow_painel_gastar_reciclagem_do_boot	o painel fantasma é reciclado pelo meow-painel.service duas vezes por boot, e o aviso sai uma vez (lib/painel.sh)
+item	spellbook-painel-fantasma	saida	$ZD/aurora/aurora-painel-fantasma.sh	-	-	lib/painel.sh:meow_painel_gastar_reciclagem_do_boot	o painel fantasma é reciclado pelo meow-painel.service até duas vezes seguidas, e o aviso sai uma vez (lib/painel.sh)
