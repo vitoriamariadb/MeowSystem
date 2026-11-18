@@ -5,7 +5,7 @@ limitação de uso […] aumentarmos a qualidade do produto como um todo»).
 
 | bloco | tarefa | árvore / branch | situação |
 | --- | --- | --- | --- |
-| A | P212 navegadores no modo GTK | `.meow-wt-navegadores` / `bloco/navegadores` | retomado após a queda; já tem `6a379c22`, `1fa64bb2` |
+| A | P212 navegadores no modo GTK | `.meow-wt-navegadores` / `bloco/navegadores` | conferido (`6a379c22`, `1fa64bb2`, `42fdad3e`, `c000db89`); provado no palco com a cópia do perfil real: Chrome `Default` e `Profile 2` e Edge flatpak saem do Clássico para os botões do pack, o conferir e a segunda passada dão 0 depois que o navegador fecha; o Edge vestia de novo o tema da loja ao abrir (extensão de tema ligada vira o tema na carga), agora ela sai desligada como no «Usar GTK» e o reverter a devolve da cópia (o Edge a desinstala em 30 s); foto em `fotos/chrome-e-edge.png` (fora do git); para entrar no PC dela falta o slug `chromium` no `APPS_ATIVOS` do `meow.conf` dela ou o mapa `chrome|brave|edge` em `pasta_de` do `scripts/aplicar_apps.sh` |
 | B | P213 Electron, P214 Qt e outros formatos | `.meow-wt-toolkits` / `bloco/toolkits` | retomado; já tem até `83cb20f2` (achados viraram P215 a P219) |
 | C | P220 botões do Dracula | `.meow-wt-arte-botoes` / `bloco/arte-botoes` | pronto: folha aprovada («Aprovo»); restaurar = grade meio erguida («Grade meio erguida»), feito pelo coordenador em `b52884a4`; APLICADO no tema real em 17/11 18:58 a partir desta árvore (queixa dela: «o morcego ficou minúsculo» na barra de título, era o desenho do P207), `--conferir` ok |
 | D | P231 vagas no pack e no criador | `.meow-wt-produto` / `bloco/produto` | retomado; já tem `3bf3632f`, `05d071ea`; Soneca `67741ed` em `../meowsystem-soneca-p231` (sem push) |
