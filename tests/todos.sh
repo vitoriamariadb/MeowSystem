@@ -175,6 +175,7 @@ MAQUINA=(
   icone-e-fonte-no-tema.sh
   palco.sh
   area-os.sh
+  nomes-dos-applets.sh
 )
 
 SEM_PULO=(
