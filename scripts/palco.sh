@@ -197,8 +197,42 @@ _subir() {
   _dizer
 }
 
+_dono_do_soquete() {
+  ss -xlpn 2>/dev/null | awk -v s="$1" '$5 == s && match($0, /pid=[0-9]+/) { print substr($0, RSTART + 4, RLENGTH - 4); exit }'
+}
+
+_rodar_na_area() {
+  local area="${1:-}" tela="" soquete pid areas
+  local uso="uso: palco.sh rodar --area <nome> [--tela <saída>] <comando…>"
+  case "$area" in ''|-*) _erro "$uso" ;; esac
+  shift
+  if [ "${1:-}" = --tela ]; then
+    tela="${2:-}"
+    case "$tela" in ''|-*) _erro "$uso" ;; esac
+    shift 2
+  fi
+  [ "$#" -gt 0 ] || _erro "$uso"
+  [ -n "${WAYLAND_DISPLAY:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] || _erro "recuso: rodar --area roda na sessão, e falta WAYLAND_DISPLAY ou XDG_RUNTIME_DIR"
+  case "$WAYLAND_DISPLAY" in /*) soquete="$WAYLAND_DISPLAY" ;; *) soquete="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ;; esac
+  [ -S "$soquete" ] || _erro "recuso: $soquete não é a tela wayland de uma sessão"
+  pid="$(_dono_do_soquete "$soquete")"
+  [ -n "$pid" ] || _erro "recuso: não achei o compositor de $soquete"
+  grep -qaF 'AURORA-AREA-DO-CLIENTE' "/proc/$pid/exe" 2>/dev/null \
+    || _erro "recuso: o compositor da sessão ($(readlink "/proc/$pid/exe")) não faz a janela nascer na área: ela abriria na área visível"
+  areas="$(python3 "$RAIZ/scripts/appid_sonda.py" --areas 2>/dev/null | awk -F'\t' -v a="$area" '$1 == "area" && $2 == a { print $3 }')"
+  [ -n "$areas" ] || _erro "recuso: a sessão não tem área «$area»"
+  grep -q 'ativa' <<< "$areas" && _erro "recuso: a área «$area» é a que está na tela"
+  if [ -n "$tela" ]; then
+    MEOW_AREA="$area" MEOW_TELA="$tela" setsid "$@" </dev/null >/dev/null 2>&1 &
+  else
+    MEOW_AREA="$area" setsid "$@" </dev/null >/dev/null 2>&1 &
+  fi
+  printf '%s\n' "$!"
+}
+
 _rodar() {
   local log
+  [ "${1:-}" = --area ] && { shift; _rodar_na_area "$@"; return; }
   [ "$#" -gt 0 ] || _erro "uso: palco.sh rodar <comando…>"
   _vivo || _subir >/dev/null || exit 1
   _conferir
@@ -226,6 +260,21 @@ _janelas() {
   _conferir
   env -i HOME="$CASA" PATH="$PATH" XDG_RUNTIME_DIR="$RT" WAYLAND_DISPLAY="$(cat "$PALCO_DIR/wayland")" \
     python3 "$RAIZ/scripts/appid_sonda.py" --janelas
+}
+
+_areas() {
+  _vivo || _erro "o palco não está de pé: palco.sh subir"
+  _conferir
+  env -i HOME="$CASA" PATH="$PATH" XDG_RUNTIME_DIR="$RT" WAYLAND_DISPLAY="$(cat "$PALCO_DIR/wayland")" \
+    python3 "$RAIZ/scripts/appid_sonda.py" --areas
+}
+
+_ativar() {
+  [ -n "${1:-}" ] || _erro "uso: palco.sh ativar <área>"
+  _vivo || _erro "o palco não está de pé: palco.sh subir"
+  _conferir
+  env -i HOME="$CASA" PATH="$PATH" XDG_RUNTIME_DIR="$RT" WAYLAND_DISPLAY="$(cat "$PALCO_DIR/wayland")" \
+    python3 "$RAIZ/scripts/appid_sonda.py" --ativar "$1"
 }
 
 _descer() {
@@ -257,8 +306,10 @@ case "${1:-}" in
   rodar)   shift; _rodar "$@" ;;
   foto)    shift; _foto "$@" ;;
   janelas) _janelas ;;
+  areas)   _areas ;;
+  ativar)  shift; _ativar "$@" ;;
   copiar)  shift; _vivo || _erro "o palco não está de pé: palco.sh subir"; _copiar "$@" ;;
   descer)  _descer ;;
-  *) printf 'uso: palco.sh subir | rodar <comando…> | foto <saida.png> [LxA+X+Y] | janelas | copiar <caminho do HOME…> | descer\n' >&2
+  *) printf 'uso: palco.sh subir | rodar [--area <nome> [--tela <saída>]] <comando…> | foto <saida.png> [LxA+X+Y] | janelas | areas | ativar <área> | copiar <caminho do HOME…> | descer\n' >&2
      exit 2 ;;
 esac

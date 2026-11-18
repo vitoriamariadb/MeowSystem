@@ -44,6 +44,10 @@ req       cosmic-comp-app-id-do-cliente.patch    AURORA-APP-ID-CLIENTE
 # Com a GPU escolhida no /etc/environment, toda tela é composta nela; a da tela só recebe o quadro pronto (P209).
 req       cosmic-comp-compoe-na-escolhida.patch  AURORA-COMPOE-NA-ESCOLHIDA
 
+# A janela com MEOW_AREA no ambiente nasce na área com esse nome, sem passar pela
+# área visível e sem roubar o foco (P239).
+req       cosmic-comp-area-do-cliente.patch      AURORA-AREA-DO-CLIENTE
+
 # Em Global, as outras telas mostravam números: cada área copia o nome da área
 # de mesmo índice, e tirar o monitor não cria área a mais.
 req       cosmic-comp-nomes-nas-duas-telas.patch AURORA-AREAS-NOMES
