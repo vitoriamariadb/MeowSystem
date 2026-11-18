@@ -554,6 +554,10 @@ registro 57 'a interface é soberana' && ! grep -q 'motivoIndisponivel\|disabled
   && ok "57: a interface é soberana: nenhum controle desliga com dica de porquê, e o gesto liga o modo" \
   || falha "57: voltou o controle desligado com dica de porquê"
 cobre 58 navegadores-gtk.sh 'o reverter devolve cada perfil ao JSON de antes' scripts/temas-de-apps/chromium/manifesto.sh 'system_theme'
+cobre 59 vagas-novas.sh 'as duas vagas da Soneca vêm do pack' assets/extensoes/soneca.pino 'soneca-ronronar-symbolic'
+cobre 60 papel-em-par.sh 'a segunda passada à noite não escreve nada'
+cobre 61 dock.sh 'MEOW-DOCK-PATCH' patches/dock.series 'cosmic-app-list-casamento-por-padrao'
+cobre 62 area-os.sh 'lê MEOW_AREA e MEOW_TELA' patches/series 'cosmic-comp-area-do-cliente'
 
 sem_linha=""; total=0
 while read -r n; do
