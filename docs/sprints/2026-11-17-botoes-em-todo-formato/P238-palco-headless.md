@@ -33,3 +33,18 @@ Um palco isolado, `scripts/palco.sh`, que qualquer agente usa para toda consulta
 Teste que sobe o palco, roda um app GTK (ex.: `gnome-calculator` ou um `zenity`), tira a foto, lista a janela com o
 app_id certo e desce, conferindo que nenhum toplevel novo apareceu na sessão real (sonda antes e depois) e que o
 barramento da sessão real não viu o app. Foto de um app GTK com os botões do pack Dracula dentro do palco.
+
+## Medido (agente do bloco, 17/11)
+- O `cosmic-comp` sobe sem tela: `COSMIC_BACKEND=winit` dentro de um `Xvfb` (EGL em software, llvmpipe). O backend
+  `x11` não serve: pede DRI3, que o `Xvfb` não tem. Nenhum apt foi preciso; wlroots, `grim` e `weston` ficam de fora.
+- O palco usa o build do MeowSystem (o shim diz qual) e a cópia de `~/.config/cosmic`: o SSD do COSMIC sai com os
+  botões do pack (xmessage pelo Xwayland do palco) e o GTK sai com os botões do pack no CSD (gnome-calculator).
+- Duas armadilhas resolvidas no script: o barramento novo não recebia `WAYLAND_DISPLAY` (o portal do COSMIC travava
+  e cada app esperava 50 s) e o perfil de dconf da sessão é `DCONF_PROFILE=/usr/share/dconf/profile/cosmic` (sem ele
+  o tema de ícones vinha de um banco antigo).
+- O que o palco NÃO prova: o desenho na GPU real (KMS), duas telas e escala fracionária (o winit dá uma saída só, em
+  escala 1), o painel e a dock (não sobem no palco).
+- Plano B, só lido no código: o `cosmic-comp` mapeia a janela nova na área ativa da tela ativa e dá o foco a ela; o
+  token de ativação só aponta a área que estava ativa quando foi criado. Mover depois com
+  `zcosmic_toplevel_manager_v1.move_to_ext_workspace` funciona, mas a janela pisca na área dela e rouba o foco por
+  um instante. Sem piscar, só com um patch no compositor (a janela marcada nasce na área «OS», como urgente).
