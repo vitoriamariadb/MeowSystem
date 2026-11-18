@@ -809,12 +809,11 @@ function creditosDosPapeis() {
   for (const p of CREDITOS_PAPEIS.papeis) {
     const cena = maiuscula(p.cena);
     const lado = (url, quando) => url ? elemento("img", { src: url, alt: `${cena}, ${quando}`, loading: "lazy", "data-lado": quando }) : null;
-    lista.append(elemento("figure", { class: "credito-papel", "data-cena": p.cena, "data-pack": p.pack }, [
+    lista.append(elemento("figure", { class: "credito-papel", "data-cena": p.cena, "data-pack": p.pack, dica: p.licenca || "" }, [
       elemento("div", { class: "par" + (p.noite ? "" : " so-um") }, [lado(p.dia, "de dia"), lado(p.noite, "de noite")]),
       elemento("figcaption", {}, [
         elemento("strong", { texto: cena }),
         elemento("span", { texto: p.nome_do_pack }),
-        p.licenca ? elemento("span", { texto: p.licenca }) : null,
         p.data ? elemento("time", { datetime: p.data, texto: dataCurta(p.data) }) : null,
       ]),
     ]));
