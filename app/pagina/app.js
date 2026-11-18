@@ -429,7 +429,8 @@ async function desfazerEntradas(entradas) {
   atualizarAplicar();
   render();
 }
-function desfazerTudo() {
+async function desfazerTudo() {
+  await FILA_DE_GRAVACAO;
   desfazerEntradas(HISTORICO.slice());
 }
 

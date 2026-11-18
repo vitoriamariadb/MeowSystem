@@ -218,6 +218,28 @@ def main():
             pag.locator("#desfazer").click()
             assentar(pag)
 
+            print("8b. o Desfazer clicado com uma gravação na rede desfaz também essa")
+            valor8b = casa.valor_de(chave8)
+            pag.evaluate("([c, a]) => gravarAgora({[c]: a})", [chave8, va])
+            assentar(pag)
+            seguradas, vistas = [], []
+            pag.route("**/api/definir", lambda rota: (vistas.append(1), seguradas.append(rota) if len(vistas) == 1 else rota.continue_()))
+            pag.evaluate("([c, b]) => { gravarAgora({[c]: b}); }", [chave8, vb])
+            for _ in range(100):
+                if seguradas:
+                    break
+                pag.wait_for_timeout(50)
+            checa(len(seguradas) == 1 and pag.evaluate("() => HISTORICO.length") == 1,
+                  "uma gravação está na lista e a outra ainda na rede")
+            pag.locator("#desfazer").click()
+            pag.wait_for_timeout(300)
+            seguradas.pop(0).continue_()
+            pag.wait_for_function("() => EM_VOO === 0", timeout=120000)
+            pag.unroute("**/api/definir")
+            assentar(pag)
+            checa(pag.evaluate("() => HISTORICO.length") == 0 and casa.valor_de(chave8) == valor8b,
+                  f"a lista fica vazia e o conf volta ao de antes ({pag.evaluate('() => HISTORICO.length')}, {casa.valor_de(chave8)!r})")
+
             print("9. P143: o lote de duas chaves que cai na rede não leva a mudança mais nova de uma delas")
             outra9 = pag.evaluate("""(c) => [...CHAVE.values()].find((i) => i.chave !== c
                 && (i.opcoes || []).filter((x) => x && x !== String(i.valor ?? '')).length)?.chave""", chave8)
