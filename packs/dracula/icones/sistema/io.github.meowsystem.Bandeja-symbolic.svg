@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>io.github.meowsystem.Bandeja-symbolic — bandeja: a bandeja com as três luas, crescente, cheia e minguante</title>
+  <path fill="currentColor" d="M0.6,9.6 H2.2 V12.6 H13.8 V9.6 H15.4 V14.2 H0.6 Z"/>
+  <path fill="currentColor" d="M5.18,6.71 A1.9,1.9 0 1 0 5.18,9.69 A1.5,1.5 0 0 1 5.18,6.71 Z"/>
+  <circle fill="currentColor" cx="8" cy="8" r="2.2"/>
+  <path fill="currentColor" d="M10.82,9.69 A1.9,1.9 0 1 0 10.82,6.71 A1.5,1.5 0 0 1 10.82,9.69 Z"/>
+</svg>
