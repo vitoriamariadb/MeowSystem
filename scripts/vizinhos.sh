@@ -489,13 +489,14 @@ cmd_conferir() {
 
 _catalogo() {
   [ -r "$CONTRATO" ] || return 0
-  awk -F'\t' -v desenv="$DESENV" -v zd="$ZD" -v apps="$APPS_CASA" -v uni="$UNI" -v sbin="$SBIN" '
+  awk -F'\t' -v desenv="$DESENV" -v zd="$ZD" -v apps="$APPS_CASA" -v uni="$UNI" -v sbin="$SBIN" -v casa="$HOME" '
     function expandir(c) {
       if (index(c, "$DESENV/") == 1) return desenv substr(c, 8)
       if (index(c, "$ZD/") == 1) return zd substr(c, 4)
       if (index(c, "$APPS/") == 1) return apps substr(c, 6)
       if (index(c, "$UNI/") == 1) return uni substr(c, 5)
       if (index(c, "$SBIN/") == 1) return sbin substr(c, 6)
+      if (index(c, "$HOME/") == 1) return casa substr(c, 6)
       return c
     }
     $1 != "item" { next }
