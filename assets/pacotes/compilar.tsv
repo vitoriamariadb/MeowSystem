@@ -40,3 +40,10 @@ graficos	libgbm-dev
 graficos	libglib2.0-dev
 graficos	libwayland-dev
 graficos	libxkbcommon-dev
+dock	build-essential
+dock	pkgconf
+dock	patch
+dock	libxkbcommon-dev
+dock	libwayland-dev
+dock	libdbus-1-dev
+dock	libudev-dev

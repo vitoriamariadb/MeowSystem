@@ -5110,6 +5110,7 @@ NOME_DA_CONFERENCIA = {
     "areas": "Áreas de trabalho",
     "patches": "Compositor",
     "graficos": "Compartilhar tela",
+    "dock": "Dock da casa",
     "relogio": "Segundos no relógio",
     "leitura": "Modo de leitura",
     "extensoes": "Extensões",

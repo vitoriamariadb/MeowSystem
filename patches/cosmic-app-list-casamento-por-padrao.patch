@@ -1,0 +1,258 @@
+diff --git a/cosmic-app-list/src/app.rs b/cosmic-app-list/src/app.rs
+index 9703da3..63752b8 100755
+--- a/cosmic-app-list/src/app.rs
++++ b/cosmic-app-list/src/app.rs
+@@ -610,6 +610,61 @@ pub fn menu_control_padding() -> Padding {
+     [spacing.space_xxs, spacing.space_s].into()
+ }
+ 
++#[used]
++static MEOW_DOCK_PATCH: &str = "MEOW-DOCK-PATCH-1";
++
++const ROLE_SUFFIXES: [&str; 6] = ["Prompter", "Prompt", "Dialog", "Portal", "Helper", "Agent"];
++
++fn strip_role_suffix(app_id: &str) -> Option<&str> {
++    ROLE_SUFFIXES.iter().find_map(|suffix| {
++        let cut = app_id.len().checked_sub(suffix.len())?;
++        if !app_id.is_char_boundary(cut) || !app_id[cut..].eq_ignore_ascii_case(suffix) {
++            return None;
++        }
++        let base = &app_id[..cut];
++        let base = base
++            .strip_suffix('.')
++            .or_else(|| base.strip_suffix('-'))
++            .unwrap_or(base);
++        (!base.is_empty()).then_some(base)
++    })
++}
++
++fn find_app_by_reverse_domain_prefix<'a>(
++    desktop_entries: &'a [DesktopEntry],
++    app_id: &str,
++) -> Option<&'a DesktopEntry> {
++    let candidates = desktop_entries.iter().filter(|entry| {
++        let id = entry.id();
++        id.contains('.')
++            && app_id.len() > id.len() + 1
++            && app_id.is_char_boundary(id.len())
++            && app_id[..id.len()].eq_ignore_ascii_case(id)
++            && app_id.as_bytes()[id.len()] == b'.'
++    });
++    let longest = candidates.clone().map(|entry| entry.id().len()).max()?;
++    let mut best = candidates.filter(|entry| entry.id().len() == longest);
++    let first = best.next()?;
++    best.all(|entry| entry.id() == first.id()).then_some(first)
++}
++
++fn find_app_by_pattern<'a>(
++    desktop_entries: &'a [DesktopEntry],
++    app_id: &str,
++) -> Option<&'a DesktopEntry> {
++    if app_id.is_empty() || app_id == "steam_app_default" || app_id.ends_with(".exe") {
++        return None;
++    }
++    let by_id = |id: &str| {
++        desktop_entries
++            .iter()
++            .find(|entry| entry.id().eq_ignore_ascii_case(id))
++    };
++    by_id(app_id)
++        .or_else(|| strip_role_suffix(app_id).and_then(by_id))
++        .or_else(|| find_app_by_reverse_domain_prefix(desktop_entries, app_id))
++}
++
+ fn find_desktop_entries<'a>(
+     desktop_entries: &'a [fde::DesktopEntry],
+     app_ids: &'a [String],
+@@ -794,6 +849,14 @@ impl CosmicAppList {
+             self.update_desktop_entries();
+             if let Some(entry) = fde::find_app_by_id(&self.desktop_entries, unicase_appid) {
+                 entry.clone()
++            } else if let Some(entry) = find_app_by_pattern(&self.desktop_entries, &info.app_id) {
++                tracing::info!(
++                    id = info.app_id,
++                    entry = entry.id(),
++                    patch = MEOW_DOCK_PATCH,
++                    "matched desktop entry by pattern"
++                );
++                entry.clone()
+             } else {
+                 tracing::error!(id = info.app_id, "could not find desktop entry for app");
+                 let mut fallback_entry = fde::DesktopEntry::from_appid(info.app_id.clone());
+@@ -2564,3 +2627,176 @@ impl AsMimeTypes for DndPathBuf {
+         Some(Cow::Owned(self.0.to_str()?.as_bytes().to_vec()))
+     }
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn entries(ids: &[&str]) -> Vec<DesktopEntry> {
++        ids.iter()
++            .map(|id| DesktopEntry::from_appid((*id).to_string()))
++            .collect()
++    }
++
++    fn matched(ids: &[&str], app_id: &str) -> Option<String> {
++        let entries = entries(ids);
++        find_app_by_pattern(&entries, app_id).map(|entry| entry.id().to_string())
++    }
++
++    #[test]
++    fn marker_is_kept() {
++        assert_eq!(MEOW_DOCK_PATCH, "MEOW-DOCK-PATCH-1");
++    }
++
++    #[test]
++    fn same_id_ignoring_case() {
++        assert_eq!(
++            matched(&["org.gnome.Nautilus"], "org.gnome.nautilus").as_deref(),
++            Some("org.gnome.Nautilus")
++        );
++    }
++
++    #[test]
++    fn role_suffix_glued_to_the_id() {
++        assert_eq!(
++            matched(
++                &["com.system76.CosmicFiles"],
++                "com.system76.CosmicFilesDialog"
++            )
++            .as_deref(),
++            Some("com.system76.CosmicFiles")
++        );
++    }
++
++    #[test]
++    fn role_suffix_after_dot_or_dash() {
++        let ids = ["org.example.App", "keepassxc"];
++        assert_eq!(
++            matched(&ids, "org.example.App.Portal").as_deref(),
++            Some("org.example.App")
++        );
++        assert_eq!(
++            matched(&ids, "keepassxc-helper").as_deref(),
++            Some("keepassxc")
++        );
++    }
++
++    #[test]
++    fn every_known_role_suffix() {
++        for suffix in ["Dialog", "Portal", "Prompt", "Prompter", "Helper", "Agent"] {
++            assert_eq!(
++                matched(&["org.example.App"], &format!("org.example.App{suffix}")).as_deref(),
++                Some("org.example.App"),
++                "{suffix}"
++            );
++        }
++    }
++
++    #[test]
++    fn unknown_suffix_is_not_stripped() {
++        assert_eq!(matched(&["org.example.App"], "org.example.AppWindow"), None);
++    }
++
++    #[test]
++    fn suffix_alone_is_not_an_id() {
++        assert_eq!(
++            matched(&["Dialog", "org"], "Dialog"),
++            Some("Dialog".to_string())
++        );
++        assert_eq!(strip_role_suffix("Dialog"), None);
++        assert_eq!(strip_role_suffix(".Dialog"), None);
++    }
++
++    #[test]
++    fn longest_reverse_domain_prefix() {
++        let ids = [
++            "org.gnome",
++            "org.gnome.Nautilus",
++            "org.gnome.NautilusPreviewer",
++        ];
++        assert_eq!(
++            matched(&ids, "org.gnome.Nautilus.Previewer").as_deref(),
++            Some("org.gnome.Nautilus")
++        );
++    }
++
++    #[test]
++    fn prefix_must_end_at_a_dot() {
++        assert_eq!(
++            matched(&["org.gnome.Nautilus"], "org.gnome.NautilusX"),
++            None
++        );
++        assert_eq!(
++            matched(&["org.gnome.Nautilus"], "org.gnome.Nautilus."),
++            None
++        );
++    }
++
++    #[test]
++    fn prefix_without_a_domain_is_ignored() {
++        assert_eq!(matched(&["firefox"], "firefox.Toolbox"), None);
++    }
++
++    #[test]
++    fn ambiguous_prefix_matches_nothing() {
++        let entries = vec![
++            DesktopEntry::from_appid("org.example.App".to_string()),
++            DesktopEntry::from_appid("org.example.APP".to_string()),
++        ];
++        assert!(find_app_by_reverse_domain_prefix(&entries, "org.example.App.Tool").is_none());
++    }
++
++    #[test]
++    fn same_id_twice_is_not_ambiguous() {
++        assert_eq!(
++            matched(
++                &["org.example.App", "org.example.App"],
++                "org.example.App.Tool"
++            )
++            .as_deref(),
++            Some("org.example.App")
++        );
++    }
++
++    #[test]
++    fn rules_run_in_order() {
++        let ids = [
++            "com.example.Tool",
++            "com.example.ToolDialog.extra",
++            "com.example",
++        ];
++        assert_eq!(
++            matched(&ids, "com.example.tooldialog").as_deref(),
++            Some("com.example.Tool")
++        );
++        let ids = ["com.example.App", "com.example.AppDialog"];
++        assert_eq!(
++            matched(&ids, "com.example.appdialog").as_deref(),
++            Some("com.example.AppDialog")
++        );
++    }
++
++    #[test]
++    fn empty_id_matches_nothing() {
++        assert_eq!(matched(&["org.example.App"], ""), None);
++    }
++
++    #[test]
++    fn proton_and_wine_ids_are_left_to_the_title_fallback() {
++        let ids = ["steam_app_default", "Game.Launcher"];
++        assert_eq!(matched(&ids, "steam_app_default"), None);
++        assert_eq!(matched(&ids, "Game.Launcher.exe"), None);
++    }
++
++    #[test]
++    fn exact_match_is_never_replaced() {
++        let entries = entries(&["com.system76.CosmicFiles", "com.system76.CosmicFilesDialog"]);
++        let app_id = "com.system76.CosmicFilesDialog";
++        let exact = fde::find_app_by_id(&entries, Ascii::new(app_id)).map(DesktopEntry::id);
++        assert_eq!(exact, Some(app_id));
++        assert_eq!(
++            find_app_by_pattern(&entries, app_id).map(DesktopEntry::id),
++            Some(app_id)
++        );
++    }
++}

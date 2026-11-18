@@ -1072,6 +1072,10 @@ chk_graficos() {
   GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/graficos.sh" conferir 2>&1
 }
 
+chk_dock() {
+  DOCK="${DOCK:-}" "$RAIZ/scripts/dock.sh" conferir 2>&1
+}
+
 chk_leitura() {
   "$RAIZ/scripts/leitura.sh" conferir 2>&1
 }
@@ -1323,6 +1327,9 @@ fix_patches()    { "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1; local rc=$? 
 fix_graficos()  { GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1
                   GR_COMPILAR=nao GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/graficos.sh" aplicar 2>&1; }
 
+fix_dock()      { DOCK="${DOCK:-}" "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1
+                  DK_COMPILAR=nao DOCK="${DOCK:-}" "$RAIZ/scripts/dock.sh" aplicar 2>&1; }
+
 fix_painel()    {
   rodar_painel "$RAIZ" conferir 2>&1
   local rc=$?
@@ -1555,7 +1562,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches graficos relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart arquivosfilhos atalho lancador autoreparo cli escala fontes estadovelho vizinhos efeito logo indice)
+VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches graficos dock relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart arquivosfilhos atalho lancador autoreparo cli escala fontes estadovelho vizinhos efeito logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 
 declare -A SEM_CONSERTO_RAZAO=(
@@ -3046,6 +3053,10 @@ cmd_ajuda() {
   meow graficos aplicar        compila o portal com os patches, liga o shim e a policy
   meow graficos reverter       devolve o portal e a policy ao pacote, e fica assim
 
+  meow dock [--seco]           confere o build da dock e o shim
+  meow dock aplicar            compila a dock com o casamento por padrão e liga o shim
+  meow dock reverter           devolve a dock ao pacote, e fica assim
+
   meow abrir                   abre o painel de configuração no navegador
                                (127.0.0.1, porta efêmera, token de sessão) — é a
                                mesma coisa que o ícone "MeowSystem" do lançador
@@ -3518,6 +3529,31 @@ despachar() {
         *) meow_erro "verbo desconhecido: $verbo_g"; meow_info "veja: meow graficos --help"; exit "$MEOW_ERRO" ;;
       esac
       MEOW_DRY_RUN="$seco_g" GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/graficos.sh" "$verbo_g"; exit $? ;;
+    dock) shift
+      carregar_conf || exit "$MEOW_ERRO"
+      seco_d="${MEOW_DRY_RUN:-0}"
+      [ "${1:-}" = "--seco" ] && { seco_d=1; shift; }
+      verbo_d="${1:-conferir}"
+      case "$verbo_d" in
+        aplicar|reverter)
+          if [ "$seco_d" != 1 ]; then
+            meow_travar || exit "$MEOW_ERRO"
+            if [ "$verbo_d" = aplicar ]; then DOCK=sim; else DOCK=nao; fi
+            meow_conf_definir DOCK "$DOCK"
+            [ "$?" != "$MEOW_ERRO" ] || exit "$MEOW_ERRO"
+          fi ;;
+        conferir|validar|estado) ;;
+        -h|--help|ajuda)
+          meow_titulo "meow dock"
+          printf '  meow dock [--seco]   confere o build da dock e o shim em ~/.local/bin/cosmic-app-list\n'
+          printf '  meow dock aplicar    compila o cosmic-app-list da versão instalada com a série de patches/dock.series\n'
+          printf '                       e liga o shim, que cai na dock do pacote quando o build some\n'
+          printf '  meow dock reverter   tira o shim e grava DOCK="nao": a dock volta à do pacote\n'
+          printf '  meow dock validar    baixa o fonte no commit da versão e só roda o dry-run da série nele\n'
+          exit 0 ;;
+        *) meow_erro "verbo desconhecido: $verbo_d"; meow_info "veja: meow dock --help"; exit "$MEOW_ERRO" ;;
+      esac
+      MEOW_DRY_RUN="$seco_d" DOCK="${DOCK:-}" "$RAIZ/scripts/dock.sh" "$verbo_d"; exit $? ;;
     files-menu|menu-arquivos) shift
       carregar_conf || exit "$MEOW_ERRO"
       case "${1:-estado}" in

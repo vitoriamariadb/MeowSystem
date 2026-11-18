@@ -1218,6 +1218,15 @@ FILES_MENU_AUTOBUILD="sim"
 # Chrome a policy não é escrita. Sai do trilho sozinho quando o pacote traz a correção.
 GRAFICOS="sim"                    # sim | nao
 
+# @ Ícone certo para as janelas derivadas na dock
+# > O diálogo de abrir arquivo e outras janelas auxiliares aparecem com a engrenagem no lugar do ícone do app.
+# Compila o cosmic-app-list com a série de patches/dock.series: quando o app_id da janela não
+# casa com nenhum .desktop, uma segunda tentativa casa sem diferenciar maiúscula, sem o sufixo
+# de papel (Dialog, Portal, Prompt, Prompter, Helper, Agent) e pelo prefixo de domínio reverso.
+# Nunca troca um casamento exato. O shim em ~/.local/bin/cosmic-app-list cai na dock do pacote
+# quando o build some, não confere ou cai repetido.
+DOCK="sim"                        # sim | nao
+
 # (havia um WALLPAPER_SEMENTES aqui, com "comunidade,cosmic,minhas". Nunca
 #  existiu categoria nenhuma no `cmd_semear`: ele baixa a coleção Catppuccin do
 #  commit pinado, e ponto. Removido em 08/08/2026 — chave que nada lê.)
