@@ -513,6 +513,16 @@ _catalogo() {
 
 _item() { _catalogo | awk -F'|' -v i="$1" '$1 == i'; }
 
+_fora_da_casa() {
+  case "$(awk -F'\t' -v i="$1" '$1 == "item" && $2 == i { print $4; exit }' "$CONTRATO")" in
+    '$HOME/'*) ;;
+    *) return 1 ;;
+  esac
+  [ -L "$2" ] && return 0
+  case "$(readlink -m -- "$2")" in "$(readlink -m -- "$HOME")"/*) return 1 ;; esac
+  return 0
+}
+
 _requer_ok() {
   local req="$1" so_build=0 arq
   case "$req" in build:*) so_build=1; req="${req#build:}" ;; esac
@@ -716,6 +726,7 @@ cmd_desativar() {
   [ -n "${item:-}" ] || { meow_erro "não conheço o item '$alvo'"; return "$MEOW_ERRO"; }
   if _desativado "$tipo" "$arq" "$item"; then meow_ok "$item já estava desativado"; return "$MEOW_OK"; fi
   if [ ! -f "$arq" ]; then meow_pula "$item: $(_curto "$arq") não existe nesta casa — nada a desativar"; return "$MEOW_OK"; fi
+  if _fora_da_casa "$item" "$arq"; then meow_erro "$item: $(_curto "$arq") é link ou sai da casa — nada foi mudado"; return "$MEOW_ERRO"; fi
   if [ -n "$req" ] && ! _requer_ok "$req"; then
     meow_pula "$item espera: o MeowSystem instalado ainda não cuida disto sozinho, e o de fora continua"
     return "$MEOW_OK"
