@@ -29,6 +29,12 @@ Achados para a próxima leva: `scripts/icones_sistema.sh` injeta a espessura do 
 de qualquer pack (pack de terceiro com traço fino sai engordado); `wifi.svg`, `battery.svg` e `plugged-into-power` das
 Configurações do MeowSystem no desenho antigo.
 
+Integração parcial 17/11 ~21h (pedido «Quero que integrar instalar e pushar sejam muito rápidos, preciso instalar em
+outros pcs»): C, E, F, G, J e K no `master` por `integracao/2026-11-17`; 13 testes afetados verdes; install real limpo
+(2 passagens, 74 etapas, nada mais a escrever); push sem esperar a suíte inteira, que roda na árvore
+`.meow-wt-integracao-17` e o vermelho que ela pegar sai num push seguinte. Os demais blocos entram do mesmo jeito
+assim que o conferente de cada um voltar.
+
 ## Próximo passo
 1. Esperar os blocos retomados. Integrar em `integracao/2026-11-17` (worktree `../.meow-wt-integracao` com a branch
    nova) na ordem C, E, F, G, J (arte), D (vagas, casando o par do G), A, B, H, H2, I; resolver o `PROCEDENCIA.md` do
