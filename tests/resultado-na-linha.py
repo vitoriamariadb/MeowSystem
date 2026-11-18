@@ -61,6 +61,7 @@ def checa(cond, frase):
 
 
 PAGINA = []
+TETO_DOCTOR = 240
 
 
 def eventual(fn, seg=60):
@@ -129,7 +130,7 @@ def main():
                         continue
                     vistas.append(acao)
                     pag.locator(f'#conteudo [data-controle="acao:{acao}"]').first.click()
-                    achou = eventual(lambda a=acao: pag.evaluate(RESULTADO, a) is not None)
+                    achou = eventual(lambda a=acao: pag.evaluate(RESULTADO, a) is not None, TETO_DOCTOR if acao == "doctor" else 60)
                     r = pag.evaluate(RESULTADO, acao) if achou else None
                     checa(bool(r) and r["texto"] != "", f"«{acao}» ({rota}) mostra um resultado com texto ({(r or {}).get('texto', '')[:60]!r})")
                     if r:
@@ -149,18 +150,18 @@ def main():
             print("2. rodar de novo troca o resultado; sair da tela o tira")
             ir(pag, "cuidar")
             pag.locator('#conteudo [data-controle="acao:doctor"]').first.click()
-            eventual(lambda: pag.evaluate(RESULTADO, "doctor") is not None)
+            eventual(lambda: pag.evaluate(RESULTADO, "doctor") is not None, TETO_DOCTOR)
             checa(pag.locator('[data-resultado="doctor"]').count() == 1, "um resultado só da verificação")
             pag.locator('#conteudo [data-controle="acao:doctor"]').first.click()
             checa(eventual(lambda: pag.locator('[data-resultado="doctor"]').count() == 0), "ao rodar de novo o anterior some")
-            checa(eventual(lambda: pag.evaluate(RESULTADO, "doctor") is not None), "e o novo chega")
+            checa(eventual(lambda: pag.evaluate(RESULTADO, "doctor") is not None, TETO_DOCTOR), "e o novo chega")
             ir(pag, "ajustes/painel")
             ir(pag, "cuidar")
             checa(pag.locator('[data-resultado="doctor"]').count() == 0, "sair da tela e voltar não traz o resultado velho")
 
             print("3. Verificar o sistema: com divergência mostra quantas e oferece Consertar")
             pag.locator('#conteudo [data-controle="acao:doctor"]').first.click()
-            achou = eventual(lambda: (pag.evaluate(RESULTADO, "doctor") or {}).get("consertar"))
+            achou = eventual(lambda: (pag.evaluate(RESULTADO, "doctor") or {}).get("consertar"), TETO_DOCTOR)
             r = pag.evaluate(RESULTADO, "doctor") or {}
             checa(r.get("estado") == "divergente", f"o retorno 1 vira divergência, não some calado ({r.get('estado')})")
             checa(achou and "diverg" in r.get("texto", ""), f"diz quantas coisas divergem ({r.get('texto', '')[:80]!r})")
