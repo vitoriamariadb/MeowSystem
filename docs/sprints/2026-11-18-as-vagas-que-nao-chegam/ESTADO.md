@@ -230,12 +230,30 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
 - P261 (próxima leva, a escrever): medir o custo da esquerda em todo app do COSMIC (patch na libcosmic e build por app).
 - Às 13h34: run 44562290665 em curso; suíte inteira com 58 testes rodados e nenhum vermelho.
 
+## 19/11, 14h35: push 8 verde, suíte inteira lida, quatro pulados curados
+- Run 44562290665 (push 8) verde: 130 verdes, 2 pulados (`estilo.sh`, `extensoes-install.sh`), 0 vermelhos, 67 min.
+- Suíte inteira no `a5976f57`: 171 testes, 168 verdes, 1 vermelho (`resultado-na-linha.py`: a conferência `atualiza`
+  sem nome curto no `NOME_DA_CONFERENCIA`; curado no `014ffa86`, e a `botoeslado` da P260 no `d7cdb72d`) e 2 pulados
+  (`graficos-fonte-real.sh`, `dock-fonte-real.sh`).
+- Ordem de quem usa: «Problema legado já resolve na hora também». Os dois do CI: `bloco/ci4` `79177ed3` (o runner
+  ganha `papirus-icon-theme`, `just` e os clones dos dez forks; pulado na suíte portátil vira vermelho). Os dois
+  locais: faltavam em `~/.local/src` os commits `6e68360` e `7b0864c` do portal e o clone do `cosmic-applets`
+  (`6f89bfa`); buscados à mão no nitro-5, os dois testes rodam verdes sem pular. Fica aberto: nada no produto cria
+  esses clones, então máquina nova volta a pular (sprint da próxima leva).
+- Com isso a série do portal está provada no fonte real das três versões (`f448ddf`, `6e68360`, `7b0864c`): fecha a
+  ressalva do `graficos-fonte-real.sh` pulado.
+- P258, P259 e P260 prontas (agentes parados, sem relatório; conferidas pelos commits, testes e folhas). P258 aprovada
+  por quem usa. Integradas com `bloco/atualiza` e `bloco/ci4` em `integracao/2026-11-18` (`8d3907d5`); cruzamento de
+  35 testes em curso (`scratchpad/integra-9.log`).
+
 ## Próximo passo
-1. Ler o run 44562290665 e a suíte inteira; vermelho vira cura na mesma rodada.
-2. Install no nitro-5 depois da suíte.
-3. P258 e P259: conferir as folhas e os testes de cada agente, pôr no quadro, integrar, push 9.
-4. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
+1. Ler o cruzamento; `master`, push 9 e o run do GitHub (agora sem pulado).
+2. Zsh da Vitória pelo espelho: os dois alvos do lado dos botões para `:minimize,maximize,close` (P260).
+3. Install nos três PCs; `meow doctor`; conferir o lado dos botões no desktop e no portátil.
+4. Suíte inteira no push 9.
+5. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
    `scripts/garantir_builds.sh estado`.
-5. Apagar as árvores que restam, depois de tudo no `master`.
-6. Próxima leva: P257 (commit assinado), conferente dos blocos E, G e H, item 3 da P251.
-7. Gestos de quem usa: sair e entrar na sessão nos três PCs.
+6. Apagar as árvores que restam, depois de tudo no `master`.
+7. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), os clones de fonte dos testes,
+   conferente dos blocos E, G e H, item 3 da P251.
+8. Gestos de quem usa: sair e entrar na sessão nos três PCs.
