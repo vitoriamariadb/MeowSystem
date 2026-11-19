@@ -205,6 +205,12 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
 - Árvores: saíram também `.meow-wt-ci2`, `.meow-wt-soberana`, `.meow-wt-arte` e a branch `bloco/ci` (o código já
   estava no `master` em versão mais nova). Restam `atualiza`, `botoes`, `integracao-18` e `leva-18`.
 
+## 19/11, 13h20: a P257 aberta
+- A revisão automática de segurança do push 8 apontou que a atualização ao ligar roda o install com root sem prova
+  de quem escreveu o commit. Resposta de quem usa (AskUserQuestion): «Assinatura na próxima leva». A P255 segue
+  ligada; a cura é a `P257-a-atualizacao-so-avanca-para-commit-assinado.md`, bloco da próxima leva.
+- Quadro de arte na versão 5, com a escolha dos botões de janela.
+
 ## Próximo passo
 1. Ler o run 44562290665 e a suíte inteira; vermelho vira cura na mesma rodada.
 2. Conferir o install do desktop e do portátil e o `meow-atualiza.timer` armado; install no nitro-5 depois da suíte.
