@@ -423,15 +423,16 @@ async function desfazerEntradas(entradas) {
   if (!entradas.length) return;
   const lote = {};
   for (const e of entradas) for (const it of e.itens) lote[it.chave] = it.antes;
+  for (const e of entradas) e.desfazendo = true;
   const certo = await gravarAgora(lote, { historico: false });
-  if (!certo) return;
+  if (!certo) { for (const e of entradas) e.desfazendo = false; return; }
   for (const e of entradas) { const k = HISTORICO.indexOf(e); if (k >= 0) HISTORICO.splice(k, 1); }
   atualizarAplicar();
   render();
 }
 async function desfazerTudo() {
   await FILA_DE_GRAVACAO;
-  desfazerEntradas(HISTORICO.slice());
+  desfazerEntradas(HISTORICO.filter((e) => !e.desfazendo));
 }
 
 function padraoDe(item) {
