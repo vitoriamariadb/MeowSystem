@@ -96,6 +96,16 @@ def main():
             checa(not os.path.exists(os.path.join(ativos, alvo)) and anotada and not os.path.isdir(os.path.join(base, "banidos")),
                   f"o «Apagar» tira {alvo} do disco, sem banidos/, e o nome vai para o BANIDOS.txt")
             sem_previa = []
+            velhos = set(os.listdir(ativos))
+            itens_da_lista = "() => ((previasDe('parede', 'ativos') || { itens: [] }).itens).map((i) => decodeURIComponent(i.url.split('id=ativos%2F')[1] || ''))"
+
+            def da_pasta_velha():
+                return [n for n in pag.evaluate(itens_da_lista) if n in velhos]
+
+            def fora_da_pasta_nova():
+                pasta = os.path.join(outra, "ativos")
+                no_disco = set(os.listdir(pasta)) if os.path.isdir(pasta) else set()
+                return [n for n in pag.evaluate(itens_da_lista) if n not in no_disco]
             pag.on("response", lambda r: sem_previa.append(r.url) if r.status == 404 and "/previa" in r.url else None)
             outra = os.path.join(casa.BRINQUEDO, "sem-papel")
             pag.evaluate("(base) => gravarAgora({ WALLPAPER_BASE: base })", outra)
@@ -103,8 +113,9 @@ def main():
             for _vez in range(3):
                 pag.evaluate("() => render()")
                 pag.wait_for_timeout(400)
-            checa(pag.evaluate("() => document.querySelectorAll('.galeria figure').length") == 0,
-                  "mudar a pasta dos papéis refaz a galeria, e a pasta vazia não deixa imagem velha")
+            na_tela = pag.evaluate("() => [...document.querySelectorAll('.galeria figure')].map((f) => f.dataset.papel)")
+            checa(not [n for n in na_tela if n in velhos],
+                  f"mudar a pasta dos papéis refaz a galeria, e a pasta nova não deixa imagem velha ({na_tela})")
             velhas = pag.evaluate("""async () => { const l = previasDe('parede', 'ativos');
                 const urls = ((l && l.itens) || []).map((i) => i.url);
                 return Promise.all(urls.map((u) => fetch(u).then((r) => r.status))); }""")
@@ -128,9 +139,9 @@ def main():
             pag.wait_for_timeout(1500)
             pag.evaluate("() => render()")
             pag.wait_for_timeout(600)
-            lista_atrasada = pag.evaluate("() => (previasDe('parede', 'ativos') || { itens: [] }).itens.length")
-            checa(lista_atrasada == 0 and not sem_previa,
-                  f"a lista que chega depois da troca da pasta não entra ({lista_atrasada} itens, {len(sem_previa)} respostas 404)")
+            lista_atrasada = da_pasta_velha() + fora_da_pasta_nova()
+            checa(not lista_atrasada and not sem_previa,
+                  f"a lista que chega depois da troca da pasta não entra (da pasta velha ou fora da nova: {lista_atrasada}; {len(sem_previa)} respostas 404)")
             pag.evaluate("() => desfazerTudo()")
             pag.wait_for_function("(n) => document.querySelectorAll('.galeria figure img').length === n",
                                   arg=casa.PAREDES - 1, timeout=60000)
@@ -147,9 +158,9 @@ def main():
             for _vez in range(3):
                 pag.evaluate("() => render()")
                 pag.wait_for_timeout(400)
-            parcial = pag.evaluate("() => (previasDe('parede', 'ativos') || { itens: [] }).itens.length")
-            checa(parcial == 0 and not sem_previa,
-                  f"com a outra chave em falha, a pasta nova já vale na galeria ({parcial} itens, {len(sem_previa)} respostas 404)")
+            parcial = da_pasta_velha() + fora_da_pasta_nova()
+            checa(not parcial and not sem_previa,
+                  f"com a outra chave em falha, a pasta nova já vale na galeria (da pasta velha ou fora da nova: {parcial}; {len(sem_previa)} respostas 404)")
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:
