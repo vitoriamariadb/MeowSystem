@@ -41,8 +41,10 @@ FIM
 cat > "$T/bin/sleep" <<FIM
 #!/bin/sh
 r=\$(cat "$T/relogio"); r=\$((r + \$1)); echo "\$r" > "$T/relogio"
-[ -f "$T/morre-em" ] && [ "\$r" -ge "\$(cat "$T/morre-em")" ] && rm -f "$T/painel-vivo" "$T/sessao"
-[ -f "$T/cura-em" ] && [ "\$r" -ge "\$(cat "$T/cura-em")" ] && rm -f "$T/journal-pid" "$T/journal-sessao"
+[ -f "$T/morre-em" ] && [ "\$r" -ge "\$(cat "$T/morre-em")" ] && rm -f "$T/morre-em" "$T/painel-vivo" "$T/sessao"
+[ -s "$T/cura-em" ] && [ "\$r" -ge "\$(head -1 "$T/cura-em")" ] && sed -i 1d "$T/cura-em" && rm -f "$T/journal-pid" "$T/journal-sessao"
+[ -f "$T/adoece-em" ] && [ "\$r" -ge "\$(cat "$T/adoece-em")" ] && rm -f "$T/adoece-em" \
+  && printf "Can't start notifications applet without a connection\\n" > "$T/journal-pid"
 [ "\$r" -ge "\$(cat "$T/fim")" ] && kill -TERM "\$PPID"
 exit 0
 FIM
@@ -159,8 +161,8 @@ confere "em 1300 s com «Failed to render» no _PID e nada mais, nenhuma recicla
 printf '\n6. o estado e o doctor contam as reciclagens do boot\n'
 limpo; printf "Can't start notifications applet without a connection\n" > "$T/journal-pid"
 saida="$(painel_com "$T/run-teto" estado)"
-confere "meow painel estado: «reciclagens : 2 de 2 seguidas — desisti até a barra voltar a desenhar»" \
-  'grep -qx "reciclagens : 2 de 2 seguidas — desisti até a barra voltar a desenhar" <<< "$saida"'
+confere "meow painel estado: «reciclagens : 2 de 2 seguidas — desisti até a barra desenhar 10 minutos seguidos»" \
+  'grep -qx "reciclagens : 2 de 2 seguidas — desisti até a barra desenhar 10 minutos seguidos" <<< "$saida"'
 confere "e a frase não promete que o vigia a reinicia sozinho" '! grep -q "O vigia a reinicia sozinho" <<< "$saida"'
 laco_por 500 "$T/run-uma" > /dev/null; saida="$(painel_com "$T/run-uma" estado)"
 confere "num boot com uma reciclagem só, sem desistência" 'grep -qx "reciclagens : 1 de 2 seguidas" <<< "$saida"'
@@ -186,37 +188,39 @@ HOME="$T/casa" sh -c 'trap "" TERM; exec sleep 300' & nosso=$!
 echo "$sup" > "$T/sup"; printf '%s\n%s\n' "$sup" "$nosso" > "$T/paineis"; touch "$T/sessao"
 mkdir -p "$T/run-7"; python3 -c 'import socket, sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "$T/run-7/wayland-7"
 printf '#!/bin/sh\necho nasceu >> "%s/nasceu.log"\nexec /bin/sleep 300\n' "$T" > "$T/bin/cosmic-panel"; chmod 755 "$T/bin/cosmic-panel"
-echo 1800001400 > "$T/cura-em"; echo 1800001500 > "$T/morre-em"
+echo 1800001500 > "$T/morre-em"
 n="$(laco_por 1600 "$T/run-7")"
-{ kill -KILL "$sup" "$nosso"; wait "$sup" "$nosso"; } 2>/dev/null
 confere "o painel do supervisor é reciclado duas vezes, e não mais" '[ "$n" = 2 ] && [ "$(wc -l < "$T/avisos.log")" = 1 ]'
 confere "depois da desistência o laço segue encerrando o nosso painel e cedendo a vez ao do supervisor" \
-  'sed -n "/DESISTI/,/voltou a desenhar/p" "$T/laco.log" | grep -q "cedendo a vez ao painel do supervisor (pid $sup); encerrando o nosso (pid $nosso)"'
-confere "e, quando o painel morre depois da desistência, o laço o repõe" \
-  'sed -n "/DESISTI/,\$p" "$T/laco.log" | grep -q "painel reposto" && [ -s "$T/nasceu.log" ]'
-confere "e o painel do supervisor visto desenhando depois da desistência devolve a cota" \
-  'sed -n "/DESISTI/,/painel reposto/p" "$T/laco.log" | grep -q "voltou a desenhar" && [ ! -e "$T/run-7/meowsystem/painel-reciclagens" ]'
+  'sed -n "/DESISTI/,/painel reposto/p" "$T/laco.log" | grep -q "cedendo a vez ao painel do supervisor (pid $sup); encerrando o nosso (pid $nosso)"'
+confere "e, quando o painel morre depois da desistência, o laço o repõe ainda desistido" \
+  'sed -n "/DESISTI/,\$p" "$T/laco.log" | grep -q "painel reposto" && [ -s "$T/nasceu.log" ] && [ "$(cat "$T/run-7/meowsystem/painel-reciclagens")" = 2 ]'
+touch "$T/painel-vivo" "$T/sessao"
+printf 'cosmic-session: xdg_popup#551: error 0: tried to grab after being mapped\n' > "$T/journal-sessao"
+echo 1800001400 > "$T/cura-em"
+laco_por 2100 "$T/run-7b" > /dev/null
+{ kill -KILL "$sup" "$nosso"; wait "$sup" "$nosso"; } 2>/dev/null
+confere "e o painel do supervisor visto desenhando 10 minutos seguidos depois da desistência devolve a cota" \
+  'sed -n "/DESISTI/,\$p" "$T/laco.log" | grep -q "desenha há 10 minutos seguidos" && [ ! -e "$T/run-7b/meowsystem/painel-reciclagens" ]'
 rm -f "$T/morre-em" "$T/cura-em" "$T/sup" "$T/paineis" "$T/sessao"
 
-printf '\n8. a cota volta quando o laço vê a barra desenhar, passada a carência da última reciclagem\n'
+printf '\n8. a cota volta só depois de o laço ver a barra desenhar 10 minutos seguidos\n'
 limpo; printf "Can't start notifications applet without a connection\n" > "$T/journal-pid"; : > "$T/avisos.log"
 echo 1800000300 > "$T/cura-em"
 laco_por 500 "$T/run-carencia" > /dev/null
 confere "curada 300 s depois da reciclagem, dentro da carência, a barra ainda não devolve a cota" \
   '[ "$(cat "$T/run-carencia/meowsystem/painel-reciclagens")" = 1 ]'
-printf "Can't start notifications applet without a connection\n" > "$T/journal-pid"
-laco_por 700 "$T/run-cura" > /dev/null
-confere "vista desenhando depois dos 600 s da carência, a cota volta inteira" \
-  '[ ! -e "$T/run-cura/meowsystem/painel-reciclagens" ] && grep -q "voltou a desenhar" "$T/laco.log"'
-rm -f "$T/cura-em"
-printf "Can't start notifications applet without a connection\n" > "$T/journal-pid"
-laco_por 1300 "$T/run-episodios" > /dev/null
-limpo; laco_por 100 "$T/run-episodios" > /dev/null
-confere "depois da desistência, a barra vista desenhando zera a cota e o aviso" \
-  '[ ! -e "$T/run-episodios/meowsystem/painel-reciclagens" ] && [ ! -e "$T/run-episodios/meowsystem/painel-reciclagens.avisado" ]'
-printf "Can't start notifications applet without a connection\n" > "$T/journal-pid"
-n="$(laco_por 1300 "$T/run-episodios")"
-confere "e o episódio seguinte recicla duas vezes de novo e avisa de novo, uma vez" '[ "$n" = 2 ] && [ "$(wc -l < "$T/avisos.log")" = 2 ]'
+printf "Can't start notifications applet without a connection\n" > "$T/journal-pid"; : > "$T/avisos.log"
+printf '1800001300\n1800002000\n' > "$T/cura-em"; echo 1800001700 > "$T/adoece-em"
+n="$(laco_por 2400 "$T/run-oscila")"
+confere "fantasma, desistência, 400 s desenhando, fantasma, 400 s desenhando de novo: a cota não volta, nem a reciclagem, nem o aviso" \
+  '[ "$n" = 2 ] && [ "$(wc -l < "$T/avisos.log")" = 1 ] && [ "$(cat "$T/run-oscila/meowsystem/painel-reciclagens")" = 2 ] && ! grep -q "desenha há" "$T/laco.log"'
+limpo; printf "Can't start notifications applet without a connection\n" > "$T/journal-pid"; : > "$T/avisos.log"
+echo 1800001300 > "$T/cura-em"; echo 1800002100 > "$T/adoece-em"
+n="$(laco_por 3500 "$T/run-volta")"
+confere "fantasma, desistência, 800 s desenhando e fantasma de novo: a cota volta, recicla duas vezes de novo e avisa de novo" \
+  'grep -q "desenha há 10 minutos seguidos" "$T/laco.log" && [ "$n" = 4 ] && [ "$(wc -l < "$T/avisos.log")" = 2 ]'
+rm -f "$T/cura-em" "$T/adoece-em"
 
 printf '\n'
 if [ "$falhas" -eq 0 ]; then printf 'painel-fantasma: tudo verde\n'; exit 0; fi
