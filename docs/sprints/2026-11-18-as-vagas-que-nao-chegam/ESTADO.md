@@ -259,13 +259,28 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
 - Install do push 9 lançado às 15h09 nos três (`~/.cache/meow-leva/install-push9-2026-11-19.log` nos PCs da
   Vitória, `install-push9-nitro5-2026-11-19.log` no nitro-5).
 
+## 19/11, 15h20: push 9 instalado nos três PCs
+- nitro-5: install limpo (2 passagens, 77 etapas); papéis do Dracula semeados de novo às 15h09, ícones novos no tema
+  às 15h08, a lupa instalada é a do morcego; doctor só com os avisos de antes.
+- Desktop e portátil: a 1ª tentativa saiu recusada («outro meow está rodando (flock bash sleep)»): o
+  `meow-derivados.service`, disparado pelo `git pull`, pega a trava segundos DEPOIS da espera do coordenador.
+  Relançado com insistência: limpo nos dois (2 passagens, 77 etapas). `button-layout` e `gtk-decoration-layout` em
+  `:minimize,maximize,close`; papéis do MeowSystem semeados às 15h09; 5 ícones novos conferidos no tema.
+- A mesma corrida pegaria a atualização ao ligar. Cura: `bloco/atualiza` `05854074` (o install recusado por «outro
+  meow está rodando» é tentado até três vezes), com teste vermelho sem a cura. Ainda fora do `master`: push 10.
+- Zsh da Vitória: o porte `ba12eaf` chegou ao desktop; ao portátil chega pelo autosync dela. A cópia instalada do
+  `aurora-button-layout.service` foi acertada à mão nos dois (`sed` no alvo, `daemon-reload`). O ritual root
+  instalado (`/usr/local/sbin`) ainda tem a esquerda e se troca sozinho na próxima volta de hora em hora; até lá
+  pode devolver a esquerda uma vez (desktop 15h46; portátil até o zsh de lá receber o porte).
+
 ## Próximo passo
-1. Ler os três installs e o doctor; conferir o lado dos botões no desktop e no portátil (unidade antiga do zsh).
-2. Ler o run 44584677965 (agora pulado é vermelho); suíte inteira no `fbde5363`.
-3. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
+1. Integrar `05854074` e enviar o push 10 (com o `ESTADO.md`); ler o run 44584677965 do push 9.
+2. Conferir depois das 16h40 o lado dos botões no desktop e no portátil (ritual root trocado sozinho).
+3. Suíte inteira no `master` final.
+4. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
    `scripts/garantir_builds.sh estado`.
-4. Apagar as árvores que restam (`atualiza`, `botoes`, `papeis-gatos`, `lateral`, `lado`, `ci4`, e no fim
+5. Apagar as árvores que restam (`atualiza`, `botoes`, `papeis-gatos`, `lateral`, `lado`, `ci4`, e no fim
    `integracao-18` e `leva-18`).
-5. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), os clones de fonte dos testes,
+6. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), os clones de fonte dos testes,
    conferente dos blocos E, G e H, item 3 da P251.
-6. Gestos de quem usa: sair e entrar na sessão nos três PCs.
+7. Gestos de quem usa: sair e entrar na sessão nos três PCs.
