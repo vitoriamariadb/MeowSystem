@@ -32,6 +32,27 @@
   pacote `…1792525517~24.04~f448ddf`, a versão do `patches/graficos.versao`; desktop `graficos_estado=falhou` com
   `…f448ddf+0~hefesto1`; portátil `graficos_estado=nao-encaixa` com `…1794346005~24.04~6e68360`.
 
+- **Medida de 19/11 01h55, desktop, só leitura** (`medidas/P251-desktop-portal-2026-11-19.txt`): o pacote
+  instalado é `…f448ddf+0~hefesto1` (22 pacotes `hefesto` na máquina), e o candidato do Pop!_OS já é
+  `1.11.0~1795035856~24.04~7b0864c`. O `builds.log` mostra quatro tentativas com «o apt-get source do portal
+  …+0~hefesto1 falhou (sem rede?)»: essa versão não existe no repositório do Pop!_OS. Depois o build ficou pronto,
+  voltou à sessão («passou no teste de fumaça, e o registro não tem queda dele») e foi posto de lado de novo («voltou
+  a ser posto de lado depois de devolvido uma vez»). O journal do portal e o `coredumpctl` dos últimos 7 dias não
+  têm linha dele. O portátil estava fora da rede nesta medida.
+- **Três versões em jogo:** `f448ddf` (nitro-5, a do `patches/graficos.versao`), `6e68360` (portátil em 18/11) e
+  `7b0864c` (candidato de hoje).
+
+### Tarefa do bloco E
+1. Série: fazer `patches/graficos.series` encaixar em `6e68360` e em `7b0864c` sem perder `f448ddf` (ou `fim <versão>`
+   se a versão nova já traz a correção oficial), com a prova que `tests/graficos*.sh` e `tests/patch-que-sobe.sh` pedem.
+2. Versão com sufixo local (`+0~hefesto1`): o `apt-get source` não acha. Medir no código de onde o fonte dessa
+   versão veio no fim, e fazer a busca do fonte cair na versão de origem (`…f448ddf`) quando o sufixo não é do
+   Pop!_OS, com teste.
+3. Queda sem registro: o build «de lado» com `ruim` e sem linha no journal. Ler `scripts/graficos.sh` (`_gr_quedas_do`,
+   `_gr_marcar_caiu`, linhas 423 a 454) e dizer, com o `builds.log` medido, qual ramo pôs o build de lado e se foi
+   queda de verdade; curar o que estiver errado e provar em `tests/graficos.sh`.
+4. O coordenador roda nos PCs da Vitória o que o agente pedir, com o comando exato.
+
 ## Para o conferente do bloco A
 O `packs/meowsystem/icones/sistema.map` liga `soneca-desperto-symbolic` e `soneca-ronronar-symbolic` a `soneca-desperto`
 e `soneca-ronronar`, e `packs/meowsystem/icones/sistema/` não tem esses dois arquivos: nos PCs da Vitória a Soneca usa

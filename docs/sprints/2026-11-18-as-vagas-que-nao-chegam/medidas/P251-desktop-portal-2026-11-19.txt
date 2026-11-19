@@ -1,0 +1,49 @@
+### graficos.sh estado
+versao=1.11.0~1792525517~24.04~f448ddf+0~hefesto1
+estado=falhou
+build=sim
+shim=sim
+dropin=sim
+policy=sim
+ruim=sim
+### builds.log (graficos/portal)
+62:  >> portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1: sem o build desta versão — compilando
+63:  >> BAIXA DA INTERNET: o fonte do portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 (~155 MB), para /home/vitoriamaria/.cache/meowsystem/graficos/baixado
+64:  erro o apt-get source do portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 falhou (sem rede?): a próxima passada tenta de novo
+65:  !!   portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1: o build não ficou pronto — o do pacote segue valendo, e o próximo gatilho tenta de novo
+66:  >> o portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 ainda não tem build da casa — o do pacote segue valendo
+67:  ~~   o shim do portal não está em /home/vitoriamaria/.local/libexec/meow/graficos/portal-shim
+68:  ~~   o drop-in do portal não está no lugar (/home/vitoriamaria/.config/systemd/user/org.freedesktop.impl.portal.desktop.cosmic.service.d/meow-graficos.conf)
+77:  >> portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1: sem o build desta versão — compilando
+78:  >> BAIXA DA INTERNET: o fonte do portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 (~155 MB), para /home/vitoriamaria/.cache/meowsystem/graficos/baixado
+79:  erro o apt-get source do portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 falhou (sem rede?): a próxima passada tenta de novo
+80:  !!   portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1: o build não ficou pronto — o do pacote segue valendo, e o próximo gatilho tenta de novo
+81:  >> o portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 ainda não tem build da casa — o do pacote segue valendo
+89:  >> portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1: sem o build desta versão — compilando
+90:  >> BAIXA DA INTERNET: o fonte do portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 (~155 MB), para /home/vitoriamaria/.cache/meowsystem/graficos/baixado
+91:  erro o apt-get source do portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 falhou (sem rede?): a próxima passada tenta de novo
+92:  !!   portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1: o build não ficou pronto — o do pacote segue valendo, e o próximo gatilho tenta de novo
+93:  >> o portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 ainda não tem build da casa — o do pacote segue valendo
+101:  >> portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1: sem o build desta versão — compilando
+102:  >> BAIXA DA INTERNET: o fonte do portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 (~155 MB), para /home/vitoriamaria/.cache/meowsystem/graficos/baixado
+103:  erro o apt-get source do portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 falhou (sem rede?): a próxima passada tenta de novo
+104:  !!   portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1: o build não ficou pronto — o do pacote segue valendo, e o próximo gatilho tenta de novo
+105:  >> o portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 ainda não tem build da casa — o do pacote segue valendo
+108:  ok   aprimoramentos gráficos em dia: portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1, shim, drop-in e policy
+111:  ok   aprimoramentos gráficos em dia: portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1, shim, drop-in e policy
+114:  ok   aprimoramentos gráficos em dia: portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1, shim, drop-in e policy
+117:  ok   aprimoramentos gráficos em dia: portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1, shim, drop-in e policy
+119:  ~~   o build do portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 volta à sessão: passou no teste de fumaça, e o registro não tem queda dele
+123:  ok   aprimoramentos gráficos em dia: portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1, shim, drop-in e policy
+126:  ok   aprimoramentos gráficos em dia: portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1, shim, drop-in e policy
+129:  ok   aprimoramentos gráficos em dia: portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1, shim, drop-in e policy
+131:  ~~   o build do portal 1.11.0~1792525517~24.04~f448ddf+0~hefesto1 foi posto de lado (o build voltou a ser posto de lado depois de devolvido uma vez) — o portal sobe do pacote
+### journal do portal (usuário), 7 dias
+### coredumps
+### arquivos do build
+zsh:1: no matches found: /home/vitoriamaria/.local/state/meowsystem/graficos*
+zsh:1: no matches found: /home/vitoriamaria/.local/share/meowsystem/graficos*
+Maintainer: System76 <info@system76.com>
+Version: 1.11.0~1792525517~24.04~f448ddf+0~hefesto1
+Description: Cosmic backend for xdg-desktop-portal
+22
