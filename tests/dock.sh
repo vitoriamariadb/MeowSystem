@@ -34,7 +34,7 @@ confere "os seis sufixos de papel, nem um a mais" \
   'grep -qF "+const ROLE_SUFFIXES: [&str; 6] = [\"Prompter\", \"Prompt\", \"Dialog\", \"Portal\", \"Helper\", \"Agent\"];" "$PATCH_REAL"'
 confere "nenhum comentário novo no patch" '! grep -E "^\+[[:space:]]*//" "$PATCH_REAL"'
 confere "o shim escolhe o build como o do portal, com os nomes da dock" \
-  'escolha() { sed -n "1,/MEOW_SHIM_SO_DIZER/p" "$1"; }; diff <(escolha "$RAIZ/scripts/dock_shim.sh" | sed -e "s/DOCK-SHIM/PORTAL-SHIM/; s#/usr/bin/cosmic-app-list#/usr/libexec/xdg-desktop-portal-cosmic#; s#meow/dock#meow/graficos#; s/cosmic-applets 2/xdg-desktop-portal-cosmic 2/; s#/cosmic-app-list\"#/xdg-desktop-portal-cosmic\"#") <(escolha "$RAIZ/scripts/portal_shim.sh") >/dev/null'
+  'escolha() { sed -n "1,/MEOW_SHIM_SO_DIZER/p" "$1"; }; diff <(escolha "$RAIZ/scripts/dock_shim.sh" | sed -e "/^viva=\"\"\$/,/^esac\$/d" -e "s/DOCK-SHIM/PORTAL-SHIM/; s#/usr/bin/cosmic-app-list#/usr/libexec/xdg-desktop-portal-cosmic#; s#meow/dock#meow/graficos#; s/cosmic-applets 2/xdg-desktop-portal-cosmic 2/; s#/cosmic-app-list\"#/xdg-desktop-portal-cosmic\"#") <(escolha "$RAIZ/scripts/portal_shim.sh") >/dev/null'
 
 printf '\n1. o upstream sintético: um repositório git local no lugar do github\n'
 (
@@ -266,7 +266,44 @@ confere "e o estado fica ok" 'grep -qx dock_estado=ok "$T/saida"' "$(cat "$T/sai
 DOCK=nao gb estado
 confere "com DOCK=nao a dock não pende" 'grep -qx dock_estado=desligado "$T/saida"' "$(cat "$T/saida")"
 
-printf '\n14. a fiação: install, doctor, verbo, desinstalar, contratos\n'
+printf '\n14. com a sessão viva a dock não fica com um build em cada tela\n'
+VELHA="1.10.0~1790000000~24.04~0000000"
+mkdir -p "$LIBEXEC/$VELHA" "$T/fabrica-viva"
+for b in "$LIBEXEC/$VELHA/cosmic-app-list" "$T/fabrica-viva/cosmic-app-list"; do
+  cp "$(command -v bash)" "$b" && printf '\nMEOW-DOCK-PATCH-1\n' >> "$b" && chmod 755 "$b"
+done
+cp "$LIBEXEC/$VER1/marcadores" "$LIBEXEC/$VELHA/marcadores"
+mkfifo "$T/segura"
+viver() {
+  "$1" -c 'read -r _ < "$1"' _ "$T/segura" & VIVA=$!
+  for _ in $(seq 50); do [ "$(readlink "/proc/$VIVA/exe")" = "$1" ] && break; sleep 0.1; done
+}
+diz() { shim "$@" MEOW_SHIM_SO_DIZER=1 bash "$SHIM"; }
+confere "sem dock viva o shim escolhe o build da versão" '[ "$(diz)" = "$LIBEXEC/$VER1/cosmic-app-list" ]' "$(diz)"
+viver "$LIBEXEC/$VELHA/cosmic-app-list"
+confere "tela nova com a dock de antes viva: o shim segue o build que a sessão já roda" '[ "$(diz)" = "$LIBEXEC/$VELHA/cosmic-app-list" ]' "$(diz)"
+dk compilar DK_REFAZER=1; rc=$?
+confere "o build novo não apaga o que a sessão ainda roda" \
+  '[ "$rc" = 0 ] && [ -x "$LIBEXEC/$VELHA/cosmic-app-list" ] && [ -x "$LIBEXEC/$VER1/cosmic-app-list" ] && grep -q "fica até a sessão acabar" "$T/saida"' "$(cat "$T/saida")"
+dk aplicar; rc=$?
+confere "nem o aplicar, que sai 0" '[ "$rc" = 0 ] && [ -x "$LIBEXEC/$VELHA/cosmic-app-list" ]' "$(cat "$T/saida")"
+confere "e a tela nova continua no build da sessão" '[ "$(diz)" = "$LIBEXEC/$VELHA/cosmic-app-list" ]' "$(diz)"
+kill "$VIVA"; wait "$VIVA" 2>/dev/null
+confere "sessão nova, ninguém vivo: o shim escolhe o build da versão" '[ "$(diz)" = "$LIBEXEC/$VER1/cosmic-app-list" ]' "$(diz)"
+f0="$(foto)"
+dk conferir; rc=$?
+confere "o conferir acusa o build que ninguém mais roda, sem escrever" '[ "$rc" = 1 ] && [ "$(foto)" = "$f0" ] && grep -q "podaria" "$T/saida"' "$(cat "$T/saida")"
+dk aplicar; rc=$?
+confere "o aplicar o poda" '[ "$rc" = 1 ] && [ ! -e "$LIBEXEC/$VELHA" ] && [ -x "$LIBEXEC/$VER1/cosmic-app-list" ]' "$(cat "$T/saida")"
+f0="$(foto)"
+dk aplicar; rc=$?
+confere "e a segunda passada não escreve" '[ "$rc" = 0 ] && [ "$(foto)" = "$f0" ]' "$(cat "$T/saida")"
+viver "$T/fabrica-viva/cosmic-app-list"
+confere "com a dock do pacote viva, a tela nova sobe a do pacote" \
+  '[ "$(diz MEOW_SHIM_FABRICA="$T/fabrica-viva/cosmic-app-list")" = "$T/fabrica-viva/cosmic-app-list" ]' "$(diz MEOW_SHIM_FABRICA="$T/fabrica-viva/cosmic-app-list")"
+kill "$VIVA"; wait "$VIVA" 2>/dev/null
+
+printf '\n15. a fiação: install, doctor, verbo, desinstalar, contratos\n'
 confere "o install tem a etapa da dock, depois da do portal" 'grep -q "^etapa_dock()" "$RAIZ/install.sh" && grep -q "etapa_graficos etapa_dock " "$RAIZ/install.sh"'
 confere "o doctor confere a dock logo depois do portal" 'grep -q "areas patches graficos dock relogio" "$RAIZ/bin/meow" && grep -q "^chk_dock()" "$RAIZ/bin/meow" && grep -q "^fix_dock()" "$RAIZ/bin/meow"'
 confere "o meow tem o verbo dock" 'grep -qE "^    dock\) shift" "$RAIZ/bin/meow"'

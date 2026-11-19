@@ -9,6 +9,19 @@ limite=2
 ver="$(dpkg-query -W -f='${Version}' cosmic-applets 2>/dev/null)"
 dir="$casa/$ver"
 build="$dir/cosmic-app-list"
+viva=""
+for pid in $(pgrep -u "$(id -u)" -x cosmic-app-list 2>/dev/null); do
+  exe="$(readlink "/proc/$pid/exe" 2>/dev/null)"
+  case "$exe" in
+    "$fabrica"|"$fabrica (deleted)") viva="$fabrica"; break ;;
+    "$casa"/*/cosmic-app-list) [ -x "$exe" ] && { viva="$exe"; break; } ;;
+  esac
+done
+case "$viva" in
+  "") ;;
+  "$fabrica") build="" ;;
+  *) build="$viva"; dir="${viva%/*}" ;;
+esac
 
 usar_build=0
 if [ -n "$ver" ] && [ -x "$build" ] && [ ! -e "$dir/ruim" ] && [ -s "$dir/marcadores" ]; then

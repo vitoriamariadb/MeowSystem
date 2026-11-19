@@ -208,6 +208,30 @@ _dk_marcar_caiu() {
   return 1
 }
 
+_dk_em_uso() {
+  local pid
+  for pid in $(pgrep -u "$(id -u)" -x "$DK_BIN" 2>/dev/null); do
+    [ "$(readlink "/proc/$pid/exe" 2>/dev/null)" = "$1/$DK_BIN" ] && return 0
+  done
+  return 1
+}
+
+_dk_podar() {
+  local d podou=0
+  for d in "$DK_CASA"/*/; do
+    d="${d%/}"
+    [ -d "$d" ] && [ "$d" != "$1" ] || continue
+    if _dk_em_uso "$d"; then
+      meow_info "o build $(basename "$d") fica até a sessão acabar: a dock de agora roda nele"
+    elif meow_seco; then
+      meow_muda "podaria o build antigo da dock: $(basename "$d")"; podou=1
+    else
+      rm -rf -- "$d" && meow_info "podei o build antigo: $(basename "$d")" && podou=1
+    fi
+  done
+  return "$podou"
+}
+
 cmd_cuidar() {
   local ver dir
   ver="$(_dk_versao)" || return 0
@@ -320,7 +344,7 @@ cmd_validar() {
 }
 
 cmd_compilar() {
-  local ver fonte alvo log bin livre destino arquivo marca tmp m d
+  local ver fonte alvo log bin livre destino arquivo marca tmp m
   ver="$(_dk_versao)" || ver=""
   [ -n "$ver" ] || { meow_pula "a dock não está instalada por pacote — nada a compilar"; return "$MEOW_SEM_DEPENDENCIA"; }
   _dk_falta_ferramenta compilar && return "$MEOW_SEM_DEPENDENCIA"
@@ -390,11 +414,7 @@ cmd_compilar() {
   rm -f "$destino/ruim" "$destino/quedas" "$destino/perdoado"
   rm -rf "$fonte" "$alvo"
   _dk_limpar_falha "$ver"
-  for d in "$DK_CASA"/*/; do
-    [ -d "$d" ] || continue
-    [ "${d%/}" = "$destino" ] && continue
-    rm -rf -- "$d" && meow_info "podei o build antigo: $(basename "$d")"
-  done
+  _dk_podar "$destino"
   meow_muda "dock patchada guardada em $destino (versão $ver), marcadores conferidos no binário"
   meow_registrar "dock.sh compilar $ver"
   meow_limpar_fim_de_build
@@ -454,6 +474,7 @@ cmd_aplicar() {
 
   _dk_ligar; rc=$?
   case "$rc" in 1) mudou=1 ;; 2) return "$MEOW_ERRO" ;; esac
+  if _dk_valido "$ver"; then _dk_podar "$DK_CASA/$ver" || mudou=1; fi
 
   [ "$mudou" = 1 ] && return "$MEOW_DIVERGENTE"
   [ "$bloqueado" = 1 ] && return "$MEOW_SEM_DEPENDENCIA"
