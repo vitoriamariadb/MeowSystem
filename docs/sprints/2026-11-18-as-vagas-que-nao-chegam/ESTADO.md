@@ -273,6 +273,31 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
   instalado (`/usr/local/sbin`) ainda tem a esquerda e se troca sozinho na próxima volta de hora em hora; até lá
   pode devolver a esquerda uma vez (desktop 15h46; portátil até o zsh de lá receber o porte).
 
+## 19/11, 15h30: os relatórios dos agentes chegaram de uma vez
+Chegaram juntos os relatórios de `painel-confere`, `portal-implementa`, `layout-implementa`, `arte-desenha`,
+`atualiza-implementa`, `lado-botoes`, `lateral-arquivos` e `arte-confere`. O `arte-confere` explica o atraso dele:
+mandou o relatório como texto, não por mensagem. A ressalva «agentes sem relatório» fica respondida.
+- Incidente do `arte-confere`: com a árvore dele já removida, um `sed` caiu no checkout principal e trocou o
+  `COMMIT=` de quatro pinos; ele restaurou. Conferido pelo coordenador às 15h30: checkout limpo no `ff3c93e1`, os
+  quatro pinos nos commits publicados, e os commits publicados dos applets levam o teste e o `build: versão`.
+- P251, do `portal-implementa`, o que falta em cada PC: portátil, `apt-get install --only-upgrade
+  xdg-desktop-portal-cosmic` (o `6e68360` já não tem fonte servido) e depois `garantir_builds.sh rodar`; desktop,
+  subir para o `7b0864c` troca o portal do Hefesto pelo do Pop e pede o sim dela; antes, a leitura do item 3 (o
+  comando está no relatório: `ruim`, `perdoado`, journal da unidade do portal dos últimos 10 dias).
+- Achados para sprint, dos relatórios:
+  1. O shim do portal conta como queda qualquer fim antes de 30 s (restart, saída da sessão); o cuidar deveria ler
+     o resultado no systemd.
+  2. O GTK pinta só o preenchimento dos simbólicos: todo ícone de contorno do MeowSystem sai errado em app GTK; a
+     cura na origem é o `icones_sistema.sh` converter traço em área.
+  3. A carência do painel fantasma fica em memória; os nomes `*_do_boot` já não dizem o que a cota faz.
+  4. O fechar em X do MeowSystem (54% da caixa) ficou pequeno ao lado dos três novos (88%).
+  5. Arte para `network-wireless-disabled` nos dois packs; o desligar antigo do Dracula sem o sufixo `-alt`; as
+     quatro propostas do MeowSystem em `sistema/` e não em `biblioteca/`; a contagem «137 glifos» da procedência.
+  6. A completion `assets/zsh/_meow` sem o verbo `atualizar`; o desinstalar não devolve o `button-layout` nem o
+     `cursor-theme` do gsettings.
+  7. O teste do Eyedropper não pega se o botão voltar a pedir `color-select`.
+  8. `app-completo.py --aba criar/sons` sozinho fica vermelho em «mexer em sino:evento muda a tela».
+
 ## Próximo passo
 1. Integrar `05854074` e enviar o push 10 (com o `ESTADO.md`); ler o run 44584677965 do push 9.
 2. Conferir depois das 16h40 o lado dos botões no desktop e no portátil (ritual root trocado sozinho).
