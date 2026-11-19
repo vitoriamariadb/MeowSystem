@@ -15,7 +15,7 @@ pack `meowsystem`.
 | D doctor e documentos | P245, P248, P249, P250 | conferido (18 afetados e da área verdes; o conferente tirou duas linhas da P249 em `6f68ebe0`) e **integrado** em `6626b957`; decisão 45 com a exceção do pull, sim de 18/11 (`f146793f`) |
 | E portal | P251 | escrita; achado do install de 18/11; sem agente ainda |
 | G suíte | P254 | escrita; achado do conferente do bloco A; sem agente ainda |
-| F painel | P252 | implementado em `22fa80b3`; o conferente (agente, high) pôs por cima `0ccc9ece` e `26ba75b5` (a cota volta com a barra desenhando, passada a carência) e roda os afetados desde 21h; com a máquina carregada, três testes do painel estouram por tempo (P254) |
+| F painel | P252 | conferido (`caef6e31`, 18 afetados verdes) e **integrado** em `dc22d796`; no `master` no push 3 |
 
 Quatro agentes nesta primeira rodada (dois por bloco, em sequência dentro do bloco; A e C ao mesmo tempo, com
 arquivos disjuntos). Tudo o que está nos arquivos das sprints foi medido pelo coordenador, só com leitura.
@@ -80,6 +80,14 @@ dele volta, sem esperar a suíte inteira do fim. Antes de cada push, os testes d
   `a43d7538`). O contêiner da P244 foi montado a partir do repositório local e por isso não acusou.
 - Push 2, 19/11 00h50: `8adaae50`, o teste lê `a43d7538^`; verde num clone limpo do GitHub. Run `testes` 44452282392, em
   50 min: **129 verdes, 2 pulados, 0 vermelhos**. A P244 está provada no runner de verdade.
+
+- Push 3, 19/11 madrugada: bloco F (`bloco/painel-teto` até `caef6e31`, integrado em `dc22d796`). A cota de
+  reciclagens e a marca do aviso só voltam depois de 10 minutos seguidos de barra desenhando. Na integração, com a
+  máquina livre: 23 verdes de 24 (os 18 afetados do bloco, `git-limpo`, `app-uso-real`, `galeria-do-papel`,
+  `app-navegador`, `extensoes-pagina`); `app-layout.py` segue vermelho na linha 272 mesmo sem carga: a P254 é
+  defeito de verdade, não só carga. O conferente do F não mandou relatório; a linha do `docs/DECISOES.md` da P252
+  segue por escrever.
+- Bloco E (P251) em voo desde 19/11 01h55: implementador (agente, high) em `../.meow-wt-portal`, `bloco/portal`.
 
 ## Próximo passo
 1. A árvore de integração é `../.meow-wt-integracao-18` (`integracao/2026-11-18`, `2594c5f8`): documentos, C, D e A.
