@@ -561,6 +561,7 @@ cobre 62 area-os.sh 'lê MEOW_AREA e MEOW_TELA' patches/series 'cosmic-comp-area
 cobre 63 semente-dos-papeis.sh 'pares' scripts/wallpaper.sh '_semear_papeis_do_pack'
 cobre 64 painel-fantasma.sh 'seguidas' lib/painel.sh 'meow_painel_gastar_reciclagem_do_boot'
 cobre 65 atualiza.sh 'run em curso ou vermelho não avança' systemd/meow-atualiza.timer '^OnBootSec=3min$'
+cobre 66 botoes-lado.sh 'valor ilegível' scripts/botoes_lado.sh 'BL_PADRAO_DIREITA='
 
 sem_linha=""; total=0
 while read -r n; do

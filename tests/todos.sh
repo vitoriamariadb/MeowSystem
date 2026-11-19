@@ -136,6 +136,7 @@ PORTATIL=(
   destrava.sh
   navegadores-gtk.sh
   atualiza.sh
+  botoes-lado.sh
 )
 
 MAQUINA=(

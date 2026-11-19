@@ -106,6 +106,7 @@ const AJUSTES = [
     blocos: [
       { titulo: "Janelas", linhas: [
         { c: "JANELAS_TILING", r: "Lado a lado" },
+        { c: "BOTOES_LADO", r: "Botões da janela" },
       ] },
       { titulo: "Tela", linhas: [
         { c: "ESCALA_TELA", r: "Escala da tela" },
