@@ -28,6 +28,7 @@ PORTATIL=(
   modificacoes-no-install.sh
   logo-do-programa.sh
   logo-do-pack-pessoal.sh
+  logo.sh
   estilo.sh
   chave-do-acervo.sh
   reversao.sh
