@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>drive-harddisk-usb-symbolic — disco USB: o tridente do diabo, que é o desenho do USB, com o pomo redondo na base</title>
+  <path fill="currentColor" d="M8,0.3 L9.6,3.6 L8.7,3.3 V12 H7.3 V3.3 L6.4,3.6 Z"/>
+  <path fill="currentColor" d="M2.5,4.4 Q2.5,9.4 8,9.4 Q13.5,9.4 13.5,4.4 H12.1 Q12.1,8 8,8 Q3.9,8 3.9,4.4 Z"/>
+  <path fill="currentColor" d="M3.2,1.2 L4.7,4.6 L3.2,4 L1.7,4.6 Z M12.8,1.2 L14.3,4.6 L12.8,4 L11.3,4.6 Z"/>
+  <circle fill="currentColor" cx="8" cy="13.6" r="2"/>
+</svg>

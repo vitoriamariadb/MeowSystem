@@ -46,7 +46,7 @@ disks-symbolic	devices	configuracoes	Discos	drives
 drive-harddisk-usb-symbolic	devices	configuracoes	Disco USB	drives
 network-workgroup-symbolic	devices	configuracoes	Rede local	drives
 media-eject-symbolic	actions	botoes	Ejetar	drives
-color-select-symbolic	actions	botoes	Seletor de cor	eyedropper,quick-settings
+color-select-symbolic	actions	botoes	Seletor de cor	quick-settings
 preferences-color-symbolic	status	configuracoes	Cores	quick-settings
 accessories-screenshot-symbolic	actions	botoes	Captura de tela	quick-settings
 application-x-executable-symbolic	status	botoes	Programa	quick-settings
@@ -58,7 +58,20 @@ preferences-system-symbolic	status	configuracoes	Configurações	now-playing,sta
 view-app-grid-symbolic	actions	botoes	Grade de aplicativos	quick-settings,status-hub
 view-fullscreen-symbolic	actions	botoes	Tela cheia	quick-settings
 view-restore-symbolic	actions	botoes	Sair da tela cheia	quick-settings
-view-reveal-symbolic	actions	botoes	Mostrar senha	quick-settings
+view-reveal-symbolic	actions	botoes	Manter acordado	quick-settings
 view-list-symbolic	actions	botoes	Lista	now-playing
 zoom-in-symbolic	actions	botoes	Ampliar	quick-settings
 minus-symbolic	status	botoes	Marca indeterminada	status-hub
+performance-desempenho-symbolic	status	barra	Desempenho	performance
+performance-equilibrado-symbolic	status	barra	Equilibrado	performance
+performance-economia-symbolic	status	barra	Economia	performance
+performance-gpu-symbolic	status	barra	Placa de vídeo	performance
+performance-grafico-symbolic	status	barra	Modo gráfico	performance
+performance-reiniciar-symbolic	status	barra	Reiniciar	performance
+leitura-lua-symbolic	status	barra	Leitura à noite	leitura
+leitura-sol-symbolic	status	barra	Leitura de dia	leitura
+leitura-livro-symbolic	status	barra	Livro	leitura
+leitura-halo-symbolic	status	barra	Brilho da leitura	leitura
+io.github.meowsystem.Clipboard-symbolic	status	barra	Área de transferência	clipboard
+io.github.meowsystem.Eyedropper-symbolic	status	barra	Conta-gotas	eyedropper
+io.github.meowsystem.Bandeja-symbolic	status	barra	Bandeja	status-hub
