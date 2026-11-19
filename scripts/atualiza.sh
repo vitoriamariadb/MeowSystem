@@ -14,6 +14,8 @@ AT_API="${AT_API:-https://api.github.com/repos}"
 AT_SUDO_CONF="${AT_SUDO_CONF:-/etc/sudo.conf}"
 AT_LOG="$MEOW_ESTADO/atualiza.log"
 AT_MEMORIA="$MEOW_ESTADO/atualiza.tsv"
+AT_ASSINANTES="$HOME/.config/meow/assinantes"
+AT_SEMENTE="$MEOW_RAIZ/assets/assinantes"
 AT_DESTINO="$HOME/.config/systemd/user"
 AT_UNIDADES=(meow-atualiza.service meow-atualiza.timer)
 AT_TIMER=meow-atualiza.timer
@@ -77,6 +79,12 @@ else:
 ' "$AT_FLUXO"
 }
 
+_at_assinado() {
+  [ -s "$AT_ASSINANTES" ] || return 1
+  _at_git -c gpg.ssh.allowedSignersFile="$AT_ASSINANTES" -c gpg.openpgp.program=false -c gpg.x509.program=false \
+    verify-commit "$1" > /dev/null 2>&1
+}
+
 _at_askpass() {
   [ -n "${SUDO_ASKPASS:-}" ] && return 0
   local a
@@ -132,6 +140,11 @@ _at_verde_mais_novo() {
   local repo="$1" cima="$2" c estado
   for c in $(_at_git rev-list --first-parent --max-count="$AT_PROCURA" "HEAD..$cima"); do
     _at_git merge-base --is-ancestor HEAD "$c" || continue
+    if ! _at_assinado "$c"; then
+      [ "$c" = "$cima" ] || continue
+      _at_avisar "assinatura:$c" "O commit $(_at_curto "$c") do GitHub não está assinado por quem a casa conhece; a atualização espera o próximo assinado."
+      return 0
+    fi
     estado="$(_at_ci "$repo" "$c")" || return 1
     case "$estado" in
       verde) printf '%s' "$c"; return 0 ;;
@@ -217,6 +230,10 @@ cmd_conferir() {
     echo "ATUALIZA=\"$AT_QUER\" — sem atualização ao ligar, por escolha sua"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  if [ ! -s "$AT_ASSINANTES" ]; then
+    echo "falta a lista de quem assina ($AT_ASSINANTES) — sem ela a atualização não avança"
+    return "$MEOW_DIVERGENTE"
+  fi
   if _at_sem_systemd; then
     echo "não há systemd --user nesta sessão — a atualização ao ligar fica de fora"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -250,8 +267,14 @@ cmd_aplicar() {
     meow_pula "ATUALIZA=\"$AT_QUER\" — sem atualização ao ligar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
+  if [ ! -s "$AT_ASSINANTES" ]; then
+    [ -s "$AT_SEMENTE" ] || { meow_erro "falta assets/assinantes — repositório incompleto"; return "$MEOW_ERRO"; }
+    meow_escrever "$AT_ASSINANTES" "$(cat "$AT_SEMENTE")" 644
+    case $? in 1) mudou=1 ;; 2) meow_erro "não consegui semear $AT_ASSINANTES"; return "$MEOW_ERRO" ;; esac
+  fi
   if _at_sem_systemd; then
     meow_aviso "não há systemd --user nesta sessão — a atualização ao ligar fica de fora"
+    [ "$mudou" = "1" ] && return "$MEOW_DIVERGENTE"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   for u in "${AT_UNIDADES[@]}"; do

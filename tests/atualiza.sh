@@ -37,8 +37,22 @@ case "\$estado" in
   *)        printf '{"workflow_runs":[]}' ;;
 esac
 FIM
+cat > "$T/bin/gpg" <<FIM
+#!/bin/sh
+echo "gpg \$*" >> "$T/gpg.log"
+case " \$* " in
+  *" --verify "*) printf '[GNUPG:] NEWSIG\n[GNUPG:] GOODSIG 0123456789ABCDEF falso\n[GNUPG:] VALIDSIG 0123456789ABCDEF0123456789ABCDEF01234567 2026-11-19 1795000000 0 4 0 22 10 00 0123456789ABCDEF0123456789ABCDEF01234567\n[GNUPG:] TRUST_ULTIMATE 0 pgp\n' ;;
+  *) cat > /dev/null
+     printf -- '-----BEGIN PGP SIGNATURE-----\n\nZmFsc28=\n-----END PGP SIGNATURE-----\n'
+     printf '[GNUPG:] BEGIN_SIGNING H10\n[GNUPG:] SIG_CREATED D 22 10 00 1795000000 0123456789ABCDEF0123456789ABCDEF01234567\n' >&2 ;;
+esac
+FIM
 printf '#!/bin/sh\nexit 0\n' > "$T/askpass"
 chmod 755 "$T/bin"/* "$T/askpass"
+ssh-keygen -q -t ed25519 -N '' -C casa -f "$T/chave-casa" && ssh-keygen -q -t ed25519 -N '' -C estranha -f "$T/chave-estranha" \
+  || { echo "erro: o teste precisa do ssh-keygen"; exit 2; }
+ASSINANTES="$H/.config/meow/assinantes"
+printf 'casa namespaces="git" %s\n' "$(cut -d' ' -f1,2 "$T/chave-casa.pub")" > "$ASSINANTES"
 
 cp -r "$RAIZ/lib" "$ORIGEM/lib"
 mkdir -p "$ORIGEM/scripts" "$ORIGEM/systemd"
@@ -60,9 +74,14 @@ printf '#!/bin/sh\necho "README=${MEOW_SEM_README:-}" >> "%s/gancho.log"\n' "$T"
 chmod 755 "$CLONE/.git/hooks/post-merge"
 
 commit_novo() {
+  local quem="${2:-casa}"
   printf '%s\n' "$1" >> "$ORIGEM/novo.txt"
   g -C "$ORIGEM" add novo.txt
-  g -C "$ORIGEM" commit -qm "$1"
+  case "$quem" in
+    ninguem) g -C "$ORIGEM" commit -qm "$1" ;;
+    pgp)     g -c gpg.program="$T/bin/gpg" -c user.signingkey=falso -C "$ORIGEM" commit -qS -m "$1" ;;
+    *)       g -c gpg.format=ssh -c user.signingkey="$T/chave-$quem" -C "$ORIGEM" commit -qS -m "$1" ;;
+  esac
   g -C "$ORIGEM" rev-parse HEAD
 }
 head_do_clone() { g -C "$CLONE" rev-parse HEAD; }
@@ -227,6 +246,49 @@ tail -1 "$T/install.log" | grep -q '^install ' && ok "a última tentativa instal
 tail -1 "$T/notas.log" | grep -q 'a instalação falhou' && falha "avisou falha de instalação" || ok "e sem aviso de falha"
 grep -q 'tentativa 1 de 3' "$E/atualiza.log" && ok "o log conta a tentativa" || falha "o log não conta a tentativa"
 
+printf '\n   só avança para commit assinado por chave da lista, que mora fora do repositório\n'
+base="$(head_do_clone)"; n0="$(linhas "$T/notas.log")"; i0="$(linhas "$T/install.log")"
+s1="$(commit_novo sem-assinatura ninguem)"; echo verde > "$T/ci/$s1"
+atualizar
+igual "verde sem assinatura: o clone fica" "$(head_do_clone)" "$base"
+igual "e avisa" "$(linhas "$T/notas.log")" "$((n0 + 1))"
+tail -1 "$T/notas.log" | grep -q 'não está assinado por quem a casa conhece' && ok "dizendo que falta a assinatura" || falha "o aviso da assinatura: $(tail -1 "$T/notas.log")"
+marcar
+atualizar
+igual "o mesmo commit não avisa de novo" "$(linhas "$T/notas.log")" "$((n0 + 1))"
+igual "nem escreve" "$(escritos)" ""
+s2="$(commit_novo de-fora estranha)"; echo verde > "$T/ci/$s2"
+atualizar
+igual "assinado por chave fora da lista: o clone fica" "$(head_do_clone)" "$base"
+mkdir -p "$ORIGEM/assets"
+printf 'estranha namespaces="git" %s\n' "$(cut -d' ' -f1,2 "$T/chave-estranha.pub")" > "$ORIGEM/assets/assinantes"
+g -C "$ORIGEM" add assets/assinantes
+s3="$(commit_novo lista-no-repositorio estranha)"; echo verde > "$T/ci/$s3"
+atualizar
+igual "a chave que o commit põe na lista do repositório não vale: o clone fica" "$(head_do_clone)" "$base"
+s4="$(commit_novo pgp pgp)"; echo verde > "$T/ci/$s4"
+env -i PATH="$T/bin:/usr/bin:/bin" HOME="$H" GIT_CONFIG_NOSYSTEM=1 git -C "$ORIGEM" verify-commit "$s4" > /dev/null 2>&1 \
+  && ok "o gpg desta máquina aprova a assinatura PGP do commit" || falha "o gpg de mentira não aprova o commit"
+atualizar
+igual "e mesmo assim o clone fica: só vale a lista" "$(head_do_clone)" "$base"
+n1="$(linhas "$T/notas.log")"
+s5="$(commit_novo da-casa)"; echo curso > "$T/ci/$s5"
+atualizar
+igual "ponta assinada em curso: não desce para o verde sem assinatura abaixo dela" "$(head_do_clone)" "$base"
+igual "e não avisa, que a ponta está assinada" "$(linhas "$T/notas.log")" "$n1"
+igual "nada disso instalou" "$(linhas "$T/install.log")" "$i0"
+echo verde > "$T/ci/$s5"
+atualizar
+igual "assinado por chave da lista: avança, por cima dos sem assinatura" "$(head_do_clone)" "$s5"
+igual "e instala uma vez" "$(linhas "$T/install.log")" "$((i0 + 1))"
+mv "$ASSINANTES" "$T/lista-guardada"
+s6="$(commit_novo sem-lista)"; echo verde > "$T/ci/$s6"
+atualizar
+igual "sem a lista nada avança" "$(head_do_clone)" "$s5"
+mv "$T/lista-guardada" "$ASSINANTES"
+atualizar
+igual "com a lista de volta, avança" "$(head_do_clone)" "$s6"
+
 printf '\n   o verbo do meow chama o mesmo script\n'
 c6="$(commit_novo seis)"; echo verde > "$T/ci/$c6"
 env -i PATH="$T/bin:/usr/bin:/bin" HOME="$H" LANG=C.UTF-8 NO_COLOR=1 GIT_CONFIG_NOSYSTEM=1 \
@@ -261,6 +323,21 @@ unidades() {
   env -i PATH="$U/bin:/usr/bin:/bin" HOME="$U/casa" LANG=C.UTF-8 NO_COLOR=1 MEOW_PONTE=/nao/existe "$@" \
     bash "$RAIZ/scripts/atualiza.sh" "${UNIDADE_VERBO:-aplicar}" > "$U/saida" 2>&1
 }
+SEMENTE="$RAIZ/assets/assinantes"; SEMEADA="$U/semeia/.config/meow/assinantes"
+unidades HOME="$U/semeia"
+[ -s "$SEMEADA" ] && [ "$(cat "$SEMEADA")" = "$(cat "$SEMENTE")" ] && ok "o aplicar semeia a lista de quem assina quando ela falta" || falha "a lista não foi semeada: $(cat "$U/saida")"
+grep -vE '^[a-z0-9-]+ namespaces="git" ssh-ed25519 [A-Za-z0-9+/=]+$' "$SEMENTE" | grep -q . && falha "a semente tem linha que não é «nome namespaces=\"git\" chave»" || ok "a semente só tem nome de máquina e chave pública"
+printf 'minha ssh-ed25519 AAAA\n' > "$SEMEADA"
+unidades HOME="$U/semeia"
+igual "e não troca a lista que já existe" "$(cat "$SEMEADA")" "minha ssh-ed25519 AAAA"
+rm -f "$SEMEADA"
+UNIDADE_VERBO=conferir unidades HOME="$U/semeia"
+igual "sem a lista o doctor diverge: sai 1" "$?" 1
+grep -q 'lista de quem assina' "$U/saida" && ok "dizendo que falta a lista" || falha "o conferir sem a lista: $(cat "$U/saida")"
+unidades HOME="$U/semeia" MEOW_DRY_RUN=1
+[ ! -e "$SEMEADA" ] && ok "o aplicar em seco não semeia" || falha "o seco semeou a lista"
+rm -f "$U/armado"; : > "$U/systemctl.log"
+mkdir -p "$U/casa/.config/meow"; cp "$SEMENTE" "$U/casa/.config/meow/assinantes"
 if [ -d "/run/user/$(id -u)/systemd" ]; then
   unidades; rc=$?
   igual "aplicar instala e arma: sai 1" "$rc" 1
