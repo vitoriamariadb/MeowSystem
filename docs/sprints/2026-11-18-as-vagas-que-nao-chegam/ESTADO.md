@@ -324,6 +324,17 @@ mandou o relatório como texto, não por mensagem. A ressalva «agentes sem rela
   primeiro em que a conclusão vale.
 - Suíte inteira em curso no `7e39b78c` (difere do `073eac83` só no fluxo do CI e no `tres-pastas.sh`).
 
+## 19/11, 17h05: o CI verde de verdade
+- Run 44586947266 (push 10): os mesmos 2 vermelhos do push 9, conclusão «success» sem valer.
+- Run 44590970992 (push 11, `7e39b78c`): 133 verdes, 0 pulados, 0 vermelhos; o `tres-pastas.sh` passou sem a cura,
+  ou seja, oscilava conforme o runner.
+- Run 44596274261 (push 12, `073eac83`): 133 verdes, 0 pulados, 0 vermelhos, já com o passo que falha quando a suíte
+  falha. É o primeiro run da leva sem pulado e com a conclusão valendo.
+- Portátil, 16h31: o ritual root antigo devolveu a esquerda às 15h35 e se trocou pelo novo na mesma volta; o vigia
+  de 5 min do zsh não repôs a direita (não escreve mais, nem para um lado nem para o outro: a conferir no zsh dela).
+  O coordenador rodou `./install.sh --etapa botoes_lado` lá; às 16h57, depois da volta das 16h35 do ritual, a
+  direita ficou. Desktop na direita desde o install.
+
 ## Próximo passo
 1. Ler a suíte inteira do `7e39b78c` e o run do push 12 (`073eac83`), o primeiro cuja conclusão vale.
 2. Portátil: depois de sair e entrar na sessão, conferir um build só da dock e perguntar pelo mouse.
