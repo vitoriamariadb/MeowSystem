@@ -46,7 +46,7 @@ disks-symbolic	devices	configuracoes	Discos	drives
 drive-harddisk-usb-symbolic	devices	configuracoes	Disco USB	drives
 network-workgroup-symbolic	devices	configuracoes	Rede local	drives
 media-eject-symbolic	actions	botoes	Ejetar	drives
-color-select-symbolic	actions	botoes	Seletor de cor	eyedropper,quick-settings
+color-select-symbolic	actions	botoes	Seletor de cor	quick-settings
 preferences-color-symbolic	status	configuracoes	Cores	quick-settings
 accessories-screenshot-symbolic	actions	botoes	Captura de tela	quick-settings
 application-x-executable-symbolic	status	botoes	Programa	quick-settings
