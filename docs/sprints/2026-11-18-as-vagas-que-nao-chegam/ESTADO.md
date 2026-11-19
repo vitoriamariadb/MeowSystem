@@ -361,10 +361,6 @@ mandou o relatório como texto, não por mensagem. A ressalva «agentes sem rela
   documento e a `PROCEDENCIA.md`), portal `ok` nos três, botões à direita nos PCs da Vitória.
 
 ## Próximo passo
-1. Quem usa: sair e entrar na sessão nos três PCs (o nitro-5 pode reiniciar: kernel novo conferido). No portátil,
-   conferir depois um build só da dock e dizer o que o mouse faz de errado (`P262`).
-2. 20/11: conferir no desktop e no portátil se a atualização ao ligar puxou o `master` sozinha
-   (`~/.local/state/meowsystem/atualiza.log`).
-3. Próxima leva, uma tarefa por arquivo já escrita: `P257` (commit assinado), `P262` (dock mista), `P263` (cache do
-   tema). A escrever: `P261` (esquerda em todo app do COSMIC), os clones de fonte dos testes, o `app-completo.py`
-   instável na aba Tema, o vigia de 5 min do zsh dela que não repõe o lado, e os oito achados dos relatórios.
+A leva seguinte tem o próprio estado: `../2026-11-19-so-avanca-assinado/ESTADO.md` (P257, P262 e P263 feitas em
+19/11 à noite). Continua valendo daqui: quem usa sai e entra na sessão nos três PCs (o nitro-5 pode reiniciar: kernel
+novo conferido) e diz o que o mouse do portátil faz de errado.

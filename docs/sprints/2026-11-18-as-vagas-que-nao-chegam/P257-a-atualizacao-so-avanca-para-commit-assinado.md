@@ -17,9 +17,19 @@ A confiança da atualização está inteira na conta do GitHub. Antes da P255 ha
   lista de chaves que mora fora do repositório (`~/.config/meow/assinantes`), para que o mesmo push não troque a lista.
 - Basta a assinatura do commit de destino: quem assina a ponta responde pela árvore inteira.
 - Commit sem assinatura ou de chave fora da lista: o clone fica, e avisa uma vez, como no vermelho do CI.
-- A lista é semeada pelo install feito à mão, com a senha (decisão «senha só no install»), nunca pela atualização.
-- Cada PC que dá push precisa de assinatura de commit configurada. No nitro-5 é do André; nos PCs da Vitória a
-  configuração do git é dela: vai para a fila (`irmaos fila add --para vitoria`).
+- A lista é semeada de `assets/assinantes` pela etapa `atualiza` (install e doctor) só quando falta, e nunca é
+  trocada depois: quem muda a lista é uma pessoa, em cada PC. A atualização não a semeia porque sem lista ela não
+  avança, e a lista que vem dentro do commit não é lida. Assinatura PGP e X.509 não contam, mesmo que o `gpg` da
+  máquina as aprove.
+- A ponta do `master` sem assinatura para a atualização e avisa uma vez; commit sem assinatura abaixo de uma ponta
+  assinada é pulado sem aviso (é o caso de todos os commits de antes desta tarefa).
+- A passagem: o `atualiza.sh` de antes desta tarefa não confere assinatura, então a primeira subida de cada PC é
+  feita pelo coordenador, com `git pull` e `./install.sh`.
+- Cada PC que dá push precisa de assinatura de commit configurada. No nitro-5 é do André: config local do
+  repositório (`gpg.format=ssh`, `commit.gpgsign=true`, a mesma chave que empurra para o GitHub), e é a chave dele
+  que está em `assets/assinantes`. Nos PCs da Vitória a configuração do git é dela: vai para a fila
+  (`irmaos fila add --para vitoria`).
+- A mesma chave empurra e assina: a cura fecha a conta do GitHub tomada, não o roubo do arquivo da chave neste PC.
 
 ## Como se prova
 - `tests/atualiza.sh`: commit verde sem assinatura não avança; assinado por chave fora da lista não avança; assinado

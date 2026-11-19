@@ -14,17 +14,23 @@ icone do desktop da dock não é identificado. o mouse por algum motivo deu pau.
 - Cursor: `catppuccin-mocha-mauve-cursors`, tamanho 24, igual no gsettings e no COSMIC; nada no journal sobre ponteiro.
   O que é o «deu pau» do mouse ainda não se sabe.
 
-## A causa (a provar)
-O install troca o build da dock com a sessão viva e apaga o anterior; quem já roda fica no velho e quem nasce depois
-(tela nova, painel reposto) pega o novo. Com duas telas, cada dock casa janela e ícone por um binário diferente.
+## A causa
+O `dock.sh compilar` guardava o build novo e apagava todos os outros, com a sessão viva; o shim escolhe o build pela
+versão do pacote na hora em que sobe. Quem já rodava ficava no velho (já apagado do disco) e quem nascia depois
+(tela nova, painel reposto) pegava o novo. Com duas telas, cada dock casava janela e ícone por um binário diferente.
 
 ## A cura na origem
-- Trocado o build da dock com a sessão viva, as instâncias trocam juntas (repor o applet nas duas telas) ou nenhuma
-  troca até o próximo início de sessão; nunca metade.
-- O build anterior não é apagado enquanto um processo o usa.
+- Escolhido: nenhuma troca até o próximo início de sessão. O shim olha o binário que a dock viva da pessoa já roda
+  (`/proc/<pid>/exe`) e sobe o mesmo, seja build da casa, seja o do pacote; sem dock viva, escolhe como antes. Repor
+  o applet nas duas telas ficou de fora: reciclar o painel no meio da sessão é o que a P252 teve de conter.
+- O build anterior não é apagado enquanto um processo o usa; o `dock.sh aplicar` (install e doctor) poda o que
+  ninguém mais roda.
+- O que a cura não alcança: o `apt` que troca o `/usr/bin/cosmic-app-list` com a dock do pacote viva. A tela nova
+  sobe o do pacote novo, que é o único que existe no disco.
 
 ## Como se prova
-- `tests/dock.sh`: com um `cosmic-app-list` falso vivo no build velho, o install não deixa dois builds em uso.
+- `tests/dock.sh`, caso 14 (`5ab110ae`): com um `cosmic-app-list` vivo no build velho, o shim diz o velho, o
+  compilar e o aplicar não o apagam, e depois que ele morre o shim diz o novo e o aplicar poda o velho.
 - No portátil, com as duas telas: `ps` mostra um build só depois do install.
 
 ## Nos três PCs

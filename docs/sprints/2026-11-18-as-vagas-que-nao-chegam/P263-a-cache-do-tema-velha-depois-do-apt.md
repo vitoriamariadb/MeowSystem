@@ -13,18 +13,23 @@
 - Durante o `meow-pos-apt.service` o doctor também acusou `flatpakadwaita` e `som`; as duas sumiram sozinhas quando
   ele terminou (eram o conserto no meio do caminho, não defeito).
 
-## A causa (a provar)
-Quem escreve os botões da dock no tema (`scripts/logo.sh`, laço de `BOTOES_DOCK`) não reindexa a cache. Falta provar
-qual chamada escreveu às 18h11: o conserto de depois do apt ou a troca de fase das 18h (dia para noite) pelo
-`meow-gato.service`. Se for a troca de fase, o doctor acusa quatro divergências toda manhã e toda noite.
+## A causa
+Quem escreve os botões da dock no tema (`scripts/logo.sh`, laço de `BOTOES_DOCK`) não reindexava a cache. A escrita
+das 18h11m22 foi do `logo.sh` no fim do `doctor --consertar` do `cosmic_pos_apt.sh` (o registro tem «painel reciclar
+— pedido por fim da passada (logo.sh)» nessa hora, e o conserto fechou com `restou=4`): a volta das 18h10 do
+`meow-gato.timer` não trocou a fase porque os builds seguravam a vez. Num dia sem apt quem troca é o timer, às 18h10
+(registro de 06/11 e de 17/11), e a cache ficava velha do mesmo jeito, toda manhã e toda noite.
 
 ## A cura na origem
 Quem escreve arquivo dentro do tema reindexa a cache no mesmo gesto, pela função que os outros scripts de ícone já
 usam; nenhuma etapa deixa o tema com arquivo mais novo que a cache.
 
 ## Como se prova
-- `tests/logo.sh`: depois de o mascote da dock trocar, `construir_icones.sh indice` em modo seco não tem o que fazer.
+- `tests/logo.sh` (novo, `f993320b`): depois de o mascote da dock trocar, nada no tema é mais novo que a cache (o
+  critério do `construir_icones.sh indice`); a segunda passada não escreve nem reindexa; tema sem cache segue sem.
 - No nitro-5: `meow doctor` limpo depois da troca de fase das 18h e depois de um `apt` que refaz os builds.
 
 ## Nos três PCs
-Medido no nitro-5. Nos PCs da Vitória o tema não tem `icon-theme.cache` (a conferir por quê, na mesma tarefa).
+Medido no nitro-5. Nos PCs da Vitória o tema não tem `icon-theme.cache` e não precisa: só o
+`importar_icones.sh` cria a cache, os outros scripts só a refazem quando ela existe, e sem ela o GTK lê as pastas do
+tema direto. Os dois têm o `gtk-update-icon-cache` instalado (conferido em 19/11).
