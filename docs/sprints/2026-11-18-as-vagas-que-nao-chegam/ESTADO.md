@@ -192,12 +192,50 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
   meowsystem e se a build vai funcionar certinho. Faz isso só ao final.» O `atualizar` é a função do zsh
   (`~/.config/zsh/functions/sistema.zsh`).
 
+## 19/11, 13h05: push 8
+- `master` = `origin/master` = `a5976f57`: P255 (`7740fe3c`, `b9c3d239`, `32fc4723` e o prefixo `AT_` no
+  `tests/app.sh`), P256 (minimizar, maximizar e restaurar nas orelhas; o fechar no X de antes) e os documentos que só
+  existiam em árvores antigas (P182, P204 da suíte, P206, P207, P208).
+- Cruzamento na integração: 27 pedidos, 26 verdes e o `app.sh` vermelho (prefixo `AT_` fora das internas); curado,
+  rodada de confirmação de 14, toda verde.
+- Run `testes` do push 8: 44562290665 (em curso às 13h05).
+- Suíte inteira no `a5976f57`, na árvore de integração, desde 13h04 (`scratchpad/suite-inteira-a5976f57.log`).
+- Desktop e portátil: `git pull` para `a5976f57` e install lançado às 13h07
+  (`~/.cache/meow-leva/install-push8-2026-11-19.log` em cada um). O do nitro-5 espera a suíte inteira.
+- Árvores: saíram também `.meow-wt-ci2`, `.meow-wt-soberana`, `.meow-wt-arte` e a branch `bloco/ci` (o código já
+  estava no `master` em versão mais nova). Restam `atualiza`, `botoes`, `integracao-18` e `leva-18`.
+
+## 19/11, 13h20: a P257 aberta
+- A revisão automática de segurança do push 8 apontou que a atualização ao ligar roda o install com root sem prova
+  de quem escreveu o commit. Resposta de quem usa (AskUserQuestion): «Assinatura na próxima leva». A P255 segue
+  ligada; a cura é a `P257-a-atualizacao-so-avanca-para-commit-assinado.md`, bloco da próxima leva.
+- Quadro de arte na versão 5, com a escolha dos botões de janela.
+
+## 19/11, 13h55: dois blocos novos em voo, por ordem de quem usa
+- Desktop e portátil: install do push 8 limpo (2 passagens, 76 etapas), `meow-atualiza.timer` armado nos dois
+  (próxima volta 20/11 13h08); a primeira volta, disparada ao armar, saiu 0 sem tocar em nada.
+- P258 (`bloco/papeis-gatos`, árvore `.meow-wt-papeis-gatos`, agente `papeis-gatos`): papéis de parede em camadas
+  certas e os gatos como a Coquinha e o Mimir. Fotos em `scratchpad/papeis-p258/`.
+- P259 (`bloco/lateral`, árvore `.meow-wt-lateral`, agente `lateral-arquivos`): os ícones da lateral do Arquivos nos
+  dois packs. Fotos em `scratchpad/lateral-p259/`.
+- Arquivos disjuntos: `packs/*/wallpapers` e `packs/*/icones`. Sem conferente separado: o coordenador confere pelas
+  folhas e pelos testes, e quem usa aprova a arte no quadro.
+
+## 19/11, 13h35: três blocos em voo
+- P258 (`papeis-gatos`) ganhou o castelo sem chão e os efeitos fora do corte; P259 (`lateral-arquivos`) ganhou o
+  minimizar do MeowSystem (não se lê em 16 px; tem que ocupar a caixa como o morcego do Dracula) e a lupa.
+- P260 (`bloco/lado`, árvore `.meow-wt-lado`, agente `lado-botoes`): chave `BOTOES_LADO`, padrão `direita`. Resposta
+  de quem usa: «Direita já, esquerda medida depois». Fica para o coordenador: tirar o `aurora-button-layout` do zsh
+  da Vitória pelo espelho e desarmar a unidade nos dois PCs dela.
+- P261 (próxima leva, a escrever): medir o custo da esquerda em todo app do COSMIC (patch na libcosmic e build por app).
+- Às 13h34: run 44562290665 em curso; suíte inteira com 58 testes rodados e nenhum vermelho.
+
 ## Próximo passo
-1. Cruzamento da P255 e da P256 na integração (`scratchpad/integra-h.log`); juntar o `fec598f0`; push 8; run do
-   GitHub anotado aqui.
-2. Install nos três PCs com o push 8 (liga o `meow-atualiza.timer`); conferir `systemctl --user list-timers`.
-3. Suíte inteira no `master` com a máquina livre.
+1. Ler o run 44562290665 e a suíte inteira; vermelho vira cura na mesma rodada.
+2. Install no nitro-5 depois da suíte.
+3. P258 e P259: conferir as folhas e os testes de cada agente, pôr no quadro, integrar, push 9.
 4. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
-   `scripts/garantir_builds.sh estado` para ver se o MeowSystem e os builds seguem de pé.
-5. Conferente dos blocos E, G e H (ressalva 1) e o item 3 da P251.
-6. Gestos de quem usa: sair e entrar na sessão nos três PCs.
+   `scripts/garantir_builds.sh estado`.
+5. Apagar as árvores que restam, depois de tudo no `master`.
+6. Próxima leva: P257 (commit assinado), conferente dos blocos E, G e H, item 3 da P251.
+7. Gestos de quem usa: sair e entrar na sessão nos três PCs.
