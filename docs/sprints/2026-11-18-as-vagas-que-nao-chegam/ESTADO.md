@@ -309,13 +309,62 @@ mandou o relatório como texto, não por mensagem. A ressalva «agentes sem rela
   inteira recomeçou no `7e39b78c` (`scratchpad/suite-inteira-7e39b78c.log`).
 - Portátil: dock com um build em cada tela e o mouse «com pau» (`P262`). Na hora, o que cura é sair e entrar na sessão.
 
+## 19/11, 16h10: o run do push 9 e os dois erros do coordenador no CI
+- Run 44584677965 (push 9, `fbde5363`): 133 portáteis, 131 verdes, 0 pulados, 2 vermelhos (`pack.sh`, o sha da lupa,
+  já curado no push 11; `tres-pastas.sh`, novo) e, mesmo assim, conclusão «success».
+- Erro 1 do coordenador (`79177ed3`): o passo virou `todos.sh | tee`, e o `run:` do GitHub roda `bash -e` sem
+  `pipefail`: o `tee` engolia o vermelho. Um run vermelho saía verde, e a atualização ao ligar confia nessa
+  conclusão. Cura `5ae2fb80`: `shell: bash`, `set -eo pipefail` e o pulado conferido com `if`. Provado à mão: um
+  comando que sai 1 antes do `tee` derruba o passo.
+- Erro 2 (`79177ed3`): com o Papirus no runner, o `construir_convertidos.sh --conferir` passa a converter de verdade,
+  e a versão das ferramentas de lá dá «desatualizados»; o `tres-pastas.sh` exigia «em dia». O que ele prova é que
+  não há resto a remover: passa a aceitar «0 a remover». Mesma cura `5ae2fb80`.
+- Push 12: `master` = `origin/master` = `073eac83` (integrado na árvore `.meow-wt-integracao-19`, porque a suíte
+  inteira roda na `integracao-18`). Os runs dos pushes 9, 10 e 11 dizem «success» sem valer; o do push 12 é o
+  primeiro em que a conclusão vale.
+- Suíte inteira em curso no `7e39b78c` (difere do `073eac83` só no fluxo do CI e no `tres-pastas.sh`).
+
+## 19/11, 17h05: o CI verde de verdade
+- Run 44586947266 (push 10): os mesmos 2 vermelhos do push 9, conclusão «success» sem valer.
+- Run 44590970992 (push 11, `7e39b78c`): 133 verdes, 0 pulados, 0 vermelhos; o `tres-pastas.sh` passou sem a cura,
+  ou seja, oscilava conforme o runner.
+- Run 44596274261 (push 12, `073eac83`): 133 verdes, 0 pulados, 0 vermelhos, já com o passo que falha quando a suíte
+  falha. É o primeiro run da leva sem pulado e com a conclusão valendo.
+- Portátil, 16h31: o ritual root antigo devolveu a esquerda às 15h35 e se trocou pelo novo na mesma volta; o vigia
+  de 5 min do zsh não repôs a direita (não escreve mais, nem para um lado nem para o outro: a conferir no zsh dela).
+  O coordenador rodou `./install.sh --etapa botoes_lado` lá; às 16h57, depois da volta das 16h35 do ritual, a
+  direita ficou. Desktop na direita desde o install.
+
+## 19/11, 17h45: a suíte inteira do master final e o `atualizar` lançado
+- Suíte inteira no `7e39b78c` (`scratchpad/suite-inteira-7e39b78c.log`): 172 testes, 171 verdes, 0 pulados, 1
+  vermelho: `app-completo.py`, aba Tema, «o tema aberto aparece entre os temas». A aba sozinha passou (211 s) e o
+  teste inteiro, rodado de novo sem carga, passou (1012 s). É instável sob carga, não defeito reproduzido: fica como
+  achado para sprint (medir o tempo do «abrir tema» contra o teto de 60 s do `assentar`).
+- nitro-5 antes do `atualizar`: 107 pacotes atualizáveis, entre eles `cosmic-comp` (`ec674cd` → `0a67a6c`),
+  `cosmic-files` (`e03001c` → `d52d8d9`), `cosmic-applets` (`6f89bfa` → `779f920`) e o portal (`f448ddf` →
+  `7b0864c`): os quatro builds do MeowSystem terão de ser refeitos. No portátil essas mesmas versões estão `ok`.
+- `atualizar` (função do zsh: `apt full-upgrade`, guarda do kernel, `topgrade`, `autoremove`) lançado às 17h45 com o
+  askpass; registro em `~/.cache/meow-leva/atualizar-nitro5-2026-11-19.log`.
+
+## 19/11, 18h20: o `atualizar` no nitro-5 e o fecho da leva
+- `atualizar` terminou com rc 0: 107 pacotes, topgrade com tudo OK, guarda do kernel «pode reiniciar» (próximo boot
+  `7.2.15`). Os quatro pacotes que o MeowSystem recompila mudaram, e o compositor (`…abb6ebc`) e o Arquivos
+  (`…df4ae0f`) vieram em versões que nenhum dos três PCs tinha visto.
+- O gatilho de depois do apt refez os builds sozinho: às 18h10, compositor (9 remendos), menu, portal e dock `ok`
+  nas versões novas. A série de patches aguentou versão nova sem toque.
+- Doctor depois: quatro divergências, todas a cache do tema velha (`P263`); `meow doctor --consertar` acertou, e o
+  doctor seguinte deu 82 `ok` e 0 divergências.
+- Não é do MeowSystem: o gancho da Aurora no fim do apt imprimiu «sudo: uma senha é necessária» dez vezes e
+  «sudoers-aurora-gpu-revive inválido (visudo -cf falhou)». Dito a quem usa; nada foi mexido no zsh.
+- Fecho: `master` = `origin/master` com o CI verde valendo (run 44596274261), suíte inteira local com 172 verdes
+  (o `app-completo.py` na segunda rodada), três PCs instalados no push 9 (os pushes 10 a 12 só mudam teste, CI,
+  documento e a `PROCEDENCIA.md`), portal `ok` nos três, botões à direita nos PCs da Vitória.
+
 ## Próximo passo
-1. Ler a suíte inteira do `7e39b78c` e o run do push 11 (os dos pushes 9 e 10 devem vir vermelhos só no `pack.sh`).
-2. Portátil: depois de sair e entrar na sessão, conferir um build só da dock e perguntar pelo mouse.
-3. Conferir depois das 16h40 o lado dos botões no desktop e no portátil.
-4. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
-   `scripts/garantir_builds.sh estado`.
-5. Apagar as árvores que restam (`atualiza`, `botoes`, `papeis-gatos`, `lateral`, `lado`, `ci4`, e no fim
-   `integracao-18` e `leva-18`), agora conferindo antes que nenhum agente está vivo nelas.
-6. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), P262 (dock mista), os clones de
-   fonte dos testes e os oito achados dos relatórios.
+1. Quem usa: sair e entrar na sessão nos três PCs (o nitro-5 pode reiniciar: kernel novo conferido). No portátil,
+   conferir depois um build só da dock e dizer o que o mouse faz de errado (`P262`).
+2. 20/11: conferir no desktop e no portátil se a atualização ao ligar puxou o `master` sozinha
+   (`~/.local/state/meowsystem/atualiza.log`).
+3. Próxima leva, uma tarefa por arquivo já escrita: `P257` (commit assinado), `P262` (dock mista), `P263` (cache do
+   tema). A escrever: `P261` (esquerda em todo app do COSMIC), os clones de fonte dos testes, o `app-completo.py`
+   instável na aba Tema, o vigia de 5 min do zsh dela que não repõe o lado, e os oito achados dos relatórios.

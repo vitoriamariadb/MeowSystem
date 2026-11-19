@@ -42,6 +42,11 @@
 - **Três versões em jogo:** `f448ddf` (nitro-5, a do `patches/graficos.versao`), `6e68360` (portátil em 18/11) e
   `7b0864c` (candidato de hoje).
 
+- **Fecho de 19/11:** a série encaixa nas três versões (push 9). Desktop: com o sim de quem usa («faça»), o portal
+  `+0~hefesto1` foi trocado pelo do Pop!_OS (`7b0864c`, que já traz a correção que o backport do Hefesto carregava);
+  `graficos_estado=ok`. Portátil: `graficos_estado=ok` no `7b0864c`. nitro-5: depois do `atualizar`, `ok` no
+  `7b0864c`. O item 3 (queda sem registro) fica sem resposta: o build posto de lado não existe mais.
+
 ### Tarefa do bloco E
 1. Série: fazer `patches/graficos.series` encaixar em `6e68360` e em `7b0864c` sem perder `f448ddf` (ou `fim <versão>`
    se a versão nova já traz a correção oficial), com a prova que `tests/graficos*.sh` e `tests/patch-que-sobe.sh` pedem.
