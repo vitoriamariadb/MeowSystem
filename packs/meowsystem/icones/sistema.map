@@ -241,8 +241,8 @@ view-restore-symbolic:window-restore:alias
 view-reveal-symbolic:image-red-eye:alias
 weather-clear-night-symbolic:weather-clear-night
 window-close-symbolic:window-close
-window-maximize-symbolic:window-maximize
-window-minimize-symbolic:window-minimize
+window-maximize-symbolic:window-maximize-orelhas
+window-minimize-symbolic:window-minimize-orelhas
 window-pop-out-symbolic:window-pop-out
-window-restore-symbolic:window-restore
+window-restore-symbolic:window-restore-orelhas
 zoom-in-symbolic:zoom-in
