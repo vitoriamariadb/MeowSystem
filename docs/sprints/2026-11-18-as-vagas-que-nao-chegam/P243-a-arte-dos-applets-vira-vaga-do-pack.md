@@ -33,3 +33,15 @@ Em cada applet, o teste da Soneca repetido: com o nome no tema o applet usa o do
 ## Nos três PCs
 nitro-5: resolve o velocímetro, a prancheta, o conta-gotas e a Bandeja. Desktop e portátil: só depois do P241. Depende
 de arte aprovada e do build de cinco applets em cada máquina.
+
+## Tarefa do implementador dos applets (18/11, depois do quadro aprovado)
+- A arte e as 13 linhas do contrato já estão em `bloco/arte-vagas` (`6a58b3ef`). O Clipboard, o Eyedropper e a Bandeja
+  pedem o nome `io.github.meowsystem.<X>-symbolic`: se pedem ao tema de ícones, o desenho do pack já vence o do
+  `hicolor` sem mexer no applet. Conferir no fonte e provar; só muda código o que não pede ao tema.
+- Performance (`~/Desenvolvimento/meowsystem-performance`, seis desenhos) e Leitura (`~/Desenvolvimento/meowsystem-leitura`,
+  quatro): pedir ao tema por nome e cair no embutido, igual ao `67741ed` da Soneca (`../meowsystem-soneca-p231`:
+  `src/tema.rs`, `src/main.rs`, `install.sh`, `data/icones/*-symbolic.svg`). Nomes: os do `nomes-das-extensoes.tsv`.
+- Cada applet numa árvore própria (`../meowsystem-<applet>-p243`, branch `p243`), commit sem push. A publicação pelo
+  desktop da Vitória e o pino novo são do coordenador, como no P231.
+- Prova: o teste da Soneca repetido em cada applet (com o nome no tema, o do tema; sem, o embutido), `cargo test` e
+  `cargo build --release` de cada um.
