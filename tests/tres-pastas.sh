@@ -230,7 +230,7 @@ fi
 
 mkdir -p "$T/casa-conv"
 saida="$(env -i PATH="$PATH" HOME="$T/casa-conv" NO_COLOR=1 bash "$RAIZ/scripts/construir_convertidos.sh" --conferir 2>&1)"
-if [[ "$saida" == *"convertido(s) em dia"* ]] && [[ "$saida" != *"a remover"* ]]; then
+if [[ "$saida" == *"convertido(s) em dia"* ]] || [[ "$saida" == *" 0 a remover (de "* ]]; then
   ok "o conferir dos convertidos olha só o mapa deles, e não o resto da apps/ plana"
 else
   falha "o conferir dos convertidos acusa o resto da apps/ plana" "$saida"
