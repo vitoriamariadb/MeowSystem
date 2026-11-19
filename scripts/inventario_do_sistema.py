@@ -7,7 +7,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONTRATO = os.path.join(RAIZ, "assets", "contratos", "nomes-de-sistema.tsv")
 TEMAS = ("Papirus-Dark", "Papirus", "Cosmic", "Adwaita", "hicolor", "breeze-dark")
 PROGRAMAS = ("cosmic-applets", "cosmic-osd", "cosmic-panel", "cosmic-notifications",
-             "cosmic-settings", "cosmic-app-library", "cosmic-launcher")
+             "cosmic-settings", "cosmic-app-library", "cosmic-launcher", "cosmic-files")
 GRUPOS = {"barra": "Barra e bandeja", "configuracoes": "Configurações", "janela": "Botões da janela",
           "botoes": "Botões e janelas"}
 AJUDA = """uso: inventario_do_sistema.py medir | conferir | relatorio <saida.md>
@@ -79,7 +79,7 @@ def relatorio(saida):
     partes = ["# Os nomes de sistema que o COSMIC pede", "",
               f"{len(linhas)} nomes, medidos com `scripts/inventario_do_sistema.py medir` "
               "nos programas do COSMIC (applets, osd, painel, notificações, configurações, "
-              "biblioteca de apps, lançador) e nos `cosmic-applet-*` do hicolor. "
+              "biblioteca de apps, lançador, arquivos) e nos `cosmic-applet-*` do hicolor. "
               "O contrato é `assets/contratos/nomes-de-sistema.tsv`.", ""]
     for chave, titulo in GRUPOS.items():
         grupo = [l for l in linhas if l["grupo"] == chave]
