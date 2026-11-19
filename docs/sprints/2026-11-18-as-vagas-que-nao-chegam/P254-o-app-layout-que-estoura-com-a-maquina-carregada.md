@@ -12,9 +12,15 @@
 - Vermelho também em `0afb4915` e em `fba83b63^`, sempre com a máquina nessa carga. Em 17/11, sem ela, a suíte da
   integração fechou verde.
 
+## Medida de 19/11, com a máquina livre (coordenador, integração `dc22d796`)
+Carga entre 2 e 8. `app-navegador.py` (350 s) e `extensoes-pagina.py` (85 s) ficam verdes: nesses dois era só carga.
+O `app-layout.py` estoura de novo na linha 272, em 311 s. A fila lenta de gravações não depende da carga.
+
 ## A causa (a provar)
 Cada `/api/definir` leva perto de 23 s com a máquina acima de 12 de carga (12 linhas de CPU), e o teste espera 60 s
-por uma fila de 26. Não se sabe ainda se a gravação é lenta por si (processo por gravação, trava) ou só pela carga.
+por uma fila de 26. A medida de 19/11 tira a carga da conta: a gravação é lenta por si. Hipóteses a medir, nenhuma provada: espera
+numa trava (23 s por gravação tem cara de tempo de espera, não de trabalho), um processo por gravação, ou a
+fila do `app.js` que não anda enquanto o `/api/aplicando` alterna.
 
 ## A cura na origem
 1. Rodar o `app-layout.py` sozinho com a máquina livre e medir o tempo de uma gravação.

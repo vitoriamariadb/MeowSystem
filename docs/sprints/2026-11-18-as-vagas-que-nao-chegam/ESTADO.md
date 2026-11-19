@@ -89,13 +89,21 @@ dele volta, sem esperar a suíte inteira do fim. Antes de cada push, os testes d
   segue por escrever.
 - Bloco E (P251) em voo desde 19/11 01h55: implementador (agente, high) em `../.meow-wt-portal`, `bloco/portal`.
 
+- Bloco B, 19/11 madrugada: os quatro applets publicados pelo desktop da Vitória com a identidade dela, mesma árvore
+  conferida (o Performance leva a mais o commit da captura que já estava no GitHub): Performance `422bd52` (0.2.1),
+  Leitura `c7e0323` (0.2.2), conta-gotas `534c5d6` (0.6.5), Bandeja `cae8c63` (1.7.3). O gancho de push de lá só
+  aceita o remoto `git@github.com-personal:…`; com ele o push passou. Pinos em `d23f2f75`, integrado em `f6aa2d8a`.
+  O conferente do bloco parou de responder às 23h59 com os pinos por fechar; o coordenador fechou. Testes dos applets
+  (`~/.cache/arte-confere/final.rc`): 24, 12, 11 e 299 verdes.
+- Bloco G (P254) em voo desde 19/11: implementador (agente, high) em `../.meow-wt-layout`, `bloco/layout`.
+- Push 3: run `testes` 44462676122 (resultado a anotar).
+
 ## Próximo passo
-1. A árvore de integração é `../.meow-wt-integracao-18` (`integracao/2026-11-18`, `2594c5f8`): documentos, C, D e A.
-2. Bloco F: integrar `bloco/painel-teto` quando o conferente voltar; decidir a linha do `docs/DECISOES.md` da P252.
-3. Bloco B: quando o implementador dos applets voltar, lançar o conferente (arte, mapa, procedência, contrato,
-   applets); depois o coordenador publica os applets pelo desktop da Vitória (`ssh maria`, como no P231), troca os
-   pinos e tira a foto da barra no palco. Ler a coleção `escolhas` do quadro antes de fechar.
-4. Blocos E (P251) e G (P254): lançar quando houver vaga (no máximo dois blocos ao mesmo tempo). A P254 pede a
-   máquina livre: `uptime` abaixo de 4 antes de medir.
-5. Cada bloco que fecha: integração, cruzamento, `master`, push, run do GitHub anotado aqui.
-6. No fim: suíte inteira no `master` com a máquina livre e install nos três PCs pelo coordenador.
+1. Bloco B: rodada de afetados na integração (`scratchpad/integra-b.log`); verde, `master` e push 4.
+2. Blocos E e G: quando cada implementador voltar, conferente, integração, cruzamento, `master`, push.
+3. Linha do `docs/DECISOES.md` para a P252 e a P246: só com o sim de quem usa (a regra da cota foi escolha do
+   coordenador).
+4. No fim: suíte inteira no `master` com a máquina livre; install nos três PCs pelo coordenador (o portátil estava
+   fora da rede em 19/11 01h55); foto da barra e da dock nos dois packs.
+5. Gestos de quem usa: sair e entrar na sessão no desktop e no portátil; no nitro-5 fechar Chrome e Edge e rodar
+   `./install.sh --etapa apps`; escolher no quadro o desligar e os três pontos do MeowSystem.
