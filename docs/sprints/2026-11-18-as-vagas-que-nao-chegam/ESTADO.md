@@ -192,12 +192,24 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
   meowsystem e se a build vai funcionar certinho. Faz isso só ao final.» O `atualizar` é a função do zsh
   (`~/.config/zsh/functions/sistema.zsh`).
 
+## 19/11, 13h05: push 8
+- `master` = `origin/master` = `a5976f57`: P255 (`7740fe3c`, `b9c3d239`, `32fc4723` e o prefixo `AT_` no
+  `tests/app.sh`), P256 (minimizar, maximizar e restaurar nas orelhas; o fechar no X de antes) e os documentos que só
+  existiam em árvores antigas (P182, P204 da suíte, P206, P207, P208).
+- Cruzamento na integração: 27 pedidos, 26 verdes e o `app.sh` vermelho (prefixo `AT_` fora das internas); curado,
+  rodada de confirmação de 14, toda verde.
+- Run `testes` do push 8: 44562290665 (em curso às 13h05).
+- Suíte inteira no `a5976f57`, na árvore de integração, desde 13h04 (`scratchpad/suite-inteira-a5976f57.log`).
+- Desktop e portátil: `git pull` para `a5976f57` e install lançado às 13h07
+  (`~/.cache/meow-leva/install-push8-2026-11-19.log` em cada um). O do nitro-5 espera a suíte inteira.
+- Árvores: saíram também `.meow-wt-ci2`, `.meow-wt-soberana`, `.meow-wt-arte` e a branch `bloco/ci` (o código já
+  estava no `master` em versão mais nova). Restam `atualiza`, `botoes`, `integracao-18` e `leva-18`.
+
 ## Próximo passo
-1. Cruzamento da P255 e da P256 na integração (`scratchpad/integra-h.log`); juntar o `fec598f0`; push 8; run do
-   GitHub anotado aqui.
-2. Install nos três PCs com o push 8 (liga o `meow-atualiza.timer`); conferir `systemctl --user list-timers`.
-3. Suíte inteira no `master` com a máquina livre.
-4. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
-   `scripts/garantir_builds.sh estado` para ver se o MeowSystem e os builds seguem de pé.
+1. Ler o run 44562290665 e a suíte inteira; vermelho vira cura na mesma rodada.
+2. Conferir o install do desktop e do portátil e o `meow-atualiza.timer` armado; install no nitro-5 depois da suíte.
+3. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
+   `scripts/garantir_builds.sh estado`.
+4. Apagar as quatro árvores que restam, depois de tudo no `master`.
 5. Conferente dos blocos E, G e H (ressalva 1) e o item 3 da P251.
 6. Gestos de quem usa: sair e entrar na sessão nos três PCs.
