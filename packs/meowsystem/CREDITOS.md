@@ -112,9 +112,9 @@ pack sincronizar catppuccin` lê a tabela de arte copiada dele e recusa um
 
 | cena | dia | noite | pack | licença | data |
 |---|---|---|---|---|---|
-| Telhados | <img src="wallpapers/pares/telhados-dia.svg" alt="Telhados, de dia" width="200"> | <img src="wallpapers/pares/telhados-noite.svg" alt="Telhados, de noite" width="200"> | MeowSystem | GPL-3.0-or-later | 17/11/2026 |
-| Janela | <img src="wallpapers/pares/janela-dia.svg" alt="Janela, de dia" width="200"> | <img src="wallpapers/pares/janela-noite.svg" alt="Janela, de noite" width="200"> | MeowSystem | GPL-3.0-or-later | 17/11/2026 |
-| Patinhas | <img src="wallpapers/pares/patinhas-dia.svg" alt="Patinhas, de dia" width="200"> | <img src="wallpapers/pares/patinhas-noite.svg" alt="Patinhas, de noite" width="200"> | MeowSystem | GPL-3.0-or-later | 17/11/2026 |
+| Telhados | <img src="wallpapers/pares/telhados-dia.svg" alt="Telhados, de dia" width="200"> | <img src="wallpapers/pares/telhados-noite.svg" alt="Telhados, de noite" width="200"> | MeowSystem | GPL-3.0-or-later | 19/11/2026 |
+| Janela | <img src="wallpapers/pares/janela-dia.svg" alt="Janela, de dia" width="200"> | <img src="wallpapers/pares/janela-noite.svg" alt="Janela, de noite" width="200"> | MeowSystem | GPL-3.0-or-later | 19/11/2026 |
+| Patinhas | <img src="wallpapers/pares/patinhas-dia.svg" alt="Patinhas, de dia" width="200"> | <img src="wallpapers/pares/patinhas-noite.svg" alt="Patinhas, de noite" width="200"> | MeowSystem | GPL-3.0-or-later | 19/11/2026 |
 
 ## O que NÃO é deste pack, e mora em `assets/`
 
