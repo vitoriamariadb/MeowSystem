@@ -211,11 +211,22 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
   ligada; a cura é a `P257-a-atualizacao-so-avanca-para-commit-assinado.md`, bloco da próxima leva.
 - Quadro de arte na versão 5, com a escolha dos botões de janela.
 
+## 19/11, 13h55: dois blocos novos em voo, por ordem de quem usa
+- Desktop e portátil: install do push 8 limpo (2 passagens, 76 etapas), `meow-atualiza.timer` armado nos dois
+  (próxima volta 20/11 13h08); a primeira volta, disparada ao armar, saiu 0 sem tocar em nada.
+- P258 (`bloco/papeis-gatos`, árvore `.meow-wt-papeis-gatos`, agente `papeis-gatos`): papéis de parede em camadas
+  certas e os gatos como a Coquinha e o Mimir. Fotos em `scratchpad/papeis-p258/`.
+- P259 (`bloco/lateral`, árvore `.meow-wt-lateral`, agente `lateral-arquivos`): os ícones da lateral do Arquivos nos
+  dois packs. Fotos em `scratchpad/lateral-p259/`.
+- Arquivos disjuntos: `packs/*/wallpapers` e `packs/*/icones`. Sem conferente separado: o coordenador confere pelas
+  folhas e pelos testes, e quem usa aprova a arte no quadro.
+
 ## Próximo passo
 1. Ler o run 44562290665 e a suíte inteira; vermelho vira cura na mesma rodada.
-2. Conferir o install do desktop e do portátil e o `meow-atualiza.timer` armado; install no nitro-5 depois da suíte.
-3. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
+2. Install no nitro-5 depois da suíte.
+3. P258 e P259: conferir as folhas e os testes de cada agente, pôr no quadro, integrar, push 9.
+4. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
    `scripts/garantir_builds.sh estado`.
-4. Apagar as quatro árvores que restam, depois de tudo no `master`.
-5. Conferente dos blocos E, G e H (ressalva 1) e o item 3 da P251.
-6. Gestos de quem usa: sair e entrar na sessão nos três PCs.
+5. Apagar as árvores que restam, depois de tudo no `master`.
+6. Próxima leva: P257 (commit assinado), conferente dos blocos E, G e H, item 3 da P251.
+7. Gestos de quem usa: sair e entrar na sessão nos três PCs.
