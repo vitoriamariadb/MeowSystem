@@ -12,7 +12,9 @@ COR=""
 TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
 BASE="$HOME/.local/share/icons/$TEMA"
 
-declare -A TRACO=( ["22x22"]=4 ["scalable"]=2.5 )
+TAMANHOS=(22x22 scalable)
+declare -A TRACO=()
+declare -A TRACO_PROPRIO=()
 CONTEXTOS=(status actions devices)
 CONTRATOS=("$RAIZ/assets/contratos/nomes-de-sistema.tsv" "$RAIZ/assets/contratos/nomes-das-extensoes.tsv")
 declare -A CONTEXTO=()
@@ -58,7 +60,7 @@ _dir_de() {
 
 _dirs_no_tema() {
   local tam ctx
-  for tam in "${!TRACO[@]}"; do
+  for tam in "${TAMANHOS[@]}"; do
     for ctx in "${CONTEXTOS[@]}"; do
       [ -d "$BASE/$tam/$ctx" ] && printf '%s\t%s\n' "$tam" "$ctx"
     done
@@ -127,7 +129,32 @@ _pronto() {
     return 1
   fi
   LEVADAS="$(_levadas sistema)"
+  _ler_traco
   return "$MEOW_OK"
+}
+
+_ler_traco() {
+  local ref tam largura
+  TRACO=()
+  TRACO_PROPRIO=()
+  ref="$(meow_pack_dir)"
+  [ -n "$ref" ] || ref="$(meow_pack_padrao_dir || true)"
+  while IFS='=' read -r tam largura; do
+    [ -n "$tam" ] && [ -n "$largura" ] && TRACO["$tam"]="$largura"
+  done < <(python3 "$RAIZ/scripts/pack.py" traco-do-sistema "$ref" 2>/dev/null || true)
+  while IFS='=' read -r tam largura; do
+    [ -n "$tam" ] && [ -n "$largura" ] && TRACO_PROPRIO["$tam"]="$largura"
+  done < <(python3 "$RAIZ/scripts/pack.py" traco-do-sistema "$ref" proprio 2>/dev/null || true)
+  return 0
+}
+
+_traco_de() {
+  local arte="$1" tam="$2"
+  if [ -n "$LEVADAS" ] && [ "${arte#"$LEVADAS"/}" != "$arte" ]; then
+    printf '%s' "${TRACO_PROPRIO[$tam]:-}"
+  else
+    printf '%s' "${TRACO[$tam]:-}"
+  fi
 }
 
 _levadas() {
@@ -151,7 +178,7 @@ _arte() {
 
 _com_traco() {
   local arq="$1" largura="$2"
-  if ! grep -q 'stroke="currentColor"' "$arq"; then
+  if [ -z "$largura" ] || ! grep -q 'stroke="currentColor"' "$arq"; then
     _com_cor < "$arq"
     return 0
   fi
@@ -168,7 +195,7 @@ _com_cor() {
 
 _desejado() {
   local nome arte tam
-  for tam in "${!TRACO[@]}"; do
+  for tam in "${TAMANHOS[@]}"; do
     for nome in "${!MAPA_LIDO[@]}"; do
       arte="$(_arte "$nome" "${MAPA_LIDO[$nome]}")" && printf '%s\t%s\t%s\n' "$(_dir_de "$tam" "$nome")" "$nome" "$arte"
     done
@@ -182,7 +209,7 @@ _conferir() {
     alvo="$BASE/$dir/$nome.svg"
     if [ ! -f "$alvo" ]; then
       ausentes=$((ausentes + 1))
-    elif [ "$(_com_traco "$arte" "${TRACO[${dir%%/*}]}")" != "$(cat "$alvo")" ]; then
+    elif [ "$(_com_traco "$arte" "$(_traco_de "$arte" "${dir%%/*}")")" != "$(cat "$alvo")" ]; then
       divergentes=$((divergentes + 1))
     fi
   done < <(_desejado)
@@ -208,7 +235,7 @@ _aplicar() {
 
   while IFS=$'\t' read -r dir nome arte; do
     set +e
-    meow_escrever "$BASE/$dir/$nome.svg" "$(_com_traco "$arte" "${TRACO[${dir%%/*}]}")" 644
+    meow_escrever "$BASE/$dir/$nome.svg" "$(_com_traco "$arte" "$(_traco_de "$arte" "${dir%%/*}")")" 644
     rc=$?
     set -e
     case "$rc" in

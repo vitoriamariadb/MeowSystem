@@ -765,6 +765,7 @@ bandeja (`bandeja`) são dois blocos com os mesmos campos:
 | `mapa` | o arquivo `nome:glifo` que liga cada nome do sistema ao desenho |
 | `herda` | o pack de quem vêm `desenhos` e `mapa`, quando este não traz os seus |
 | `pintar` | o papel da paleta (`text`, por exemplo) com que o traço é pintado, no flavor do pack no ar |
+| `traco` | só em `sistema`: a espessura do traço `currentColor` por tamanho, `{"22x22": 4, "scalable": 2.5}`; pack que não declara fica com o traço que desenhou, e o desenho que vem do pack de `heranca` sai com o traço do pai |
 
 ```json fragmento
 "icones": {
@@ -775,8 +776,9 @@ bandeja (`bandeja`) são dois blocos com os mesmos campos:
 
 O pack `dracula` declara `"sistema": { "herda": "meowsystem", "pintar": "text" }`: o
 molde é o do meowsystem e o traço sai na cor `text` do flavor dele. Pack sem o bloco
-(e sem `herda`) não ganha ícone de status: o doctor tira os que outro pack deixou e
-diz «o pack no ar não declara icones.sistema». Com o bloco, a linha diz o pack no ar:
+e sem `herda` veste o do pack de `heranca` (o desenho próprio em `icones/sistema/` vence
+nome a nome); sem `heranca` também, não ganha ícone de status: o doctor tira os que outro
+pack deixou e diz «o pack no ar não declara icones.sistema». Com o bloco, a linha diz o pack no ar:
 «ícones do sistema já com o Arcticons do pack Dracula».
 
 O `validar` cobra a existência de tudo o que estiver declarado. Um pack que

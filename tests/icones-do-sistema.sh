@@ -114,6 +114,35 @@ PY
 [ -z "$sem_nome" ] && ok "todo tipo de arquivo que a aba Sistema mostra nos dois packs tem nome em português no contrato" \
   || falha "glifo de tipo de arquivo sem nome em assets/contratos/tipos-de-arquivo.tsv" "$sem_nome"
 
+for par in fino-com:3:1.5 fino-sem::; do
+  id="${par%%:*}"; resto="${par#*:}"; t22="${resto%%:*}"; tesc="${resto#*:}"
+  casa="$T/casa-$id"; tema="$casa/.local/share/icons/MeowSystem-Icons"; meu="$casa/.local/share/meowsystem/packs/$id"
+  mkdir -p "$tema" "$meu/icones/sistema"
+  printf '[Icon Theme]\nName=MeowSystem-Icons\nInherits=hicolor\nDirectories=scalable/apps\n' > "$tema/index.theme"
+  cp "$RAIZ/packs/dracula/paleta.json" "$meu/paleta.json"
+  traco=""
+  [ -n "$t22" ] && traco=', "traco": {"22x22": '"$t22"', "scalable": '"$tesc"'}'
+  printf '{"formato": 2, "id": "%s", "nome": "%s", "icones": {"sistema": {"desenhos": "icones/sistema/", "mapa": "icones/sistema.map"%s}}}\n' \
+    "$id" "$id" "$traco" > "$meu/pack.json"
+  printf '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 12h16" fill="none" stroke="currentColor" stroke-width="1"/></svg>\n' > "$meu/icones/sistema/fino.svg"
+  printf 'audio-volume-high-symbolic:fino\n' > "$meu/icones/sistema.map"
+  amb "$casa" "$id" "" "$RAIZ/scripts/icones_sistema.sh" --aplicar >/dev/null 2>&1
+  e22="$(grep -o 'stroke-width="[^"]*"' "$tema/22x22/status/audio-volume-high-symbolic.svg" 2>/dev/null)"
+  esc="$(grep -o 'stroke-width="[^"]*"' "$tema/scalable/status/audio-volume-high-symbolic.svg" 2>/dev/null)"
+  if [ "$id" = fino-com ]; then
+    [ "$e22" = 'stroke-width="3"' ] && [ "$esc" = 'stroke-width="1.5"' ] \
+      && ok "pack de terceiro que declara icones.sistema.traco sai com a espessura dele (3 em 22 px, 1,5 no escalável)" \
+      || falha "o traço declarado pelo pack não foi o que saiu" "$e22 / $esc"
+  else
+    [ "$e22" = 'stroke-width="1"' ] && [ "$esc" = 'stroke-width="1"' ] \
+      && ok "pack de terceiro que não declara o traço fica com o que desenhou (1 nos dois tamanhos)" \
+      || falha "o traço do MeowSystem engordou o pack que não declarou o dele" "$e22 / $esc"
+  fi
+  amb "$casa" "$id" "" "$RAIZ/scripts/icones_sistema.sh" --conferir >/dev/null 2>&1
+  [ $? = 0 ] && ok "$id: a conferência depois de aplicar diz que está tudo no lugar" \
+    || falha "$id: a conferência diverge logo depois de aplicar"
+done
+
 if [ "$falhas" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$falhas" >&2
   exit 1

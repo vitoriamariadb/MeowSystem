@@ -251,6 +251,7 @@ CAMPOS_COM_LEITOR = {
     "fontes.herda",
     "icones.mimetypes.flavor",
     "icones.sistema.pintar",
+    "icones.sistema.traco.*",
     "icones.gerador",
     "icones.autorais.gerar",
     "icones.base.origem.*",
@@ -1063,6 +1064,7 @@ def _dir_capturas(ref, dir_pack):
 
 
 BLOCOS_DE_STATUS = ("sistema", "bandeja")
+TAMANHOS_DO_SISTEMA = ("22x22", "scalable")
 
 
 def icones_de_status(ref, bloco, flavor=""):
@@ -1084,6 +1086,8 @@ def icones_de_status(ref, bloco, flavor=""):
                 raise Recusa(f"icones.{bloco}: {desenhos!r} ou {mapa!r} não existe no pack {r!r}")
             cor = ""
             pintar = campo(ref, f"icones.{bloco}.pintar")
+            if pintar is None and not campo(ref, f"icones.{bloco}.herda"):
+                pintar = campo(r, f"icones.{bloco}.pintar")
             if pintar:
                 if pintar not in SLOTS:
                     raise Recusa(f"icones.{bloco}.pintar: {pintar!r} não é um papel da paleta")
@@ -1092,8 +1096,37 @@ def icones_de_status(ref, bloco, flavor=""):
                     raise Recusa(f"icones.{bloco}.pintar: a paleta {flavor!r} não tem {pintar!r}")
                 cor = cores[pintar].lower()
             return {"desenhos": pasta.rstrip(os.sep), "mapa": arq, "cor": cor}
-        r = campo(r, f"icones.{bloco}.herda")
+        r = _pai_do_bloco(r, bloco)
     raise Recusa(f"o pack {ref!r} não declara icones.{bloco}")
+
+
+def _pai_do_bloco(ref, bloco):
+    pai = campo(ref, f"icones.{bloco}.herda")
+    if not pai and bloco == "sistema":
+        pai = campo(ref, "heranca")
+    return pai
+
+
+def _traco_valido(traco):
+    return {t: v for t, v in traco.items() if t in TAMANHOS_DO_SISTEMA and isinstance(v, (int, float))
+            and not isinstance(v, bool) and v > 0} if isinstance(traco, dict) else {}
+
+
+def traco_proprio_do_sistema(ref):
+    return _traco_valido(campo(_ref_ativa(ref), "icones.sistema.traco"))
+
+
+def traco_do_sistema(ref):
+    ref = _ref_ativa(ref)
+    vistos, r = set(), ref
+    while r and r not in vistos:
+        vistos.add(r)
+        if not achar(r):
+            break
+        if isinstance(campo(r, "icones.sistema.desenhos"), str) and isinstance(campo(r, "icones.sistema.mapa"), str):
+            return _traco_valido(campo(r, "icones.sistema.traco"))
+        r = _pai_do_bloco(r, "sistema")
+    return {}
 
 
 def _ref_ativa(ref):
@@ -2251,6 +2284,12 @@ def validar(ref, silencioso=False):
         pintar = bloco.get("pintar")
         _exigir(pintar is None or pintar in SLOTS,
                 f"icones.{cat}.pintar: {pintar!r} não é um papel da paleta ({', '.join(SLOTS)})")
+    traco = (ic.get("sistema") or {}).get("traco")
+    _exigir(traco is None or (isinstance(traco, dict) and traco
+                              and all(t in TAMANHOS_DO_SISTEMA and isinstance(v, (int, float))
+                                      and not isinstance(v, bool) and v > 0 for t, v in traco.items())),
+            f"icones.sistema.traco: um objeto {{tamanho: espessura}} com tamanho em {', '.join(TAMANHOS_DO_SISTEMA)} "
+            "e espessura maior que zero")
     oc = (p.get("lancador") or {}).get("ocultar") if isinstance(p.get("lancador"), dict) else None
     if p.get("lancador") is not None:
         _exigir(isinstance(p.get("lancador"), dict) and isinstance(oc, list)
@@ -5668,6 +5707,11 @@ def main(argv):
         if verbo == "icones-de-status" and len(argv) in (4, 5):
             achado = icones_de_status(argv[2] or None, argv[3], argv[4] if len(argv) == 5 else "")
             print(f"{achado['desenhos']}\t{achado['mapa']}\t{achado['cor']}")
+            return OK
+        if verbo == "traco-do-sistema" and len(argv) in (3, 4):
+            achado = traco_proprio_do_sistema if len(argv) == 4 and argv[3] == "proprio" else traco_do_sistema
+            for tamanho, espessura in sorted(achado(argv[2] or None).items()):
+                print(f"{tamanho}={espessura}")
             return OK
         if verbo == "pintados" and len(argv) in (4, 5):
             temporario = len(argv) == 5 and argv[4] == "--temporario"

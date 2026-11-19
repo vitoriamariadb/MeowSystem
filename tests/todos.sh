@@ -56,6 +56,7 @@ PORTATIL=(
   notas-de-funcao.sh
   frases-velhas.sh
   pack-dracula-completo.sh
+  pack-pessoal-veste-o-pai.sh
   biblioteca-em-portugues.sh
   trava-herdada.sh
   autostart.sh
@@ -175,6 +176,7 @@ MAQUINA=(
   icone-e-fonte-no-tema.sh
   palco.sh
   area-os.sh
+  nomes-dos-applets.sh
 )
 
 SEM_PULO=(
