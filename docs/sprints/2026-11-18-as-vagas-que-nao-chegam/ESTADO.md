@@ -335,13 +335,23 @@ mandou o relatório como texto, não por mensagem. A ressalva «agentes sem rela
   O coordenador rodou `./install.sh --etapa botoes_lado` lá; às 16h57, depois da volta das 16h35 do ritual, a
   direita ficou. Desktop na direita desde o install.
 
+## 19/11, 17h45: a suíte inteira do master final e o `atualizar` lançado
+- Suíte inteira no `7e39b78c` (`scratchpad/suite-inteira-7e39b78c.log`): 172 testes, 171 verdes, 0 pulados, 1
+  vermelho: `app-completo.py`, aba Tema, «o tema aberto aparece entre os temas». A aba sozinha passou (211 s) e o
+  teste inteiro, rodado de novo sem carga, passou (1012 s). É instável sob carga, não defeito reproduzido: fica como
+  achado para sprint (medir o tempo do «abrir tema» contra o teto de 60 s do `assentar`).
+- nitro-5 antes do `atualizar`: 107 pacotes atualizáveis, entre eles `cosmic-comp` (`ec674cd` → `0a67a6c`),
+  `cosmic-files` (`e03001c` → `d52d8d9`), `cosmic-applets` (`6f89bfa` → `779f920`) e o portal (`f448ddf` →
+  `7b0864c`): os quatro builds do MeowSystem terão de ser refeitos. No portátil essas mesmas versões estão `ok`.
+- `atualizar` (função do zsh: `apt full-upgrade`, guarda do kernel, `topgrade`, `autoremove`) lançado às 17h45 com o
+  askpass; registro em `~/.cache/meow-leva/atualizar-nitro5-2026-11-19.log`.
+
 ## Próximo passo
-1. Ler a suíte inteira do `7e39b78c` e o run do push 12 (`073eac83`), o primeiro cuja conclusão vale.
-2. Portátil: depois de sair e entrar na sessão, conferir um build só da dock e perguntar pelo mouse.
-3. Conferir depois das 16h40 o lado dos botões no desktop e no portátil.
-4. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
-   `scripts/garantir_builds.sh estado`.
-5. Apagar as árvores que restam (`atualiza`, `botoes`, `papeis-gatos`, `lateral`, `lado`, `ci4`, e no fim
-   `integracao-18`, `integracao-19` e `leva-18`), agora conferindo antes que nenhum agente está vivo nelas.
-6. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), P262 (dock mista), os clones de
-   fonte dos testes e os oito achados dos relatórios.
+1. Ler o fim do `atualizar`; depois `meow doctor` e `scripts/garantir_builds.sh estado` até os quatro builds `ok`
+   nas versões novas (`garantir_builds.sh rodar` se o gatilho do apt não refizer).
+2. Apagar as árvores que restam (`atualiza`, `botoes`, `papeis-gatos`, `lateral`, `lado`, `ci4`, e no fim
+   `integracao-18`, `integracao-19` e `leva-18`), conferindo antes que nenhum agente está vivo nelas.
+3. Portátil: depois de quem usa sair e entrar na sessão, conferir um build só da dock e perguntar pelo mouse.
+4. Amanhã: conferir no desktop e no portátil se a atualização ao ligar puxou o `073eac83` sozinha.
+5. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), P262 (dock mista), os clones de
+   fonte dos testes, o `app-completo.py` instável na aba Tema e os oito achados dos relatórios.
