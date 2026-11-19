@@ -246,14 +246,26 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
   por quem usa. Integradas com `bloco/atualiza` e `bloco/ci4` em `integracao/2026-11-18` (`8d3907d5`); cruzamento de
   35 testes em curso (`scratchpad/integra-9.log`).
 
+## 19/11, 15h10: push 9 e install nos três PCs
+- `master` = `origin/master` = `fbde5363`: P258 (papéis em camadas certas, Mimir de dia e Coquinha de noite), P259
+  (lateral e barra do Arquivos, minimizar, maximizar e restaurar maiores, lupa com orelhas no MeowSystem e com o
+  morcego dentro da lente no Dracula, `e0a66de2`), P260 (`BOTOES_LADO`, decisão 66), `79177ed3` (CI sem pulado) e os
+  nomes curtos das conferências `atualiza` e `botoeslado`.
+- Aprovação de quem usa, 15h00: «APROVADO. EM TODOS ELES. ESSES SVGS NOVOS. INSTALA NOS 3 PCS.»
+- Cruzamento na integração: 35 de 35 verdes; confirmação com a lupa: 10 de 10. Run `testes` do push 9: 44584677965.
+- Zsh da Vitória pelo espelho, `ba12eaf`: `BTN_TARGET` do ritual e `TARGET` do `aurora-button-layout.service` em
+  `:minimize,maximize,close`. Às 15h10 ainda pendente de entrega pelo `irmaos`. A cópia instalada da unidade em
+  `~/.config/systemd/user` só troca quando o ritual dela roda: conferir, senão ela devolve a esquerda em 5 min.
+- Install do push 9 lançado às 15h09 nos três (`~/.cache/meow-leva/install-push9-2026-11-19.log` nos PCs da
+  Vitória, `install-push9-nitro5-2026-11-19.log` no nitro-5).
+
 ## Próximo passo
-1. Ler o cruzamento; `master`, push 9 e o run do GitHub (agora sem pulado).
-2. Zsh da Vitória pelo espelho: os dois alvos do lado dos botões para `:minimize,maximize,close` (P260).
-3. Install nos três PCs; `meow doctor`; conferir o lado dos botões no desktop e no portátil.
-4. Suíte inteira no push 9.
-5. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
+1. Ler os três installs e o doctor; conferir o lado dos botões no desktop e no portátil (unidade antiga do zsh).
+2. Ler o run 44584677965 (agora pulado é vermelho); suíte inteira no `fbde5363`.
+3. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
    `scripts/garantir_builds.sh estado`.
-6. Apagar as árvores que restam, depois de tudo no `master`.
-7. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), os clones de fonte dos testes,
+4. Apagar as árvores que restam (`atualiza`, `botoes`, `papeis-gatos`, `lateral`, `lado`, `ci4`, e no fim
+   `integracao-18` e `leva-18`).
+5. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), os clones de fonte dos testes,
    conferente dos blocos E, G e H, item 3 da P251.
-8. Gestos de quem usa: sair e entrar na sessão nos três PCs.
+6. Gestos de quem usa: sair e entrar na sessão nos três PCs.
