@@ -58,7 +58,7 @@ preferences-system-symbolic	status	configuracoes	Configurações	now-playing,sta
 view-app-grid-symbolic	actions	botoes	Grade de aplicativos	quick-settings,status-hub
 view-fullscreen-symbolic	actions	botoes	Tela cheia	quick-settings
 view-restore-symbolic	actions	botoes	Sair da tela cheia	quick-settings
-view-reveal-symbolic	actions	botoes	Mostrar senha	quick-settings
+view-reveal-symbolic	actions	botoes	Manter acordado	quick-settings
 view-list-symbolic	actions	botoes	Lista	now-playing
 zoom-in-symbolic	actions	botoes	Ampliar	quick-settings
 minus-symbolic	status	botoes	Marca indeterminada	status-hub

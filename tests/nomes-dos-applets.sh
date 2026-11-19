@@ -85,9 +85,12 @@ for par in meowsystem:mocha dracula:dracula; do
   done
   amb "$casa" "$pack" "$flavor" "$RAIZ/scripts/icones_sistema.sh" --aplicar >/dev/null 2>&1
   [ $? = 0 ] && ok "$pack: a segunda passada não escreve nada" || falha "$pack: a segunda passada escreveu"
-  enganam="$(grep -E '^(network-vpn-disabled|network-wireless-encrypted|view-reveal)-symbolic:(network-vpn|shield|network-wireless-signal|image-red-eye-symbolic)' "$mapa")"
+  enganam="$(grep -E \
+    -e '^(network-vpn-disabled|network-wireless-encrypted|view-reveal)-symbolic:(network-vpn|shield|network-wireless-signal|image-red-eye-symbolic)' \
+    -e '^network-wireless-disabled-symbolic:network-wireless-disconnected' \
+    -e '^color-select-symbolic:preferences-(color|appearance)' "$mapa")"
   [ -z "$enganam" ] \
-    && ok "$pack: nenhum nome de estado (VPN desligada, Wi-Fi protegido, mostrar senha) mostra o desenho de outro estado (VPN ligada, sinal cheio, olho riscado)" \
+    && ok "$pack: nenhum nome mostra o desenho de outra coisa (VPN ligada, sinal cheio, olho riscado, Wi-Fi sem conexão no Wi-Fi desligado, paleta no seletor de cor)" \
     || falha "$pack: alias que mostra o estado errado" "$enganam"
   fora_da_faixa="$(awk -F: '
     $1 ~ /^battery-(caution|low|good|full)(-charging)?-symbolic$/ && match($2, /level-[0-9]+/) {

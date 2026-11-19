@@ -47,7 +47,7 @@ camera-photo-symbolic:camera-photo
 camera-video-symbolic:camera-video
 camera-web-symbolic:camera-video:alias
 checkbox-checked-symbolic:checkbox-checked
-color-select-symbolic:preferences-appearance:alias
+color-select-symbolic:io.github.meowsystem.Eyedropper-symbolic:alias
 computer-symbolic:video-display:alias
 connection-secure-symbolic:lock-traco
 cosmic-applet-battery-display-brightness-high-symbolic:cosmic-applet-battery-display-brightness-high
@@ -153,7 +153,6 @@ network-vpn-symbolic:shield:alias
 network-wired-disconnected-symbolic:network-wired-disconnected
 network-wired-symbolic:network-wired
 network-wireless-acquiring-symbolic:network-wireless-acquiring
-network-wireless-disabled-symbolic:network-wireless-disconnected:alias
 network-wireless-disconnected-symbolic:network-wireless-disconnected
 network-wireless-encrypted-symbolic:network-wireless-encrypted
 network-wireless-error-symbolic:network-wireless-error
