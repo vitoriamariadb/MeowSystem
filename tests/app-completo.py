@@ -868,12 +868,13 @@ class Percurso:
         if not self.checa(arquivo, f"há um arquivo de teste para «{ACERVO.get(tipo, tipo)}»"):
             return
         antes, n0 = retrato(), len(self.posts)
+        self.js("() => { for (const t of document.querySelectorAll('#torradas .torrada')) t.dataset.deAntes = ''; }")
         self.escolher_arquivo(nome, arquivo)
         fim = time.time() + 120
         while len(self.posts) == n0 and time.time() < fim:
             self.pag.wait_for_timeout(100)
         self.assentar(quieto=400, teto=120000)
-        erro = self.pag.locator("#torradas .torrada.erro")
+        erro = self.pag.locator("#torradas .torrada.erro:not([data-de-antes])")
         self.checa(not erro.count(), f"o acervo «{tipo}» aceita {os.path.basename(arquivo)}"
                    + (f" — disse {erro.first.inner_text()[:100]!r}" if erro.count() else ""))
         self.checa(diferenca(antes, retrato()), f"o acervo «{tipo}» escreveu na casa de brinquedo")
