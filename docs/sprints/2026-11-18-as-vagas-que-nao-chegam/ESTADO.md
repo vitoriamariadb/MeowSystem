@@ -160,6 +160,20 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
 8. O coordenador mandou ao `master`, no push 3, uma medida com o home de pessoa escrito; o CI acusou e o push 4
    corrigiu.
 
+## 19/11, 11h20: pushes 6 e 7, dois blocos novos e o install do nitro-5
+- Push 6 (`eb90e6b9..db158182`): as ressalvas e o `fe4742b4`; run `testes` 44540348774 (resultado a anotar).
+- Na integração, com o `fe4742b4`: `app-completo.py` (936 s), `app-layout.py`, `grava-ao-soltar.py`, `higiene.sh` e
+  `git-limpo.sh` verdes. Cruzamento antes do push 7: 13 de 13.
+- Push 7 (`db158182..b70e584e`): «Orelhas» no desligar do MeowSystem e a decisão 64.
+- Pedidos de quem usa em 19/11, viraram sprint e bloco: P255 (o PC se atualiza sozinho ao ligar; resposta «Só com
+  o CI verde»), implementador (agente, high) em `../.meow-wt-atualiza`, `bloco/atualiza`; P256 (os botões de janela
+  do MeowSystem; resposta «Outra metáfora de gato, mais simples», e a prova «numa janela real», no palco), o
+  desenhista em `../.meow-wt-botoes`, `bloco/botoes`, primeiro commit `dff78128`.
+- Quadro de arte, versão 3: as escolhas de 19/11 e o grupo dos botões de janela (só os de hoje, por enquanto).
+- nitro-5: o conserto das 5h de 19/11 já tinha compilado a Bandeja, o Leitura e o Performance novos (05h18); o
+  conta-gotas ficou no meio. Às 11h20 o coordenador fechou o Chrome (pedido de saída normal; não havia Edge) e
+  começou o `./install.sh` completo (log em `~/.cache/meow-leva/install-nitro5-2026-11-19.log`).
+
 ## Próximo passo
 1. `app-completo.py` verde na integração com o `fe4742b4`; juntar o `132998b7` e o `7f1720b6`; push 6; run do
    GitHub anotado aqui.
