@@ -1241,6 +1241,8 @@ chk_rust() {
   "$RAIZ/scripts/rust.sh" conferir 2>&1
 }
 
+chk_botoeslado() { BOTOES_LADO="${BOTOES_LADO:-direita}" "$RAIZ/scripts/botoes_lado.sh" conferir 2>&1; }
+
 chk_escala() {
   ESCALA_TELA="${ESCALA_TELA:-}" "$RAIZ/scripts/escala.sh" --conferir 2>&1
 }
@@ -1463,6 +1465,7 @@ fix_relogio()   { RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" \
                     "$RAIZ/scripts/relogio.sh" aplicar 2>&1; }
 fix_janelas()   { JANELAS_TILING="${JANELAS_TILING:-}" JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}" \
                   "$RAIZ/scripts/janelas.sh" aplicar 2>&1; }
+fix_botoeslado() { BOTOES_LADO="${BOTOES_LADO:-direita}" "$RAIZ/scripts/botoes_lado.sh" aplicar 2>&1; }
 fix_areas()     { AREAS_MODO="${AREAS_MODO:-juntas}" AREAS_NOMES="${AREAS_NOMES:-}" AREAS_FOLGA="${AREAS_FOLGA:-}" AREAS_ENCAIXE="${AREAS_ENCAIXE:-}" \
                   "$RAIZ/scripts/areas.sh" refazer-alfinetes 2>&1; }
 fix_leitura()   { "$RAIZ/scripts/leitura.sh" aplicar 2>&1; }
@@ -1569,7 +1572,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches graficos dock relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart arquivosfilhos atalho lancador autoreparo atualiza cli escala fontes estadovelho vizinhos efeito logo indice)
+VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas botoeslado areas patches graficos dock relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart arquivosfilhos atalho lancador autoreparo atualiza cli escala fontes estadovelho vizinhos efeito logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 
 declare -A SEM_CONSERTO_RAZAO=(

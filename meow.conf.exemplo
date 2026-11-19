@@ -218,6 +218,16 @@ JANELAS_TILING="sim"              # sim | nao | vazio (vazio = não toca)
 #   mais nada. Corrigido em 02/09/2026.
 JANELAS_TILING_ESCOPO="global"    # global | workspace
 
+# @ Botões da janela
+# > Fechar, maximizar e minimizar do mesmo lado em todo programa que lê o GTK.
+# O LADO DOS BOTÕES — gsettings `button-layout` e `gtk-decoration-layout` do GTK 3 e do GTK 4.
+#
+# Só o lado muda: os botões que você já tinha ficam, na ordem espelhada pela borda
+# (`close,maximize,minimize:` à esquerda, `:minimize,maximize,close` à direita). Valor
+# que não dá para entender vira o padrão do lado. `esquerda` não alcança os programas
+# do COSMIC: a libcosmic fixa os botões à direita e não tem opção para isso.
+BOTOES_LADO="direita"             # direita | esquerda
+
 # @ Tamanho de tudo na tela
 # > É também a única forma de aumentar a fonte no COSMIC.
 # O TAMANHO DE TUDO NA TELA — e a única forma de aumentar a FONTE no COSMIC.

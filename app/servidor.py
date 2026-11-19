@@ -5142,6 +5142,7 @@ NOME_DA_CONFERENCIA = {
     "forma": "Forma da barra",
     "painel": "Barra",
     "janelas": "Lado a lado",
+    "botoeslado": "Lado dos botões da janela",
     "areas": "Áreas de trabalho",
     "patches": "Compositor",
     "graficos": "Compartilhar tela",

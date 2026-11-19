@@ -1063,6 +1063,12 @@ etapa_escala() {
   return $?
 }
 
+etapa_botoes_lado() {
+  passo "Botões das janelas (direita ou esquerda)"
+  BOTOES_LADO="${BOTOES_LADO:-direita}" "$MEOW_RAIZ/scripts/botoes_lado.sh" aplicar
+  return $?
+}
+
 etapa_painel() {
   passo "Supervisor da barra (systemd --user)"
   local destino="$HOME/.config/systemd/user" u conteudo mudou=0
@@ -2079,7 +2085,7 @@ main() {
   meow_travar || return 2
 
   local etapas=(etapa_backup_tema etapa_conf etapa_cli etapa_ponte_root etapa_atalho etapa_pacotes etapa_rust etapa_gerar etapa_tema
-                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
+                etapa_modo etapa_greeter etapa_vidro etapa_forma etapa_painel etapa_janelas etapa_botoes_lado etapa_relogio etapa_leitura etapa_escala etapa_upstream etapa_fontes
                 etapa_svg etapa_icones etapa_pastas_xdg etapa_pastas etapa_hicolor etapa_completar_icones
                 etapa_mimetypes etapa_icones_resgatados etapa_icones_apps_arcticons etapa_icones_apps_dracula etapa_icones_sistema etapa_icones_bandeja
                 etapa_icones_tray_steam etapa_icones_tray_zapzap etapa_jogos etapa_jogos_heroic

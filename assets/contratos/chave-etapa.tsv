@@ -6,6 +6,7 @@ ACCENT	*	nao
 MODO	*	nao
 JANELAS_TILING	janelas	nao
 JANELAS_TILING_ESCOPO	janelas	nao
+BOTOES_LADO	botoes_lado	nao
 ESCALA_TELA	escala	nao
 CURSOR	cursor,flatpak_tema	nao
 CURSOR_VERSAO	cursor,flatpak_tema	nao
