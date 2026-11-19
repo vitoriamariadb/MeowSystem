@@ -33,6 +33,8 @@ jobs:
           echo "EXTENSOES_FORKS=$RUNNER_TEMP/forks" >> "$GITHUB_ENV"
 
       - name: Rodar a suíte portátil, em que pulado é vermelho
+        shell: bash
         run: |
+          set -eo pipefail
           ./tests/todos.sh --portatil | tee "$RUNNER_TEMP/suite.log"
-          ! grep -q '^pulado' "$RUNNER_TEMP/suite.log"
+          if grep -q '^pulado' "$RUNNER_TEMP/suite.log"; then exit 1; fi
