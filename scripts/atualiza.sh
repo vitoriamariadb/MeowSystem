@@ -9,6 +9,7 @@ AT_TRONCO=master
 AT_FLUXO=testes
 AT_PROCURA=10
 AT_ESPERA_DA_VEZ="${AT_ESPERA_DA_VEZ:-300}"
+AT_PAUSA_DA_VEZ="${AT_PAUSA_DA_VEZ:-20}"
 AT_API="${AT_API:-https://api.github.com/repos}"
 AT_SUDO_CONF="${AT_SUDO_CONF:-/etc/sudo.conf}"
 AT_LOG="$MEOW_ESTADO/atualiza.log"
@@ -85,15 +86,24 @@ _at_askpass() {
 }
 
 _at_instalar() {
-  local alvo="$1" entrou="$2" curto rc
+  local alvo="$1" entrou="$2" curto rc=0
   curto="$(_at_curto "$alvo")"
   _at_askpass
   [ -n "${SUDO_ASKPASS:-}" ] || meow_ponte_viva \
     || _at_registrar "sem askpass e sem a ponte root: o que precisa de root fica de fora, e o resto vai"
-  _at_registrar "install.sh no $curto"
-  flock -w "$AT_ESPERA_DA_VEZ" "$MEOW_ESTADO/lock" true 2>/dev/null \
-    || _at_registrar "outro meow segurou a vez por mais de $AT_ESPERA_DA_VEZ s; o install tenta assim mesmo"
-  (cd "$MEOW_RAIZ" && ./install.sh) < /dev/null >> "$AT_LOG" 2>&1; rc=$?
+  local vez saida
+  saida="$(mktemp -p "$MEOW_ESTADO" ".atualiza.XXXXXX")" || return "$MEOW_ERRO"
+  for vez in 1 2 3; do
+    _at_registrar "install.sh no $curto"
+    flock -w "$AT_ESPERA_DA_VEZ" "$MEOW_ESTADO/lock" true 2>/dev/null \
+      || _at_registrar "outro meow segurou a vez por mais de $AT_ESPERA_DA_VEZ s; o install tenta assim mesmo"
+    (cd "$MEOW_RAIZ" && ./install.sh) < /dev/null > "$saida" 2>&1; rc=$?
+    cat "$saida" >> "$AT_LOG"
+    [ "$rc" -ge 2 ] && grep -q 'outro meow está rodando' "$saida" || break
+    _at_registrar "outro meow pegou a vez antes do install; tentativa $vez de 3"
+    sleep "$AT_PAUSA_DA_VEZ"
+  done
+  rm -f "$saida"
   if [ "$rc" -ge 2 ]; then
     _at_lembrar instalar "$alvo"
     _at_registrar "o install.sh saiu $rc no $curto; a próxima volta tenta de novo"
