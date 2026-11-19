@@ -315,6 +315,24 @@ def main():
             checa(casa.valor_de("BACKUPS_MANTIDOS") == novo10, "e grava pelo bloco novo")
             pag.locator("#desfazer").click()
             assentar(pag)
+
+            print("11. P254: o trabalho pedido logo depois de gravar espera a aplicação, sem recusar")
+            valor11 = casa.valor_de("SOM_FUNDAMENTAL")
+            voltas = pag.evaluate("""async ([c, valores]) => {
+                const dorme = (ms) => new Promise((ok) => setTimeout(ok, ms));
+                const saida = [];
+                for (const v of valores) {
+                  const d = await api('/api/definir', { method: 'POST', body: JSON.stringify({ chave: c, valor: v }) });
+                  const r = await api('/api/rodar', { method: 'POST', body: JSON.stringify({ acao: 'som_aplicar', argumento: '', confirmado: true }) });
+                  saida.push({ aplicando: d.aplicando === true, erro: r.erro || '', id: r.id ?? null });
+                  for (let n = 0; n < 400 && r.id != null && (await api('/api/trabalho?id=' + r.id)).vivo !== false; n++) await dorme(300);
+                  for (let n = 0; n < 400 && (await api('/api/aplicando')).correndo; n++) await dorme(300);
+                }
+                return saida; }""", ["SOM_FUNDAMENTAL", ["300", "400", "300", "400", "300"]])
+            ruins = [v for v in voltas if not v["aplicando"] or v["erro"] or v["id"] is None]
+            checa(len(voltas) == 5 and not ruins, f"o som roda depois da aplicação nas 5 voltas ({ruins[:2]})")
+            post(pag, "/api/definir", {"chave": "SOM_FUNDAMENTAL", "valor": valor11 or ""})
+            assentar(pag)
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()
     finally:
