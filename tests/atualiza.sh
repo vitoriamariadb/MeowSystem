@@ -46,6 +46,7 @@ cp "$RAIZ/scripts/atualiza.sh" "$ORIGEM/scripts/"
 cp "$RAIZ/bin/meow" "$ORIGEM/meow"
 cat > "$ORIGEM/install.sh" <<FIM
 #!/bin/sh
+if [ -e "$T/recusa-uma" ]; then rm -f "$T/recusa-uma"; echo "install recusado pela trava" >> "$T/install.log"; echo "outro meow está rodando (derivados) — saindo"; exit 2; fi
 flock -n "$E/lock" true || { echo "install recusado pela trava" >> "$T/install.log"; exit 2; }
 echo "install \$(git rev-parse --short HEAD) askpass=\${SUDO_ASKPASS:-} tty=\$([ -t 0 ] && echo sim || echo nao)" >> "$T/install.log"
 exit "\$(cat "$T/install.rc" 2>/dev/null || echo 0)"
@@ -71,7 +72,7 @@ escritos() { find "$H" -newer "$T/marco" -type f ! -path "$CLONE/*" | sort; }
 
 atualizar() {
   env -i PATH="$T/bin:/usr/bin:/bin" HOME="$H" LANG=C.UTF-8 NO_COLOR=1 GIT_CONFIG_NOSYSTEM=1 \
-    MEOW_PONTE=/nao/existe AT_SUDO_CONF="$T/sudo.conf" \
+    MEOW_PONTE=/nao/existe AT_SUDO_CONF="$T/sudo.conf" AT_PAUSA_DA_VEZ=1 \
     bash "$CLONE/scripts/atualiza.sh" rodar > "$T/saida" 2>&1
 }
 
@@ -214,6 +215,17 @@ igual "o clone avança" "$(head_do_clone)" "$cv"
 igual "o install roda uma vez" "$(linhas "$T/install.log")" "$((i0 + 1))"
 tail -1 "$T/install.log" | grep -q '^install ' && ok "depois de esperar a vez, sem ser recusado pela trava" || falha "o install foi recusado: $(tail -1 "$T/install.log")"
 tail -1 "$T/notas.log" | grep -q 'a instalação falhou' && falha "avisou falha de instalação" || ok "e sem aviso de falha"
+
+printf '\n   quem pega a trava depois da espera também não derruba o install\n'
+cr="$(commit_novo corrida)"; echo verde > "$T/ci/$cr"
+i0="$(linhas "$T/install.log")"
+: > "$T/recusa-uma"
+atualizar
+igual "o clone avança" "$(head_do_clone)" "$cr"
+igual "o install é recusado uma vez e roda na segunda" "$(linhas "$T/install.log")" "$((i0 + 2))"
+tail -1 "$T/install.log" | grep -q '^install ' && ok "a última tentativa instalou" || falha "a última tentativa: $(tail -1 "$T/install.log")"
+tail -1 "$T/notas.log" | grep -q 'a instalação falhou' && falha "avisou falha de instalação" || ok "e sem aviso de falha"
+grep -q 'tentativa 1 de 3' "$E/atualiza.log" && ok "o log conta a tentativa" || falha "o log não conta a tentativa"
 
 printf '\n   o verbo do meow chama o mesmo script\n'
 c6="$(commit_novo seis)"; echo verde > "$T/ci/$c6"
