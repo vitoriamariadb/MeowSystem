@@ -78,7 +78,8 @@ dele volta, sem esperar a suíte inteira do fim. Antes de cada push, os testes d
 - Causa do vermelho: o teste lia o bloco antigo do `meow.conf.exemplo` em `18c1d88^`, commit que só existe nas tags
   `v2.0.0` e `v2.1.0` desta máquina (o GitHub não tem essas duas tags; o tronco de lá tem o mesmo commit como
   `a43d7538`). O contêiner da P244 foi montado a partir do repositório local e por isso não acusou.
-- Push 2, 19/11 00h50: `8adaae50`, o teste lê `a43d7538^`; verde num clone limpo do GitHub. Run a anotar aqui.
+- Push 2, 19/11 00h50: `8adaae50`, o teste lê `a43d7538^`; verde num clone limpo do GitHub. Run `testes` 44452282392, em
+  50 min: **129 verdes, 2 pulados, 0 vermelhos**. A P244 está provada no runner de verdade.
 
 ## Próximo passo
 1. A árvore de integração é `../.meow-wt-integracao-18` (`integracao/2026-11-18`, `2594c5f8`): documentos, C, D e A.
