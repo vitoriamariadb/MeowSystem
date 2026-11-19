@@ -72,8 +72,13 @@ dele volta, sem esperar a suíte inteira do fim. Antes de cada push, os testes d
 
 - Push 1, 18/11 23h34: blocos A, C e D e os documentos, `9ed03775..35e3dc98`. Cruzamento na integração: 12 verdes
   (`decisoes`, `higiene`, `acento`, `git-limpo`, `numeros`, `readme`, `ganchos`, `vizinhos`, `pacotes-numa-lista`,
-  `icones-do-sistema`, `pack-pessoal-veste-o-pai`, `nada-manda-digitar`). Run `testes` do GitHub: 44445246406
-  (resultado a anotar aqui).
+  `icones-do-sistema`, `pack-pessoal-veste-o-pai`, `nada-manda-digitar`). Run `testes` do GitHub 44445246406, em
+  57 min: 128 verdes, 2 pulados (`estilo.sh`, `extensoes-install.sh`), 1 vermelho (`chaves-aposentadas.sh`). Antes
+  da P244 eram 6 vermelhos.
+- Causa do vermelho: o teste lia o bloco antigo do `meow.conf.exemplo` em `18c1d88^`, commit que só existe nas tags
+  `v2.0.0` e `v2.1.0` desta máquina (o GitHub não tem essas duas tags; o tronco de lá tem o mesmo commit como
+  `a43d7538`). O contêiner da P244 foi montado a partir do repositório local e por isso não acusou.
+- Push 2, 19/11 00h50: `8adaae50`, o teste lê `a43d7538^`; verde num clone limpo do GitHub. Run a anotar aqui.
 
 ## Próximo passo
 1. A árvore de integração é `../.meow-wt-integracao-18` (`integracao/2026-11-18`, `2594c5f8`): documentos, C, D e A.
