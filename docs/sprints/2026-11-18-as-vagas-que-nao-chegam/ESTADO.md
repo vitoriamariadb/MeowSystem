@@ -125,12 +125,48 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
   `app-layout.py` verde na integração (183 s); `app-completo.py` do implementador em 945 s (eram 1797 s).
 - Cruzamento na integração: 15 verdes de 15.
 
+## 19/11 de manhã: o que ficou devendo na madrugada e as respostas de quem usa
+- O coordenador ficou parado das 05h14 às 10h57: a espera pela segunda prova do `app-completo.py` procurava o
+  processo pelo nome e o próprio comando de espera continha o nome. O nitro-5 não foi desligado. Às 10h58 quem usa
+  disse «Não desliga não».
+- `fe4742b4` (bloco G): o `app-completo.py` lia a torrada «Salvo; falta permissão de sistema» do gesto anterior
+  como resposta do acervo de cursor; o teste passa a contar só as torradas que nasceram do envio dele. Primeira prova
+  do implementador verde (925 s); o log da segunda sumiu com a limpeza do cache dele.
+- Push 5: run `testes` 44477612054, **129 verdes, 2 pulados, 0 vermelhos**, com os sete blocos.
+- Desktop da Vitória, install de 19/11 03h52: «Pronto. 3 passagens, 75 etapas, nada mais a escrever.» O doctor de lá
+  acusa o compositor compilando (vale no próximo login) e `files_menu removeria ~/.local/bin/cosmic-files`, que o
+  conserto das 5h acerta.
+- Respostas (AskUserQuestion, 19/11): install no nitro-5 «Instala e fecha antes» (o coordenador fecha Chrome e Edge
+  e instala); a regra do painel «Sim, registra» (decisão 64, `7f1720b6`); o desligar do MeowSystem «Orelhas»
+  (`132998b7`); os três pontos do MeowSystem «O de hoje».
+
+## Ressalvas da leva (para não se perderem)
+1. Os blocos E (P251) e G (P254) não tiveram conferente separado: o coordenador leu os commits e rodou os afetados
+   e o cruzamento. Fica devendo um conferente (agente, high) para `944faf43`, `b8872714`, `51bafefd`, `a6909dd9`,
+   `f58ef98f` e `fe4742b4`.
+2. Quatro agentes não entregaram o relatório final ao coordenador, mesmo pedido de novo: o conferente do F
+   (`painel-confere`), o conferente do B (`arte-confere`, parou às 23h59 de 18/11 com os pinos por fechar), o
+   implementador do E (`portal-implementa`) e o implementador do G (`layout-implementa`). O que se sabe deles vem dos
+   commits e dos logs.
+3. P251, item 3: por que o build do portal foi posto de lado no desktop sem queda registrada segue sem resposta; e
+   o `graficos_estado` do desktop depois do install de 19/11 não foi lido.
+4. `graficos-fonte-real.sh` ficou pulado na integração (sem o fonte onde o teste procura); o implementador diz no
+   commit que o rodou nas três versões pelo fonte do git.
+5. A suíte inteira não rodou com os sete blocos juntos; rodaram os afetados de cada bloco, os cruzamentos e o CI
+   portátil do GitHub.
+6. `extensoes-install.sh` e `nomes-dos-applets.sh` só acham os commits novos dos applets nesta máquina depois do
+   install real; antes disso foram rodados com `EXTENSOES_FORKS` e uma pasta de fontes temporária.
+7. O portátil estava fora da rede em 19/11: pull, install e doctor de lá ficam devendo.
+8. O coordenador mandou ao `master`, no push 3, uma medida com o home de pessoa escrito; o CI acusou e o push 4
+   corrigiu.
+
 ## Próximo passo
-1. Bloco B: no `master` (push 4). Falta a foto da barra e da dock nos dois packs, depois do install.
-2. Blocos E e G: quando cada implementador voltar, conferente, integração, cruzamento, `master`, push.
-3. Linha do `docs/DECISOES.md` para a P252 e a P246: só com o sim de quem usa (a regra da cota foi escolha do
-   coordenador).
-4. No fim: suíte inteira no `master` com a máquina livre; install nos três PCs pelo coordenador (o portátil estava
-   fora da rede em 19/11 01h55); foto da barra e da dock nos dois packs.
-5. Gestos de quem usa: sair e entrar na sessão no desktop e no portátil; no nitro-5 fechar Chrome e Edge e rodar
-   `./install.sh --etapa apps`; escolher no quadro o desligar e os três pontos do MeowSystem.
+1. `app-completo.py` verde na integração com o `fe4742b4`; juntar o `132998b7` e o `7f1720b6`; push 6; run do
+   GitHub anotado aqui.
+2. nitro-5: fechar Chrome e Edge e rodar `./install.sh` (ordem de quem usa, 19/11); foto da barra e da dock nos
+   dois packs.
+3. Conferente dos blocos E e G (ressalva 1) e a resposta do item 3 da P251 (ressalva 3).
+4. Suíte inteira no `master` com a máquina livre.
+5. Portátil, quando voltar à rede: `git pull`, `./install.sh`, `meow doctor`.
+6. Gestos de quem usa: sair e entrar na sessão no desktop, no portátil e, depois do install, no nitro-5.
+7. Com o ok de quem usa: tirar as árvores `.meow-wt-*` das levas de 17/11 e de 18/11, já integradas.
