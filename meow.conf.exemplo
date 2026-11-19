@@ -2017,6 +2017,14 @@ AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
 # de outro projeto. "nao" = o doctor só confere e avisa.
 VIZINHOS_DESATIVAR="sim"          # sim | nao
 
+# @ Atualizar ao ligar
+# > Três minutos depois de ligar, e uma vez por dia, o PC traz do GitHub o que passou nos testes e instala, com as suas escolhas.
+# Só avança o clone que está no master, limpo e sem commit próprio, e só até um commit
+# cujo run `testes` do GitHub fechou verde; depois roda o install.sh completo, com este
+# meow.conf como está. O registro fica em ~/.local/state/meowsystem/atualiza.log.
+# "nao" = o timer meow-atualiza sai, e o clone só muda quando você quiser.
+ATUALIZA="sim"                    # sim | nao
+
 # @ Avisar quando um mascote entrar
 # > Uma notificação com o nome do arquivo.
 ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho

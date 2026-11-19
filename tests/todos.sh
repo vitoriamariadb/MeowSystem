@@ -135,6 +135,7 @@ PORTATIL=(
   comum-carrega-limpo.sh
   destrava.sh
   navegadores-gtk.sh
+  atualiza.sh
 )
 
 MAQUINA=(

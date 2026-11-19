@@ -113,6 +113,7 @@ AUTOSTART_BLOQUEADOS	autostart	nao
 PONTE_ROOT	ponte_root	sim
 AUTO_REPARO	autoreparo,painel,leitura,wallpaper,vigia_apt,vigia_qt	nao
 AUTO_REPARO_NOTIFICAR	-	nao
+ATUALIZA	atualiza	nao
 ASSETS_VIGIA_NOTIFICAR	-	nao
 FLATPAK_VIGIA	vigia_flatpak	nao
 FLATPAK_VIGIA_NOTIFICAR	-	nao

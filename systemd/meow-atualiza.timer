@@ -1,0 +1,12 @@
+[Unit]
+Description=MeowSystem — atualiza 3 minutos depois de ligar e uma vez por dia
+Documentation=file:%h/.local/state/meowsystem/atualiza.log
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=1d
+AccuracySec=1min
+Unit=meow-atualiza.service
+
+[Install]
+WantedBy=timers.target

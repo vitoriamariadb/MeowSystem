@@ -560,6 +560,7 @@ cobre 61 dock.sh 'MEOW-DOCK-PATCH' patches/dock.series 'cosmic-app-list-casament
 cobre 62 area-os.sh 'lê MEOW_AREA e MEOW_TELA' patches/series 'cosmic-comp-area-do-cliente'
 cobre 63 semente-dos-papeis.sh 'pares' scripts/wallpaper.sh '_semear_papeis_do_pack'
 cobre 64 painel-fantasma.sh 'seguidas' lib/painel.sh 'meow_painel_gastar_reciclagem_do_boot'
+cobre 65 atualiza.sh 'run em curso ou vermelho não avança' systemd/meow-atualiza.timer '^OnBootSec=3min$'
 
 sem_linha=""; total=0
 while read -r n; do
