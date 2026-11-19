@@ -71,9 +71,9 @@ Os treze desenhos do tulip-orchid (`catedral/`, `cemiterio/`, `noite/`, `ornamen
 
 | cena | dia | noite | pack | licença | data |
 |---|---|---|---|---|---|
-| Catedral | <img src="wallpapers/pares/catedral-dia.svg" alt="Catedral, de dia" width="200"> | <img src="wallpapers/pares/catedral-noite.svg" alt="Catedral, de noite" width="200"> | Dracula | GPL-3.0-or-later | 17/11/2026 |
-| Castelo | <img src="wallpapers/pares/castelo-dia.svg" alt="Castelo, de dia" width="200"> | <img src="wallpapers/pares/castelo-noite.svg" alt="Castelo, de noite" width="200"> | Dracula | GPL-3.0-or-later | 17/11/2026 |
-| Campo-santo | <img src="wallpapers/pares/camposanto-dia.svg" alt="Campo-santo, de dia" width="200"> | <img src="wallpapers/pares/camposanto-noite.svg" alt="Campo-santo, de noite" width="200"> | Dracula | GPL-3.0-or-later | 17/11/2026 |
+| Catedral | <img src="wallpapers/pares/catedral-dia.svg" alt="Catedral, de dia" width="200"> | <img src="wallpapers/pares/catedral-noite.svg" alt="Catedral, de noite" width="200"> | Dracula | GPL-3.0-or-later | 19/11/2026 |
+| Castelo | <img src="wallpapers/pares/castelo-dia.svg" alt="Castelo, de dia" width="200"> | <img src="wallpapers/pares/castelo-noite.svg" alt="Castelo, de noite" width="200"> | Dracula | GPL-3.0-or-later | 19/11/2026 |
+| Campo-santo | <img src="wallpapers/pares/camposanto-dia.svg" alt="Campo-santo, de dia" width="200"> | <img src="wallpapers/pares/camposanto-noite.svg" alt="Campo-santo, de noite" width="200"> | Dracula | GPL-3.0-or-later | 19/11/2026 |
 
 ## O que este pack NÃO traz, e de quem herda
 
