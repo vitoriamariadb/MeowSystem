@@ -104,6 +104,7 @@ cat > "$FALSO/apt-get" <<FIM
 echo "apt-get \$*" >> "$T/apt-get.log"
 [ -f "$T/sem-fonte" ] && { echo "E: Falha ao buscar http://x/y.tar.xz 404 Not Found"; exit 1; }
 [ -f "$T/sem-deb-src" ] && { echo "E: You must put some 'deb-src' URIs in your sources.list"; exit 1; }
+[ -s "$T/versao-saiu" ] && { cat "$T/versao-saiu"; exit 100; }
 [ -f "$T/versao-saiu" ] && { echo "E: Can not find version '\${3#*=}' of package 'xdg-desktop-portal-cosmic'"; echo "E: Unable to find a source package for xdg-desktop-portal-cosmic"; exit 100; }
 pacote="\${3%%=*}"; versao="\${3#*=}"
 [ "\$1" = source ] || exit 1
@@ -398,6 +399,10 @@ rm -rf "$CASA/.cache/meowsystem/graficos/baixado" "$ESTADO/graficos/falhas.tsv";
 graf compilar; rc=$?
 confere "diz que o repositório já não serve a versão, sem culpar a rede" '[ "$rc" = 2 ] && grep -q "já não serve o fonte do portal" "$T/saida" && ! grep -q "sem rede" "$T/saida"' "$(cat "$T/saida")"
 confere "e a espera cresce, como no 404" '[ "$(cut -f3 "$ESTADO/graficos/falhas.tsv")" = baixar ]' "$(cat "$ESTADO/graficos/falhas.tsv" 2>&1)"
+rm -rf "$CASA/.cache/meowsystem/graficos/baixado" "$ESTADO/graficos/falhas.tsv"
+printf "E: Não é possível encontrar a versão '%s' do pacote 'xdg-desktop-portal-cosmic'\nE: Impossível encontrar um pacote fonte para xdg-desktop-portal-cosmic\n" "$VER1" > "$T/versao-saiu"
+graf compilar; rc=$?
+confere "em português, o apt da casa dela, também não culpa a rede" '[ "$rc" = 2 ] && grep -q "já não serve o fonte do portal" "$T/saida" && ! grep -q "sem rede" "$T/saida"' "$(cat "$T/saida")"
 rm -f "$T/versao-saiu" "$ESTADO/graficos/falhas.tsv"
 
 printf '\n13c. o rebuild local (+0~nome1) baixa o fonte da versão de base\n'
