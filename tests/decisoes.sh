@@ -559,6 +559,7 @@ cobre 60 papel-em-par.sh 'a segunda passada à noite não escreve nada'
 cobre 61 dock.sh 'MEOW-DOCK-PATCH' patches/dock.series 'cosmic-app-list-casamento-por-padrao'
 cobre 62 area-os.sh 'lê MEOW_AREA e MEOW_TELA' patches/series 'cosmic-comp-area-do-cliente'
 cobre 63 semente-dos-papeis.sh 'pares' scripts/wallpaper.sh '_semear_papeis_do_pack'
+cobre 64 painel-fantasma.sh 'seguidas' lib/painel.sh 'meow_painel_gastar_reciclagem_do_boot'
 
 sem_linha=""; total=0
 while read -r n; do
