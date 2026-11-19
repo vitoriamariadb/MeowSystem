@@ -240,6 +240,29 @@ def main():
             checa(pag.evaluate("() => HISTORICO.length") == 0 and casa.valor_de(chave8) == valor8b,
                   f"a lista fica vazia e o conf volta ao de antes ({pag.evaluate('() => HISTORICO.length')}, {casa.valor_de(chave8)!r})")
 
+            print("8c. dois cliques no Desfazer com uma gravação na rede mandam um desfazer só")
+            pag.evaluate("([c, a]) => gravarAgora({[c]: a})", [chave8, va])
+            assentar(pag)
+            seguradas, vistas = [], []
+            pag.route("**/api/definir", lambda rota: (vistas.append(1), seguradas.append(rota) if len(vistas) == 1 else rota.continue_()))
+            pag.route("**/api/salvar", lambda rota: (vistas.append(1), rota.continue_()))
+            pag.evaluate("([c, b]) => { gravarAgora({[c]: b}); }", [chave8, vb])
+            for _ in range(100):
+                if seguradas:
+                    break
+                pag.wait_for_timeout(50)
+            pag.locator("#desfazer").click()
+            pag.locator("#desfazer").click()
+            pag.wait_for_timeout(300)
+            seguradas.pop(0).continue_()
+            pag.wait_for_function("() => EM_VOO === 0", timeout=120000)
+            pag.wait_for_timeout(500)
+            pag.unroute("**/api/definir")
+            pag.unroute("**/api/salvar")
+            assentar(pag)
+            checa(len(vistas) == 2 and pag.evaluate("() => HISTORICO.length") == 0 and casa.valor_de(chave8) == valor8b,
+                  f"a gravação e um desfazer, e o conf volta ao de antes ({len(vistas)} pedidos, {casa.valor_de(chave8)!r})")
+
             print("9. P143: o lote de duas chaves que cai na rede não leva a mudança mais nova de uma delas")
             outra9 = pag.evaluate("""(c) => [...CHAVE.values()].find((i) => i.chave !== c
                 && (i.opcoes || []).filter((x) => x && x !== String(i.valor ?? '')).length)?.chave""", chave8)
@@ -291,6 +314,24 @@ def main():
             assentar(pag)
             checa(casa.valor_de("BACKUPS_MANTIDOS") == novo10, "e grava pelo bloco novo")
             pag.locator("#desfazer").click()
+            assentar(pag)
+
+            print("11. P254: o trabalho pedido logo depois de gravar espera a aplicação, sem recusar")
+            valor11 = casa.valor_de("SOM_FUNDAMENTAL")
+            voltas = pag.evaluate("""async ([c, valores]) => {
+                const dorme = (ms) => new Promise((ok) => setTimeout(ok, ms));
+                const saida = [];
+                for (const v of valores) {
+                  const d = await api('/api/definir', { method: 'POST', body: JSON.stringify({ chave: c, valor: v }) });
+                  const r = await api('/api/rodar', { method: 'POST', body: JSON.stringify({ acao: 'som_aplicar', argumento: '', confirmado: true }) });
+                  saida.push({ aplicando: d.aplicando === true, erro: r.erro || '', id: r.id ?? null });
+                  for (let n = 0; n < 400 && r.id != null && (await api('/api/trabalho?id=' + r.id)).vivo !== false; n++) await dorme(300);
+                  for (let n = 0; n < 400 && (await api('/api/aplicando')).correndo; n++) await dorme(300);
+                }
+                return saida; }""", ["SOM_FUNDAMENTAL", ["300", "400", "300", "400", "300"]])
+            ruins = [v for v in voltas if not v["aplicando"] or v["erro"] or v["id"] is None]
+            checa(len(voltas) == 5 and not ruins, f"o som roda depois da aplicação nas 5 voltas ({ruins[:2]})")
+            post(pag, "/api/definir", {"chave": "SOM_FUNDAMENTAL", "valor": valor11 or ""})
             assentar(pag)
             checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
             nav.close()

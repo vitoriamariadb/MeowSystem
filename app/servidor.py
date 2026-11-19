@@ -2323,8 +2323,11 @@ def _aplicador():
         for _tentativa in range(3600):
             while _ESPERANDO_O_SLOT[0] > 0:
                 time.sleep(0.1)
-            trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra, por_dentro=True,
-                                     ambiente_extra=de_fabrica)
+            with _ESPERANDO_TRAVA:
+                if _ESPERANDO_O_SLOT[0] > 0:
+                    continue
+                trabalho, erro = iniciar("aplicar", "", confirmado=True, extra_argv=extra, por_dentro=True,
+                                         ambiente_extra=de_fabrica)
             if trabalho is not None or "já há um trabalho" not in str(erro):
                 break
             time.sleep(0.5)
