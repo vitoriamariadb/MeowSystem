@@ -76,6 +76,7 @@ drive-removable-symbolic	devices	configuracoes	Unidade removível	files
 edit-clear-symbolic	actions	botoes	Limpar	applets,osd,settings,app-library,launcher
 edit-copy-symbolic	actions	botoes	Copiar	settings
 edit-delete-symbolic	actions	botoes	Apagar	settings,app-library
+edit-find-symbolic	actions	botoes	Localizar	gtk
 edit-symbolic	actions	botoes	Editar	applets,osd,settings,app-library,launcher
 emblem-ok-symbolic	status	botoes	Certo	applets
 folder-documents-symbolic	status	botoes	Documentos	files
@@ -160,6 +161,7 @@ preferences-wireless-symbolic	status	configuracoes	Wi-Fi	settings
 preferences-workspaces-symbolic	status	configuracoes	Áreas de trabalho	settings
 printer-network-symbolic	devices	configuracoes	Impressora	applets,settings
 scanner-symbolic	devices	configuracoes	Scanner	settings
+search-symbolic	actions	botoes	Pesquisar	gtk
 smartphone-symbolic	devices	configuracoes	Celular	applets,settings
 software-update-available-symbolic	status	configuracoes	Atualização disponível	settings
 speaker-symbolic	devices	configuracoes	Alto-falante	settings

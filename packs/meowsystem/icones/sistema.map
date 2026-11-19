@@ -112,6 +112,7 @@ edit-clear-all-symbolic:edit-clear:alias
 edit-clear-symbolic:edit-clear
 edit-copy-symbolic:edit-copy
 edit-delete-symbolic:edit-delete
+edit-find-symbolic:system-search-orelhas:alias
 edit-symbolic:edit
 edit-undo-symbolic:edit-undo
 emblem-ok-symbolic:emblem-ok
@@ -226,6 +227,7 @@ preferences-wireless-symbolic:network-wireless-signal-excellent:alias
 preferences-workspaces-symbolic:preferences-workspaces
 printer-network-symbolic:printer-network
 scanner-symbolic:scanner
+search-symbolic:system-search-orelhas:alias
 smartphone-symbolic:smartphone
 soneca-desperto-symbolic:soneca-desperto
 soneca-ronronar-symbolic:soneca-ronronar
@@ -236,7 +238,7 @@ system-lock-screen-symbolic:lock-traco:alias
 system-log-out-symbolic:system-log-out
 system-reboot-symbolic:system-reboot
 system-restart-symbolic:system-reboot:alias
-system-search-symbolic:system-search
+system-search-symbolic:system-search-orelhas
 system-shutdown-symbolic:system-shutdown-orelhas
 system-suspend-symbolic:system-suspend
 system-users-symbolic:contacts
