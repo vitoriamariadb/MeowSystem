@@ -347,6 +347,11 @@ if [ -f "$alvo" ]; then
 fi
 
 if [ "$dock_mudou" = "1" ] && ! meow_seco; then
+  _tema_dir="$HOME/.local/share/icons/$TEMA_ICONES"
+  if [ -f "$_tema_dir/icon-theme.cache" ] && meow_tem gtk-update-icon-cache; then
+    gtk-update-icon-cache -q -f "$_tema_dir" 2>/dev/null \
+      || meow_aviso "não consegui reindexar $_tema_dir/icon-theme.cache — o doctor refaz"
+  fi
   if [ "$LOGO_RECICLAR" != "sim" ]; then
     meow_info "mascote do dock trocado; LOGO_RECICLAR=\"$LOGO_RECICLAR\" — vale no próximo login"
   elif [ -x "$RAIZ/scripts/painel.sh" ]; then
