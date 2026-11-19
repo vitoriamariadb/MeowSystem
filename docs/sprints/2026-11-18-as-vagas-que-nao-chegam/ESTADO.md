@@ -174,13 +174,30 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
   conta-gotas ficou no meio. Às 11h20 o coordenador fechou o Chrome (pedido de saída normal; não havia Edge) e
   começou o `./install.sh` completo (log em `~/.cache/meow-leva/install-nitro5-2026-11-19.log`).
 
+## 19/11, 12h55: o que entrou depois do almoço
+- CI dos pushes 6 e 7 verde (44540348774 e 44543622594).
+- nitro-5: install de 11h20 limpo (2 passagens, 75 etapas), os quatro applets no pino novo. Portátil: voltou à rede,
+  `git pull` para `b70e584e` e install limpo (3 passagens, 75 etapas).
+- P255 (`bloco/atualiza`: `7740fe3c`, `b9c3d239`, e do coordenador o `32fc4723`): revisão do coordenador achou que o
+  install saía recusado quando outro `meow` pegava a trava logo depois do pull (a corrida medida à mão no desktop);
+  agora espera a vez, com teste vermelho sem a cura. Decisão 65 no registro. O implementador não mandou relatório.
+- P256 (`bloco/botoes`): dois conjuntos (A, orelhas; B, rabo), em área preenchida porque o GTK do Firefox e do
+  Chrome só pinta preenchimento, com foto de janela real no palco (`scratchpad/botoes/barras-lado-a-lado.png`) e no
+  quadro (versão 4). Resposta de quem usa: «A, orelhas», e depois «Usa o conjunto A. E o windows close usa o x
+  atual»: no mapa, minimizar, maximizar e restaurar são as orelhas e o fechar segue no X de antes (`fec598f0`).
+- Limpeza pedida por quem usa («deletar o que foi mergeado e pushado»): 23 árvores e branches do MeowSystem que já
+  estavam no `origin/master` e as 5 árvores dos applets publicados saíram. Ficaram `.meow-wt-ci2` (3 commits fora
+  do `master`), `.meow-wt-soberana` e `.meow-wt-arte` (rascunhos sem commit).
+- Ordem para o fim (19/11): «no terminal roda o comando atualizar com o askpass e veja se quebrou algo do
+  meowsystem e se a build vai funcionar certinho. Faz isso só ao final.» O `atualizar` é a função do zsh
+  (`~/.config/zsh/functions/sistema.zsh`).
+
 ## Próximo passo
-1. `app-completo.py` verde na integração com o `fe4742b4`; juntar o `132998b7` e o `7f1720b6`; push 6; run do
+1. Cruzamento da P255 e da P256 na integração (`scratchpad/integra-h.log`); juntar o `fec598f0`; push 8; run do
    GitHub anotado aqui.
-2. nitro-5: fechar Chrome e Edge e rodar `./install.sh` (ordem de quem usa, 19/11); foto da barra e da dock nos
-   dois packs.
-3. Conferente dos blocos E e G (ressalva 1) e a resposta do item 3 da P251 (ressalva 3).
-4. Suíte inteira no `master` com a máquina livre.
-5. Portátil, quando voltar à rede: `git pull`, `./install.sh`, `meow doctor`.
-6. Gestos de quem usa: sair e entrar na sessão no desktop, no portátil e, depois do install, no nitro-5.
-7. Com o ok de quem usa: tirar as árvores `.meow-wt-*` das levas de 17/11 e de 18/11, já integradas.
+2. Install nos três PCs com o push 8 (liga o `meow-atualiza.timer`); conferir `systemctl --user list-timers`.
+3. Suíte inteira no `master` com a máquina livre.
+4. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
+   `scripts/garantir_builds.sh estado` para ver se o MeowSystem e os builds seguem de pé.
+5. Conferente dos blocos E, G e H (ressalva 1) e o item 3 da P251.
+6. Gestos de quem usa: sair e entrar na sessão nos três PCs.
