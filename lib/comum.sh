@@ -665,6 +665,7 @@ meow_destravados() {
 
 meow_conf_texto_definir() {
   local texto="$1" chave="$2" valor="$3" novo="" linha resto antes espacos comentario achou=0
+  local -a linhas=()
   while IFS= read -r linha; do
     if [ "${linha#"$chave"=}" != "$linha" ]; then
       achou=1
@@ -678,8 +679,9 @@ meow_conf_texto_definir() {
         linha="$chave=\"$valor\""
       fi
     fi
-    novo="$novo$linha"$'\n'
+    linhas+=("$linha")
   done <<< "$texto"
+  printf -v novo '%s\n' "${linhas[@]}"
   novo="${novo%$'\n'}"
   [ "$achou" = "1" ] || novo="$novo"$'\n'"$chave=\"$valor\""
   printf '%s' "$novo"
