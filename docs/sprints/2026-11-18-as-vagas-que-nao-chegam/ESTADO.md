@@ -96,7 +96,7 @@ dele volta, sem esperar a suíte inteira do fim. Antes de cada push, os testes d
   O conferente do bloco parou de responder às 23h59 com os pinos por fechar; o coordenador fechou. Testes dos applets
   (`~/.cache/arte-confere/final.rc`): 24, 12, 11 e 299 verdes.
 - Bloco G (P254) em voo desde 19/11: implementador (agente, high) em `../.meow-wt-layout`, `bloco/layout`.
-- Push 3: run `testes` 44462676122 (resultado a anotar).
+- Push 3: run `testes` 44462676122, vermelho só pela medida com o home escrito (ver o push 4).
 
 - Push 4, 19/11 madrugada: bloco B, `ae0ba2bb..686d43c3`. Na integração: 24 verdes na primeira rodada e 14 na
   segunda, depois de três vermelhos curados: `extensoes-install.sh` e `nomes-dos-applets.sh` não achavam nesta
@@ -104,7 +104,7 @@ dele volta, sem esperar a suíte inteira do fim. Antes de cada push, os testes d
   depois do install real acham sozinhos); `higiene.sh` acusava o home de pessoa na medida do portal (erro do
   coordenador, curado em `e7cae85b`; o run 44462676122 do push 3 deve sair vermelho por isso); `icones-por-pack.py`
   mostrou que a prévia da aba Sistema engrossava todo traço para 2,5 fixo, curado em `47cda2b6` (a prévia usa o
-  traço que o pack declara, como o install). Run `testes` do push 4: 44466429907 (resultado a anotar).
+  traço que o pack declara, como o install). Run `testes` do push 4, 44466429907: **129 verdes, 2 pulados, 0 vermelhos**. O do push 3 (44462676122) fechou com 2 vermelhos, `portabilidade.sh` e `higiene.sh`, só pelo home escrito na medida.
 
 ## Próximo passo
 1. Bloco B: no `master` (push 4). Falta a foto da barra e da dock nos dois packs, depois do install.
