@@ -16,6 +16,15 @@ que estão a esquerda pra manter igual os demais a direita»
   sem opção, também no `master` do upstream de hoje. Esquerda em todo app do COSMIC pede patch na biblioteca e build
   de cada app em cada PC.
 
+- Medida de 14h16 no espelho do zsh da Vitória: a esquerda é mantida em três lugares do zsh dela: o
+  `BTN_TARGET='close,maximize,minimize:'` do `scripts/ritual-aurora-self-heal.sh` (root, que também escreve o
+  `gtk-decoration-layout` e reinstala e rearma a unidade), o `TARGET` do `scripts/aurora-button-layout.service` (vigia
+  de 5 min) e o `aurora-cosmic-buttons-watch` (só vigia a issue pop-os/cosmic-epoch#640, não escreve). O comentário
+  da unidade registra a ordem «fechar · maximizar · minimizar» confirmada por ela em 02/07.
+- Porte mínimo pelo espelho, para o zsh dela não brigar com o MeowSystem: trocar os dois alvos por
+  `:minimize,maximize,close` (o espelho da ordem dela, com o fechar na quina direita), citando o sim de 19/11. Nada
+  do ritual é removido.
+
 ## A resposta de quem usa
 AskUserQuestion de 19/11 14h25: «Direita já, esquerda medida depois (Recomendado)».
 
