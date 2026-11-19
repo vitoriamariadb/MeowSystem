@@ -563,7 +563,7 @@ luz. A ficha de cada cena está no `CREDITOS.md`.
 
 ## O desligar e os três pontos com tema de gato — P253 (18/11/2026)
 
-Duas propostas para cada vaga, fora do `sistema.map`: o `system-shutdown.svg` e o `view-more-horizontal.svg` de hoje seguem no mapa até quem usa escolher.
+Duas propostas para cada vaga. Quem usa escolheu em 19/11/2026: o desligar é o `system-shutdown-orelhas.svg`, no `sistema.map`; os três pontos seguem no `view-more-horizontal.svg` de antes. O `system-shutdown.svg`, o `system-shutdown-gato.svg`, o `view-more-patas.svg` e o `view-more-novelos.svg` ficam no pack, fora do mapa.
 
 | arquivo | de onde | lido de | licença | copiado em | sha256 |
 |---|---|---|---|---|---|

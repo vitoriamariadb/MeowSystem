@@ -221,7 +221,7 @@ system-log-out-symbolic:system-log-out
 system-reboot-symbolic:system-reboot
 system-restart-symbolic:system-reboot:alias
 system-search-symbolic:system-search
-system-shutdown-symbolic:system-shutdown
+system-shutdown-symbolic:system-shutdown-orelhas
 system-suspend-symbolic:system-suspend
 system-users-symbolic:contacts
 tablet-symbolic:tablet
