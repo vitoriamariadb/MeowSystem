@@ -346,12 +346,25 @@ mandou o relatório como texto, não por mensagem. A ressalva «agentes sem rela
 - `atualizar` (função do zsh: `apt full-upgrade`, guarda do kernel, `topgrade`, `autoremove`) lançado às 17h45 com o
   askpass; registro em `~/.cache/meow-leva/atualizar-nitro5-2026-11-19.log`.
 
+## 19/11, 18h20: o `atualizar` no nitro-5 e o fecho da leva
+- `atualizar` terminou com rc 0: 107 pacotes, topgrade com tudo OK, guarda do kernel «pode reiniciar» (próximo boot
+  `7.2.15`). Os quatro pacotes que o MeowSystem recompila mudaram, e o compositor (`…abb6ebc`) e o Arquivos
+  (`…df4ae0f`) vieram em versões que nenhum dos três PCs tinha visto.
+- O gatilho de depois do apt refez os builds sozinho: às 18h10, compositor (9 remendos), menu, portal e dock `ok`
+  nas versões novas. A série de patches aguentou versão nova sem toque.
+- Doctor depois: quatro divergências, todas a cache do tema velha (`P263`); `meow doctor --consertar` acertou, e o
+  doctor seguinte deu 82 `ok` e 0 divergências.
+- Não é do MeowSystem: o gancho da Aurora no fim do apt imprimiu «sudo: uma senha é necessária» dez vezes e
+  «sudoers-aurora-gpu-revive inválido (visudo -cf falhou)». Dito a quem usa; nada foi mexido no zsh.
+- Fecho: `master` = `origin/master` com o CI verde valendo (run 44596274261), suíte inteira local com 172 verdes
+  (o `app-completo.py` na segunda rodada), três PCs instalados no push 9 (os pushes 10 a 12 só mudam teste, CI,
+  documento e a `PROCEDENCIA.md`), portal `ok` nos três, botões à direita nos PCs da Vitória.
+
 ## Próximo passo
-1. Ler o fim do `atualizar`; depois `meow doctor` e `scripts/garantir_builds.sh estado` até os quatro builds `ok`
-   nas versões novas (`garantir_builds.sh rodar` se o gatilho do apt não refizer).
-2. Apagar as árvores que restam (`atualiza`, `botoes`, `papeis-gatos`, `lateral`, `lado`, `ci4`, e no fim
-   `integracao-18`, `integracao-19` e `leva-18`), conferindo antes que nenhum agente está vivo nelas.
-3. Portátil: depois de quem usa sair e entrar na sessão, conferir um build só da dock e perguntar pelo mouse.
-4. Amanhã: conferir no desktop e no portátil se a atualização ao ligar puxou o `073eac83` sozinha.
-5. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), P262 (dock mista), os clones de
-   fonte dos testes, o `app-completo.py` instável na aba Tema e os oito achados dos relatórios.
+1. Quem usa: sair e entrar na sessão nos três PCs (o nitro-5 pode reiniciar: kernel novo conferido). No portátil,
+   conferir depois um build só da dock e dizer o que o mouse faz de errado (`P262`).
+2. 20/11: conferir no desktop e no portátil se a atualização ao ligar puxou o `master` sozinha
+   (`~/.local/state/meowsystem/atualiza.log`).
+3. Próxima leva, uma tarefa por arquivo já escrita: `P257` (commit assinado), `P262` (dock mista), `P263` (cache do
+   tema). A escrever: `P261` (esquerda em todo app do COSMIC), os clones de fonte dos testes, o `app-completo.py`
+   instável na aba Tema, o vigia de 5 min do zsh dela que não repõe o lado, e os oito achados dos relatórios.
