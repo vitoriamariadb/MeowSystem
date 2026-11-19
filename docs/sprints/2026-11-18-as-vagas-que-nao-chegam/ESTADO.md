@@ -309,13 +309,28 @@ mandou o relatório como texto, não por mensagem. A ressalva «agentes sem rela
   inteira recomeçou no `7e39b78c` (`scratchpad/suite-inteira-7e39b78c.log`).
 - Portátil: dock com um build em cada tela e o mouse «com pau» (`P262`). Na hora, o que cura é sair e entrar na sessão.
 
+## 19/11, 16h10: o run do push 9 e os dois erros do coordenador no CI
+- Run 44584677965 (push 9, `fbde5363`): 133 portáteis, 131 verdes, 0 pulados, 2 vermelhos (`pack.sh`, o sha da lupa,
+  já curado no push 11; `tres-pastas.sh`, novo) e, mesmo assim, conclusão «success».
+- Erro 1 do coordenador (`79177ed3`): o passo virou `todos.sh | tee`, e o `run:` do GitHub roda `bash -e` sem
+  `pipefail`: o `tee` engolia o vermelho. Um run vermelho saía verde, e a atualização ao ligar confia nessa
+  conclusão. Cura `5ae2fb80`: `shell: bash`, `set -eo pipefail` e o pulado conferido com `if`. Provado à mão: um
+  comando que sai 1 antes do `tee` derruba o passo.
+- Erro 2 (`79177ed3`): com o Papirus no runner, o `construir_convertidos.sh --conferir` passa a converter de verdade,
+  e a versão das ferramentas de lá dá «desatualizados»; o `tres-pastas.sh` exigia «em dia». O que ele prova é que
+  não há resto a remover: passa a aceitar «0 a remover». Mesma cura `5ae2fb80`.
+- Push 12: `master` = `origin/master` = `073eac83` (integrado na árvore `.meow-wt-integracao-19`, porque a suíte
+  inteira roda na `integracao-18`). Os runs dos pushes 9, 10 e 11 dizem «success» sem valer; o do push 12 é o
+  primeiro em que a conclusão vale.
+- Suíte inteira em curso no `7e39b78c` (difere do `073eac83` só no fluxo do CI e no `tres-pastas.sh`).
+
 ## Próximo passo
-1. Ler a suíte inteira do `7e39b78c` e o run do push 11 (os dos pushes 9 e 10 devem vir vermelhos só no `pack.sh`).
+1. Ler a suíte inteira do `7e39b78c` e o run do push 12 (`073eac83`), o primeiro cuja conclusão vale.
 2. Portátil: depois de sair e entrar na sessão, conferir um build só da dock e perguntar pelo mouse.
 3. Conferir depois das 16h40 o lado dos botões no desktop e no portátil.
 4. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
    `scripts/garantir_builds.sh estado`.
 5. Apagar as árvores que restam (`atualiza`, `botoes`, `papeis-gatos`, `lateral`, `lado`, `ci4`, e no fim
-   `integracao-18` e `leva-18`), agora conferindo antes que nenhum agente está vivo nelas.
+   `integracao-18`, `integracao-19` e `leva-18`), agora conferindo antes que nenhum agente está vivo nelas.
 6. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), P262 (dock mista), os clones de
    fonte dos testes e os oito achados dos relatórios.
