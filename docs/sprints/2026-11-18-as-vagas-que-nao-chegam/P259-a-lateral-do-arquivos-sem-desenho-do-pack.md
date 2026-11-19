@@ -3,6 +3,8 @@
 ## Texto de quem usa
 Com a foto da lateral do COSMIC Files: «ESSES SVGS NÃO ALTERAMOS TAMBEM. TEMOS QUE FAZÊ-LO INCLUSIVE.»
 
+Acréscimo de 19/11 14h05: «O minimizar não tá com o orelhas e nem temos a lupa do pesquisar alterada»
+
 ## O que se mediu (nitro-5, 19/11 13h45)
 - Na foto, a lateral mistura glifo cheio (recentes, documentos, downloads, música, imagens, vídeos, disco, lixeira,
   ejetar) com glifo de contorno (pasta pessoal, pastas): metade é do tema de base.
@@ -11,6 +13,11 @@ Com a foto da lateral do COSMIC Files: «ESSES SVGS NÃO ALTERAMOS TAMBEM. TEMOS
   `drive-harddisk-symbolic`, `user-trash-symbolic`. Há para `user-home-symbolic`, `folder-symbolic`,
   `network-workgroup-symbolic`, `media-eject-symbolic`.
 - Não se mediu ainda o nome exato que o `cosmic-files` pede em cada linha da lateral.
+
+- Minimizar (14h05): nos PCs da Vitória o arquivo instalado é o `window-minimize-orelhas.svg` (md5 igual ao do pack).
+  Em 16 px ele vira um traço com dois calombos de 1 px: o desenho não se lê como orelhas. O maximizar se lê.
+- Lupa (14h05): o `meowsystem` liga `system-search-symbolic` a uma lupa comum de traço fino; não há linha para
+  `edit-find-symbolic`.
 
 ## A causa (a provar)
 As vagas da lateral nunca entraram no levantamento de nomes (P243 e P253 partiram dos applets e do painel).

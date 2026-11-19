@@ -4,6 +4,8 @@
 «Os svgs dos wallpaper a tão ou quebrados ou sai do com as layera erradas no produto final nos dois temas. Os gatos
 deveriam ser mais parecidos com a coquinha e o mimir»
 
+Acréscimo de 19/11 14h05: «Parte dos svgs o castelo tá voando. Camadas de efeito fora da tela de corte»
+
 ## O que se mediu (nitro-5, 19/11 13h40)
 - O install rasteriza cada SVG com `rsvg-convert -w 3840 -h 2160` (`scripts/wallpaper.sh`, `_semear_papeis_do_pack`).
   O PNG instalado do `castelo-noite` é idêntico ao render de agora (RMSE 0): a rasterização não estraga o arquivo; o
