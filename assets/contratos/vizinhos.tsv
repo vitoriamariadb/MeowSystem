@@ -118,9 +118,11 @@ item	aurora-alfinetes-passo	bloco	$ZD/install.sh	        _step_workspaces_alfine
 item	aurora-qbittorrent-wings	bloco	$ZD/scripts/aurora-qbittorrent-config.sh	WINGS="$CFG/com.system76.CosmicPanel.Panel/v1/plugins_wings"	^fi$	scripts/extensoes_gesto.sh:cmd_por	a lista de applets da barra é de quem usa; o applet entra pela Central do MeowSystem
 item	aurora-qbittorrent-tema	bloco	$ZD/scripts/aurora-qbittorrent-config.sh	  "Preferences/General/UseCustomUITheme=$USAR_TEMA"	CustomUIThemePath=	scripts/temas-de-apps/qbittorrent/manifesto.sh:_MEOW_QBT_ANTES	o tema do qBittorrent é o do pack, que o MeowSystem aplica sozinho e guarda o de antes; o resto da config fica com a Aurora
 
-# O que ainda fazia em dobro em 18/11 (P249). O conserto dos apps libadwaita do Flatpak sai inteiro: o script
-# todo é o que o MeowSystem já faz. Os atalhos de jogo da Steam do zsh dela (lançam pelo steam-resiliente.sh,
-# que cura o cliente zumbi) e o vigia do painel fantasma do Spellbook (desiste depois de duas reciclagens por
-# boot e avisa uma vez) fazem o que o MeowSystem não faz: ficam, e a decisão está na fila. O lançador do
-# Chrome do self-heal, o vigia do greeter e o Alt+F2 do painel não são duplicata: ficam com a Aurora.
+# O que ainda fazia em dobro em 18/11 (P249, P252). O conserto dos apps libadwaita do Flatpak e o vigia do
+# painel fantasma do Spellbook saem inteiros: o script todo é o que o MeowSystem já faz (o laço do painel
+# desiste depois de duas reciclagens seguidas e avisa uma vez, desde a P252). Os atalhos de jogo da Steam do
+# zsh dela (lançam pelo steam-resiliente.sh, que cura o cliente zumbi) fazem o que o MeowSystem não faz: ficam,
+# e a decisão está na fila. O lançador do Chrome do self-heal, o vigia do greeter e o Alt+F2 do painel não são
+# duplicata: ficam com a Aurora.
 item	flatpaks-libadwaita	saida	$HOME/.local/bin/corrigir-flatpaks-libadwaita	-	-	scripts/flatpak_tema.sh:cmd_runtime	o override dos apps libadwaita e o runtime GNOME validado são do MeowSystem (flatpak_tema.sh e o meow-flatpak.path, conferidos pelo meow doctor)
+item	spellbook-painel-fantasma	saida	$ZD/aurora/aurora-painel-fantasma.sh	-	-	lib/painel.sh:meow_painel_gastar_reciclagem_do_boot	o painel fantasma é reciclado pelo meow-painel.service até duas vezes seguidas, e o aviso sai uma vez (lib/painel.sh)

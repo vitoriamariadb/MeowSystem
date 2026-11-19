@@ -1002,7 +1002,7 @@ meow_tela_reler_no_fim() {
 meow_notificar() {
   meow_seco && return 0
   meow_tem notify-send || return 0
-  notify-send -a MeowSystem -i preferences-desktop-theme "$1" "${2:-}" 2>/dev/null || true
+  notify-send -a MeowSystem -i preferences-desktop-theme ${3:+-u "$3"} "$1" "${2:-}" 2>/dev/null || true
 }
 
 MEOW_PONTE="${MEOW_PONTE:-/usr/local/lib/meowsystem/ponte_root.sh}"
