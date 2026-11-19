@@ -25,6 +25,8 @@ confere "o marcador de cada entrada está dentro do patch dela" \
   'while read -r a f m; do [ "$m" = - ] || grep -qF "+static MEOW_" <(grep -F "\"$m\"" "$RAIZ/patches/$f") || exit 1; done < "$SERIE"'
 confere "o marcador do portal é MEOW-PORTAL-PATCH-<n>" 'grep -qE "^portal .* MEOW-PORTAL-PATCH-[0-9]+$" "$SERIE"'
 confere "a versão própria declara o portal 1.11.0 (f448ddf)" 'grep -qxF "$VER1" "$RAIZ/patches/graficos.versao"'
+confere "o toolkit sai da série no 6e68360, que traz a correção oficial do #384, e o patch do portal fica" \
+  'V="$RAIZ/patches/graficos.versao"; grep -qx "fim 1.11.0~1794346005~24.04~6e68360 cosmic-protocols-frame-destruido-antes.patch" "$V" && grep -qx "fim 1.11.0~1794346005~24.04~6e68360 xdg-desktop-portal-cosmic-toolkit-local.patch" "$V" && ! grep -q "^fim .* xdg-desktop-portal-cosmic-modificador-unico.patch" "$V" && ! awk "\$1 == \"fim\" && NF == 2 {e = 1} END {exit !e}" "$V"' "$(cat "$RAIZ/patches/graficos.versao")"
 confere "nenhum patch acrescenta comentário" '! grep -E "^\+[[:space:]]*//" "$RAIZ"/patches/xdg-desktop-portal-cosmic-*.patch "$RAIZ"/patches/cosmic-protocols-*.patch'
 confere "o [patch] do Cargo.toml usa caminho relativo ao fonte, nunca /home" \
   'grep -q "path = \"meow-toolkit\"" "$RAIZ/patches/xdg-desktop-portal-cosmic-toolkit-local.patch" && ! grep -q "/home/" "$RAIZ"/patches/xdg-desktop-portal-cosmic-*.patch "$RAIZ"/patches/cosmic-protocols-*.patch'
@@ -102,6 +104,7 @@ cat > "$FALSO/apt-get" <<FIM
 echo "apt-get \$*" >> "$T/apt-get.log"
 [ -f "$T/sem-fonte" ] && { echo "E: Falha ao buscar http://x/y.tar.xz 404 Not Found"; exit 1; }
 [ -f "$T/sem-deb-src" ] && { echo "E: You must put some 'deb-src' URIs in your sources.list"; exit 1; }
+[ -s "$T/versao-saiu" ] && { cat "$T/versao-saiu"; exit 100; }
 [ -f "$T/versao-saiu" ] && { echo "E: Can not find version '\${3#*=}' of package 'xdg-desktop-portal-cosmic'"; echo "E: Unable to find a source package for xdg-desktop-portal-cosmic"; exit 100; }
 pacote="\${3%%=*}"; versao="\${3#*=}"
 [ "\$1" = source ] || exit 1
@@ -396,6 +399,10 @@ rm -rf "$CASA/.cache/meowsystem/graficos/baixado" "$ESTADO/graficos/falhas.tsv";
 graf compilar; rc=$?
 confere "diz que o repositório já não serve a versão, sem culpar a rede" '[ "$rc" = 2 ] && grep -q "já não serve o fonte do portal" "$T/saida" && ! grep -q "sem rede" "$T/saida"' "$(cat "$T/saida")"
 confere "e a espera cresce, como no 404" '[ "$(cut -f3 "$ESTADO/graficos/falhas.tsv")" = baixar ]' "$(cat "$ESTADO/graficos/falhas.tsv" 2>&1)"
+rm -rf "$CASA/.cache/meowsystem/graficos/baixado" "$ESTADO/graficos/falhas.tsv"
+printf "E: Não é possível encontrar a versão '%s' do pacote 'xdg-desktop-portal-cosmic'\nE: Impossível encontrar um pacote fonte para xdg-desktop-portal-cosmic\n" "$VER1" > "$T/versao-saiu"
+graf compilar; rc=$?
+confere "em português, o apt da casa dela, também não culpa a rede" '[ "$rc" = 2 ] && grep -q "já não serve o fonte do portal" "$T/saida" && ! grep -q "sem rede" "$T/saida"' "$(cat "$T/saida")"
 rm -f "$T/versao-saiu" "$ESTADO/graficos/falhas.tsv"
 
 printf '\n13c. o rebuild local (+0~nome1) baixa o fonte da versão de base\n'
@@ -484,6 +491,30 @@ graf aplicar; rc=$?
 confere "a segunda passada sai 0" '[ "$rc" = 0 ]' "$(cat "$T/saida")"
 ext "$RAIZ/scripts/extensoes_build.sh" graficos --estado
 confere "no cartão a correção oficial conta como ativa" 'grep -qx instalada=sim "$T/saida" && grep -qx ativa=sim "$T/saida"' "$(cat "$T/saida")"
+printf '%s\n' "$VER1" > "$T/patches/graficos.versao"
+graf aplicar
+
+printf '\n16b. o fim de um patch tira só ele da série, da versão que traz a correção oficial em diante\n'
+VER3="1.11.0~1795035856~24.04~7b0864c"
+mkdir -p "$T/fix/c/src"; cp "$T/fix/a/src/a.rs" "$T/fix/c/src/a.rs"
+printf '[package]\nname = "xdg-desktop-portal-cosmic"\n' > "$T/fix/c/Cargo.toml"
+versoes "xdg-desktop-portal-cosmic=$VER3" "google-chrome-stable=146.0"
+printf '%s\n%s\n' "$VER1" "$VER3" > "$T/patches/graficos.versao"
+rm -f "$ESTADO/graficos/falhas.tsv"
+graf compilar FONTE_FIXA=c; rc=$?
+confere "sem o fim do patch, a versão em que o encaixe do toolkit não entra é recusa" '[ "$rc" = 2 ] && grep -qx estado=nao-encaixa <(graf estado; cat "$T/saida")' "$(cat "$T/saida")"
+printf '%s\n%s\nfim %s p-wiring.patch\nfim %s p-toolkit.patch\n' "$VER1" "$VER3" "$VER3" "$VER3" > "$T/patches/graficos.versao"
+graf estado
+confere "o fim de um patch não é o fim do build: a recusa gravada deixa de valer e a versão fica pendente" 'grep -qx estado=pendente "$T/saida"' "$(cat "$T/saida")"
+n_cargo="$(wc -l < "$T/cargo.log")"
+graf compilar FONTE_FIXA=c; rc=$?
+confere "compila a versão nova só com o patch do portal" '[ "$rc" = 0 ] && [ "$(wc -l < "$T/cargo.log")" = "$((n_cargo + 1))" ] && [ -x "$LIBEXEC/$VER3/xdg-desktop-portal-cosmic" ] && ! grep -q "p-wiring\|p-toolkit" "$T/saida"' "$(cat "$T/saida")"
+confere "o build e o shim pedem só o marcador do portal" '[ "$(cat "$LIBEXEC/$VER3/marcadores")" = MEOW-PORTAL-PATCH-1 ] && ! grep -a -q MEOW-TOOLKIT "$LIBEXEC/$VER3/xdg-desktop-portal-cosmic"' "$(cat "$LIBEXEC/$VER3/marcadores" 2>&1)"
+graf estado
+confere "e o estado é ok" 'grep -qx estado=ok "$T/saida" && grep -qx build=sim "$T/saida"' "$(cat "$T/saida")"
+versoes "xdg-desktop-portal-cosmic=$VER1" "google-chrome-stable=146.0"
+graf compilar; rc=$?
+confere "a versão de antes do fim segue com a série inteira, os dois marcadores" '[ "$rc" = 0 ] && grep -qx MEOW-TOOLKIT-PATCH-1 "$LIBEXEC/$VER1/marcadores" && grep -qx MEOW-PORTAL-PATCH-1 "$LIBEXEC/$VER1/marcadores"' "$(cat "$T/saida")"
 printf '%s\n' "$VER1" > "$T/patches/graficos.versao"
 graf aplicar
 

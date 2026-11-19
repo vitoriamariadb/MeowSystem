@@ -60,7 +60,13 @@ _gr_versao() { _gr_instalado "$GR_PACOTE"; }
 
 _gr_chrome_instalado() { [ -n "$(_gr_instalado "$GR_CHROME")" ]; }
 
-_gr_fim() { awk '$1 == "fim" && $2 != "" {print $2; exit}' "$GR_VERSOES" 2>/dev/null; }
+_gr_fim() { awk '$1 == "fim" && $2 != "" && NF == 2 {print $2; exit}' "$GR_VERSOES" 2>/dev/null; }
+
+_gr_patch_oficial() {
+  local fim
+  fim="$(awk -v a="$1" '$1 == "fim" && $2 != "" && $3 == a {print $2; exit}' "$GR_VERSOES" 2>/dev/null)"
+  [ -n "$fim" ] && [ -n "$2" ] && dpkg --compare-versions "$2" ge "$fim" 2>/dev/null
+}
 
 _gr_oficial() {
   local fim
@@ -71,11 +77,13 @@ _gr_oficial() {
 _gr_validada() { grep -qxF -- "$(_gr_versao_do_fonte "$1")" "$GR_VERSOES" 2>/dev/null; }
 
 _gr_entradas() {
-  local alvo arquivo marca
+  local alvo arquivo marca ver
   [ -f "$GR_SERIE" ] || return 1
+  ver="$(_gr_versao)"
   while read -r alvo arquivo marca _; do
     case "$alvo" in portal|toolkit) ;; *) continue ;; esac
     [ -n "$arquivo" ] && [ -n "$marca" ] || continue
+    _gr_patch_oficial "$arquivo" "$ver" && continue
     printf '%s\t%s\t%s\n' "$alvo" "$arquivo" "$marca"
   done < "$GR_SERIE"
 }

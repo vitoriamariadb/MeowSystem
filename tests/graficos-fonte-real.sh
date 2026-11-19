@@ -49,5 +49,28 @@ confere "o Failed também destrói antes de avisar" 'antes "Event::Failed" "scre
 confere "o marcador do toolkit está no fonte" 'grep -q "MEOW-TOOLKIT-PATCH-1" "$T/toolkit/client-toolkit/src/screencopy/dispatch.rs"'
 confere "o Cargo.toml do portal aponta para meow-toolkit, relativo" 'grep -q "path = \"meow-toolkit/client-toolkit\"" "$T/portal/Cargo.toml" && ! grep -q "/home/" "$T/portal/Cargo.toml"'
 
+printf '\n3. com a correção oficial do toolkit (#408), só o patch do portal entra\n'
+for rev in 6e68360 7b0864c; do
+  if ! git -C "$PORTAL_GIT" cat-file -e "$rev^{commit}" 2>/dev/null; then
+    printf 'pulado: sem o portal %s nesta máquina\n' "$rev"; continue
+  fi
+  mkdir -p "$T/p-$rev" "$T/t-$rev"
+  git -C "$PORTAL_GIT" archive "$rev" Cargo.toml Cargo.lock src/screencast_thread.rs | tar x -C "$T/p-$rev"
+  tk="$(awk '/^name = "cosmic-client-toolkit"$/ {r = 1} r && /^source = / {sub(/.*#/, ""); sub(/"$/, ""); print; exit}' "$T/p-$rev/Cargo.lock")"
+  if ! git -C "$TOOLKIT_GIT" cat-file -e "$tk^{commit}" 2>/dev/null; then
+    printf 'pulado: sem o cosmic-protocols %s que o portal %s fixa\n' "${tk:-?}" "$rev"; continue
+  fi
+  git -C "$TOOLKIT_GIT" archive "$tk" client-toolkit/src/screencopy/dispatch.rs | tar x -C "$T/t-$rev"
+  D="$T/t-$rev/client-toolkit/src/screencopy/dispatch.rs"
+  confere "o portal $rev aceita o patch da P159 sem folga" \
+    '(cd "$T/p-$rev" && patch -p1 -F0 --forward --dry-run < "$P/xdg-desktop-portal-cosmic-modificador-unico.patch") >/dev/null'
+  confere "o cosmic-protocols ${tk:0:7} do $rev já destrói o frame antes do Ready e do Failed" \
+    'antes "Event::Ready" "screencopy_frame.destroy" "app_data.ready" "$D" && antes "Event::Failed" "screencopy_frame.destroy" "app_data.failed" "$D"'
+  confere "o patch da P160 e o encaixe dele não entram no $rev" \
+    '! (cd "$T/t-$rev" && patch -p1 -F0 --forward --dry-run < "$P/cosmic-protocols-frame-destruido-antes.patch") >/dev/null && ! (cd "$T/p-$rev" && patch -p1 -F0 --forward --dry-run < "$P/xdg-desktop-portal-cosmic-toolkit-local.patch") >/dev/null'
+  confere "o graficos.versao valida o $rev e o tira dos dois patches do toolkit pelo fim" \
+    'v="$(grep -x "[^ ]*~$rev" "$P/graficos.versao")" && for f in cosmic-protocols-frame-destruido-antes.patch xdg-desktop-portal-cosmic-toolkit-local.patch; do fim="$(awk -v f="$f" "\$1 == \"fim\" && \$3 == f {print \$2}" "$P/graficos.versao")"; [ -n "$fim" ] && dpkg --compare-versions "$v" ge "$fim" || exit 1; done'
+done
+
 [ "$falhas" = 0 ] && printf '\nok: a série entra com -F0 no portal 1.11.0 (f448ddf) e no cosmic-protocols c0cff4d\n'
 exit $((falhas > 0))
