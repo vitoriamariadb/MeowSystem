@@ -46,6 +46,7 @@ cp "$RAIZ/scripts/atualiza.sh" "$ORIGEM/scripts/"
 cp "$RAIZ/bin/meow" "$ORIGEM/meow"
 cat > "$ORIGEM/install.sh" <<FIM
 #!/bin/sh
+flock -n "$E/lock" true || { echo "install recusado pela trava" >> "$T/install.log"; exit 2; }
 echo "install \$(git rev-parse --short HEAD) askpass=\${SUDO_ASKPASS:-} tty=\$([ -t 0 ] && echo sim || echo nao)" >> "$T/install.log"
 exit "\$(cat "$T/install.rc" 2>/dev/null || echo 0)"
 FIM
@@ -201,6 +202,18 @@ atualizar
 igual "a volta seguinte instala de novo" "$(linhas "$T/install.log")" "$((i0 + 2))"
 atualizar
 igual "e, instalado, a outra não instala mais" "$(linhas "$T/install.log")" "$((i0 + 2))"
+
+printf '\n   quem pega a trava logo depois do pull não derruba o install\n'
+cp "$CLONE/.git/hooks/post-merge" "$T/gancho-de-antes"
+printf '#!/bin/bash\n( for n in {10..30}; do eval "exec $n>&-"; done; exec 9>>"%s/lock"; flock 9; sleep 3 ) > /dev/null 2>&1 &\n' "$E" > "$CLONE/.git/hooks/post-merge"
+cv="$(commit_novo vez)"; echo verde > "$T/ci/$cv"
+i0="$(linhas "$T/install.log")"
+atualizar
+cp "$T/gancho-de-antes" "$CLONE/.git/hooks/post-merge"
+igual "o clone avança" "$(head_do_clone)" "$cv"
+igual "o install roda uma vez" "$(linhas "$T/install.log")" "$((i0 + 1))"
+tail -1 "$T/install.log" | grep -q '^install ' && ok "depois de esperar a vez, sem ser recusado pela trava" || falha "o install foi recusado: $(tail -1 "$T/install.log")"
+tail -1 "$T/notas.log" | grep -q 'a instalação falhou' && falha "avisou falha de instalação" || ok "e sem aviso de falha"
 
 printf '\n   o verbo do meow chama o mesmo script\n'
 c6="$(commit_novo seis)"; echo verde > "$T/ci/$c6"

@@ -8,6 +8,7 @@ MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 AT_TRONCO=master
 AT_FLUXO=testes
 AT_PROCURA=10
+AT_ESPERA_DA_VEZ="${AT_ESPERA_DA_VEZ:-300}"
 AT_API="${AT_API:-https://api.github.com/repos}"
 AT_SUDO_CONF="${AT_SUDO_CONF:-/etc/sudo.conf}"
 AT_LOG="$MEOW_ESTADO/atualiza.log"
@@ -90,6 +91,8 @@ _at_instalar() {
   [ -n "${SUDO_ASKPASS:-}" ] || meow_ponte_viva \
     || _at_registrar "sem askpass e sem a ponte root: o que precisa de root fica de fora, e o resto vai"
   _at_registrar "install.sh no $curto"
+  flock -w "$AT_ESPERA_DA_VEZ" "$MEOW_ESTADO/lock" true 2>/dev/null \
+    || _at_registrar "outro meow segurou a vez por mais de $AT_ESPERA_DA_VEZ s; o install tenta assim mesmo"
   (cd "$MEOW_RAIZ" && ./install.sh) < /dev/null >> "$AT_LOG" 2>&1; rc=$?
   if [ "$rc" -ge 2 ]; then
     _at_lembrar instalar "$alvo"
