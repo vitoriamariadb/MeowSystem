@@ -92,9 +92,9 @@ fi
 
 printf '\n--- 6. o bloco órfão da aposentada sai (P82, item 33) ---\n'
 cp "$RAIZ/meow.conf.exemplo" "$TMP/conf6"
-bloco="$(git -C "$RAIZ" show 18c1d88^:meow.conf.exemplo 2>/dev/null | sed -n '478,498p')"
+bloco="$(git -C "$RAIZ" show a43d7538^:meow.conf.exemplo 2>/dev/null | sed -n '478,498p')"
 if [ "$(head -1 <<< "$bloco")" != "# @ Tema de onde herdar" ]; then
-  falha "não achei o bloco antigo no histórico (18c1d88^:meow.conf.exemplo)"
+  falha "não achei o bloco antigo no histórico (a43d7538^:meow.conf.exemplo)"
 else
   {
     printf '\n'; head -13 <<< "$bloco"
