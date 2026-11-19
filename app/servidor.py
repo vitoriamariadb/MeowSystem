@@ -5217,6 +5217,7 @@ NOME_DA_CONFERENCIA = {
     "efeito": "Ícones e fontes em uso",
     "logo": "Mascote",
     "indice": "Lista dos ícones do tema",
+    "atualiza": "Atualização ao ligar",
 }
 
 BUILD_DA_PENDENCIA = {}
