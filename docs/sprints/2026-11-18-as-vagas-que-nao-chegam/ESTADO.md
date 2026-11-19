@@ -10,7 +10,7 @@ pack `meowsystem`.
 | bloco | tarefas | situação |
 | --- | --- | --- |
 | A vagas | P242, P246, P241 | conferido e **integrado** em `2594c5f8` (`bloco/vagas` até `d4f2eca6`). Suíte inteira do conferente: 166 verdes, 1 pulado, 3 vermelhos; dois corrigidos no bloco (`104daa84` galeria com a semente da decisão 63; `d4f2eca6` a licença do papel vira dica); o `app-layout.py` segue vermelho com a máquina carregada e virou a P254 |
-| B applets e arte | P243, P247, P253 | arte aprovada por quem usa («tudo aprovado», 18/11) em `bloco/arte-vagas` (`../.meow-wt-arte-vagas`, até `97bd769e`); o punhal e as luas do Dracula no mapa; quatro propostas do MeowSystem para o desligar e os três pontos no quadro <https://claude.ai/artifact/XecxYq2wNqphzvJ7dBdRzj#meowsystem> (sem escolha, fica o de hoje). Em voo desde 21h50: o implementador dos applets (agente, high), em `../meowsystem-performance-p243` e `../meowsystem-leitura-p243`, commit sem push. Faltam: o conferente do bloco, a publicação pelo desktop da Vitória, os pinos e a foto no palco |
+| B applets e arte (no `master`, push 4) | P243, P247, P253 | arte aprovada por quem usa («tudo aprovado», 18/11) em `bloco/arte-vagas` (`../.meow-wt-arte-vagas`, até `97bd769e`); o punhal e as luas do Dracula no mapa; quatro propostas do MeowSystem para o desligar e os três pontos no quadro <https://claude.ai/artifact/XecxYq2wNqphzvJ7dBdRzj#meowsystem> (sem escolha, fica o de hoje). Em voo desde 21h50: o implementador dos applets (agente, high), em `../meowsystem-performance-p243` e `../meowsystem-leitura-p243`, commit sem push. Faltam: o conferente do bloco, a publicação pelo desktop da Vitória, os pinos e a foto no palco |
 | C CI | P244 | implementado em `9b4f4f42` (`../.meow-wt-ci3`, `bloco/ci3`): os 6 vermelhos verdes num `ubuntu:26.04` limpo, suíte portátil 128 verdes, 2 pulados, 0 vermelhos em 56m15s, limite do workflow em 80 min; conferido pelo coordenador (8 afetados verdes na máquina de casa, mais `e803ca21`: o doctor procura o Papirus na mesma raiz que o install) e **integrado** em `be2cedfe` |
 | D doctor e documentos | P245, P248, P249, P250 | conferido (18 afetados e da área verdes; o conferente tirou duas linhas da P249 em `6f68ebe0`) e **integrado** em `6626b957`; decisão 45 com a exceção do pull, sim de 18/11 (`f146793f`) |
 | E portal | P251 | escrita; achado do install de 18/11; sem agente ainda |
@@ -98,8 +98,16 @@ dele volta, sem esperar a suíte inteira do fim. Antes de cada push, os testes d
 - Bloco G (P254) em voo desde 19/11: implementador (agente, high) em `../.meow-wt-layout`, `bloco/layout`.
 - Push 3: run `testes` 44462676122 (resultado a anotar).
 
+- Push 4, 19/11 madrugada: bloco B, `ae0ba2bb..686d43c3`. Na integração: 24 verdes na primeira rodada e 14 na
+  segunda, depois de três vermelhos curados: `extensoes-install.sh` e `nomes-dos-applets.sh` não achavam nesta
+  máquina os commits publicados (rodados com `EXTENSOES_FORKS=~/Desenvolvimento` e uma pasta de fontes temporária;
+  depois do install real acham sozinhos); `higiene.sh` acusava o home de pessoa na medida do portal (erro do
+  coordenador, curado em `e7cae85b`; o run 44462676122 do push 3 deve sair vermelho por isso); `icones-por-pack.py`
+  mostrou que a prévia da aba Sistema engrossava todo traço para 2,5 fixo, curado em `47cda2b6` (a prévia usa o
+  traço que o pack declara, como o install). Run `testes` do push 4: 44466429907 (resultado a anotar).
+
 ## Próximo passo
-1. Bloco B: rodada de afetados na integração (`scratchpad/integra-b.log`); verde, `master` e push 4.
+1. Bloco B: no `master` (push 4). Falta a foto da barra e da dock nos dois packs, depois do install.
 2. Blocos E e G: quando cada implementador voltar, conferente, integração, cruzamento, `master`, push.
 3. Linha do `docs/DECISOES.md` para a P252 e a P246: só com o sim de quem usa (a regra da cota foi escolha do
    coordenador).
