@@ -298,14 +298,24 @@ mandou o relatório como texto, não por mensagem. A ressalva «agentes sem rela
   7. O teste do Eyedropper não pega se o botão voltar a pedir `color-select`.
   8. `app-completo.py --aba criar/sons` sozinho fica vermelho em «mexer em sino:evento muda a tela».
 
+## 19/11, 15h45: o portal nos PCs da Vitória, o push 11 e o portátil com a dock mista
+- Ordem de quem usa («faça»): desktop, o portal do Hefesto (`…f448ddf+0~hefesto1`, o backport do
+  `hefesto-dualsense4unix` com a mesma correção que o `7b0864c` já traz de fábrica) trocado pelo do Pop!_OS com
+  `apt-get install --only-upgrade`; `graficos_estado=ok` no `7b0864c`. Portátil: o pacote já era o `7b0864c`;
+  `graficos_estado=ok`, e compositor, menu e dock `ok`. Fecha a P251 nos três PCs; o item 3 (queda sem registro) fica
+  sem resposta, e o build posto de lado já não existe.
+- Erro do coordenador: a lupa do Dracula foi trocada sem o sha256 na `PROCEDENCIA.md`; o `pack.sh` ficou vermelho na
+  suíte inteira do `ff3c93e1` (e ficará nos runs dos pushes 9 e 10). Cura `b02e32b6`, push 11 (`7e39b78c`); a suíte
+  inteira recomeçou no `7e39b78c` (`scratchpad/suite-inteira-7e39b78c.log`).
+- Portátil: dock com um build em cada tela e o mouse «com pau» (`P262`). Na hora, o que cura é sair e entrar na sessão.
+
 ## Próximo passo
-1. Integrar `05854074` e enviar o push 10 (com o `ESTADO.md`); ler o run 44584677965 do push 9.
-2. Conferir depois das 16h40 o lado dos botões no desktop e no portátil (ritual root trocado sozinho).
-3. Suíte inteira no `master` final.
+1. Ler a suíte inteira do `7e39b78c` e o run do push 11 (os dos pushes 9 e 10 devem vir vermelhos só no `pack.sh`).
+2. Portátil: depois de sair e entrar na sessão, conferir um build só da dock e perguntar pelo mouse.
+3. Conferir depois das 16h40 o lado dos botões no desktop e no portátil.
 4. Só no fim: `atualizar` no terminal do nitro-5 com o askpass; depois `meow doctor` e
    `scripts/garantir_builds.sh estado`.
 5. Apagar as árvores que restam (`atualiza`, `botoes`, `papeis-gatos`, `lateral`, `lado`, `ci4`, e no fim
-   `integracao-18` e `leva-18`).
-6. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), os clones de fonte dos testes,
-   conferente dos blocos E, G e H, item 3 da P251.
-7. Gestos de quem usa: sair e entrar na sessão nos três PCs.
+   `integracao-18` e `leva-18`), agora conferindo antes que nenhum agente está vivo nelas.
+6. Próxima leva: P257 (commit assinado), P261 (esquerda em todo app do COSMIC), P262 (dock mista), os clones de
+   fonte dos testes e os oito achados dos relatórios.
