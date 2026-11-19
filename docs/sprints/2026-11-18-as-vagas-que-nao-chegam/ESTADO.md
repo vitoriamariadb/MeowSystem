@@ -66,6 +66,15 @@ contagem de simbólicos depois dela continuou 0 nos dois.
   `mimeinfo.cache` fora do doctor e do install; a captura de Modificações depende dos apps da máquina; a árvore de
   arquivos do `app/LEIA-ME.md` não lista `modificacoes.js`; o `_refs` do `vizinhos.sh` não exclui `install_if_diff`.
 
+## Ordem de quem usa, 18/11 23h10
+«mergeia e pusha assim que cada workflow concluir»: cada bloco vai ao `master` e ao GitHub assim que o conferente
+dele volta, sem esperar a suíte inteira do fim. Antes de cada push, os testes de cruzamento rodam na integração.
+
+- Push 1, 18/11 23h34: blocos A, C e D e os documentos, `9ed03775..35e3dc98`. Cruzamento na integração: 12 verdes
+  (`decisoes`, `higiene`, `acento`, `git-limpo`, `numeros`, `readme`, `ganchos`, `vizinhos`, `pacotes-numa-lista`,
+  `icones-do-sistema`, `pack-pessoal-veste-o-pai`, `nada-manda-digitar`). Run `testes` do GitHub: 44445246406
+  (resultado a anotar aqui).
+
 ## Próximo passo
 1. A árvore de integração é `../.meow-wt-integracao-18` (`integracao/2026-11-18`, `2594c5f8`): documentos, C, D e A.
 2. Bloco F: integrar `bloco/painel-teto` quando o conferente voltar; decidir a linha do `docs/DECISOES.md` da P252.
@@ -74,5 +83,5 @@ contagem de simbólicos depois dela continuou 0 nos dois.
    pinos e tira a foto da barra no palco. Ler a coleção `escolhas` do quadro antes de fechar.
 4. Blocos E (P251) e G (P254): lançar quando houver vaga (no máximo dois blocos ao mesmo tempo). A P254 pede a
    máquina livre: `uptime` abaixo de 4 antes de medir.
-5. No fim: suíte inteira na integração (com a máquina livre), `master`, push, run verde no GitHub (número aqui),
-   install nos três PCs pelo coordenador.
+5. Cada bloco que fecha: integração, cruzamento, `master`, push, run do GitHub anotado aqui.
+6. No fim: suíte inteira no `master` com a máquina livre e install nos três PCs pelo coordenador.
