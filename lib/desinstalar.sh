@@ -8,6 +8,7 @@ meow_desinstalar() {
   if ! meow_seco; then
     systemctl --user disable --now \
       meow-doctor.timer meow-doctor.service \
+      meow-atualiza.timer meow-atualiza.service \
       meow-logo.timer meow-logo.service \
       meow-wallpaper.timer meow-wallpaper.service meow-fundo.path \
       meow-assets.path meow-assets.service \

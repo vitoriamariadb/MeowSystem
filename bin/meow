@@ -1537,6 +1537,9 @@ fix_cli() {
 }
 fix_logo()      { FLAVOR="$FLAVOR" LOGO="$LOGO" "$RAIZ/scripts/logo.sh" 2>&1; }
 
+chk_atualiza() { "$RAIZ/scripts/atualiza.sh" conferir 2>&1; }
+fix_atualiza() { "$RAIZ/scripts/atualiza.sh" aplicar 2>&1; }
+
 fix_autoreparo() {
   local destino="$HOME/.config/systemd/user" u rc
   if meow_seco; then
@@ -1566,7 +1569,7 @@ fix_autoreparo() {
   return "$MEOW_DIVERGENTE"
 }
 
-VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches graficos dock relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart arquivosfilhos atalho lancador autoreparo cli escala fontes estadovelho vizinhos efeito logo indice)
+VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas areas patches graficos dock relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart arquivosfilhos atalho lancador autoreparo atualiza cli escala fontes estadovelho vizinhos efeito logo indice)
 SEM_CONSERTO=" convertidos heroictema "
 
 declare -A SEM_CONSERTO_RAZAO=(
@@ -3052,6 +3055,9 @@ cmd_ajuda() {
   meow espaco                  quanto o MeowSystem ocupa no disco e o que dá para liberar
   meow espaco liberar          tira o que se reconstrói (o próximo build refaz)
 
+  meow atualizar               puxa o master verde do GitHub e instala; o timer faz
+                               sozinho 3 minutos depois de ligar e uma vez por dia
+
   meow compositor [--seco]     recompila o cosmic-comp com os patches de patches/ e
                                instala (sudo só no fim; vale no próximo login)
   meow compositor validar      confere se a série entra na versão instalada
@@ -3575,6 +3581,7 @@ despachar() {
     leitura)          shift; cmd_leitura "$@" ;;
     compositor)       shift; cmd_compositor "$@" ;;
     espaco|espaço)    shift; cmd_espaco "$@" ;;
+    atualizar)        shift; exec "$RAIZ/scripts/atualiza.sh" rodar ;;
     levantamento)     shift; carregar_conf || exit "$MEOW_ERRO"; exec "$RAIZ/scripts/levantamento.sh" "$@" ;;
     cosmic)           shift
       case "${1:-prever}" in

@@ -259,6 +259,7 @@ const LUGAR_CUIDAR = {
       { c: "AUTO_REPARO", r: "Rotina" },
       { c: "AUTO_REPARO_NOTIFICAR", r: "Avisar quando consertar", sub: true },
       { c: "VIZINHOS_DESATIVAR", r: "Desligar o que conflita", sub: true },
+      { c: "ATUALIZA", r: "Atualizar ao ligar" },
       { c: "ASSETS_VIGIA_NOTIFICAR", r: "Avisar o mascote" },
       { c: "FLATPAK_VIGIA", r: "Refazer ícones após atualizar" },
       { c: "FLATPAK_VIGIA_NOTIFICAR", r: "Avisar os ícones", sub: true },
