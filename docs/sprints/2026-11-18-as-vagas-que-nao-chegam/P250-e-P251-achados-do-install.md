@@ -28,6 +28,10 @@
   `scripts/garantir_builds.sh estado` com `graficos_estado=ok` nos três; compartilhar tela no palco.
 - **Nos três PCs:** desktop e portátil. nitro-5 já tem o build.
 
+- **Medida de 18/11 21h55 (`scripts/garantir_builds.sh estado`, só leitura):** nitro-5 `graficos_estado=ok` com o
+  pacote `…1792525517~24.04~f448ddf`, a versão do `patches/graficos.versao`; desktop `graficos_estado=falhou` com
+  `…f448ddf+0~hefesto1`; portátil `graficos_estado=nao-encaixa` com `…1794346005~24.04~6e68360`.
+
 ## Para o conferente do bloco A
 O `packs/meowsystem/icones/sistema.map` liga `soneca-desperto-symbolic` e `soneca-ronronar-symbolic` a `soneca-desperto`
 e `soneca-ronronar`, e `packs/meowsystem/icones/sistema/` não tem esses dois arquivos: nos PCs da Vitória a Soneca usa

@@ -9,12 +9,13 @@ pack `meowsystem`.
 
 | bloco | tarefas | situação |
 | --- | --- | --- |
-| A vagas | P242, P246, P241 | implementado em `7aa71d8c` (`../.meow-wt-vagas`, `bloco/vagas`): 15 afetados verdes; o conferente (agente, high) confere e corrige desde 16h10, com a suíte inteira (começou 18h15; log em `scratchpad/conf/vagas-suite.log`); 3 correções dele por cima (`626ab324`, `55e4f7ee`, `00b2b10f`); a folha dos ícones foi vista pelo coordenador e está boa |
-| B applets e arte | P243, P247 | desenhos prontos em `bloco/arte-vagas` (`../.meow-wt-arte-vagas`, 4 commits até `14cc23a0`, 15 afetados verdes): 66 ícones nos dois packs. Quadro para quem usa marcar: <https://claude.ai/artifact/XecxYq2wNqphzvJ7dBdRzj> (coleção `escolhas`; sem marca = aprovado; `_fecho` = revisão fechada). Só entra no `master` depois do fecho. Faltam o conferente, o código dos applets e a publicação |
+| A vagas | P242, P246, P241 | conferido e **integrado** em `2594c5f8` (`bloco/vagas` até `d4f2eca6`). Suíte inteira do conferente: 166 verdes, 1 pulado, 3 vermelhos; dois corrigidos no bloco (`104daa84` galeria com a semente da decisão 63; `d4f2eca6` a licença do papel vira dica); o `app-layout.py` segue vermelho com a máquina carregada e virou a P254 |
+| B applets e arte | P243, P247, P253 | arte aprovada por quem usa («tudo aprovado», 18/11) em `bloco/arte-vagas` (`../.meow-wt-arte-vagas`, até `97bd769e`); o punhal e as luas do Dracula no mapa; quatro propostas do MeowSystem para o desligar e os três pontos no quadro <https://claude.ai/artifact/XecxYq2wNqphzvJ7dBdRzj#meowsystem> (sem escolha, fica o de hoje). Em voo desde 21h50: o implementador dos applets (agente, high), em `../meowsystem-performance-p243` e `../meowsystem-leitura-p243`, commit sem push. Faltam: o conferente do bloco, a publicação pelo desktop da Vitória, os pinos e a foto no palco |
 | C CI | P244 | implementado em `9b4f4f42` (`../.meow-wt-ci3`, `bloco/ci3`): os 6 vermelhos verdes num `ubuntu:26.04` limpo, suíte portátil 128 verdes, 2 pulados, 0 vermelhos em 56m15s, limite do workflow em 80 min; conferido pelo coordenador (8 afetados verdes na máquina de casa, mais `e803ca21`: o doctor procura o Papirus na mesma raiz que o install) e **integrado** em `be2cedfe` |
 | D doctor e documentos | P245, P248, P249, P250 | conferido (18 afetados e da área verdes; o conferente tirou duas linhas da P249 em `6f68ebe0`) e **integrado** em `6626b957`; decisão 45 com a exceção do pull, sim de 18/11 (`f146793f`) |
-| E portal | P251 | escrita; achado do install de 18/11 |
-| F painel | P252 | implementado em `22fa80b3` (`../.meow-wt-painel-teto`, `bloco/painel-teto`, 18 afetados verdes); o conferente (agente, high) confere desde 18/11 19h45 e adota a cota que volta com o painel saudável, como no Spellbook |
+| E portal | P251 | escrita; achado do install de 18/11; sem agente ainda |
+| G suíte | P254 | escrita; achado do conferente do bloco A; sem agente ainda |
+| F painel | P252 | implementado em `22fa80b3`; o conferente (agente, high) pôs por cima `0ccc9ece` e `26ba75b5` (a cota volta com a barra desenhando, passada a carência) e roda os afetados desde 21h; com a máquina carregada, três testes do painel estouram por tempo (P254) |
 
 Quatro agentes nesta primeira rodada (dois por bloco, em sequência dentro do bloco; A e C ao mesmo tempo, com
 arquivos disjuntos). Tudo o que está nos arquivos das sprints foi medido pelo coordenador, só com leitura.
@@ -66,10 +67,12 @@ contagem de simbólicos depois dela continuou 0 nos dois.
   arquivos do `app/LEIA-ME.md` não lista `modificacoes.js`; o `_refs` do `vizinhos.sh` não exclui `install_if_diff`.
 
 ## Próximo passo
-1. A árvore de integração é `../.meow-wt-integracao-18` (`integracao/2026-11-18`), já com os documentos da leva.
-2. Bloco C: integrado. A prova no runner de verdade é o run do push final.
-3. Bloco A: entra quando o conferente voltar com a suíte inteira e a folha dos ícones.
-4. Bloco D: integrar quando o conferente voltar. Quando o A fechar, lançar o agente do quadro de arte do bloco B
-   (folha para quem usa aprovar); quando o D fechar, o E (P251).
-5. No fim: suíte inteira na integração, `master`, push, run verde no GitHub (número aqui), install nos três PCs pelo
-   coordenador.
+1. A árvore de integração é `../.meow-wt-integracao-18` (`integracao/2026-11-18`, `2594c5f8`): documentos, C, D e A.
+2. Bloco F: integrar `bloco/painel-teto` quando o conferente voltar; decidir a linha do `docs/DECISOES.md` da P252.
+3. Bloco B: quando o implementador dos applets voltar, lançar o conferente (arte, mapa, procedência, contrato,
+   applets); depois o coordenador publica os applets pelo desktop da Vitória (`ssh maria`, como no P231), troca os
+   pinos e tira a foto da barra no palco. Ler a coleção `escolhas` do quadro antes de fechar.
+4. Blocos E (P251) e G (P254): lançar quando houver vaga (no máximo dois blocos ao mesmo tempo). A P254 pede a
+   máquina livre: `uptime` abaixo de 4 antes de medir.
+5. No fim: suíte inteira na integração (com a máquina livre), `master`, push, run verde no GitHub (número aqui),
+   install nos três PCs pelo coordenador.
