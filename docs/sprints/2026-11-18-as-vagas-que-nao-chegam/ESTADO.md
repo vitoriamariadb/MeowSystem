@@ -106,6 +106,11 @@ dele volta, sem esperar a suíte inteira do fim. Antes de cada push, os testes d
   mostrou que a prévia da aba Sistema engrossava todo traço para 2,5 fixo, curado em `47cda2b6` (a prévia usa o
   traço que o pack declara, como o install). Run `testes` do push 4, 44466429907: **129 verdes, 2 pulados, 0 vermelhos**. O do push 3 (44462676122) fechou com 2 vermelhos, `portabilidade.sh` e `higiene.sh`, só pelo home escrito na medida.
 
+## Ordem de quem usa, 19/11 03h45
+«Ao finalizar o push desliga o pc»: fechado o último push da leva (blocos E e G), o coordenador desliga o nitro-5.
+O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop da Vitória: `git pull` para `686d43c3` e
+`./install.sh` começado às 03h52 por SSH, solto da sessão (log em `~/.cache/meow-leva/install-2026-11-19.log` de lá).
+
 ## Próximo passo
 1. Bloco B: no `master` (push 4). Falta a foto da barra e da dock nos dois packs, depois do install.
 2. Blocos E e G: quando cada implementador voltar, conferente, integração, cruzamento, `master`, push.
