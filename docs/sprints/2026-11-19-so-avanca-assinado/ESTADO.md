@@ -27,6 +27,15 @@ Integrados em `integracao/2026-11-20` (`047b8f10`, três merges assinados). Cruz
 3. A P262 não alcança o `apt` que troca o `/usr/bin/cosmic-app-list` com a dock do pacote viva.
 4. A P262 e a P263 ainda não foram vistas numa sessão de verdade (duas telas no portátil; troca de fase no nitro-5).
 
+## 19/11, 19h25: push 13 e install nos três PCs
+- `master` = `origin/master` = `f542073c` (ponta assinada). Run `testes` 44625122458, em curso às 19h25.
+- nitro-5, desktop e portátil: `git pull` para `f542073c` e `./install.sh` limpo na primeira tentativa («Pronto. 2
+  passagens, 77 etapas, nada mais a escrever»). Nos três: `~/.config/meow/assinantes` semeada com a chave do
+  nitro-5, `atualiza.sh conferir` sai 0 e a dock `estado=ok` no `…779f920`.
+- Portátil: dois `cosmic-app-list` vivos, os dois no mesmo build (`…779f920`). Desktop: um.
+- O install foi feito sem esperar o CI, por ordem de quem usa; o cruzamento de 27 estava verde.
+- nitro-5 desligado pelo coordenador depois do push 14, por ordem de quem usa.
+
 ## Próximo passo
 Ordem de quem usa, 19/11 19h05: «Da Merge na master dispara o ci. Instala nos três PCs e desliga o notebook».
 1. Ler o run `testes` do push 13 (a ponta com os três blocos) e o do push 14 (o fecho destes documentos).
