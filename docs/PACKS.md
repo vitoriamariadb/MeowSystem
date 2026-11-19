@@ -756,7 +756,7 @@ Cada categoria declara os dois no `pack.json`, e nenhuma é obrigatória:
 }
 ```
 
-Os ícones de status do COSMIC (`sistema`, os 30 nomes de `sistema.map`) e os da
+Os ícones de status do COSMIC (`sistema`, os nomes de `sistema.map`) e os da
 bandeja (`bandeja`) são dois blocos com os mesmos campos:
 
 | campo | o que diz |
@@ -774,12 +774,12 @@ bandeja (`bandeja`) são dois blocos com os mesmos campos:
 }
 ```
 
-O pack `dracula` declara `"sistema": { "herda": "meowsystem", "pintar": "text" }`: o
-molde é o do meowsystem e o traço sai na cor `text` do flavor dele. Pack sem o bloco
+O pack `dracula` declara `"sistema": { "desenhos": "icones/sistema/", "mapa": "icones/sistema.map", "pintar": "text" }`:
+o desenho é o dele, sem `traco` declarado (fica com o traço que desenhou), e sai na cor `text` do flavor dele. Pack sem o bloco
 e sem `herda` veste o do pack de `heranca` (o desenho próprio em `icones/sistema/` vence
 nome a nome); sem `heranca` também, não ganha ícone de status: o doctor tira os que outro
 pack deixou e diz «o pack no ar não declara icones.sistema». Com o bloco, a linha diz o pack no ar:
-«ícones do sistema já com o Arcticons do pack Dracula».
+«ícones do sistema já com os desenhos do pack Dracula».
 
 O `validar` cobra a existência de tudo o que estiver declarado. Um pack que
 promete um acervo e não entrega é recusado — pelo mesmo motivo que o `creditos`
