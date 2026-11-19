@@ -221,6 +221,15 @@ O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop d
 - Arquivos disjuntos: `packs/*/wallpapers` e `packs/*/icones`. Sem conferente separado: o coordenador confere pelas
   folhas e pelos testes, e quem usa aprova a arte no quadro.
 
+## 19/11, 13h35: três blocos em voo
+- P258 (`papeis-gatos`) ganhou o castelo sem chão e os efeitos fora do corte; P259 (`lateral-arquivos`) ganhou o
+  minimizar do MeowSystem (não se lê em 16 px; tem que ocupar a caixa como o morcego do Dracula) e a lupa.
+- P260 (`bloco/lado`, árvore `.meow-wt-lado`, agente `lado-botoes`): chave `BOTOES_LADO`, padrão `direita`. Resposta
+  de quem usa: «Direita já, esquerda medida depois». Fica para o coordenador: tirar o `aurora-button-layout` do zsh
+  da Vitória pelo espelho e desarmar a unidade nos dois PCs dela.
+- P261 (próxima leva, a escrever): medir o custo da esquerda em todo app do COSMIC (patch na libcosmic e build por app).
+- Às 13h34: run 44562290665 em curso; suíte inteira com 58 testes rodados e nenhum vermelho.
+
 ## Próximo passo
 1. Ler o run 44562290665 e a suíte inteira; vermelho vira cura na mesma rodada.
 2. Install no nitro-5 depois da suíte.
