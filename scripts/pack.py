@@ -4740,7 +4740,6 @@ CONTRATO_DO_SISTEMA = os.path.join(RAIZ, "assets", "contratos", "nomes-de-sistem
 CONTRATO_DAS_EXTENSOES = os.path.join(RAIZ, "assets", "contratos", "nomes-das-extensoes.tsv")
 CONTRATO_DOS_TIPOS = os.path.join(RAIZ, "assets", "contratos", "tipos-de-arquivo.tsv")
 GRUPOS_DO_SISTEMA = ("barra", "configuracoes", "janela", "botoes", "soneca", "pastas", "tipos")
-ESPESSURA_DA_PREVIA = "2.5"
 
 
 def _contrato_do_sistema():
@@ -4832,9 +4831,9 @@ def _glifos_do_bloco(dir_pack, bloco):
     return saida
 
 
-def _previa_do_glifo(texto, tinta):
-    if tinta and 'stroke="currentColor"' in texto:
-        return _tracejar(texto, ESPESSURA_DA_PREVIA, tinta)
+def _previa_do_glifo(texto, tinta, largura):
+    if tinta and largura and 'stroke="currentColor"' in texto:
+        return _tracejar(texto, largura, tinta)
     return _com_a_tinta(texto, tinta)
 
 
@@ -4842,6 +4841,8 @@ def sistema_do_pack(dir_pack, cores=None):
     if cores is None:
         cores = _cores_do_flavor(dir_pack, campo(dir_pack, "paleta.flavor_padrao", ""))
     tinta = (cores or {}).get("text")
+    largura = traco_do_sistema(dir_pack).get("scalable")
+    largura = f"{largura:g}" if largura else ""
     contrato = _contrato_do_sistema()
     saida, vistos = [], set()
 
@@ -4854,10 +4855,10 @@ def sistema_do_pack(dir_pack, cores=None):
         for nome, _glifo, cheio in _glifos_do_bloco(dir_pack, bloco):
             grupo, rotulo = contrato.get(nome, ("barra" if bloco == "bandeja" else "botoes", ""))
             por(nome, cheio, rotulo or _rotulo_do_nome(nome.removesuffix("-symbolic")), None,
-                _previa_do_glifo(_ler_svg(cheio), tinta), grupo)
+                _previa_do_glifo(_ler_svg(cheio), tinta, largura), grupo)
     for nome, padrao in _padrao_das_extensoes(dir_pack):
         grupo, rotulo = contrato[nome]
-        por(nome, padrao, rotulo, None, _previa_do_glifo(_ler_svg(padrao), tinta), grupo)
+        por(nome, padrao, rotulo, None, _previa_do_glifo(_ler_svg(padrao), tinta, largura), grupo)
     for d in pastas_do_pack(dir_pack, cores):
         por(d["nome"], d["caminho"], d["rotulo"], d["svg"], d["svg"], "pastas")
     rotulos_dos_tipos = _rotulos_dos_tipos()
