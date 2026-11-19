@@ -111,6 +111,20 @@ dele volta, sem esperar a suíte inteira do fim. Antes de cada push, os testes d
 O install do nitro-5 e a suíte inteira ficam para a sessão seguinte. Desktop da Vitória: `git pull` para `686d43c3` e
 `./install.sh` começado às 03h52 por SSH, solto da sessão (log em `~/.cache/meow-leva/install-2026-11-19.log` de lá).
 
+## Push 5, 19/11 04h15: blocos E e G
+- E (P251, `bloco/portal`, `944faf43` e `b8872714`), integrado em `80c4ff9a`: o `patches/graficos.versao` aceita
+  «fim <versão> <patch>»; do portal `6e68360` em diante o remendo do toolkit sai da série, porque o `Cargo.lock`
+  de lá já fixa a correção oficial; o remendo do portal entra limpo em `f448ddf`, `6e68360` e `7b0864c`; compilou
+  no fonte do `7b0864c` em 3 min 51 s. O «sem rede?» do desktop era de antes do `a0f08935` (07/11); o teste passa a
+  cobrir a resposta do apt em português. Na integração: 12 verdes e 1 pulado (`graficos-fonte-real.sh`, sem o fonte
+  no lugar que o teste procura). O relatório do implementador não chegou; o item 3 da tarefa (o build posto de
+  lado no desktop sem queda registrada) fica sem resposta e segue aberto.
+- G (P254, `bloco/layout`), integrado em `34678a36`: `51bafefd` dois cliques no Desfazer não desfazem a mesma
+  mudança duas vezes; `a6909dd9` gravar uma chave leva 0,05 s e não 2,6 s (o `meow_conf_texto_definir` copiava o
+  texto inteiro a cada uma das 2184 linhas); `f58ef98f` o trabalho pedido logo depois de gravar espera a aplicação.
+  `app-layout.py` verde na integração (183 s); `app-completo.py` do implementador em 945 s (eram 1797 s).
+- Cruzamento na integração: 15 verdes de 15.
+
 ## Próximo passo
 1. Bloco B: no `master` (push 4). Falta a foto da barra e da dock nos dois packs, depois do install.
 2. Blocos E e G: quando cada implementador voltar, conferente, integração, cruzamento, `master`, push.
