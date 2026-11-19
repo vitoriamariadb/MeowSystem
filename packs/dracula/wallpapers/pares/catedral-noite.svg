@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3840 2160" width="3840" height="2160"><defs><linearGradient id="cat-lado" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#191A21"/><stop offset="1" stop-color="#1E2029"/></linearGradient><linearGradient id="cat-lado-d" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1E2029"/><stop offset="1" stop-color="#191A21"/></linearGradient><clipPath id="cat-jan"><path d="M 1600 720 A 640 640 0 0 1 1920 165.7 A 640 640 0 0 1 2240 720 L 2240 1240 L 1600 1240 Z"/></clipPath><clipPath id="cat-jan-1330"><path d="M 1330 820 A 150 150 0 0 1 1405 690.1 A 150 150 0 0 1 1480 820 L 1480 1240 L 1330 1240 Z"/></clipPath><clipPath id="cat-jan-2360"><path d="M 2360 820 A 150 150 0 0 1 2435 690.1 A 150 150 0 0 1 2510 820 L 2510 1240 L 2360 1240 Z"/></clipPath><linearGradient id="cat-lua" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D6ACFF" stop-opacity="0.12"/><stop offset="1" stop-color="#D6ACFF" stop-opacity="0"/></linearGradient><radialGradient id="cat-brilho" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FFB86C" stop-opacity="0.55"/><stop offset="0.35" stop-color="#FFB86C" stop-opacity="0.18"/><stop offset="1" stop-color="#FFB86C" stop-opacity="0"/></radialGradient><radialGradient id="cat-chao" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FFB86C" stop-opacity="0.22"/><stop offset="1" stop-color="#FFB86C" stop-opacity="0"/></radialGradient><radialGradient id="cat-vinheta" cx="0.5" cy="0.45" r="0.75"><stop offset="0.5" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.6"/></radialGradient></defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3840 2160" width="3840" height="2160"><defs><linearGradient id="cat-lado" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#191A21"/><stop offset="1" stop-color="#1E2029"/></linearGradient><linearGradient id="cat-lado-d" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1E2029"/><stop offset="1" stop-color="#191A21"/></linearGradient><clipPath id="cat-jan"><path d="M 1600 720 A 640 640 0 0 1 1920 165.7 A 640 640 0 0 1 2240 720 L 2240 1240 L 1600 1240 Z"/></clipPath><clipPath id="cat-jan-1330"><path d="M 1330 820 A 150 150 0 0 1 1405 690.1 A 150 150 0 0 1 1480 820 L 1480 1240 L 1330 1240 Z"/></clipPath><clipPath id="cat-jan-2360"><path d="M 2360 820 A 150 150 0 0 1 2435 690.1 A 150 150 0 0 1 2510 820 L 2510 1240 L 2360 1240 Z"/></clipPath><linearGradient id="cat-lua" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D6ACFF" stop-opacity="0.12"/><stop offset="1" stop-color="#D6ACFF" stop-opacity="0"/></linearGradient><radialGradient id="cat-brilho" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FFB86C" stop-opacity="0.55"/><stop offset="0.35" stop-color="#FFB86C" stop-opacity="0.18"/><stop offset="1" stop-color="#FFB86C" stop-opacity="0"/></radialGradient><radialGradient id="cat-chao" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FFB86C" stop-opacity="0.22"/><stop offset="1" stop-color="#FFB86C" stop-opacity="0"/></radialGradient><radialGradient id="cat-vinheta" cx="0.5" cy="0.45" r="0.75"><stop offset="0.5" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.6"/></radialGradient><clipPath id="cat-quadro"><rect x="0" y="0" width="3840" height="2160"/></clipPath></defs>
+<g clip-path="url(#cat-quadro)">
 <rect x="0" y="0" width="3840" height="2160" fill="#191A21"/>
 <rect x="1240" y="-10" width="1360" height="1517.7" fill="#23242F"/>
 <polygon points="0,-10 1240,-10 1240,1507.7 0,2160" fill="url(#cat-lado)"/>
@@ -191,7 +192,7 @@
 <rect x="2223.6" y="1748" width="1076.4" height="48.3" fill="#101115"/>
 <rect x="2212.6" y="1748" width="22.1" height="331.2" fill="#101115"/>
 <rect x="3289" y="1748" width="22.1" height="331.2" fill="#101115"/>
-<polygon points="1526.3,1240 2356.8,1240 2700,2160 1300,2160" fill="url(#cat-lua)"/>
+<polygon points="1600,1240 2240,1240 2700,2160 1300,2160" fill="url(#cat-lua)"/>
 <g transform="translate(0 70)">
 <ellipse cx="1404" cy="2028.6" rx="420" ry="110" fill="url(#cat-chao)"/>
 <ellipse cx="2436" cy="2028.6" rx="420" ry="110" fill="url(#cat-chao)"/>
@@ -263,4 +264,5 @@
 <rect x="2038.9" y="1539.5" width="8.2" height="24.6" fill="#F8F0EC"/>
 <ellipse cx="2043" cy="1534.6" rx="2.9" ry="6.6" fill="#F1FA8C"/>
 <rect x="0" y="0" width="3840" height="2160" fill="url(#cat-vinheta)"/>
+</g>
 </svg>
