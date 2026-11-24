@@ -71,3 +71,38 @@ segurança, e a decisão 24 passa a dizer isso, citando este sim.
 
 O commit único nasce por `git commit-tree` sobre a árvore da ponta da integração, sem passar pelo gancho de commit:
 a árvore publicada é byte a byte a que a suíte provou.
+
+## Feito (24/11/2026)
+| passo | medida |
+| --- | --- |
+| suíte inteira na árvore final | 183 de 183, 1628 s, na integração `b5904f5e` |
+| cópia de segurança | `~/Backups/meowsystem/` no nitro-5 e no desktop: bundle de 142 MB (`git bundle verify` ok nos dois, 3819 commits, 13 tags) e o espelho |
+| raiz nova | `11ed66b8`, por `git commit-tree -S` sobre a árvore de `b5904f5e`; `git diff` vazio; assinatura boa pela lista `assinantes` |
+| tag | `v2.4.0`, assinada |
+| tamanho do repositório | 195 MB antes, 14 MB num clone novo |
+| push | 5h21: `master` em `11ed66b8` com `--force-with-lease` sobre `9110e7d7`; as 10 tags velhas e a branch `docs/p159-p161-portal-e-areas` apagadas do GitHub |
+| run `testes` do GitHub na ponta nova | verde, 50 min 31 s |
+| nitro-5 | checkout em `11ed66b8`; install em 3 passagens e a segunda rodada «nada mais a escrever»; `meow doctor` rc 0; nenhuma unidade em falha; `.git` local de 188 MB para 17 MB depois de apagar as branches e tags de antes |
+| desktop | checkout em `11ed66b8`; install em 3 passagens, sem erro; a fonte dela foi para `packs/meowsystem/fontes/locais/` e segue instalada; a completion do sistema e o atalho do painel no caminho novo |
+| a atualização sozinha | `ATUALIZA="sim"` de volta nos dois; `meow atualizar`: «nada novo no master (11ed66b8)» |
+
+O que as conferências dos blocos deram no nitro-5: as chaves `WALLPAPER_DRACULA_*` saíram do conf; os papéis estão em
+`dracula/` (os 6 pares), `meowsystem/` e `Minhas/`; o `BANIDOS.txt` tem os 13 do Dracula com o nome novo e nenhum
+`tulip-`; o mapa de ícones tem as 11 linhas migradas para `packs/dracula/icones/apps/`; o prompt ficou igual.
+
+## Aberto depois do passo 10
+- Portátil: não respondeu (o nome não resolve na rede). Quando ligar: `git fetch`, `git reset --hard origin/master`
+  com o clone limpo, `SUDO_ASKPASS=/usr/local/lib/aurora/askpass ./install.sh` duas vezes e `meow doctor`. Até lá o
+  clone de lá não se atualiza sozinho.
+- Desktop, de antes desta leva: o `meow doctor --consertar` sai com erro por causa do `patches` («o build do
+  cosmic-comp 0.1~1795167359~24.04~6968c5d caiu na sessão e foi posto de lado»), e por isso a `meow-doctor.service`
+  fica em falha todo dia (já estava às 5h13, antes da árvore nova). A sessão de lá roda o compositor de fábrica.
+  Pede gente: medir por que o build cai naquela máquina.
+- Desktop: as pontes de app_id (`janela_dock`) mudaram entre o install e o conserto do doctor (2 a remover, depois 2
+  a criar, depois conformes). É a P269: medir com o Hefesto aberto.
+- Desktop: a segunda rodada do install ainda escreveu o papel de parede uma vez; a terceira, as pontes de janela.
+- O install recusa com «outro meow está rodando» quando roda logo depois do `git reset`: o vigia do pack
+  (`meow-assets.service`) acorda com a troca dos arquivos e segura a trava. Rodar de novo resolve; o install podia
+  esperar o vigia.
+- O `.git` do desktop segue com os objetos de antes (197 MB) até o `git gc` de lá.
+- O GitHub guarda `refs/pull/1` e `refs/pull/2`, que não se apagam por push.
