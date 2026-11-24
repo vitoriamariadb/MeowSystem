@@ -91,9 +91,6 @@ O que as conferências dos blocos deram no nitro-5: as chaves `WALLPAPER_DRACULA
 `tulip-`; o mapa de ícones tem as 11 linhas migradas para `packs/dracula/icones/apps/`; o prompt ficou igual.
 
 ## Aberto depois do passo 10
-- Portátil: não respondeu (o nome não resolve na rede). Quando ligar: `git fetch`, `git reset --hard origin/master`
-  com o clone limpo, `SUDO_ASKPASS=/usr/local/lib/aurora/askpass ./install.sh` duas vezes e `meow doctor`. Até lá o
-  clone de lá não se atualiza sozinho.
 - Desktop, de antes desta leva: o `meow doctor --consertar` sai com erro por causa do `patches` («o build do
   cosmic-comp 0.1~1795167359~24.04~6968c5d caiu na sessão e foi posto de lado»), e por isso a `meow-doctor.service`
   fica em falha todo dia (já estava às 5h13, antes da árvore nova). A sessão de lá roda o compositor de fábrica.
@@ -106,3 +103,30 @@ O que as conferências dos blocos deram no nitro-5: as chaves `WALLPAPER_DRACULA
   esperar o vigia.
 - O `.git` do desktop segue com os objetos de antes (197 MB) até o `git gc` de lá.
 - O GitHub guarda `refs/pull/1` e `refs/pull/2`, que não se apagam por push.
+
+## Os três PCs e a limpeza (24/11/2026, 10h)
+Pedido de quem usa, em 24/11/2026: «Instala e limpa nos três PCs as pastas de desenvolvimento e voo. Deixa só a
+nossa última versão instalada localmente. Uma pasta só pro nosso repo nos três PCs.» E, sobre enviar os commits de
+documentação ao `master`: «Sim pra sua dúvida.»
+
+| PC | install | repositório | o que saiu da pasta |
+| --- | --- | --- | --- |
+| nitro-5 | 2 rodadas, a segunda sem escrever; `meow doctor` rc 0 | só `master` e `v2.4.0`; `.git` de 188 MB para 17 MB | 14 árvores de trabalho, 19 branches, 10 tags, as fotos de duas levas antigas |
+| desktop | 3 rodadas até não escrever; `meow doctor` com o `patches` de antes | só `master` e `v2.4.0`; `.git` de 197 MB para 15 MB | 2 branches, 1 stash, `assets/` (292 ícones), `aba7.png`, o bundle de 01/11 que morava ao lado do clone |
+| portátil | 2 rodadas, a segunda sem escrever; `meow doctor` rc 0, nenhuma unidade em falha | só `master` e `v2.4.0`; `.git` de 239 MB para 16 MB | 17 branches, `assets/` (5 temas), `dist/`, `app/`, as fotos de uma leva antiga |
+
+Nada foi apagado sem cópia. Em `~/Backups/meowsystem/` de cada PC ficaram:
+- o clone inteiro de antes: `clone-portatil-antes-da-raiz-nova.bundle` e `clone-desktop-antes-da-limpeza.bundle` (com
+  as branches e o stash de lá); no nitro-5, o `meowsystem-antes-da-raiz-nova.bundle` e o espelho;
+- `sobras-<pc>/`: o que estava na pasta do clone e não é da árvore nova;
+- o `meow.conf`, a lista dos papéis, o `BANIDOS.txt`, o mapa de ícones e o `starship.toml` de antes.
+
+Ficou como estava, de propósito:
+- os dez clones `~/Desenvolvimento/meowsystem-*` (nitro-5 e portátil): são os repositórios dos applets, cada um com
+  dois arquivos sem commit, e o `scripts/vizinhos.sh` os procura nessa pasta;
+- `~/Desenvolvimento/Meow-Portatil`: é um link para a montagem remota, não é clone;
+- `~/.cache/meow-leva/` no nitro-5 (2,8 MB): os relatos que as tarefas desta leva citam;
+- os temas capturados e a fonte dela dentro de `packs/`, que o produto usa.
+
+No portátil, `~/.local/share/backgrounds/meowsystem/` ainda tem `BANIDOS.txt`, `FONTES.tsv`, `lado.tsv` e `LICENSE`
+soltos na raiz, de um desenho anterior; o doctor não acusa. Fica para a próxima leva.

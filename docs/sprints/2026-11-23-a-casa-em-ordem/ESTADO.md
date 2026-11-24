@@ -20,20 +20,20 @@ e o GitHub seguem intocados: tudo vive em branches locais.
 - «Manda ver» de quem usa, 23/11, sobre a ordem dos dez passos com os agentes de cada um.
 - Passo 1 (P271) feito no nitro-5; o que saiu e o que ficou está no fim da P271.
 
-## Onde a leva parou (24/11/2026, 9h)
-Os dez passos estão feitos no nitro-5 e no desktop. O `master` do GitHub é a raiz nova `11ed66b8`, com a tag
-`v2.4.0`, o run `testes` verde e a atualização sozinha religada. O que cada passo mediu está no fim da tarefa dele;
-o do passo 10, no fim da `P284`.
+## Onde a leva parou (24/11/2026, 10h)
+Os dez passos estão feitos nos três PCs. O `master` do GitHub nasce da raiz nova `11ed66b8` (tag `v2.4.0`, run
+`testes` verde) e a atualização sozinha está ligada nos três. O que cada passo mediu está no fim da tarefa dele; o
+do passo 10 e o da limpeza, no fim da `P284`.
 
-A única árvore de trabalho que sobrou é esta, `../.meow-wt-leva-23`, na branch `docs/fecho-da-leva`: os commits dela
-(este estado e o fecho da `P284`) ainda não foram enviados. As outras árvores, as branches e as tags de antes saíram
-do nitro-5; o histórico de antes mora em `~/Backups/meowsystem/` (decisão 24).
+Cada PC tem uma pasta só do repositório, `~/Desenvolvimento/MeowSystem`, com o `master` e mais nada: sem árvore de
+trabalho, sem branch e sem tag de antes. O histórico e as sobras de antes moram em `~/Backups/meowsystem/` (decisão
+24). Este commit chega aos três pelo `meow atualizar`; a conferência é `git worktree list` com uma linha e o mesmo
+`git log -1` nos três.
 
 ## Próximo passo
-1. Enviar a `docs/fecho-da-leva` ao `master`, com a palavra de quem usa.
-2. O portátil, quando ligar (roteiro no fim da `P284`).
-3. O que ficou aberto no fim da `P284`, a `P269` e a `P267`.
-4. A leva seguinte: a `P283` e o `PARA-A-PROXIMA-LEVA.md`. O índice de código (`fazer_grafos`) abre essa leva.
+1. O que ficou aberto no fim da `P284`, a `P269` e a `P267`.
+2. A leva seguinte: a `P283` e o `PARA-A-PROXIMA-LEVA.md`. O índice de código (`fazer_grafos`) abre essa leva.
+3. Trabalho novo nasce do `master`, numa árvore de trabalho própria do bloco.
 
 ## Abertos que não podem se perder
 O que ficou para depois desta leva está no `PARA-A-PROXIMA-LEVA.md`. Desta leva, seguem abertos:
