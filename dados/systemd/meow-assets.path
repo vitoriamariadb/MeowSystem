@@ -1,0 +1,10 @@
+[Unit]
+Description=MeowSystem — vigia o mascote, os papéis de parede e os temas de apps do pack
+Documentation=man:systemd.path(5)
+
+[Path]
+PathModified=@ACERVO@
+Unit=meow-assets.service
+
+[Install]
+WantedBy=default.target

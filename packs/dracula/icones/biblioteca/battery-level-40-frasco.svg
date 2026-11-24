@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>battery-level-40-frasco — bateria em frasco de sangue, variante: 40%; o sangue sobe até o nível da carga</title>
+  <path fill="currentColor" d="M6.2,1.1 Q6.2,0.6 6.7,0.6 H9.3 Q9.8,0.6 9.8,1.1 V2.3 H6.2 Z"/>
+  <path fill="currentColor" opacity="0.3" d="M6.6,3 H9.4 V6.2 A4.6,4.6 0 1 1 6.6,6.2 Z"/>
+  <clipPath id="sangue40"><rect x="0" y="11.28" width="16" height="16"/></clipPath>
+  <path fill="currentColor" clip-path="url(#sangue40)" d="M6.6,3 H9.4 V6.2 A4.6,4.6 0 1 1 6.6,6.2 Z"/>
+</svg>

@@ -1,0 +1,13 @@
+[Unit]
+Description=MeowSystem — atualiza 3 minutos depois de entrar na sessão e uma vez por dia
+PartOf=graphical-session.target
+Documentation=file:%h/.local/state/meowsystem/atualiza.log
+
+[Timer]
+OnActiveSec=3min
+OnUnitActiveSec=1d
+AccuracySec=1min
+Unit=meow-atualiza.service
+
+[Install]
+WantedBy=graphical-session.target

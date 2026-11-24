@@ -1,0 +1,53 @@
+# Ele vivia em `~/.config/zsh/patches/patches.d/series`, do lado da Aurora, e
+# era lido daqui por `md5sum` e `[ -f ]`. A decisao dela, encerra o arranjo:
+# "tudo que for relacionado a tema e para ser do MeowSystem".
+#
+# Nem uma linha, nem um acento, nem um comentario.
+#
+# A segunda coluna e "arquivo .patch, relativo a este diretorio", e os cinco
+# nomes sao exatamente os cinco `cosmic-comp-*.patch` de `dados/patches/`.
+#
+# o parágrafo acima envelheceu nos dois pontos.
+
+# series — a lista de patches que o aurora-cosmic-comp-ws.sh aplica no fonte do
+# cosmic-comp antes de compilar.
+#
+# TRÊS CAMPOS, separados por espaço.
+#
+#   <classe>  <arquivo .patch, relativo a este diretório>  <marcador-base>
+#
+#   req  obrigatório. Se o dry-run dele falhar, o build ABORTA e NADA é
+#        instalado — o desktop fica no binário do pacote (feio, mas de pé).
+#   opt  opcional. Se o dry-run falhar, o build segue sem aquele efeito e o
+#        registro diz qual efeito ficou de fora.
+#
+# Desde 28/09/2026 todos são `req`, decisão dela: "tudo tem que ser
+# obrigatório" (dados/patches/LEIA-ME.txt, a seção do fim do `opt`).
+
+# classe  arquivo                                marcador-base
+req       cosmic-comp-sem-workspace-vazio.patch  AURORA-COSMIC-WS-PATCH
+req       cosmic-comp-raio-clampado.patch        AURORA-COSMIC-RADIUS-PATCH
+req       cosmic-comp-menu-clique-curto.patch    AURORA-COSMIC-MENU-PATCH
+req       cosmic-comp-modo-leitura.patch         AURORA-READING-MODE
+
+# Às 19:56 a sessão inteira caiu no nitro-5, com o backtrace da thread de render
+# parado em `render_blur` <- `capture_framebuffer` e um `[gfxhub] page fault` do
+# amdgpu com `Faulty UTCL2 client ID: TCP (0x8)`.
+#
+# Este binário é TAMBÉM a tela de login.
+req       cosmic-comp-blur-cache-textura.patch   AURORA-BLUR-CACHE
+
+# A barra de compartilhar do Chrome vem sem app_id: a janela herda o de outra
+# janela do mesmo cliente, e a dock mostra um ícone só.
+req       cosmic-comp-app-id-do-cliente.patch    AURORA-APP-ID-CLIENTE
+
+# Com a GPU escolhida no /etc/environment, toda tela é composta nela; a da tela só recebe o quadro pronto (P209).
+req       cosmic-comp-compoe-na-escolhida.patch  AURORA-COMPOE-NA-ESCOLHIDA
+
+# A janela com MEOW_AREA no ambiente nasce na área com esse nome, sem passar pela
+# área visível e sem roubar o foco (P239).
+req       cosmic-comp-area-do-cliente.patch      AURORA-AREA-DO-CLIENTE
+
+# Em Global, as outras telas mostravam números: cada área copia o nome da área
+# de mesmo índice, e tirar o monitor não cria área a mais.
+req       cosmic-comp-nomes-nas-duas-telas.patch AURORA-AREAS-NOMES

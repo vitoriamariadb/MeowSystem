@@ -1,0 +1,188 @@
+# cosmic-comp-menu-clique-curto.patch — o menu de janela para de fechar sozinho.
+#
+# ============================================================================
+# O DEFEITO, DESCRITO POR ELA EM 31/08/2026
+# ============================================================================
+#   "em apps como o gradia o botao direito se aperta e desaperta" — clicar com o
+#   botao direito na barra de titulo abre o menu da janela (Empilhar janelas,
+#   Minimizar, Fazer captura de tela, ...) e ele SOME no instante em que o dedo
+#   solta o botao. Nao da tempo de escolher nada.
+#
+# ============================================================================
+# A CAUSA, MEDIDA NO FONTE
+# ============================================================================
+#   src/shell/grabs/menu/mod.rs, PointerGrab::button do MenuGrab:
+#
+#       if selected && event.state == ButtonState::Released {
+#           handle.unset_grab(...);        // fecha o menu
+#       }
+#
+#   O menu nasce EMBAIXO do cursor. Ou seja: no instante em que ele abre, um dos
+#   itens ja esta com `pointer_entered = true` (na foto dela era o "Fazer captura
+#   de tela"). O `Released` do MESMO clique que abriu o menu chega milissegundos
+#   depois, encontra `selected == true`, e fecha.
+#
+#   Isso e o idioma "press-drag-release" — segurar, arrastar ate o item, soltar —
+#   que e legitimo e que TODO menu de desktop suporta. O que falta aqui e o outro
+#   idioma, o do clique curto: apertar e soltar deixa o menu ABERTO, e o proximo
+#   clique escolhe. GTK, Qt e o proprio cosmic-panel fazem os dois; este menu so
+#   fazia o primeiro.
+#
+# ============================================================================
+# A CURA, E POR QUE ENGOLIR O EVENTO EM VEZ DE SO NAO FECHAR
+# ============================================================================
+#   Um `Released` que chega em menos de CLIQUE_CURTO desde o nascimento do grab e
+#   o release do clique que ABRIU o menu — nao e uma escolha dela. Ele e engolido
+#   inteiro: nao vai para o widget iced e nao fecha o grab.
+#
+#   Nao basta pular so o `unset_grab`: o `PointerTarget::button` logo acima ja
+#   repassa o evento ao iced, e o `button` do iced dispara o `on_press` no
+#   RELEASE. Sem engolir, o clique curto ATIVARIA o item que estivesse sob o
+#   cursor — trocar "o menu some" por "o menu executa Minimizar sozinho" seria
+#   pior do que o defeito.
+#
+#   250ms e o limiar. E o mesmo numero que o GTK usa para separar clique de
+#   arrasto em menu (gtk/gtkmenushell.c, MENU_SHELL_TIMEOUT). Acima dele, o
+#   press-drag-release continua funcionando exatamente como antes: quem segurar o
+#   botao meio segundo, arrastar ate um item e soltar, aciona o item.
+#
+#   O menu aberto por TECLADO ou por clique no cosmic-panel nao passa por aqui
+#   com um release pendente, entao nada muda para eles: o `nascimento` fica no
+#   passado e o primeiro release que chegar ja estara fora da janela dos 250ms.
+#
+# ============================================================================
+# O MARCADOR
+# ============================================================================
+#   `AURORA-COSMIC-MENU-PATCH-1`, um `#[used] static &str` — sem o `#[used]` o
+#   linker descarta um static que ninguem le e o `--ensure` deixa de reconhecer
+#   o build (armadilha 3 do dados/patches/LEIA-ME.txt).
+#
+# ============================================================================
+# REBASE PARA O a557859 — 16/09/2026
+# ============================================================================
+#   Escrito contra o `5c93094`. No `a557859` o `MenuGrab` ganhou um campo
+#   (`last_tablet_idx: Option<usize>`) no struct E no inicializador, e a
+#   assinatura do `fn button` do `PointerGrab` trocou `&ButtonEvent` por
+#   `&PointerButtonEvent`. Os três hunks pararam de casar.
+#
+#   COMO ISSO ESTAVA FALHANDO, E POR QUE NINGUÉM VIU
+#     O `aurora-cosmic-comp-ws.sh` aplica com `--fuzz`, e com fuzz 3 os três
+#     hunks "aplicavam": o patch(1) joga fora o contexto que não bate e enfia a
+#     linha onde sobrar. O hunk do `nascimento:` caiu DENTRO da assinatura do
+#     `fn axis()`, 240 linhas acima do inicializador do `MenuGrab`. O build
+#     morria com cinco erros, a classe `opt` da série engolia a falha, o
+#     `.estado` gravava `ausente`, e o binário saía sem o patch.
+#
+#     Foi o que aconteceu na máquina dela em 11/09/2026: o `.estado` daquele
+#     build diz `opt AURORA-COSMIC-MENU-PATCH ... ausente`, junto com o do modo
+#     de leitura. Dois patches no repositório, documentados, e nenhum dos dois
+#     em binário nenhum — nas DUAS máquinas.
+#
+#   Os hunks abaixo saem de um `git diff` sobre a árvore do `a557859` com as
+#   três edições feitas à mão, e aplicam SEM fuzz. Medido depois: compila, e o
+#   `AURORA-COSMIC-MENU-PATCH-1` está dentro do binário.
+#
+# ============================================================================
+# CONFERIDO NO 4d14528 — 15/10/2026 (sprint P85)
+# ============================================================================
+#   Os hunks não mudaram: entram com -F0 (deslocamento de 2 e 3 linhas, sem
+#   fuzz). O upstream mexeu neste arquivo, e foi lido: no `motion` (e no
+#   gêmeo do tablet), quando o ponteiro sai de todos os menus, o `.skip(1)`
+#   virou `.skip(keep_root)` — o menu raiz só fica "entrado" enquanto há um
+#   submenu aberto. Isso não encosta no `button`, onde este patch age, e não
+#   desfaz o defeito: o menu continua nascendo EMBAIXO do cursor, com um item
+#   já `pointer_entered` quando o release do clique que o abriu chega.
+#
+# ============================================================================
+# PORTADO E REANCORADO EM 28/09/2026 (fonte 0.1~1790118748~24.04~0fbd457)
+# ============================================================================
+#   O build de 25/09/2026 saiu SEM este patch: ele era `opt`, o dry-run falhou
+#   no fonte novo e o script seguiu calado. O upstream acrescentou
+#   `last_tablet_idx` ao `MenuGrab` (o menu aprendeu caneta de mesa digitalizadora),
+#   e o hunk da struct e o do construtor perderam o contexto.
+#   Refeito sobre a árvore da série já com os patches anteriores aplicados, e
+#   conferido com dry-run dos quatro em sequência num fonte limpo.
+#
+#   A v2 (marcador AURORA-COSMIC-MENU-PATCH-2) não só portou: REANCOROU. Todo
+#   ponto de encaixe saiu do fim de lista, onde o upstream cresce, para um lugar
+#   que não muda à toa:
+#     - o campo `nascimento` é o PRIMEIRO da struct e do construtor;
+#     - o filtro do release, o `static` do marcador e a constante moram DENTRO
+#       do `button()`, ancorados no `if !any_entered` — a lógica que o patch
+#       corrige. Se o upstream reescrever ESSE trecho, o patch tem de parar de
+#       aplicar, porque a premissa dele mudou; já a assinatura da função (o
+#       tipo do evento trocou de nome uma vez) deixou de ser contexto.
+#   O comportamento é o mesmo da v1.
+#
+# ============================================================================
+# A v2 PORTADA PARA O 4d14528 — 24/10/2026 (sprint P100)
+# ============================================================================
+#   A v2 dela (28/09, sobre o `0fbd457`) e o rebase do dev para o `4d14528`
+#   (P85, 15/10, ainda v1) eram dois arquivos para o mesmo patch, e o merge dos
+#   dois dava conflito. Ficou a v2: o corpo abaixo é o dela linha por linha, só
+#   com os números das `@@` refeitos por `git diff` sobre o fonte do `4d14528`
+#   com os patches anteriores da série aplicados. Entra com -F0 e sem
+#   deslocamento, e o fonte com a série inteira compila. A seção do P85 acima
+#   descreve a v1 e fica como história.
+#
+diff --git a/src/shell/grabs/menu/mod.rs b/src/shell/grabs/menu/mod.rs
+index b9adf8f..ede1dc4 100644
+--- a/src/shell/grabs/menu/mod.rs
++++ b/src/shell/grabs/menu/mod.rs
+@@ -524,6 +524,11 @@ pub struct Element {
+ }
+ 
+ pub struct MenuGrab {
++    /// AURORA-COSMIC-MENU-PATCH: quando este grab nasceu. PRIMEIRO campo de
++    /// proposito: o upstream acrescenta campo no FIM da struct (foi assim com o
++    /// `last_tablet_idx`, que quebrou a v1 deste patch em 25/09/2026), e a
++    /// abertura da struct nao muda.
++    nascimento: std::time::Instant,
+     elements: Arc<Mutex<Vec<Element>>>,
+     start_data: GrabStartData,
+     seat: Seat<State>,
+@@ -622,6 +627,36 @@ impl PointerGrab<State> for MenuGrab {
+             .unwrap()
+             .iter()
+             .any(|elem| elem.pointer_entered);
++        // AURORA-COSMIC-MENU-PATCH — o menu de janela para de fechar no release
++        // do clique que o abriu. O menu nasce EMBAIXO do cursor, entao um item
++        // ja esta com `pointer_entered` quando o release do botao direito chega,
++        // e o ramo `selected && Released` logo abaixo fechava o menu antes de ela
++        // ver o que havia dentro. Ver o cabecalho do .patch.
++        //
++        // ANCORADO AQUI, NA LOGICA QUE ELE CORRIGE, e nao na assinatura da
++        // funcao: se o upstream reescrever este `if`, o patch TEM de parar de
++        // aplicar — a premissa dele mudou. A assinatura, ao contrario, muda por
++        // motivos que nao importam (o tipo do evento ja trocou de nome uma vez).
++        //
++        // O `#[used]` e o que impede o linker de descartar um static que ninguem
++        // le — sem ele o `--ensure` do aurora-cosmic-comp-ws.sh nao enxerga este
++        // patch no binario. Mora aqui dentro, e nao no topo do modulo, pelo mesmo
++        // motivo: o topo do modulo e a vizinhanca da struct `Element`, que cresce.
++        #[used]
++        static AURORA_MENU_PATCH: &str = "AURORA-COSMIC-MENU-PATCH-2";
++        // Abaixo disto, um `Released` e o fim do clique que ABRIU o menu, nao uma
++        // escolha dela. Mesmo limiar que o GTK usa para separar clique de arrasto
++        // em menu (gtkmenushell.c). Acima dele o press-drag-release continua
++        // igual: quem segurar, arrastar ate um item e soltar, aciona o item.
++        const CLIQUE_CURTO: std::time::Duration = std::time::Duration::from_millis(250);
++        // Engolir o evento inteiro, e nao apenas pular o `unset_grab`, porque o
++        // `PointerTarget::button` repassa o evento ao iced e o `button` do iced
++        // dispara o `on_press` NO RELEASE: sem isto, o clique curto acionaria o
++        // item sob o cursor — "o menu minimiza a janela sozinho", pior que o
++        // defeito.
++        if event.state == ButtonState::Released && self.nascimento.elapsed() < CLIQUE_CURTO {
++            return;
++        }
+         if !any_entered {
+             if event.state == ButtonState::Pressed {
+                 handle.unset_grab(self, state, event.serial, event.time, true);
+@@ -1335,6 +1370,7 @@ impl MenuGrab {
+             .unwrap() = Some(grab_state);
+ 
+         MenuGrab {
++            nascimento: std::time::Instant::now(),
+             elements,
+             start_data,
+             seat: seat.clone(),

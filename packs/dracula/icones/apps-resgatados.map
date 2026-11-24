@@ -1,0 +1,20 @@
+luna                         : ~/.local/share/icons/hicolor/64x64/apps/luna.png                          : dela
+sigilo                       : ~/.local/share/icons/hicolor/512x512/apps/sigilo.png                      : dela
+org.andrebfarias.Crononauta  : ~/.local/share/icons/hicolor/256x256/apps/org.andrebfarias.Crononauta.png : dela
+pdfforge                     : ~/.local/share/icons/hicolor/512x512/apps/pdfforge.png                    : dela
+qrcode-void-generator        : ~/.local/share/icons/Dracula-Icones/scalable/apps/qrcode-void-generator.png : dela
+extase-em-4r73               : ~/.local/share/icons/Dracula-Icones/scalable/apps/extase-em-4r73.png      : dela
+
+com.microsoft.Edge           : ~/.local/share/icons/Dracula-Icones/scalable/apps/com.microsoft.Edge.png  : terceiro
+whatsapp-linux-app           : ~/.local/share/icons/Dracula-Icones/scalable/apps/whatsapp-linux-app.png  : terceiro
+org.gnome.Nautilus           : ~/.local/share/icons/Dracula-Icones/scalable/apps/org.gnome.Nautilus.png  : terceiro
+photogimp                    : ~/.local/share/icons/Dracula-Icones/scalable/apps/photogimp.png           : terceiro
+com.github.rafostar.Clapper  : ~/.local/share/icons/Dracula-Icones/scalable/apps/com.github.rafostar.Clapper.png : terceiro
+uad-ng                       : ~/.local/share/icons/hicolor/512x512/apps/uad-ng.png                      : terceiro
+Ubuntu                       : ~/.local/share/icons/Dracula-Icones/scalable/apps/Ubuntu.png              : terceiro
+Ubuntu-selfservice           : ~/.local/share/icons/Dracula-Icones/scalable/apps/Ubuntu-selfservice.png  : terceiro
+
+scrcpy                       : /usr/share/icons/hicolor/256x256/apps/scrcpy.png                          : sistema
+setup-mozc                   : /usr/share/icons/mozc/product_icon_32bpp-128.png                          : sistema
+guvcview                     : /usr/share/pixmaps/guvcview/guvcview.png                                  : sistema
+org.mozilla.thunderbird_esr  : ~/.local/share/flatpak/exports/share/icons/hicolor/128x128/apps/org.mozilla.thunderbird_esr.png : sistema

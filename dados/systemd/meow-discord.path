@@ -1,0 +1,10 @@
+[Unit]
+Description=MeowSystem — vigia o Discord e repõe o Vencord que a atualização desfez
+Documentation=file:%h/.local/state/meowsystem/discord.log
+
+[Path]
+PathChanged=%h/.config/discord/installer.db
+Unit=meow-discord.service
+
+[Install]
+WantedBy=default.target

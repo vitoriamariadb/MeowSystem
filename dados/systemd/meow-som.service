@@ -1,0 +1,15 @@
+[Unit]
+Description=MeowSystem — toca o som de notificação do tema de som do pack (o COSMIC não toca)
+PartOf=cosmic-session.target
+After=cosmic-session.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz 2>/dev/null); [ -x "$R/scripts/som.sh" ] || exit 0; C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; exec "$R/scripts/som.sh" vigiar'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=cosmic-session.target

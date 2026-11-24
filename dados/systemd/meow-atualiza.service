@@ -1,0 +1,16 @@
+[Unit]
+Description=MeowSystem — puxa o master verde do GitHub e instala
+Documentation=file:%h/.local/state/meowsystem/atualiza.log
+ConditionEnvironment=WAYLAND_DISPLAY
+ConditionFileIsExecutable=%h/.local/bin/meow
+
+[Service]
+Type=oneshot
+
+ExecStartPre=-/bin/sh -c 'L=%h/.local/state/meowsystem/atualiza.log; [ -f "$L" ] || exit 0; [ "$(wc -c < "$L")" -lt 262144 ] && exit 0; tail -n 2000 "$L" > "$L.novo" && mv -f "$L.novo" "$L"'
+
+ExecStart=/bin/sh -c 'PATH="%h/.cargo/bin:%h/.local/bin:$PATH" exec %h/.local/bin/meow atualizar'
+
+Nice=10
+TimeoutStartSec=2h
+SyslogIdentifier=meow-atualiza

@@ -1,0 +1,19 @@
+[Unit]
+Description=MeowSystem — repõe o ícone da bandeja depois de um deploy de flatpak
+Documentation=file:%h/.local/state/meowsystem/flatpak.log
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+StartLimitIntervalSec=300s
+StartLimitBurst=20
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${FLATPAK_VIGIA:-sim}" = "sim" ]'
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStartPre=-/usr/bin/sleep 15
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/apos_flatpak.sh" ] || exit 3; . %h/.config/meow/meow.conf; export FLAVOR ACCENT NOME_TEMA_ICONES ICONES_COR_MARCA; exec "$R/scripts/apos_flatpak.sh" --aplicar'
+SuccessExitStatus=1 3
+ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${FLATPAK_VIGIA_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "Um flatpak atualizou e desfez o icone da bandeja. Ja repus. Ele aparece quando o aplicativo for fechado e aberto de novo."'
+TimeoutStartSec=5min
+StandardOutput=append:%h/.local/state/meowsystem/flatpak.log
+StandardError=inherit
+SyslogIdentifier=meow-flatpak

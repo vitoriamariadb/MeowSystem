@@ -1,0 +1,1226 @@
+"use strict";
+
+let PROVISORIO = null;
+function valeNaPrevia(chave) {
+  if (PROVISORIO && PROVISORIO.chave === chave) return PROVISORIO.valor;
+  return vale(chave);
+}
+function urlDoGato(nome) {
+  const g = previasDe("gato");
+  const i = g && g.itens.find((x) => x.id === nome);
+  return i && i.pronta ? i.url : "/gato.svg";
+}
+function paredeDaPrevia() {
+  const p = previasDe("parede", "ativos");
+  const i = p && p.itens.find((x) => x.pronta);
+  return i ? i.url : "";
+}
+const REGIAO = [
+  [/^(FORMA_.*PAINEL|VIDRO_OPACIDADE_PAINEL|VIDRO_AO_MAXIMIZAR|MIDIA|RELOGIO)/, "painel"],
+  [/^(FORMA_.*DOCK|VIDRO_OPACIDADE_DOCK|LOGO$)/, "dock"],
+  [/^(TERMINAL_|PROMPT_|FASTFETCH_)/, "term"],
+  [/^(ICONES_|PASTAS_|JANELAS_TILING)/, "arq"],
+];
+function previaDoPack(p, flavor) {
+  const todas = (p && p.previa) || {};
+  return todas[flavor] || todas[Object.keys(todas)[0]] || null;
+}
+function mesaDaPagina(pagina = "") {
+  const marca = new Set();
+  for (const c of chavesRecentes()) for (const [re, r] of REGIAO) if (re.test(c)) marca.add(r);
+  const gato = ESQUEMA.gato_no_dock || vale("LOGO");
+  const doTerminal = pagina === "mascote" || pagina === "terminal";
+  const ff = doTerminal && ligado(valeNaPrevia("FASTFETCH_LOGO"))
+    ? urlDoGato(valeNaPrevia("FASTFETCH_LOGO_GATO") || gato) : null;
+  const leitura = pagina === "dia-e-noite";
+  return MESA.mesa({
+    val: valeNaPrevia, marca, gato: urlDoGato(gato), ff, ffPagina: doTerminal, parede: paredeDaPrevia(),
+    ajuste: valeNaPrevia("WALLPAPER_AJUSTE"),
+    previa: previaDoPack(packNoAr(), flavorEmVigor()),
+    solo: pagina === "terminal" ? "term" : "",
+    ponteiro: pagina === "janelas",
+    quente: leitura ? valeNaPrevia("LEITURA_TEMPERATURA") : 0,
+    textura: leitura ? valeNaPrevia("LEITURA_TEXTURA") : null,
+    rotulo: "Prévia da área de trabalho",
+  });
+}
+function repintarPrevia(chave, valor) {
+  PROVISORIO = { chave, valor };
+  const velha = $("#conteudo .palco .previa");
+  if (velha) velha.replaceWith(mesaDaPagina(ROTA.sub));
+  PROVISORIO = null;
+}
+
+function cabeca(titulo, direita = []) {
+  return elemento("div", { class: "cabeca" }, [
+    elemento("h1", { texto: titulo }),
+    direita.length ? elemento("div", { class: "fila" }, direita) : null,
+  ]);
+}
+
+function estadoDaMaquina() {
+  if (!ESQUEMA.ponte) return { bom: false, titulo: "Sem permissão de sistema", icone: "alerta" };
+  return { bom: true, titulo: "Tudo em ordem", icone: "certo" };
+}
+
+function coresDoFlavor(p, flavorId) {
+  const f = (p.flavors || []).find((x) => x.id === flavorId);
+  return (f && f.cores) || p.amostra || [];
+}
+function amostraDeVariante(cores) {
+  const ordem = ESQUEMA.paleta.ordem || [];
+  const de = (n) => cores[ordem.indexOf(n)] || "";
+  const i = elemento("i");
+  i.style.setProperty("--a", de("base"));
+  i.style.setProperty("--b", de("mauve"));
+  i.style.setProperty("--c", de("green"));
+  return i;
+}
+
+async function vestir(p, flavorId) {
+  if (p.no_ar) {
+    if (flavorId && flavorId !== flavorEmVigor()) await gravarAgora({ FLAVOR: flavorId });
+    return;
+  }
+  await rodar(ACAO.get("pack_usar"), p.id, {
+    semPerguntar: true,
+    depois: () => {
+      const f = CHAVE.get("FLAVOR");
+      if (flavorId && f && flavorId !== (f.valor || "")) gravarAgora({ FLAVOR: flavorId });
+    },
+  });
+}
+
+function cartaoDePack(p) {
+  const ordem = ESQUEMA.paleta.ordem || [];
+  const flavor = p.no_ar ? flavorEmVigor() : ((p.flavors || []).find((f) => !f.claro) || (p.flavors || [])[0] || {}).id;
+  const previa = MESA.mesa({
+    cores: MESA.estiloDeCores(coresDoFlavor(p, flavor), ordem, p.no_ar ? vale("ACCENT") : "mauve"),
+    gato: p.no_ar || !p.mascote ? urlDoGato(ESQUEMA.gato_no_dock || vale("LOGO")) : p.mascote,
+    previa: previaDoPack(p, flavor),
+    rotulo: "Prévia do " + p.nome,
+    sem: new Set(p.no_ar ? [] : ["musica"]),
+  });
+  previa.dataset.controle = "pack:" + p.id + ":previa";
+  previa.tabIndex = -1;
+  previa.addEventListener("click", () => vestir(p, p.no_ar ? null : flavor));
+  const direita = [];
+  if (p.no_ar) {
+    direita.push(elemento("span", { class: "estado-no-ar", role: "img", "aria-label": "No ar", dica: "No ar" }, [icone("certo")]));
+  } else {
+    direita.push(botao("Aplicar tema", { class: "bt principal", controle: "pack:" + p.id + ":vestir",
+      dica: primeiraFrase((ACAO.get("pack_usar") || {}).ajuda), onclick: () => vestir(p, flavor) }));
+  }
+  if (p.remover && !p.remover.motivo) {
+    direita.push(botao("", { class: "bt so-icone", icone: "lixo", "aria-label": "Remover", dica: "Remover",
+      controle: "pack:" + p.id + ":remover",
+      onclick: () => rodar(ACAO.get("pack_remover"), p.id, { verbo: "Remover" }) }));
+  }
+  const variantes = elemento("div", { class: "variantes", role: "group", "aria-label": "Variantes do " + p.nome });
+  for (const f of p.flavors || []) {
+    const derivado = f.derivado || (p.claros_derivados || []).includes(f.id);
+    variantes.append(elemento("button", {
+      type: "button", controle: "pack:" + p.id + ":variante=" + f.id, dica: derivado ? "Claro derivado" : null,
+      "aria-pressed": String(!!p.no_ar && f.id === flavorEmVigor()),
+      onclick: () => vestir(p, f.id),
+    }, [amostraDeVariante(f.cores || []), maiuscula(f.nome)]));
+  }
+  return elemento("article", { class: "pack" + (p.no_ar ? " no-ar" : ""), "data-pack": p.id }, [
+    previa,
+    elemento("div", { class: "pack-corpo" }, [
+      p.capa ? logoDoCartao(p) : elemento("span"),
+      elemento("h2", { texto: p.nome }),
+      elemento("div", { class: "fila" }, direita),
+      variantes,
+    ]),
+  ]);
+}
+
+async function importarPack(arquivo) {
+  if (!arquivo) return;
+  let pedido;
+  try { pedido = { nome: arquivo.name, conteudo: await lerComoBase64(arquivo) }; }
+  catch (e) { torrada(String(e.message || e), "erro"); return; }
+  let r = await api("/api/pack-importar", { method: "POST", body: JSON.stringify(pedido) });
+  if (r.precisa_confirmar) {
+    const tira = elemento("div", { class: "vinte-seis", style: "padding:0" });
+    for (const c of ((r.pack && r.pack.paleta && Object.values(r.pack.paleta)[0]) || []).slice(0, 26)) {
+      const i = elemento("i"); i.style.setProperty("--c", c); tira.append(i);
+    }
+    if (!await perguntar({ titulo: r.titulo || "Abrir este tema?", ok: "Abrir", corpo: tira })) return;
+    r = await api("/api/pack-importar", { method: "POST", body: JSON.stringify({ ...pedido, confirmado: true }) });
+  }
+  if (r.erro || !r.instalado) { torrada(r.erro || "Não abriu", "erro"); return; }
+  torrada(`${(r.pack && r.pack.nome) || arquivo.name}: entrou`, "ok");
+  await Promise.all([recarregarPacks(), recarregarEsquema()]);
+  render();
+}
+function botaoAbrirTema() {
+  const campo = elemento("input", { type: "file", accept: ".meowpack,.csv", hidden: true });
+  campo.addEventListener("change", () => { const a = campo.files && campo.files[0]; campo.value = ""; importarPack(a); });
+  return elemento("span", { style: "display:contents" }, [
+    botao("Abrir um tema", { class: "bt", icone: "subir", controle: "tema:abrir",
+      dica: "Um .meowpack ou um .csv de cores", onclick: () => campo.click() }),
+    campo,
+  ]);
+}
+function pilulaDeSaude() {
+  const e = estadoDaMaquina();
+  return elemento("a", { href: "#cuidar", class: "saude" + (e.bom ? "" : " alerta"), controle: "tema:saude" },
+    [icone(e.icone), e.titulo]);
+}
+
+function paginaTema() {
+  const grade = elemento("div", { class: "grade-tema" });
+  const packs = PACKS.length ? PACKS : [];
+  for (const p of packs) {
+    const c = cartaoDePack(p);
+    c.style.gridColumn = "span 2";
+    grade.append(c);
+  }
+  const ACCENT = CHAVE.get("ACCENT");
+  const MODO = CHAVE.get("MODO");
+  const rodape = elemento("div", { class: "rodape-tema" });
+  const imediato = (chave) => (v) => {
+    escolher(chave, v);
+  };
+  if (ACCENT) {
+    const b = bloco("Cor de destaque", [elemento("div", { class: "corpo" }, [controleCor(ACCENT, imediato("ACCENT"), true)])]);
+    b.dataset.linha = "ACCENT";
+    rodape.append(b);
+  }
+  if (MODO) {
+    const seg = elemento("div", { class: "seg", role: "group", "aria-label": "Claro ou escuro" });
+    const valor = vale("MODO");
+    for (const op of MODO.opcoes) {
+      seg.append(elemento("button", { type: "button", "aria-pressed": String(op === valor),
+        controle: "chave:MODO=" + op, texto: rotuloDeValor(op, MODO), onclick: () => imediato("MODO")(op) }));
+    }
+    const b = bloco("Claro ou escuro", [elemento("div", { class: "corpo" }, [seg])]);
+    b.dataset.linha = "MODO";
+    rodape.append(b);
+  }
+  rodape.append(elemento("a", { class: "criar-meu", href: "#novo/cores", controle: "tema:criar" },
+    [icone("mais"), elemento("span", { texto: "Criar o meu tema" })]));
+  return [cabeca("Tema", [pilulaDeSaude(), botaoAbrirTema()]), grade, rodape];
+}
+
+const SEIS = [
+  ["base", "Fundo"], ["mantle", "Barras"], ["text", "Texto"],
+  ["mauve", "Destaque"], ["green", "Deu certo"], ["red", "Deu errado"],
+];
+const RASCUNHOS = { novo: null, aprimorar: null };
+const GUARDA_DO_RASCUNHO = { novo: "meow-criar", aprimorar: "meow-aprimorar" };
+function emNovo() { return ROTA.porta === "novo"; }
+function emCriacao() { return ROTA.porta === "criar" || ROTA.porta === "novo"; }
+function modoDoRascunho() { return emNovo() ? "novo" : "aprimorar"; }
+function rotaDoModo() { return emNovo() ? "novo" : "criar"; }
+function lerGuardado(modo) {
+  try { return JSON.parse(localStorage.getItem(GUARDA_DO_RASCUNHO[modo]) || "null"); } catch (e) { return null; }
+}
+function rascunhoDoAprimorar() {
+  const p = packNoAr();
+  for (const r of [RASCUNHOS.aprimorar, lerGuardado("aprimorar")]) {
+    if (r && r.base && p && r.pack === p.id) return (RASCUNHOS.aprimorar = r);
+  }
+  const fl = flavorEmVigor();
+  const flavor = p && !(p.flavors || []).some((f) => f.id === fl) && (p.flavors || [])[0] ? p.flavors[0].id : fl;
+  RASCUNHOS.aprimorar = { nome: p ? p.nome : "", base: { pack: p ? p.id : "", flavor }, cores: {}, pack: p ? p.id : "" };
+  return RASCUNHOS.aprimorar;
+}
+function rascunho() {
+  if (modoDoRascunho() === "aprimorar") return rascunhoDoAprimorar();
+  if (RASCUNHOS.novo) return RASCUNHOS.novo;
+  RASCUNHOS.novo = lerGuardado("novo");
+  if (!RASCUNHOS.novo || !RASCUNHOS.novo.base) {
+    const p = packNoAr() || PACKS[0] || { id: "", flavors: [] };
+    RASCUNHOS.novo = { nome: "Meu tema", base: { pack: p.id, flavor: flavorEmVigor() }, cores: {}, pack: "" };
+  }
+  return RASCUNHOS.novo;
+}
+let RASCUNHO_RELOGIO = null;
+function guardarRascunho() {
+  const modo = modoDoRascunho();
+  try { localStorage.setItem(GUARDA_DO_RASCUNHO[modo], JSON.stringify(rascunho())); } catch (e) { }
+  clearTimeout(RASCUNHO_RELOGIO);
+  RASCUNHO_RELOGIO = setTimeout(() => enviarRascunho(modo), 400);
+}
+function enviarRascunho(modo = modoDoRascunho()) {
+  clearTimeout(RASCUNHO_RELOGIO);
+  if (!RASCUNHOS[modo]) return Promise.resolve();
+  return api("/api/rascunho", { method: "POST", body: JSON.stringify({ rascunho: RASCUNHOS[modo], modo }) });
+}
+async function lerRascunhoDoServidor() {
+  for (const modo of ["novo", "aprimorar"]) {
+    const r = await api("/api/rascunho?modo=" + modo);
+    if (r && r.rascunho && r.rascunho.base) {
+      RASCUNHOS[modo] = r.rascunho;
+      try { localStorage.setItem(GUARDA_DO_RASCUNHO[modo], JSON.stringify(r.rascunho)); } catch (e) { }
+    }
+  }
+}
+function packDoAprimorar() {
+  return emNovo() ? null : PACKS.find((x) => x.id === rascunho().pack) || null;
+}
+async function gravarCoresNoTema(silencioso = false) {
+  const r = rascunho();
+  const p = packDoAprimorar();
+  if (!p) return false;
+  const cores = { ...(r.cores || {}) };
+  if (cores.mantle && !cores.crust) cores.crust = cores.mantle;
+  if (!Object.keys(cores).length) return true;
+  const b = document.querySelector('[data-controle="criar:guardar"], [data-controle="criar:aprimorar"]');
+  if (b) b.dataset.estado = "carregando";
+  const resp = await api("/api/pack-cores", { method: "POST", body: JSON.stringify({ id: p.id, flavor: r.base.flavor, cores }) });
+  if (b) delete b.dataset.estado;
+  if (resp.erro) { torrada(maiuscula(primeiraFrase(resp.erro)), "erro"); return false; }
+  for (const [papel, hexa] of Object.entries(cores)) if (r.cores[papel] === hexa) delete r.cores[papel];
+  guardarRascunho();
+  await recarregarPacks();
+  if (!silencioso) torrada(`${p.nome}: guardado`, "ok");
+  render();
+  return true;
+}
+function vinteSeis() {
+  const r = rascunho();
+  const p = PACKS.find((x) => x.id === r.base.pack) || packNoAr() || PACKS[0] || { flavors: [] };
+  const cores = coresDoFlavor(p, r.base.flavor);
+  const ordem = ESQUEMA.paleta.ordem || [];
+  const mapa = Object.fromEntries(ordem.map((n, i) => [n, cores[i] || "#000000"]));
+  for (const [n, v] of Object.entries(r.cores || {})) mapa[n] = v;
+  if (r.cores && r.cores.mantle && !r.cores.crust) mapa.crust = r.cores.mantle;
+  return mapa;
+}
+function luz(hex) {
+  const x = parseInt(String(hex).slice(1), 16);
+  const c = [(x >> 16) & 255, (x >> 8) & 255, x & 255].map((v) => {
+    v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+function contraste(a, b) {
+  const x = luz(a), y = luz(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+function idDoNome(nome) {
+  return String(nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "meu-tema";
+}
+
+function assinaturaDoTema() {
+  const r = rascunho();
+  return JSON.stringify([r.nome, r.base, r.cores]);
+}
+let GUARDANDO_TEMA = null;
+async function garantirPack() {
+  const r = rascunho();
+  const em_dia = r.pack && r.assinatura === assinaturaDoTema() && PACKS.some((x) => x.id === r.pack);
+  if (!em_dia && !(await guardarTema(true))) return null;
+  return PACKS.find((x) => x.id === r.pack) || null;
+}
+function guardarTema(silencioso = false) {
+  if (!GUARDANDO_TEMA) GUARDANDO_TEMA = guardarTemaAgora(silencioso).finally(() => { GUARDANDO_TEMA = null; });
+  return GUARDANDO_TEMA;
+}
+async function guardarTemaAgora(silencioso) {
+  const r = rascunho();
+  const id = idDoNome(r.nome);
+  const flavor = id.replace(/[^a-z0-9]/g, "") || "meu";
+  const mapa = vinteSeis();
+  const linhas = ["slot,flavor,hex", ...(ESQUEMA.paleta.ordem || []).map((n) => `${n},${flavor},${String(mapa[n]).toUpperCase()}`)];
+  const conteudo = btoa(unescape(encodeURIComponent(linhas.join("\n") + "\n")));
+  const b = document.querySelector('[data-controle="criar:guardar"]');
+  if (b) b.dataset.estado = "carregando";
+  const resp = await api("/api/pack-importar", { method: "POST",
+    body: JSON.stringify({ nome: id + ".csv", nome_do_tema: r.nome, conteudo, confirmado: true }) });
+  if (b) delete b.dataset.estado;
+  if (resp.erro || !resp.instalado) {
+    torrada(/contraste/.test(resp.erro || "") ? "Pouco contraste entre texto e fundo" : primeiraFrase(resp.erro || "Não guardou"), "erro");
+    return false;
+  }
+  r.pack = resp.id || id;
+  r.assinatura = assinaturaDoTema();
+  guardarRascunho();
+  const sons = await api("/api/criar", { method: "POST",
+    body: JSON.stringify({ id: r.pack, tipo: "sons", de: r.base.pack, levar: true }) });
+  if (sons.erro) torrada(maiuscula(primeiraFrase(sons.erro)), "erro");
+  if (!silencioso) torrada(`${r.nome}: guardado`, "ok");
+  await recarregarPacks();
+  render();
+  return true;
+}
+
+async function exportarPack(id) {
+  const rota = `/api/pack-exportar?id=${encodeURIComponent(id)}`;
+  const m = await api(rota + "&medir=1");
+  if (m.erro) { torrada(m.erro, "erro"); return; }
+  const avisos = (m.avisos || []).map((a) => maiuscula(a));
+  let semImagens = false;
+  if (m.imagens || avisos.length) {
+    const levar = elemento("input", { type: "checkbox", checked: true, "aria-label": "Imagens", controle: "exportar:imagens" });
+    const corpo = elemento("div", { class: "pilha", style: "gap:8px" }, [
+      ...avisos.map((a) => elemento("div", { class: "fila" }, [icone("alerta"), elemento("span", { texto: a })])),
+      m.imagens ? elemento("label", { class: "fila", dica: `${m.tamanho} · ${m.tamanho_sem_imagens} sem as imagens` },
+        [levar, elemento("span", { texto: "Imagens" })]) : null,
+    ]);
+    if (!await perguntar({ titulo: `Baixar o ${id}?`, ok: "Baixar", corpo })) return;
+    semImagens = !!m.imagens && !levar.checked;
+  }
+  let resposta;
+  try { resposta = await fetch(rota + (semImagens ? "&imagens=nao" : ""), { headers: { "X-Meow-Token": TOKEN } }); }
+  catch { faixaSemServidor(true); return; }
+  if (!resposta.ok) {
+    let erro = "";
+    try { erro = (await resposta.json()).erro || ""; } catch { }
+    torrada(erro || `HTTP ${resposta.status}`, "erro");
+    return;
+  }
+  const nome = (/filename="([^"]+)"/.exec(resposta.headers.get("Content-Disposition") || "") || [])[1] || `${id}.meowpack`;
+  const url = URL.createObjectURL(await resposta.blob());
+  elemento("a", { href: url, download: nome }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  torrada(`${nome}: baixado`, "ok");
+}
+
+const CHAVES_DO_SINO = ["SOM_FUNDAMENTAL", "SOM_HARMONICO", "SOM_PESO_FUNDAMENTAL", "SOM_PESO_HARMONICO", "SOM_DECAIMENTO"];
+function urlDoSino() {
+  const q = new URLSearchParams();
+  for (const c of CHAVES_DO_SINO) { const v = vale(c); if (v !== "") q.set(c, v); }
+  return "/sino?" + q.toString();
+}
+let AUDIO_TOCANDO = null;
+function tocarAudio(url, botao) {
+  if (AUDIO_TOCANDO) AUDIO_TOCANDO.pause();
+  for (const x of document.querySelectorAll("[data-tocando]")) delete x.dataset.tocando;
+  const audio = new Audio(url);
+  AUDIO_TOCANDO = audio;
+  botao.dataset.tocando = "";
+  const parar = () => { if (AUDIO_TOCANDO === audio) delete botao.dataset.tocando; };
+  const falhou = () => { parar(); torrada("Não consegui tocar este som", "erro"); };
+  audio.addEventListener("ended", parar);
+  audio.addEventListener("pause", parar);
+  audio.addEventListener("error", falhou);
+  audio.play().catch(falhou);
+}
+function tocarSino(botao) {
+  tocarAudio(urlDoSino(), botao);
+}
+
+function passoCores() {
+  const r = rascunho();
+  const mapa = vinteSeis();
+  const comeca = elemento("div", { class: "comeca", role: "group", "aria-label": "Começar de" });
+  for (const p of emNovo() ? PACKS : PACKS.filter((x) => x.id === r.pack)) {
+    for (const f of p.flavors || []) {
+      comeca.append(elemento("button", {
+        type: "button", controle: "criar:comeca=" + p.id + ":" + f.id,
+        "aria-pressed": String(r.base.pack === p.id && r.base.flavor === f.id),
+        onclick: () => { r.base = { pack: p.id, flavor: f.id }; r.cores = {}; guardarRascunho(); render(); },
+      }, [amostraDeVariante(f.cores || []), maiuscula(f.nome)]));
+    }
+  }
+  const pocos = elemento("div");
+  for (const [slot, nome] of SEIS) {
+    const hex = String(mapa[slot] || "#000000").toUpperCase();
+    const entrada = elemento("input", { type: "color", value: hex.toLowerCase(), "aria-label": nome,
+      controle: "criar:cor=" + slot });
+    entrada.addEventListener("change", () => { r.cores[slot] = entrada.value.toUpperCase(); guardarRascunho(); render(); });
+    const rotulo = elemento("label", {}, [entrada]);
+    rotulo.style.setProperty("--cor", hex);
+    let medida = null;
+    if (["text", "mauve", "green", "red"].includes(slot)) {
+      const c = contraste(hex, mapa.base);
+      const bom = c >= 4.5;
+      medida = elemento("span", { class: "contraste" + (bom ? "" : " ruim"), dica: "Contraste com o fundo" },
+        [icone(bom ? "certo" : "alerta"), c.toFixed(1).replace(".", ",") + ":1"]);
+    }
+    pocos.append(elemento("div", { class: "poco" }, [
+      rotulo, elemento("div", {}, [elemento("b", { texto: nome }), elemento("code", { texto: hex })]), medida,
+    ]));
+  }
+  const tira = elemento("div", { class: "vinte-seis", role: "img", "aria-label": "As 26 cores" });
+  for (const n of ESQUEMA.paleta.ordem || []) { const i = elemento("i", { dica: maiuscula(n) }); i.style.setProperty("--c", mapa[n]); tira.append(i); }
+  return [
+    bloco("Começar de", [elemento("div", { class: "corpo" }, [comeca])]),
+    bloco("Cores", [pocos, tira]),
+  ];
+}
+let ABA_ICONES = "apps";
+let ACERVO = null;
+let BUSCA_ACERVO = "";
+function packEmEdicao() {
+  if (!emCriacao()) return "";
+  const r = rascunho();
+  return r.pack || (r.base && r.base.pack) || "";
+}
+function chaveDoAcervo() {
+  const r = rascunho();
+  return JSON.stringify([modoDoRascunho(), r.pack || "", r.base.pack, vinteSeis()]);
+}
+async function carregarAcervo() {
+  const chave = chaveDoAcervo();
+  const r0 = rascunho();
+  ACERVO = { chave, carregando: true, sistema: [], biblioteca: [] };
+  const consulta = `id=${encodeURIComponent(emNovo() ? r0.pack || "" : "")}&base=${encodeURIComponent(r0.base.pack)}`
+    + `&cores=${encodeURIComponent(JSON.stringify(vinteSeis()))}`;
+  const r = await api(`/api/criar?${consulta}`);
+  if (!ACERVO || ACERVO.chave !== chave) return;
+  ACERVO = r.erro ? { chave, sistema: [], biblioteca: [], textos: [] }
+    : { chave, sistema: r.sistema || [], biblioteca: r.biblioteca || [], textos: r.textos || [] };
+  render();
+}
+let PREVIA_DO_RASCUNHO = null;
+let PREVIA_RELOGIO = null;
+function chaveDaPrevia() {
+  const r = rascunho();
+  return JSON.stringify([modoDoRascunho(), r.pack || "", r.base.pack, r.base.flavor || "", vinteSeis()]);
+}
+async function carregarPreviaDoRascunho(chave) {
+  const r0 = rascunho();
+  const consulta = `previa=1&id=${encodeURIComponent(r0.pack || "")}&base=${encodeURIComponent(r0.base.pack)}`
+    + `&flavor=${encodeURIComponent(r0.base.flavor || "")}&cores=${encodeURIComponent(JSON.stringify(vinteSeis()))}`;
+  const r = await api(`/api/criar?${consulta}`);
+  if (!PREVIA_DO_RASCUNHO || PREVIA_DO_RASCUNHO.chave !== chave) return;
+  PREVIA_DO_RASCUNHO = { chave, previa: r.erro ? null : r.previa || null };
+  if (emCriacao()) render();
+}
+function previaDoRascunho() {
+  const chave = chaveDaPrevia();
+  if (!PREVIA_DO_RASCUNHO || PREVIA_DO_RASCUNHO.chave !== chave) {
+    PREVIA_DO_RASCUNHO = { chave, previa: null };
+    clearTimeout(PREVIA_RELOGIO);
+    PREVIA_RELOGIO = setTimeout(() => carregarPreviaDoRascunho(chave), 250);
+  }
+  if (PREVIA_DO_RASCUNHO.previa) return PREVIA_DO_RASCUNHO.previa;
+  const r = rascunho();
+  return previaDoPack(PACKS.find((x) => x.id === (r.pack || r.base.pack)) || PACKS.find((x) => x.id === r.base.pack) || packNoAr(), r.base.flavor);
+}
+function fundoDoCartao(cores, paleta) {
+  if (!cores || !cores.length || !paleta.base) return null;
+  const melhor = (fundo) => Math.max(...cores.map((c) => contraste(c, fundo)));
+  const candidatos = ["base", "mantle", "crust", "text"].map((n) => paleta[n]).filter(Boolean).concat("#000000");
+  const padrao = melhor(paleta.base);
+  if (padrao >= 3) return null;
+  let fundo = paleta.base, nota = padrao;
+  for (const c of candidatos) { const m = melhor(c); if (m > nota + 0.05) { fundo = c; nota = m; } }
+  if (fundo === paleta.base) return null;
+  const nome = contraste(paleta.text, fundo) >= contraste(paleta.base, fundo) ? paleta.text : paleta.base;
+  return { fundo, nome };
+}
+function trocarDesenhoDoTema(pasta, nome) {
+  const campo = elemento("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true });
+  campo.addEventListener("change", async () => {
+    const arq = campo.files && campo.files[0];
+    if (!arq) return;
+    if (!rascunho().pack && !(await garantirPack())) return;
+    const id = rascunho().pack;
+    const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo: pasta, nome, levar: true,
+      aprimorar: !emNovo(), conteudo: await lerComoBase64(arq) }) });
+    if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+    torrada(`${maiuscula(nome.replace(/[-_]+/g, " "))}: trocado`, "ok");
+    DESENHO_ABERTO = null;
+    await carregarAcervo();
+  });
+  campo.click();
+}
+let DESENHO_ABERTO = null;
+let DESENHO_ESCOLHIDO = null;
+const GRUPOS_DE_SISTEMA = [["barra", "Barra e bandeja"], ["configuracoes", "Configurações"], ["janela", "Botões da janela"],
+  ["botoes", "Botões e janelas"], ["soneca", "Soneca"], ["pastas", "Pastas"], ["tipos", "Tipos de arquivo"]];
+const BARRAS_DE_TITULO = [["Janela", ["list-add-symbolic"], ["window-minimize-symbolic", "window-maximize-symbolic", "window-close-symbolic"]],
+  ["Janela maximizada", [], ["window-minimize-symbolic", "window-restore-symbolic", "window-close-symbolic"]]];
+function barrasDeTitulo() {
+  const itens = (ACERVO && ACERVO.sistema) || [];
+  const paleta = vinteSeis();
+  const botaoDaBarra = (nome) => {
+    const i = itens.find((x) => x.nome === nome);
+    if (!i) return null;
+    return elemento("button", { type: "button", class: "botao-da-barra", "data-nome": nome, controle: "trocar:barra",
+      "aria-label": maiuscula(i.rotulo || nome), dica: maiuscula(i.rotulo || nome),
+      onclick: () => { DESENHO_ABERTO = { pasta: "sistema", nome }; DESENHO_ESCOLHIDO = null; render(); } },
+      [elemento("img", { src: i.url, alt: "", width: "16", height: "16" })]);
+  };
+  const caixa = elemento("div", { class: "barras-de-titulo" });
+  for (const [rotulo, esquerda, direita] of BARRAS_DE_TITULO) {
+    const barra = elemento("div", { class: "barra-de-titulo", role: "group", "aria-label": rotulo, "data-barra": rotulo }, [
+      elemento("div", { class: "lado" }, esquerda.map(botaoDaBarra)),
+      elemento("span", { class: "titulo", "aria-hidden": "true" }),
+      elemento("div", { class: "lado" }, direita.map(botaoDaBarra)),
+    ]);
+    if (paleta.mantle || paleta.base) barra.style.setProperty("--fundo-da-barra", paleta.mantle || paleta.base);
+    if (paleta.surface1) barra.style.setProperty("--titulo-da-barra", paleta.surface1);
+    caixa.append(barra);
+  }
+  return caixa;
+}
+function textosDaExtensao(t) {
+  const caixa = elemento("div", { class: "textos-da-extensao", role: "group", "aria-label": t.nome, "data-extensao": t.extensao });
+  for (const c of t.chaves) {
+    const campo = elemento("input", { type: "text", class: "campo", value: c.valor || "", placeholder: c.padrao,
+      maxlength: "32", "aria-label": c.padrao, dica: c.padrao, controle: `texto:${t.extensao}:${c.chave}` });
+    campo.addEventListener("change", async () => {
+      const valor = campo.value.trim();
+      if (valor === (c.valor || "")) return;
+      if (!rascunho().pack && !(await garantirPack())) return;
+      const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id: rascunho().pack, tipo: "textos",
+        extensao: t.extensao, textos: { [c.chave]: valor }, aprimorar: !emNovo() }) });
+      if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+      torrada(`${maiuscula(valor || c.padrao)}: salvo`, "ok");
+      await carregarAcervo();
+    });
+    caixa.append(elemento("label", { class: "texto-da-extensao" }, [elemento("span", { texto: c.padrao }), campo]));
+  }
+  return caixa;
+}
+const OUTRA_PASTA = { sistema: "biblioteca", biblioteca: "sistema" };
+const FICHA_ABA = {};
+function fichaDoDesenho(pasta, alvo) {
+  const chave = (i) => `${i.pasta}|${i.de}|${i.nome}`;
+  const termo = semAcento(BUSCA_ACERVO.trim());
+  const daPasta = (p) => ACERVO[p].map((i) => ({ ...i, pasta: p }));
+  const itens = daPasta(pasta).concat(daPasta(OUTRA_PASTA[pasta])).filter((i) => !(i.pasta === pasta && i.nome === alvo.nome)
+    && (!termo || semAcento(i.rotulo || i.nome).includes(termo) || semAcento(i.nome).includes(termo)));
+  const escolhido = itens.find((i) => chave(i) === DESENHO_ESCOLHIDO) || null;
+  const lupa = elemento("div", { class: "oficina-lupa" });
+  const dock = elemento("div", { class: "oficina-dock", "aria-hidden": "true" });
+  const pintar = (url) => {
+    lupa.replaceChildren(elemento("img", { src: url, alt: "", width: "200", height: "200" }));
+    dock.replaceChildren(...[48, 32, 22].map((px) => elemento("img", { src: url, alt: "", width: String(px), height: String(px) })));
+  };
+  pintar((escolhido || alvo).url);
+  const usar = botao("Usar", { class: "bt principal", controle: "trocar:usar", hidden: !escolhido,
+    dica: "Usar este desenho neste ícone",
+    onclick: async () => {
+      const x = itens.find((i) => chave(i) === DESENHO_ESCOLHIDO);
+      if (!x) return;
+      if (!rascunho().pack && !(await garantirPack())) return;
+      const id = rascunho().pack;
+      const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo: pasta, nome: alvo.nome, levar: true,
+        aprimorar: !emNovo(), de: x.levado ? id : x.de, origem: x.nome, origem_pasta: x.pasta }) });
+      if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+      torrada(`${maiuscula(alvo.rotulo || alvo.nome)}: trocado`, "ok");
+      DESENHO_ABERTO = null;
+      DESENHO_ESCOLHIDO = null;
+      await carregarAcervo();
+    } });
+  const tira = elemento("div", { class: "tira-glifos" });
+  const escolher = (i, b) => {
+    DESENHO_ESCOLHIDO = chave(i);
+    for (const x of tira.querySelectorAll('[data-controle="trocar:opcao"]')) x.setAttribute("aria-pressed", String(x === b));
+    pintar(i.url);
+    usar.hidden = false;
+  };
+  const botaoDe = (i) => {
+    const b = elemento("button", { type: "button", controle: "trocar:opcao", "data-nome": i.nome, "data-pasta": i.pasta,
+      "aria-pressed": String(chave(i) === DESENHO_ESCOLHIDO), dica: maiuscula(i.rotulo || i.nome),
+      onclick: () => escolher(i, b) }, [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { texto: i.rotulo || i.nome })]);
+    return b;
+  };
+  const contagem = (p) => itens.filter((i) => i.pasta === p).length;
+  if (!FICHA_ABA[alvo.nome] || !contagem(FICHA_ABA[alvo.nome])) FICHA_ABA[alvo.nome] = contagem(pasta) ? pasta : OUTRA_PASTA[pasta];
+  const aba = FICHA_ABA[alvo.nome];
+  tira.append(elemento("div", { class: "seg mini", role: "group", "aria-label": "Acervo" }, [["sistema", "Sistema"], ["biblioteca", "Biblioteca"]]
+    .filter(([id]) => contagem(id)).map(([id, nome]) => elemento("button", { type: "button", "aria-pressed": String(aba === id),
+      controle: "trocar:aba=" + id, onclick: () => { FICHA_ABA[alvo.nome] = id; render(); } }, [`${nome} (${contagem(id)})`]))));
+  const secoes = aba === "sistema" ? GRUPOS_DE_SISTEMA : [["", ""]];
+  for (const [id, titulo] of secoes) {
+    const deles = itens.filter((i) => i.pasta === aba && (!id || i.grupo === id));
+    if (!deles.length) continue;
+    if (titulo) tira.append(elemento("h3", { texto: titulo }));
+    tira.append(elemento("div", { class: "grade-glifos", "data-acervo": aba }, deles.map(botaoDe)));
+  }
+  const cabecalho = elemento("header", {}, [
+    botao(pasta === "sistema" ? "Sistema" : "Biblioteca", { class: "bt leve pequeno", controle: "trocar:volta", icone: "voltar",
+      onclick: () => { DESENHO_ABERTO = null; DESENHO_ESCOLHIDO = null; render(); } }),
+    elemento("img", { src: alvo.url, alt: "" }),
+    elemento("h2", { texto: maiuscula(alvo.rotulo || alvo.nome) }),
+  ]);
+  return elemento("div", { class: "escolha-icone desenho", id: "desenho", "data-trocar": alvo.nome }, [
+    cabecalho,
+    elemento("div", { class: "desenho-corpo" }, [elemento("div", { class: "desenho-olho" }, [lupa, dock]),
+      elemento("div", { class: "desenho-mao" }, [tira])]),
+    elemento("footer", { class: "desenho-pe" }, [
+      botao("Trazer .svg", { class: "bt", icone: "subir", controle: "trocar:svg", dica: "Trocar por um SVG seu",
+        onclick: () => trocarDesenhoDoTema(pasta, alvo.nome) }),
+      usar]),
+  ]);
+}
+function gradeDoAcervo(pasta, grupo) {
+  if (!ACERVO || ACERVO.chave !== chaveDoAcervo()) carregarAcervo();
+  const pronto = ACERVO && !ACERVO.carregando;
+  const termo = semAcento(BUSCA_ACERVO.trim());
+  const itens = (pronto ? ACERVO[pasta] : []).filter((i) => (!grupo || i.grupo === grupo)
+    && (!termo || semAcento(i.rotulo || i.nome).includes(termo) || semAcento(i.nome).includes(termo)));
+  const grade = elemento("div", { class: "grade-apps pastas so-" + packEmEdicao(), "aria-busy": pronto ? null : "true",
+    "data-acervo": pasta, "data-grupo": grupo || null });
+  const paleta = vinteSeis();
+  if (paleta.base && paleta.text) {
+    grade.style.setProperty("--cartao-previa", paleta.base);
+    grade.style.setProperty("--tinta-previa", paleta.text);
+    grade.style.setProperty("--nome-previa", paleta.subtext1 || paleta.text);
+    grade.style.setProperty("--linha-previa", paleta.surface1 || paleta.overlay0 || paleta.text);
+  }
+  const pack = rascunho().pack && PACKS.find((x) => x.id === rascunho().pack);
+  for (const i of itens) {
+    const miolo = [elemento("img", { src: i.url, alt: "", loading: "lazy" }), elemento("span", { class: "nome", texto: i.rotulo || i.nome })];
+    const cartao = elemento("button", { type: "button", class: "app", "data-nome": i.nome, controle: "trocar:desenho",
+      "data-levado": i.levado ? "" : null, dica: "Trocar este ícone",
+      onclick: () => { DESENHO_ABERTO = { pasta, nome: i.nome }; DESENHO_ESCOLHIDO = null; render(); } }, miolo);
+    if (i.levado && pack) {
+      cartao.append(elemento("span", { class: "estado-pilula", "data-estado": "ok", texto: "Trocado" }));
+    }
+    const outro = fundoDoCartao(i.cores, paleta);
+    if (outro) {
+      cartao.style.setProperty("--cartao-previa", outro.fundo);
+      cartao.style.setProperty("--nome-previa", outro.nome);
+    }
+    grade.append(cartao);
+  }
+  if (pronto && !itens.length) {
+    grade.append(elemento("span", { class: "vazio-acervo", texto: BUSCA_ACERVO ? "Nada com esse nome" : "O pack não traz ícones aqui" }));
+  }
+  return grade;
+}
+let DESENHO_ACIMA = "";
+function fichaNaJanela(ficha) {
+  ficha.classList.add("na-janela");
+  if (DESENHO_ACIMA) ficha.style.setProperty("--desenho-acima", DESENHO_ACIMA);
+  requestAnimationFrame(() => {
+    if (!ficha.isConnected) return;
+    DESENHO_ACIMA = Math.ceil(ficha.getBoundingClientRect().top + scrollY + 16) + "px";
+    ficha.style.setProperty("--desenho-acima", DESENHO_ACIMA);
+  });
+  return ficha;
+}
+function passoIcones() {
+  const p = PASSOS.find((x) => x.id === "icones");
+  const abas = [["apps", "Apps"], ["sistema", "Sistema"], ["biblioteca", "Biblioteca"]];
+  const seg = elemento("div", { class: "seg", role: "group", "aria-label": "Que ícones" },
+    abas.map(([id, nome]) => elemento("button", { type: "button", "aria-pressed": String(id === ABA_ICONES),
+      "data-sub": id, controle: "icones:aba=" + id,
+      onclick: () => { ABA_ICONES = id; BUSCA_ACERVO = ""; DESENHO_ABERTO = null; render(); } }, [nome])));
+  const filtro = elemento("input", { type: "search", class: "campo", value: BUSCA_ACERVO, placeholder: "Filtrar",
+    "aria-label": "Filtrar ícones", controle: "acervo:filtro" });
+  filtro.addEventListener("input", () => { BUSCA_ACERVO = filtro.value; render(); });
+  const editando = rascunho().pack ? (PACKS.find((x) => x.id === rascunho().pack) || {}).nome || rascunho().pack
+    : (PACKS.find((x) => x.id === rascunho().base.pack) || {}).nome || rascunho().base.pack;
+  const cabeca = elemento("div", { class: "sub-abas" }, [seg,
+    ABA_ICONES === "apps" ? null : filtro,
+    elemento("span", { class: "editando", "data-editando": packEmEdicao(), texto: "Editando " + editando })]);
+  const alvo = DESENHO_ABERTO && DESENHO_ABERTO.pasta === ABA_ICONES && ACERVO && !ACERVO.carregando
+    && ACERVO.chave === chaveDoAcervo() && (ACERVO[ABA_ICONES] || []).find((i) => i.nome === DESENHO_ABERTO.nome);
+  if (alvo) return [cabeca, fichaNaJanela(fichaDoDesenho(ABA_ICONES, alvo))];
+  if (ABA_ICONES === "sistema") {
+    const pronto = ACERVO && !ACERVO.carregando;
+    const textos = (pronto && ACERVO.textos) || [];
+    const grades = GRUPOS_DE_SISTEMA.map(([id, titulo]) => {
+      const g = gradeDoAcervo("sistema", id);
+      const cheia = !!g.querySelector(".app");
+      const t = BUSCA_ACERVO ? null : textos.find((x) => x.extensao === id);
+      const miolo = [id === "janela" && cheia ? barrasDeTitulo() : null, cheia || !t ? g : null, t ? textosDaExtensao(t) : null];
+      return [titulo, miolo.filter(Boolean), cheia || !!t];
+    });
+    const cheias = grades.filter(([, , cheia]) => cheia);
+    const mostrar = cheias.length ? cheias : [[pronto ? "Sistema" : grades[0][0], grades[0][1]]];
+    return [cabeca, ...mostrar.map(([titulo, miolo]) => bloco(titulo, [elemento("div", { class: "corpo" }, miolo)]))];
+  }
+  if (ABA_ICONES === "biblioteca") {
+    return [cabeca, bloco("Biblioteca", [elemento("div", { class: "corpo" }, [gradeDoAcervo("biblioteca")])])];
+  }
+  const aberto = APP_ABERTO && APPS && !APPS.carregando && (APPS.apps || []).find((a) => a.id === APP_ABERTO);
+  if (aberto) return [cabeca, fichaNaJanela(escolhaDeIcone(aberto, carregarApps))];
+  const doBloco = (nome) => lista(p.linhas.filter((l) => l.bloco === nome), (l) => l.g === "acervo:icone");
+  const autoral = oficinaAutoral();
+  return [
+    cabeca,
+    bloco("Aplicativos", [elemento("div", { class: "corpo" }, [montarApps()])],
+      { direita: [botaoAcervo("icone", "Trazer .svg")] }),
+    bloco("Pastas", [doBloco("Pastas")]),
+    bloco("Cores", [doBloco("Cores")]),
+    autoral ? bloco(null, [autoral]) : null,
+  ].filter(Boolean);
+}
+let LEVA = null;
+async function carregarLeva(id) {
+  LEVA = { id, carregando: true, fotos: [] };
+  const r = await api(`/api/criar?id=${encodeURIComponent(id)}${emNovo() ? "" : "&aprimorar=1"}`);
+  LEVA = r.erro ? { id, fotos: [] } : { ...r, id };
+  render();
+}
+function packDoRascunho() {
+  const r = rascunho();
+  const pack = (r.pack && PACKS.find((x) => x.id === r.pack)) || null;
+  const id = pack ? pack.id : "";
+  if (!LEVA || LEVA.id !== id) carregarLeva(id);
+  return pack;
+}
+async function levarParaOTema(tipo, nome, levar, extra = {}) {
+  if (!rascunho().pack && !(await garantirPack())) return false;
+  const id = rascunho().pack;
+  const r = await api("/api/criar", { method: "POST", body: JSON.stringify({ id, tipo, nome, levar, aprimorar: !emNovo(), ...extra }) });
+  if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return false; }
+  await carregarLeva(id);
+  return true;
+}
+function botaoFotoDoTema() {
+  const campo = elemento("input", { type: "file", accept: ACERVO_ACEITA.parede, hidden: true, multiple: true });
+  const b = botao("Trazer imagens", { class: "bt pequeno", icone: "subir", controle: "acervo:parede",
+    onclick: () => campo.click() });
+  campo.addEventListener("change", async () => {
+    const arquivos = [...(campo.files || [])];
+    campo.value = "";
+    b.dataset.estado = "carregando";
+    try {
+      for (const arq of arquivos) {
+        await levarParaOTema("foto", arq.name, true, { arquivo: arq.name, conteudo: await lerComoBase64(arq) });
+      }
+    } finally {
+      delete b.dataset.estado;
+    }
+  });
+  return elemento("span", { style: "display:contents" }, [b, campo]);
+}
+function galeriaDoTemaNovo(pack) {
+  const pronto = pack && LEVA && LEVA.id === pack.id && !LEVA.carregando;
+  const grade = elemento("div", { class: "galeria", "aria-busy": !pack || pronto ? null : "true" });
+  for (const f of (pronto && LEVA.fotos) || []) {
+    grade.append(elemento("figure", { "data-papel": f.nome }, [
+      elemento("img", { src: f.url, alt: maiuscula(f.nome), loading: "lazy" }),
+      elemento("div", { class: "fila" }, [botao("", { class: "bt pequeno so-icone", icone: "lixo", "aria-label": "Apagar",
+        dica: "Apagar", controle: "papel:tema-apagar", onclick: async () => {
+          if (await perguntar({ titulo: `Apagar ${f.nome}?`, ok: "Apagar", perigo: true })) levarParaOTema("foto", f.nome, false);
+        } })]),
+    ]));
+  }
+  return grade;
+}
+let CREDITOS_PAPEIS = null;
+async function carregarCreditosDosPapeis() {
+  CREDITOS_PAPEIS = { carregando: true, papeis: [] };
+  const r = await api("/api/creditos-papeis");
+  CREDITOS_PAPEIS = { papeis: r.erro ? [] : r.papeis || [] };
+  render();
+}
+function dataCurta(iso) { return iso ? iso.split("-").reverse().join("/") : ""; }
+function creditosDosPapeis() {
+  if (!CREDITOS_PAPEIS) { carregarCreditosDosPapeis(); return null; }
+  if (!CREDITOS_PAPEIS.papeis.length) return null;
+  const lista = elemento("div", { class: "creditos-papeis" });
+  for (const p of CREDITOS_PAPEIS.papeis) {
+    const cena = maiuscula(p.cena);
+    const lado = (url, quando) => url ? elemento("img", { src: url, alt: `${cena}, ${quando}`, loading: "lazy", "data-lado": quando }) : null;
+    lista.append(elemento("figure", { class: "credito-papel", "data-cena": p.cena, "data-pack": p.pack, dica: p.licenca || "" }, [
+      elemento("div", { class: "par" + (p.noite ? "" : " so-um") }, [lado(p.dia, "de dia"), lado(p.noite, "de noite")]),
+      elemento("figcaption", {}, [
+        elemento("strong", { texto: cena }),
+        elemento("span", { texto: p.nome_do_pack }),
+        p.data ? elemento("time", { datetime: p.data, texto: dataCurta(p.data) }) : null,
+      ]),
+    ]));
+  }
+  return bloco("Autoria", [elemento("div", { class: "corpo" }, [lista])]);
+}
+function passoPapel() {
+  if (emNovo()) {
+    const pack = packDoRascunho();
+    return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [galeriaDoTemaNovo(pack)])],
+      { direita: [botaoFotoDoTema()] }), creditosDosPapeis()].filter(Boolean);
+  }
+  return [bloco("Papel de parede", [elemento("div", { class: "corpo" }, [montarGaleria()])],
+    { direita: [botaoAcervo("parede", "Trazer imagens")] }), creditosDosPapeis()].filter(Boolean);
+}
+let SONS = null;
+async function carregarSons(id) {
+  SONS = { id, carregando: true, eventos: [] };
+  const r = await api(`/api/sons?id=${encodeURIComponent(id)}`);
+  SONS = r.erro ? { id, eventos: [], erro: r.erro } : { ...r, id };
+  render();
+}
+function nomeDoSom(evento) {
+  const s = SONS && (SONS.eventos || []).find((x) => x.evento === evento);
+  return s ? s.nome : maiuscula(evento.replace(/-/g, " "));
+}
+function ouvirSom(pack, evento, b) {
+  tocarAudio(`/som?pack=${encodeURIComponent(pack)}&evento=${encodeURIComponent(evento)}`, b);
+}
+function trocarSom(evento) {
+  const campo = elemento("input", { type: "file", accept: ".oga,.ogg,audio/ogg", hidden: true });
+  campo.addEventListener("change", async () => {
+    const arq = campo.files && campo.files[0];
+    if (!arq) return;
+    if (!await levarParaOTema("som", evento, true, { arquivo: arq.name, conteudo: await lerComoBase64(arq) })) return;
+    torrada(`${nomeDoSom(evento)}: trocado`, "ok");
+    if (!emNovo()) await rodarAcao("som_aplicar");
+  });
+  return campo;
+}
+function envelopeDoSino() {
+  const f = Number(vale("SOM_DECAIMENTO")) || 46;
+  const pts = [];
+  for (let i = 0; i <= 60; i++) {
+    const s = i / 60;
+    const rampa = Math.min(1, s * 0.085 / 0.002, (1 - s) * 0.085 / 0.002);
+    pts.push(`${i ? "L" : "M"}${(4 + 292 * s).toFixed(1)} ${(60 - 52 * Math.exp(-s * 0.085 * f) * rampa).toFixed(1)}`);
+  }
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 300 64");
+  svg.setAttribute("class", "envelope");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = `<path class="eixo" d="M4 60H296"/><path data-envelope d="${pts.join(" ")}"/>`;
+  return svg;
+}
+function linhaDeSom(s, pack) {
+  const semPonte = s.ponte && !ESQUEMA.ponte;
+  const tocar = s.origem === "pack" && pack ? elemento("button", { type: "button", class: "p",
+    "aria-label": "Ouvir " + s.nome.toLowerCase(), dica: "Ouvir", controle: "som:ouvir",
+    onclick: () => ouvirSom(pack.id, s.evento, tocar) }, [icone("tocar")]) : elemento("span", { class: "p", "aria-hidden": "true" });
+  const campo = trocarSom(s.evento);
+  const origem = elemento("span", { class: "estado-pilula", "data-estado": s.origem === "pack" ? "ok" : "neutro",
+    "data-origem": s.origem, texto: s.origem === "pack" ? "Do pack" : "Do sistema" });
+  return elemento("li", { "data-som": s.evento, class: semPonte ? "sem-ponte" : null, "data-ponte": s.ponte ? "" : null }, [
+    tocar,
+    elemento("span", { class: "som-nome" }, [elemento("b", { texto: s.nome }), elemento("small", { texto: s.apelido ? `${s.quando} · ${s.apelido}` : s.quando })]),
+    elemento("span", {}, [origem, semPonte ? elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem permissão de sistema" }) : null]),
+    botao("Trocar", { class: "bt leve pequeno", controle: "som:trocar", icone: "trocar",
+      dica: "Um .oga no lugar deste", onclick: () => campo.click() }), campo,
+  ]);
+}
+function sonsDoSistema() {
+  const pack = packDoRascunho();
+  const id = pack ? pack.id : (packNoAr() || {}).id || "";
+  if (!SONS || SONS.id !== id) carregarSons(id);
+  const pronto = SONS && SONS.id === id && !SONS.carregando;
+  const leitura = packNoAr() && !pack ? packNoAr() : pack;
+  if (!pronto) return [bloco("Nativo do COSMIC", [elemento("div", { class: "esqueleto fio" })], { class: "fora-erro" })];
+  if (SONS.erro) return [bloco("Nativo do COSMIC", [elemento("div", { class: "corpo", texto: "Os sons não abriram" })])];
+  const grupos = [["cosmic", "Nativo do COSMIC"], ["apps", null]];
+  const saida = [];
+  if (!ESQUEMA.ponte) {
+    saida.push(elemento("section", { class: "bloco tracejado", "data-bloco": "ponte" }, [
+      elemento("div", { class: "aviso-linha" }, [
+        elemento("span", { class: "estado-pilula", "data-estado": "erro", texto: "Sem permissão de sistema" }),
+        elemento("span", { texto: "Carregador e bateria tocam o som do Pop" }),
+        botao("Reativar permissão de sistema", { class: "bt principal pequeno", icone: "refazer", controle: "som:ponte", onclick: semPonte }),
+      ]),
+    ]));
+  }
+  for (const [g, titulo] of grupos) {
+    const ul = elemento("ul", { class: "sons com-origem" });
+    for (const s of SONS.eventos.filter((x) => x.grupo === g)) ul.append(linhaDeSom(s, leitura));
+    saida.push(bloco(titulo, [ul]));
+  }
+  return saida;
+}
+let SINO_NOME = "";
+let SINO_DESTINO = "audio-volume-change";
+function gravarSino() {
+  const eventos = [{ evento: "audio-volume-change", nome: "Volume" }, ...((SONS && SONS.eventos) || [])];
+  const nome = elemento("input", { type: "text", class: "campo", value: SINO_NOME, maxlength: "48",
+    placeholder: "Nome do som", "aria-label": "Nome do som", controle: "sino:nome" });
+  const destino = elemento("select", { class: "campo", "aria-label": "Evento que toca este som", controle: "sino:evento" },
+    eventos.map((e) => elemento("option", { value: e.evento, texto: e.nome, selected: e.evento === SINO_DESTINO ? "" : null })));
+  const gravar = botao("Gerar Sons", { class: "bt principal", icone: "disco", controle: "sino:gravar",
+    hidden: !SINO_NOME.trim(), dica: "Grava o sino no tema, no evento escolhido",
+    onclick: async () => {
+      const pack = packDoRascunho() || await garantirPack();
+      if (!pack) return;
+      const corpo = { id: pack.id, tipo: "sino", nome: SINO_NOME.trim(), evento: SINO_DESTINO, aprimorar: !emNovo(),
+        timbre: Object.fromEntries(CHAVES_DO_SINO.map((c) => [c, vale(c)])) };
+      const r = await api("/api/criar", { method: "POST", body: JSON.stringify(corpo) });
+      if (r.erro) { torrada(maiuscula(primeiraFrase(r.erro)), "erro"); return; }
+      torrada(`${SINO_NOME.trim()}: gravado`, "ok");
+      SINO_NOME = "";
+      await carregarSons(pack.id);
+      if (!emNovo() || corpo.evento === "audio-volume-change") await rodarAcao("som_aplicar");
+    } });
+  nome.addEventListener("input", () => {
+    SINO_NOME = nome.value;
+    gravar.hidden = !SINO_NOME.trim();
+  });
+  destino.addEventListener("change", () => { SINO_DESTINO = destino.value; });
+  return elemento("div", { class: "corpo fila", "data-sino-gravar": "" }, [nome, destino, gravar]);
+}
+function passoSons() {
+  const p = PASSOS.find((x) => x.id === "sons");
+  const tocou = CHAVES_DO_SINO.some((c) => CHAVE.get(c) && CHAVE.get(c).valor);
+  const sino = elemento("div", { class: "sino" }, [
+    elemento("button", { type: "button", class: "tocar", "aria-label": "Tocar o sino", dica: "Tocar o sino",
+      controle: "criar:sino", onclick: (e) => tocarSino(e.currentTarget) }, [icone("tocar")]),
+    envelopeDoSino(),
+    elemento("span", { class: "estado-pilula", "data-estado": tocou ? "neutro" : "ok", "data-origem-sino": "",
+      texto: tocou ? "Trocado" : "Do pack" }),
+  ]);
+  return [bloco("Sino do volume", [sino, gravarSino(), lista(p.linhas)]), ...sonsDoSistema()];
+}
+function linhaDoResumo(rotulo, valor, miolo) {
+  return elemento("li", { class: "linha", "data-resumo": rotulo }, [
+    elemento("div", { class: "rot" }, [elemento("span", { texto: rotulo })]),
+    elemento("div", { class: "ctl" }, [miolo || null, elemento("span", { texto: valor })]),
+  ]);
+}
+function origemDaCategoria(base, nome) {
+  const c = ((base && base.categorias) || []).find((x) => x.categoria === nome);
+  if (!c) return "Do MeowSystem";
+  if (c.tipo === "próprio") return "Do " + base.nome;
+  if (c.tipo === "herdado") return "De " + maiuscula(c.de);
+  return "Do MeowSystem";
+}
+function passoMandar() {
+  const r = rascunho();
+  const base = PACKS.find((x) => x.id === r.base.pack) || packNoAr() || null;
+  const mapa = vinteSeis();
+  const mexidas = Object.keys(r.cores || {}).length;
+  const amostras = elemento("span", { class: "amostras" },
+    SEIS.map(([slot]) => elemento("i", { style: "--c:" + mapa[slot] })));
+  const resumo = elemento("ul", { class: "linhas resumo" }, [
+    linhaDoResumo("Cores", mexidas ? `${mexidas} mexida${mexidas > 1 ? "s" : ""}` : (base ? base.nome : ""), amostras),
+    linhaDoResumo("Ícones", origemDaCategoria(base, "ícones de aplicativo")),
+    linhaDoResumo("Pastas", origemDaCategoria(base, "pastas")),
+    linhaDoResumo("Papel de parede", origemDaCategoria(base, "papéis de parede")),
+    linhaDoResumo("Sons", origemDaCategoria(base, "som")),
+    linhaDoResumo("Temas de apps", origemDaCategoria(base, "temas de aplicativo")),
+    linhaDoResumo("Mascote", origemDaCategoria(base, "mascote")),
+  ]);
+  if (!emNovo()) {
+    const aprimorar = botao("Salvar no tema", { class: "bt principal", icone: "tema", controle: "criar:aprimorar",
+      onclick: async () => {
+        const p = packDoAprimorar();
+        if (p && await gravarCoresNoTema(true)) rodar(ACAO.get("pack_usar"), p.id, { semPerguntar: true });
+      } });
+    return [bloco(r.nome, [resumo, elemento("div", { class: "corpo fila" }, [aprimorar])])];
+  }
+  const saidas = elemento("div", { class: "corpo fila" }, [
+    botao("Baixar o tema", { class: "bt principal", icone: "baixar", controle: "criar:baixar",
+      dica: "Um .meowpack para outra máquina",
+      onclick: async () => { const pack = await garantirPack(); if (pack) exportarPack(pack.id); } }),
+    botao("Aplicar tema", { class: "bt", icone: "tema", controle: "criar:vestir",
+      onclick: async () => { const pack = await garantirPack(); if (pack) vestir(pack, null); } }),
+  ]);
+  return [bloco(r.nome, [resumo, saidas])];
+}
+
+function nomeDoPasso(p) {
+  return p.id === "mandar" && !emNovo() ? "Salvar no tema" : p.nome;
+}
+function paginaCriar(sub) {
+  const r = rascunho();
+  const i = PASSOS.findIndex((p) => p.id === sub);
+  const rota = "#" + rotaDoModo() + "/";
+  let titulo;
+  if (emNovo()) {
+    const nome = elemento("input", { class: "campo", value: r.nome, "aria-label": "Nome do tema",
+      controle: "criar:nome", maxlength: "48" });
+    nome.addEventListener("change", () => { r.nome = maiuscula(nome.value.trim()) || "Meu tema"; guardarRascunho(); render(); });
+    titulo = cabeca("Tema novo", [nome]);
+  } else {
+    titulo = cabeca("Editar " + (r.nome || ""));
+  }
+  const passos = elemento("ol", { class: "passos" }, PASSOS.map((p, j) => elemento("li", {}, [
+    elemento("a", { href: rota + p.id, controle: "passo:" + p.id, "aria-current": j === i ? "step" : null },
+      [elemento("b", {}, [j < i ? icone("certo") : String(j + 1)]), nomeDoPasso(p)]),
+  ])));
+  const corpo = sub === "icones" ? passoIcones() : sub === "papel" ? passoPapel()
+    : sub === "sons" ? passoSons() : sub === "mandar" ? passoMandar() : passoCores();
+  const seguir = elemento("div", { class: "seguir" }, [
+    i > 0 ? elemento("a", { class: "bt", href: rota + PASSOS[i - 1].id, controle: "criar:voltar" },
+      [icone("voltar"), elemento("span", { texto: "Voltar" })]) : elemento("span"),
+    elemento("div", { class: "fila" }, [
+      sub === "cores" ? (() => {
+        return botao("Guardar", { class: "bt principal", controle: "criar:guardar",
+          dica: emNovo() ? "Grava o tema entre os seus" : "Grava no " + r.nome,
+          onclick: () => (emNovo() ? guardarTema() : gravarCoresNoTema()) });
+      })() : null,
+      i < PASSOS.length - 1 ? elemento("a", { class: "bt", href: rota + PASSOS[i + 1].id, controle: "criar:proximo" },
+        [elemento("span", { texto: nomeDoPasso(PASSOS[i + 1]) }), icone("seta")]) : null,
+    ]),
+  ]);
+  const ordem = ESQUEMA.paleta.ordem || [];
+  const mapa = vinteSeis();
+  const previa = MESA.mesa({
+    cores: MESA.estiloDeCores(ordem.map((n) => mapa[n]), ordem, "mauve"),
+    gato: urlDoGato(ESQUEMA.gato_no_dock || vale("LOGO")), parede: sub === "papel" ? paredeDaPrevia() : "",
+    previa: previaDoRascunho(),
+    rotulo: "Prévia do tema",
+  });
+  return [
+    titulo,
+    passos,
+    elemento("div", { class: "oficina sem-trilho" }, [
+      elemento("div", { class: "palco" }, [previa]),
+      elemento("div", { class: "pilha" }, [...corpo.filter(Boolean), seguir]),
+    ]),
+  ];
+}
+
+function reguaDaNoite() {
+  const hora = (v) => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(v || "")); return m ? Number(m[1]) + Number(m[2]) / 60 : null; };
+  const ini = hora(vale("NOITE_INICIO")) ?? 18, fim = hora(vale("NOITE_FIM")) ?? 7;
+  const fila = (nome, rotulo, de, ate, ligada) => {
+    const barra = elemento("div", { style: "position:relative;height:28px;border-radius:8px;background:var(--fundo);overflow:hidden" });
+    const pinta = (a, b) => {
+      const s = elemento("span");
+      s.style.cssText = `position:absolute;top:0;bottom:0;left:${a / 24 * 100}%;width:${(b - a) / 24 * 100}%;background:${ligada ? "var(--accent-suave)" : "transparent"};border:1px ${ligada ? "solid var(--accent-linha)" : "dashed var(--linha-forte)"};border-radius:8px`;
+      barra.append(s);
+    };
+    if (de > ate) { pinta(de, 24); pinta(0, ate); } else pinta(de, ate);
+    return elemento("div", { style: "display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;align-items:center" }, [
+      elemento("span", { role: "img", "aria-label": rotulo, dica: rotulo }, [icone(nome)]), barra]);
+  };
+  const leituraIni = hora(vale("LEITURA_HORARIO_INICIO")) ?? ini, leituraFim = hora(vale("LEITURA_HORARIO_FIM")) ?? fim;
+  const parIni = hora(vale("WALLPAPER_NOITE_INICIO")) ?? ini, parFim = hora(vale("WALLPAPER_NOITE_FIM")) ?? fim;
+  const agora = new Date();
+  const marca = elemento("span", { role: "img", "aria-label": "Agora" });
+  marca.style.cssText = `position:absolute;top:0;bottom:0;left:calc(40px + (100% - 40px) * ${(agora.getHours() + agora.getMinutes() / 60) / 24});width:2px;background:var(--tinta)`;
+  const regua = elemento("div", { class: "corpo", style: "position:relative;display:grid;gap:8px" }, [
+    fila("gato", "Mascote", ini, fim, vale("LOGO_MODO") === "hora"),
+    fila("lua", "Claro ou escuro", Number(vale("MODO_AUTO_CLARO_ATE") || 18), Number(vale("MODO_AUTO_CLARO_DE") || 7), vale("MODO") === "auto"),
+    fila("imagem", "Papel de parede", parIni, parFim, ligado(vale("WALLPAPER_NOITE"))),
+    fila("sol", "Modo de leitura", leituraIni, leituraFim, ligado(vale("LEITURA_AGENDA"))),
+    marca,
+  ]);
+  return regua;
+}
+
+function linhaMesmoHorario() {
+  const areas = ESQUEMA.horario_das_areas || [];
+  if (!areas.length) return null;
+  const ligado = !!ESQUEMA.mesmo_horario;
+  const porque = `${areas.map((a, i) => (i ? a.area.toLowerCase() : a.area)).join(", ").replace(/, ([^,]*)$/, " e $1")} seguem a noite`;
+  const chave = elemento("button", { type: "button", class: "chave", role: "switch", "aria-checked": String(ligado),
+    "aria-label": "Mesmo horário", controle: "noite:mesmo-horario", dica: porque,
+    onclick: async () => {
+      chave.disabled = true;
+      const r = await api("/api/mesmo-horario", { method: "POST", body: JSON.stringify({ ligar: !ligado }) });
+      if (r.erro) torrada(maiuscula(primeiraFrase(r.erro)), "erro");
+      await recarregarEsquema();
+      render();
+    } });
+  return elemento("ul", { class: "linhas" }, [elemento("li", { class: "linha", "data-linha": "mesmo-horario" }, [
+    elemento("div", { class: "rot" }, [elemento("span", { texto: "Mesmo horário", dica: porque })]),
+    elemento("div", { class: "ctl" }, [chave]),
+  ])]);
+}
+
+function desenharAbas(p, direita) {
+  const lista = $("#abas-lista");
+  $("#abas").setAttribute("aria-label", "Ajustes");
+  if (lista.children.length !== AJUSTES.length || !lista.querySelector('[data-controle^="ajuste:"]')) {
+    lista.replaceChildren(...AJUSTES.map((x) => elemento("li", {}, [
+      elemento("a", { href: "#ajustes/" + x.id, controle: "ajuste:" + x.id },
+        [icone(x.icone), elemento("span", { texto: x.nome })]),
+    ])));
+  }
+  for (const a of lista.querySelectorAll("a")) {
+    if (a.dataset.controle === "ajuste:" + p.id) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  }
+  $("#abas-fila").replaceChildren(...direita);
+}
+
+function paginaAjustes(sub) {
+  const p = AJUSTES.find((x) => x.id === sub) || AJUSTES[0];
+  const direita = (p.cabeca || []).map((l) => {
+    const a = ACAO.get(l.a);
+    return a ? controleDeAcao(a, l.b, "pequeno")[0] : null;
+  }).filter(Boolean);
+  desenharAbas(p, direita);
+  const blocos = [];
+  for (const b of p.blocos) {
+    const sobra = (l) => l.e || (l.g && !l.g.startsWith("acervo:")) || l.g === "acervo:gato" || l.g === "acervo:cursor";
+    const filhos = [];
+    if (b.noite) filhos.push(reguaDaNoite());
+    if (b.jogos) filhos.push(montarJogos());
+    filhos.push(lista(b.linhas, sobra));
+    if (b.noite) filhos.push(linhaMesmoHorario());
+    blocos.push(bloco(b.titulo, filhos.filter(Boolean), { colunas: b.colunas, class: b.jogos ? "inteiro" : "" }));
+  }
+  const semPrevia = p.id === "programas";
+  return [
+    elemento("h1", { class: "sr", texto: p.nome }),
+    elemento("div", { class: "oficina" + (semPrevia ? " sem-previa" : "") }, [
+      semPrevia ? null : elemento("div", { class: "palco" }, [mesaDaPagina(p.id)]),
+      elemento("div", { class: "pilha" }, blocos.filter(Boolean)),
+    ].filter(Boolean)),
+  ];
+}
+
+function faixaDoEstado() {
+  const p = packNoAr();
+  const itens = [
+    ["Tema", p ? `${p.nome} · ${rotuloDeValor(flavorEmVigor())}` : rotuloDeValor(flavorEmVigor()), "#tema", "ok"],
+    ["Ícones", maiuscula(vale("NOME_TEMA_ICONES")), "#criar/icones", "ok"],
+    ["Barra e dock", ligado(vale("FORMA_DOCK_SOLTO")) ? "Flutuante" : "Na borda", "#ajustes/painel", "ok"],
+    ["Mascote", rotuloDeValor(ESQUEMA.gato_no_dock || vale("LOGO")), "#ajustes/mascote", "ok"],
+    ["Som", ligado(vale("SOM")) ? "Ligado" : "Desligado", "#criar/sons", ligado(vale("SOM")) ? "ok" : "alerta"],
+    ["Permissão de sistema", ESQUEMA.ponte ? "Ativa" : "Desativada", "#cuidar", ESQUEMA.ponte ? "ok" : "fora"],
+  ];
+  return elemento("div", { class: "faixa-estado" }, itens.map(([nome, valor, href, estado]) =>
+    elemento("a", { href, "data-estado": estado, controle: "estado:" + nome },
+      [elemento("b", { texto: nome }), elemento("span", { texto: valor || "Padrão" })])));
+}
+
+function ladrilhoDeCuidar(l) {
+  const miolo = (nome) => [elemento("span", { class: "icone" }, [icone(l.i)]), elemento("b", { texto: nome })];
+  if (l.a) {
+    const a = ACAO.get(l.a);
+    if (!a) return null;
+    const [tile, ...resto] = controleDeAcao(a, l.b, "");
+    if (!tile) return null;
+    tile.className = "bloco ladrilho" + (a.destrutivo ? " perigo" : "");
+    tile.replaceChildren(...miolo(l.b));
+    return elemento("div", { class: "ladrilho-no" }, [tile, ...resto]);
+  }
+  if (l.g === "exportar-conf") {
+    return elemento("div", { class: "ladrilho-no" }, [
+      elemento("a", { class: "bloco ladrilho", href: "/api/exportar/conf", download: true, controle: "cuidar:exportar",
+        dica: "Baixa um arquivo com os seus ajustes, para levar a outro computador" }, miolo(l.b))]);
+  }
+  if (l.g === "importar") {
+    const campo = elemento("input", { type: "file", accept: ".conf,text/plain", hidden: true });
+    campo.addEventListener("change", () => { const a = campo.files && campo.files[0]; campo.value = ""; importarArquivo(a); });
+    return elemento("div", { class: "ladrilho-no" }, [
+      elemento("button", { type: "button", class: "bloco ladrilho", controle: "cuidar:importar",
+        dica: "Lê o arquivo de ajustes de outro computador e aplica aqui na hora", onclick: () => campo.click() }, miolo(l.b)), campo]);
+  }
+  return null;
+}
+
+function gradeDeAcoesDeCuidar() {
+  const filhos = [];
+  for (const c of LUGAR_CUIDAR.cartoes) {
+    filhos.push(elemento("div", { class: "grupo-nome", "aria-hidden": c.semNome ? "true" : null },
+      [c.semNome ? null : elemento("h2", { texto: c.titulo })]));
+    for (const l of c.linhas) filhos.push(ladrilhoDeCuidar(l));
+  }
+  return elemento("section", { class: "grade-ladrilhos inteiro", "aria-label": "Ações de manutenção" }, filhos.filter(Boolean));
+}
+
+function paginaCuidar() {
+  const e = estadoDaMaquina();
+  const estado = LUGAR_CUIDAR.estado.filter((l) => l.a !== "doctor_consertar" || !ESQUEMA.ponte).map((l) => {
+    const a = ACAO.get(l.a);
+    return a ? controleDeAcao(a, l.b, "")[0] : null;
+  }).filter(Boolean);
+  if (estado[0]) estado[0].classList.add("principal");
+  const topo = elemento("section", { class: "bloco inteiro" }, [
+    elemento("div", { class: "estado-maquina" + (e.bom ? "" : " alerta") }, [
+      elemento("span", { class: "selo-grande" }, [icone(e.icone)]),
+      elemento("h1", { texto: e.titulo }),
+      elemento("div", { class: "fila" }, estado),
+    ]),
+    faixaDoEstado(),
+  ]);
+  const blocos = LUGAR_CUIDAR.blocos.map((b) => bloco(b.titulo, [lista(b.linhas)], { class: "metade" }));
+  const maquina = bloco("Ícones da máquina", [lista(LUGAR_CUIDAR.maquina)], { class: "metade" });
+  const perigo = bloco(null, [lista(LUGAR_CUIDAR.perigo)], { class: "tracejado metade" });
+  return [
+    elemento("div", { class: "grade-cuidar" }, [
+      topo,
+      gradeDeAcoesDeCuidar(),
+      blocos[0],
+      maquina,
+      blocos[1],
+      perigo,
+    ].filter(Boolean)),
+  ];
+}

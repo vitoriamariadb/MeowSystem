@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Warehouse: disco lilás com aro roxo e um baú de tábuas e rebites com um olho solar na frente. -->
+  <g transform="scale(.125)" fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="512" cy="512" r="512" fill="#524276" stroke="none"/>
+    <circle cx="512" cy="512" r="435" fill="#BBAFD5" stroke="none"/>
+    <!-- tampa -->
+    <path d="M275 392L340 335H685L748 392"/>
+    <path d="M275 395H748"/>
+    <path d="M385 338L335 395M640 338L685 395"/>
+    <!-- frente do baú -->
+    <path d="M275 392V685H748V392"/>
+    <path d="M336 396V680M684 396V680"/>
+    <path d="M340 456H682M340 627H682"/>
+    <!-- o olho solar -->
+    <circle cx="511" cy="542" r="50"/>
+    <path d="M460 542C478 522 495 516 511 516C527 516 545 522 563 542C545 562 527 568 511 568C495 568 478 562 460 542Z" stroke-width="8"/>
+    <circle cx="511" cy="542" r="20" stroke-width="7"/>
+    <circle cx="511" cy="533" r="6" fill="#FFFFFF" stroke="none"/>
+    <path d="M511 468V482M511 606V620M434 543H449M575 543H589M457 491L466 500M566 491L557 500M457 593L466 584M566 593L557 584" stroke-width="10"/>
+    <!-- rebites -->
+    <g fill="#FFFFFF" stroke="none">
+      <circle cx="305" cy="433" r="7"/><circle cx="305" cy="515" r="7"/><circle cx="305" cy="572" r="7"/><circle cx="305" cy="655" r="7"/>
+      <circle cx="718" cy="433" r="7"/><circle cx="718" cy="515" r="7"/><circle cx="718" cy="572" r="7"/><circle cx="718" cy="655" r="7"/>
+    </g>
+  </g>
+</svg>

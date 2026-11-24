@@ -1,0 +1,6 @@
+versao	estado	motivo
+47	quebra	GTK 4.16 morre em linux_dmabuf_tranche_done ao abrir janela no Wayland do COSMIC
+48	livre	GTK 4.18 abre sem contorno
+49	valido	abre o Clapper e os apps do 47
+50	valido	abre o Clapper e os apps do 47
+51	exclui	o GTK do 51 liga no GStreamer do runtime e o Clapper, que traz o próprio, morre com undefined symbol gst_play_config_set_loop

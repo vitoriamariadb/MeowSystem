@@ -1,0 +1,14 @@
+packs/meowsystem/wallpapers/BANIDOS.txt merge=ours
+
+packs/*/temas/capturados/** byte-exact
+
+**/temas/capturados/*/captura.txt -byte-exact
+
+packs/*/temas-de-apps/qbittorrent/*.qbtheme byte-exact
+packs/*/wallpapers/** byte-exact
+packs/*/sons/** byte-exact
+packs/CAMINHOS-DE-ANTES.tsv byte-exact
+
+.github/workflows/anonymity-check.yml ia-literal
+
+tests/auxiliares/conf-de-antes/** byte-exact

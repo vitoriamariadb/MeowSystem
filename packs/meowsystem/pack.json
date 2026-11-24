@@ -1,0 +1,121 @@
+{
+  "formato": 2,
+  "id": "meowsystem",
+  "nome": "MeowSystem",
+  "autor": "vitoriamariadb",
+  "licenca": "GPL-3.0-or-later",
+  "creditos": "CREDITOS.md",
+  "vitrine": {
+    "capa": "logo.svg",
+    "descricao_curta": "O pack padrão. Quatro flavors, do Latte ao Mocha.",
+    "descricao": "LEIA-ME.md",
+    "tags": [
+      "pastel",
+      "claro",
+      "escuro"
+    ],
+    "site": "https://github.com/catppuccin/catppuccin"
+  },
+  "paleta": {
+    "arquivo": "paleta.json",
+    "flavor_padrao": "mocha"
+  },
+  "cosmic": {
+    "mapa": null,
+    "nome_da_paleta": "catppuccin-<flavor>"
+  },
+  "icones": {
+    "gerador": "traco",
+    "apps": {
+      "recolorir": true
+    },
+    "autorais": {
+      "desenhos": "icones/apps/"
+    },
+    "mimetypes": {
+      "desenhos": "icones/sistema/",
+      "mapa": "icones/mimetypes.map"
+    },
+    "pastas": {
+      "desenhos": "icones/sistema/",
+      "mapa": "icones/pastas.map"
+    },
+    "sistema": {
+      "desenhos": "icones/sistema/",
+      "mapa": "icones/sistema.map",
+      "traco": {
+        "22x22": 4,
+        "scalable": 2.5
+      }
+    },
+    "bandeja": {
+      "desenhos": "icones/sistema/",
+      "mapa": "icones/bandeja.map"
+    }
+  },
+  "apps": {
+    "spotify": {
+      "spicetify_tema": "catppuccin",
+      "esquema": "<flavor>",
+      "acento_no_color_ini": true,
+      "arquivo": "temas-de-apps/spotify/catppuccin/color.ini",
+      "sha256": "9145743f76f81d95125df3aa65b16ab8e3f50d16c09608010b302b1834dbfeb9"
+    },
+    "qbittorrent": {
+      "arquivo": "temas-de-apps/qbittorrent/catppuccin-mocha.qbtheme",
+      "sha256": "f6ddf59ed881ea4a423e8d48a73f6f507c594a560f398097891fcb70bc8255e1"
+    },
+    "obsidian": {
+      "esquema": "Catppuccin"
+    },
+    "vscode": {
+      "esquema": "Catppuccin Mocha",
+      "origem": {
+        "extensao": "Catppuccin.catppuccin-vsc"
+      }
+    },
+    "vscode-icones": {
+      "esquema": "catppuccin-mocha",
+      "origem": {
+        "extensao": "Catppuccin.catppuccin-vsc-icons"
+      }
+    },
+    "heroic": {
+      "esquema": "catppuccin-<flavor>-<accent>.css"
+    },
+    "zapzap": {},
+    "kitty": {},
+    "gnome-terminal": {},
+    "telegram": {},
+    "discord": {},
+    "onlyoffice": {},
+    "libadwaita": {},
+    "krita": {},
+    "obs": {},
+    "firefox": {}
+  },
+  "mascote": {
+    "desenhos": "mascote/",
+    "dia": "mimir",
+    "noite": "coquinha"
+  },
+  "prompt": {
+    "starship": "prompt/starship.toml"
+  },
+  "origens": {
+    "wallpapers": {
+      "repo": "zhichaoh/catppuccin-wallpapers",
+      "commit": "1023077979591cdeca76aae94e0359da1707a60e",
+      "prefixo": "cat",
+      "curadoria": "wallpapers/FONTES.tsv"
+    }
+  },
+  "som": {
+    "fundamental": 880.0,
+    "harmonico": 1320.0,
+    "peso_fundamental": 0.62,
+    "peso_harmonico": 0.28,
+    "decaimento": 46.0,
+    "tema": "sons/"
+  }
+}

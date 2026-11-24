@@ -1,0 +1,376 @@
+dados/patches/ — o que este diretório é, e as CINCO armadilhas que custam caro.
+
+================================================================================
+0. DESDE 24/09/2026 QUEM COMPILA ESTA SÉRIE É O `meow compositor` (sprint P39)
+================================================================================
+    O `aurora-cosmic-comp-ws.sh` do Ritual da Aurora, que as seções abaixo
+    citam como o aplicador, foi desativado no Spellbook no mesmo dia: a regra
+    de 23/09 manda o que o MeowSystem usa de lá migrar para cá. Agora:
+
+        meow compositor --seco     diz o que faria, sem baixar nem escrever
+        meow compositor            baixa o fonte da versão instalada, aplica a
+                                   série com -F0, compila, confere os marcadores
+                                   e instala (sudo só no último passo)
+        meow compositor validar    baixa o fonte e só roda o dry-run
+        meow compositor conferir   o que o `--status` de lá mostrava
+        meow compositor reverter   como voltar ao binário do pacote
+
+    E UM ARQUIVO NOVO AQUI: `versao`, a última versão do cosmic-comp em que a
+    série passou. A versão nova não pede commit: a escada decide patch a patch,
+    grava a matriz, e o build com todos os `req`, marcadores e fumaça entra no
+    próximo login, com o shim como rede. O `tests/numeros.sh`, no gancho de
+    commit, traz a versão boa da matriz para cá. O `.estado` que o doctor lê
+    passou a ser o nosso, em `/var/lib/meowsystem/cosmic-comp/patches.estado`.
+    O que as seções abaixo dizem sobre `/var/lib/aurora` é história.
+
+================================================================================
+1. NEM TODO PATCH DAQUI ESTÁ APLICADO. HOJE, O DAQUI NÃO ESTÁ.
+================================================================================
+    Medido em 29/08/2026: o script de build da Aurora aplicava UM `.patch` só, e
+    o `cosmic-comp-raio-clampado.patch` NUNCA entrou em binário nenhum, apesar
+    de o README afirmar que entrava.
+
+    CONSERTADO EM 30/08/2026, METADE. A Sprint U trocou o patch único por uma
+    SÉRIE (`~/.config/zsh/patches/patches.d/series`, `req` aborta o build,
+    `opt` deixa seguir) e o raio-clampado ESTÁ declarado nela. Mas declarar não
+    é aplicar: o binário só muda com um `--build`, e ele ainda não rodou.
+    [28/09/2026: o `opt` deixou de existir — ver a seção 7.]
+
+        aurora-cosmic-comp-ws.sh --status   # série, marcador por patch, disco x sessão
+        ./scripts/meow doctor                   # a linha `patches` diz o mesmo, todo dia
+
+    Medido em 30/08/2026, depois da série:
+
+        grep -a -o 'AURORA-[A-Z-]*-PATCH-[0-9][0-9.]*' /usr/bin/cosmic-comp
+        -> AURORA-COSMIC-WS-PATCH-3.67        (e nada de RADIUS)
+
+    A DIFERENÇA QUE IMPORTA não é o código: é que agora existe alguém dizendo
+    isso em voz alta todo dia. Antes, a única fonte era um README que mentia.
+
+    NÃO EXISTE AQUI o `cosmic-comp-sem-workspace-vazio.patch` — o patch mais
+    importante da máquina, o que segura os workspaces alfinetados dela. Ele vive
+    só do lado da Aurora (`~/.config/zsh/patches/`). Este diretório carrega TRÊS
+    dos quatro da série, e o verificador do doctor diz isso para o "md5 igual"
+    verde não dar impressão de uma cobertura que não há.
+
+    O QUINTO ENTROU EM 17/09/2026: `cosmic-comp-blur-cache-textura.patch`.
+    O defeito dele não é de usabilidade como os outros — é o que DERRUBA A
+    SESSÃO. Às 19:56 daquele dia o cosmic-comp abortou com o backtrace da
+    thread de render parado em `render_blur` <- `capture_framebuffer`, e o
+    kernel registrou um `[gfxhub] page fault` do amdgpu com
+    `Faulty UTCL2 client ID: TCP (0x8)` — TCP é o Texture Cache Processor, isto
+    é, a GPU leu um endereço de textura que já não era dela. Morreram junto os
+    cosmic-applets, o cosmic-osd, o cosmic-files-applet, o cosmic-app-library e
+    o cosmic-workspaces; o greeter voltou 17 s depois.
+
+    A causa está em `capture_framebuffer`: ele usa DUAS texturas (o kawase
+    alterna entre elas a cada passe) e cacheava só uma. A segunda era criada
+    com `create_buffer` a cada chamada e descartada no fim — e o `draw` sequer
+    a lê. Barato enquanto a captura é rara; caro quando o damage tracker do
+    smithay entra no regime que ele anuncia UMA vez por processo:
+    "Duplicated FramebufferEffect element. Re-capturing every frame". Aí vira
+    uma alocação e uma liberação de textura de GPU por quadro, a 60 Hz.
+
+    O segundo hunk tira um gatilho desse regime: o caminho de captura de tela
+    (`image_copy_capture/render.rs:611`) usava `let blur_strength = 9;` cravado,
+    com um `// TODO` do próprio upstream, contra 1 ou 2 do caminho normal. Como
+    o `BlurState` é UM POR SUPERFÍCIE e compartilhado pelos dois caminhos, a
+    alternância entre `passes = 4` e `passes = 1` marcava o estado como sujo
+    toda vez, e `damage_since` passava a reportar a geometria inteira como dano.
+
+    ARMADILHA NOVA, QUE ENTRA NESTA LISTA COMO A SEXTA (ver abaixo): o cache da
+    segunda textura precisou de um NEWTYPE, não de um alias. O `UserDataMap` do
+    smithay indexa por `TypeId` — um `type BlurOffTexture<T> = Mutex<Option<T>>`
+    seria o MESMO tipo que `BlurTexture<T>`, cairia no mesmo slot, e as duas
+    texturas do ping-pong virariam uma só. O blur pintaria lixo, sem erro
+    nenhum. Por isso é `struct BlurOffTexture<T>(Mutex<Option<T>>)`.
+
+    NÃO É BACKPORT. Não existe correção upstream para colher: o pacote instalado
+    já contém todos os commits de blur do master (o último a tocar o arquivo é
+    `e8caf33`, de 04/09/2026), e o master está 3 commits à frente, nenhum em
+    render. Issues abertas com o mesmo quadro, nenhuma com resposta de
+    mantenedor: pop-os/cosmic-comp#2843 (hardware quase idêntico ao desta casa,
+    MESMO kernel), #2149 (mesmo page fault, anterior ao blur existir), #2782
+    (import cross-GPU, mesmo driver), #2795 (blur caro).
+
+    E O QUE ELE NÃO PROMETE: a #2149 é de 03/03/2026, quatro meses ANTES de o
+    blur ser mergeado. O blur é gatilho demonstrado neste crash, mas pode não
+    ser a única causa raiz da família de page faults do amdgpu. A medida de
+    controle está em `Migração-OS/scripts/medir-compositor.sh`, e o baseline de
+    antes em `Migração-OS/evidencias/compositor-ANTES-2026-09-17.txt`.
+
+    O TERCEIRO ENTROU EM 31/08/2026: `cosmic-comp-menu-clique-curto.patch`. Ela
+    descreveu o defeito assim — "em apps como o gradia o botão direito se aperta
+    e desaperta": o menu da janela nasce EMBAIXO do cursor, então um item já está
+    sob o ponteiro quando o release do mesmo clique chega, e o
+    `selected && Released` do `MenuGrab::button` fechava o menu antes de ela
+    conseguir ler o que havia dentro. O patch engole o release que chega em menos
+    de 250 ms desde o nascimento do grab. O press-drag-release continua íntegro.
+
+================================================================================
+2. `make VENDOR=1` APAGA O `vendor/` PATCHADO — E NÃO AVISA
+================================================================================
+    Quem for patchar o libcosmic vendorizado (os botões de janela à esquerda,
+    por exemplo) precisa saber ANTES: o alvo `VENDOR=1` do Makefile do
+    cosmic-comp limpa a árvore vendorizada antes de compilar. O patch some, o
+    build funciona, e o binário sai sem o efeito. Falha silenciosa completa.
+
+================================================================================
+3. A IDEMPOTÊNCIA NÃO PODE SER PELO CÓDIGO DE SAÍDA DO `patch`
+================================================================================
+    `patch --forward` devolve **1** para "já aplicado" — medido. Um script que
+    trate 1 como erro vai refazer ou abortar para sempre. O teste certo é
+    procurar o MARCADOR no arquivo-fonte:
+
+        grep -q 'AURORA-READING-MODE' <arquivo>       <- o BASE, sem a versão
+
+    O EXEMPLO ANTERIOR AQUI ESTAVA ERRADO, e o erro custaria uma árvore de fonte
+    patchada duas vezes: ele usava `AURORA-READING-MODE-1`, o marcador COM a
+    versão. Quando a versão do patch sobe (foi o que aconteceu com o de
+    workspace, 3.54 -> 3.67), o teste com versão responde "não aplicado" e o
+    `patch` reaplica por cima do que já estava lá. O teste é sempre pelo BASE; é
+    o que a coluna 3 da `series` declara. Corrigido em 30/08/2026.
+
+    E o marcador precisa de `#[used]` no lado Rust, senão o linker o descarta e
+    o `--ensure` deixa de reconhecer o build.
+
+================================================================================
+4. DRY-RUN LIMPO NÃO É PROVA DE QUE O PATCH APLICA CERTO (30/08/2026)
+================================================================================
+    O `patch` do GNU aceita FUZZ 2 por padrão. Medido: um `.patch` com contexto
+    inteiramente inventado passou no
+
+        patch -p1 --dry-run --forward --batch < inventado.patch     -> rc=0
+
+    e depois aplicou de verdade com "Hunk #1 succeeded at 1 with fuzz 2" — no
+    lugar errado do arquivo. A conferência do fim, por `strings` no binário, NÃO
+    pega isso: o marcador está lá, pregado onde não devia.
+
+    O `compilar()` da Aurora agora AVISA alto quando houve fuzz, e não aborta —
+    porque fuzz também é como um patch legítimo sobrevive a upstream empurrando
+    linhas. Exigir `-F0` nos `req` é uma linha de código, e é decisão dela.
+
+    Ou seja: dry-run responde "o patch encosta no arquivo?", não "o patch faz o
+    que promete?". Só o marcador no binário E o efeito na tela respondem a
+    segunda.
+
+
+================================================================================
+5. NEM TODO PATCH DAQUI É DO COSMIC-COMP — E CONFUNDIR ISSO DEU ALARME FALSO
+================================================================================
+    Entrou em 01/09/2026 o primeiro `.patch` que não é do compositor:
+
+        cosmic-files-wallpaper-menu.patch
+
+    Ele põe "Voltar papel de parede" e "Próximo papel de parede" no menu de
+    contexto da área de trabalho. Quatro coisas o separam dos outros três:
+
+      * O ALVO É OUTRO BINÁRIO — e não é o que o nome sugere. Quem desenha a
+        área de trabalho é o `cosmic-files-applet` (ele chama
+        `cosmic_files::desktop()`, que fixa `Mode::Desktop`), não o
+        `cosmic-files`. Os dois saem do mesmo pacote e da mesma lib, então o
+        patch é um só — mas são DOIS binários a instalar. Instalar só o primeiro
+        compila, instala, não dá erro nenhum e não muda um item no menu dela.
+
+      * QUEM O APLICA É NOSSO: `scripts/files_menu.sh`, não a série da Aurora.
+        Ele tem marcador (`MEOW-FILES-WALLPAPER-PATCH-2`), artefato por versão
+        de pacote e auto-build próprios.
+
+      * ELE NÃO VAI PARA `/usr/bin`. O binário patchado mora em `~/.local/bin`,
+        que vem ANTES de `/usr/bin` no PATH da sessão (medido), e os dois
+        programas são lançados por NOME. Um `apt upgrade` não tem o que
+        sobrescrever.
+
+      * QUANDO A VERSÃO DO PACOTE SOBE SEM BUILD, O NOSSO SAI DA FRENTE. É o
+        contrário do que o `aurora-cosmic-comp-ws.sh` faz, e de propósito: lá o
+        binário patchado é o compositor, e ficar sem ele é ficar sem sessão. Aqui
+        o custo de falhar para o upstream são dois itens de menu por alguns
+        minutos — muito mais barato que um gerenciador de arquivos de uma semana
+        atrás vencendo o que o apt acabou de instalar.
+
+    UM ARQUIVO POR GERAÇÃO (09/10/2026, P76). O `cosmic-files` 1.10 reescreveu
+    o menu da área de trabalho (`menu_item(...)` sem `.into()`, uma chamada por
+    bloco), e o patch do 1.9 não entra ali nem com fuzz 2. O rebase mora em
+    `cosmic-files-wallpaper-menu.patch`; o do 1.8/1.9 ficou como
+    `cosmic-files-wallpaper-menu-1.9.patch`. O `files_menu.sh build` tenta os
+    dois, do mais novo para o mais velho, com `--dry-run -F0`, e aplica o
+    primeiro que encosta limpo.
+
+    O ALARME FALSO, para não se repetir: o `scripts/compositor_patches.sh`
+    comparava TODO `.patch` deste diretório contra a série da Aurora — que é a
+    série do cosmic-comp — e dizia do arquivo novo, com cara de certo, "está no
+    repo e não na série, nunca entra em binário nenhum" e "a Aurora não o
+    carrega". As duas frases eram falsas. O conferidor passou a olhar só
+    `cosmic-comp-*.patch`, e a DIZER em voz alta quais ficaram de fora da conta.
+    O filtro é pelo NOME, de propósito: adivinhar o alvo pelos `+++` responde
+    errado no dia em que um patch do compositor tocar um arquivo de nome
+    parecido, e um nome é um contrato mais barato de manter que uma heurística.
+
+================================================================================
+6. O PATCH DO RAIO FOI REESCRITO EM 01/09/2026 — E ELE MOSTRA COMO ISSO ACONTECE
+================================================================================
+    O `apt full-upgrade` daquele dia levou o cosmic-comp para `a830784`, e o
+    `cosmic-comp-raio-clampado.patch` parou de aplicar:
+
+        [opt] cosmic-comp-raio-clampado.patch: NÃO aplica (rc=1)
+              Hunk #2 FAILED at 690
+
+    O upstream reescreveu `layer_radius_hook`: ele deixou de medir pelo
+    `bbox_from_surface_tree` (a caixa do frame ANTERIOR) e passou a medir pelo
+    tamanho do último `configure` que o cliente reconheceu. Isso conserta METADE
+    do problema — a medida errada. A outra metade continua lá: raio grande ainda
+    é `post_error(RadiusTooLarge)`, e `post_error` num cliente Wayland é fatal.
+    Então o clamp continua valendo, agora por cima da medida nova. Reescrito
+    como AURORA-COSMIC-RADIUS-PATCH-2.
+
+    TRÊS COISAS QUE ESSE DIA ENSINOU:
+
+      a) O `opt` FEZ O QUE DEVIA, e ninguém percebeu na hora. O build seguiu sem
+         o efeito, instalou um binário útil e não avisou em voz alta. Quem
+         acusou foi o `meow doctor`, na linha `patches`. Conferir aquela linha
+         DEPOIS DE TODO upgrade do cosmic-comp é o hábito que fecha esse buraco.
+
+      b) O MARCADOR PRECISA DE `#[used]`. Sem ele, o `static` que carrega a
+         string é descartado pelo compilador: o binário compila igual, funciona
+         igual, e sai SEM o marcador. Medido no primeiro build do patch
+         reescrito — `grep -a` devolveu vazio para RADIUS. E como o `--ensure`
+         decide reinstalar comparando marcadores, isso viraria uma recompilação
+         por ciclo do self-heal, para sempre.
+
+      c) O ESTRAGO REAL ERA MENOR QUE O SUSTO. Os valores dela (painel 16, dock
+         24) estão abaixo do teto (22, 36), então mesmo sem o clamp não havia
+         risco imediato. Medir o teto ANTES de entrar em pânico é `meow painel
+         teto`.
+================================================================================
+7. DESDE 28/09/2026 NÃO EXISTE PATCH OPCIONAL — TODOS SÃO `req`
+================================================================================
+    O build de 25/09/2026 (cosmic-comp 0.1~1790118748~24.04~0fbd457) saiu com
+    workspace e raio, e SEM o menu-clique-curto e o modo-leitura: os dois eram
+    `opt`, o dry-run falhou no fonte novo e o script seguiu. O sintoma que ela
+    viu três dias depois foi o applet do Modo de Leitura dizendo "o compositor
+    desta sessão ainda não lê estas chaves" — e o menu da janela voltando a
+    fechar sozinho. A lição (a) da seção 6 se repetiu: o `opt` fez o que devia,
+    e ninguém ouviu.
+
+    Decisão dela, com estas palavras: "tudo tem que ser obrigatório".
+
+      * a `series` declara os quatro como `req`;
+      * o `aurora-cosmic-comp-ws.sh` LÊ `opt` COMO `req` e avisa — uma linha
+        `opt` esquecida numa cópia velha não reabre o buraco;
+      * patch que não aplica ABORTA o build e o desktop fica no binário do
+        pacote (sem workspace fixo, sem modo de leitura) até alguém portar;
+      * o `--ensure` só instala artefato que tem TODOS os marcadores. Antes ele
+        reinstalava o de 25/09 sem conferir, e com tudo `req` isso viraria uma
+        reinstalação por hora sem nunca disparar o build.
+
+    OS DOIS FORAM PORTADOS NO MESMO DIA, e pelo mesmo motivo: o upstream
+    acrescentou um campo bem onde o hunk encaixava (`last_tablet_idx` no
+    `MenuGrab`, `decoration_preference` no `CosmicCompConfig`). E saíram como
+    v2, não só portados:
+
+      * REANCORADOS: todo encaixe que estava no FIM de uma lista (último campo,
+        último braço do `match`, último uniform) passou para o INÍCIO. O
+        upstream cresce pelo fim; a abertura não muda. Regra para patch novo:
+        ancore no começo da lista, ou na própria lógica que você corrige;
+      * O MODO DE LEITURA NÃO ESCURECE MAIS A TELA POR OMISSÃO: o uniform
+        `leitura_temp` (neutro = 1.0) virou `leitura_atenuacao` (= 1 − tint,
+        neutro = 0.0). Zero é o default do GL para uniform não passado, e na v1
+        um lugar de desenho que um update criasse sem este patch conhecer
+        sairia PRETO — a tela de login junto;
+      * MARCADORES -2 (AURORA-COSMIC-MENU-PATCH-2, AURORA-READING-MODE-2), e o
+        script da Aurora agora exige a versão que o `.patch` declara: subir um
+        patch recompila sozinho.
+
+    O cabeçalho de cada `.patch` tem a nota do porte e da v2. O build também
+    passou a rodar o aurora-glsl-gate (que existia e ninguém chamava) antes do
+    `make`, e a partir de uma árvore reextraída a cada vez.
+
+================================================================================
+SE O COMPOSITOR NÃO SUBIR — LEIA ANTES DE COMPILAR, NÃO DEPOIS
+================================================================================
+    /usr/bin/cosmic-greeter-start é literalmente `exec cosmic-comp cosmic-greeter`.
+    O greeter É o mesmo binário: um cosmic-comp quebrado tira o desktop DELA E A
+    TELA DE LOGIN JUNTO, e o drop-in da Aurora zerou o teto de tentativas — o
+    laço é infinito e silencioso. Só TTY (Ctrl+Alt+F2) ou ssh.
+
+    OS DOIS `--restore` ESTÃO ARMADILHADOS, e isto é o que alguém roda em pânico:
+      * `aurora-cosmic-comp-ws.sh --restore` copia o `.pkg-orig`, cujo md5 NÃO
+        bate com o do dpkg — ele já vem com o night light dentro.
+      * `aurora-night-light.py --restore` copia o `.orig`, que é o binário do
+        PACOTE, sem o patch de workspace: o número seco volta no painel.
+
+    O caminho de volta certo, e o procedimento completo em 6 passos, estão em
+    `git show 1b15ccb1^:docs/pesquisas/2026-08-29-modo-leitura-e-botoes.md` — PRIMEIRA seção do
+    arquivo, de propósito. Deixe-o impresso ou noutro aparelho: de nada serve um
+    procedimento de recuperação que só existe na máquina que não liga.
+
+================================================================================
+NO NITRO-5 O PROCEDIMENTO ACIMA É OUTRO — MEDIDO EM 17/09/2026
+================================================================================
+    O aviso de cima ("os dois --restore estão armadilhados") descreve a máquina
+    DELA. No nitro-5 do André a situação é diferente, e seguir o texto acima
+    faria alguém recusar exatamente o arquivo que funciona.
+
+    O QUE FOI MEDIDO AQUI, comando por comando:
+
+      dpkg --verify / md5sums do pacote:
+        2890f71a7222886cbcc92a8261159be1  usr/bin/cosmic-comp
+
+      md5sum /var/lib/aurora/cosmic-comp-0.1~1788962084~24.04~a557859.pkg-orig
+        2890f71a7222886cbcc92a8261159be1      <- BATE, exatamente
+
+      strings nesse .pkg-orig
+        nenhum AURORA-*, nenhum 'NIGHT LIGHT (Aurora)'
+
+    Ou seja: neste computador o `.pkg-orig` É o binário de fábrica puro. A razão
+    é simples — o night light nunca foi instalado aqui, então nunca houve o que
+    contaminar. E NÃO existe nenhum `.orig` nesta máquina, que é justamente o
+    arquivo que o procedimento dela manda usar.
+
+    O CAMINHO DE VOLTA NO NITRO-5, de um TTY (Ctrl+Alt+F2), nesta ordem:
+
+      V=0.1~1788962084~24.04~a557859
+      # 1. impede que um --ensure reinstale o build ruim pelas costas
+      sudo mv /var/lib/aurora/cosmic-comp-$V.aurora-ws \
+              /var/lib/aurora/cosmic-comp-$V.QUARENTENA
+      # 2. devolve o binário de fábrica
+      sudo cp -a /var/lib/aurora/cosmic-comp-$V.pkg-orig /usr/bin/cosmic-comp
+      sudo chmod 755 /usr/bin/cosmic-comp
+      # 3. sobe a tela de login de novo
+      sudo systemctl restart greetd
+
+    SEGUNDA REDE, se o /var/lib/aurora tiver sido perdido:
+      sudo apt-get install --reinstall \
+        /var/cache/apt/archives/cosmic-comp_${V}_amd64.deb
+
+    A LIÇÃO GERAL, que vale para as duas máquinas: NÃO confie na descrição de um
+    arquivo de reserva — meça o md5 dele contra o do dpkg antes de precisar
+    dele, e guarde o resultado por escrito. Levou um comando para descobrir que
+    o procedimento publicado era o errado para esta metade da casa.
+
+================================================================================
+8. O CACHE DO SMITHAY É INDEXADO POR TIPO — UM ALIAS NÃO CRIA SLOT NOVO
+================================================================================
+    Descoberto ao escrever o `cosmic-comp-blur-cache-textura.patch`, em
+    17/09/2026, e é o tipo de erro que compila, roda, e pinta lixo na tela.
+
+    O `UserDataMap` do smithay guarda uma coisa POR TIPO — a chave é o `TypeId`.
+    O blur precisava cachear uma segunda textura ao lado da primeira, e o
+    primeiro instinto é copiar a linha do alias que já existe:
+
+        type BlurTexture<T>    = Mutex<Option<T>>;
+        type BlurOffTexture<T> = Mutex<Option<T>>;    // <- ERRADO
+
+    Em Rust, `type` é APELIDO, não tipo novo: os dois `TypeId` são o MESMO. As
+    duas texturas do ping-pong cairiam no mesmo slot, o kawase leria e escreveria
+    na mesma textura, e o resultado sai como borrão errado — sem erro de
+    compilação, sem log, sem crash. Só feio.
+
+    O certo é um newtype de verdade:
+
+        struct BlurOffTexture<T>(Mutex<Option<T>>);
+        impl<T> Default for BlurOffTexture<T> { ... }
+
+    REGRA PRÁTICA para qualquer patch futuro que encoste em `UserDataMap`,
+    `user_data()` ou `get_or_insert_threadsafe`: se você precisa de DOIS valores
+    do mesmo formato, precisa de DOIS tipos nominais. `type` não serve.

@@ -1,0 +1,6 @@
+boxy-svg-boxy-svg-linux:com.boxy_svg.BoxySVG
+boxy-svg-boxy-svg:com.boxy_svg.BoxySVG:alias
+
+__main__.py:hefesto-dualsense4unix
+
+com.system76.CosmicFilesDialog:com.system76.CosmicFiles

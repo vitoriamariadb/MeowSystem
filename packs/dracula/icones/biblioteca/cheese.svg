@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<!-- Câmera-queijo: silhueta com mordidas, faixa central, lente de anéis e furos do queijo (cores medidas no PNG de origem). Desenhado em 1500x1124 e reduzido por escala, centrado no quadrado. -->
+<defs><mask id="q" maskUnits="userSpaceOnUse" x="0" y="0" width="1500" height="1124"><rect width="1500" height="1124" fill="#fff" />
+<circle cx="190" cy="168" r="72" fill="#000" />
+<circle cx="575" cy="85" r="52" fill="#000" />
+<circle cx="900" cy="30" r="32" fill="#000" />
+<circle cx="1440" cy="245" r="52" fill="#000" />
+<circle cx="80" cy="637" r="60" fill="#000" />
+<circle cx="178" cy="1030" r="62" fill="#000" />
+<circle cx="932" cy="1010" r="56" fill="#000" />
+</mask><clipPath id="c"><path d="M70 167 H510 L530 128 L600 18 H870 L930 45 L990 160 Q995 167 1005 167 H1400 Q1440 170 1465 200 V960 Q1465 1000 1420 1022 L1380 1030 H70 Q35 1020 35 965 V205 Q40 175 70 167Z" /></clipPath></defs>
+<g transform="scale(0.085333) translate(0,188)"><g mask="url(#q)">
+<path d="M70 167 H510 L530 128 L600 18 H870 L930 45 L990 160 Q995 167 1005 167 H1400 Q1440 170 1465 200 V960 Q1465 1000 1420 1022 L1380 1030 H70 Q35 1020 35 965 V205 Q40 175 70 167Z" fill="#F7C767" /><g clip-path="url(#c)">
+<rect x="0" y="314" width="1500" height="606" rx="0" fill="#EFA934" /><rect x="257" y="148" width="103" height="25" rx="0" fill="#EFA934" /><rect x="1163" y="105" width="215" height="70" rx="12" fill="#EFA934" /><ellipse cx="1388" cy="885" rx="80" ry="68" fill="#F7C767" /><path d="M607 148L628 75Q650 52 700 52H850Q872 56 882 95Q855 100 858 125Q870 145 890 148Z" fill="#F1EBD3" /><circle cx="752" cy="657" r="322" fill="#B0620F" /><circle cx="755" cy="660" r="255" fill="#EFA934" /><circle cx="751" cy="660" r="143" fill="#F2D88D" /><circle cx="930" cy="465" r="52" fill="#B0620F" /><circle cx="603" cy="620" r="45" fill="#CD7716" /><circle cx="628" cy="420" r="26" fill="#EFA934" /><circle cx="952" cy="820" r="30" fill="#EFA934" /><circle cx="532" cy="890" r="32" fill="#EFA934" /><circle cx="845" cy="684" r="28" fill="#F2D88D" /><circle cx="660" cy="807" r="13" fill="#B0620F" /><circle cx="1036" cy="601" r="13" fill="#B0620F" /><circle cx="915" cy="262" r="50" fill="#CD7716" /><circle cx="1285" cy="421" r="62" fill="#CD7716" /><ellipse cx="243" cy="497" rx="40" ry="48" fill="#CD7716" /><circle cx="282" cy="782" r="54" fill="#CD7716" /><circle cx="416" cy="411" r="28" fill="#CD7716" /></g></g></g></svg>

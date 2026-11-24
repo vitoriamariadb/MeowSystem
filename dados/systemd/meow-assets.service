@@ -1,0 +1,27 @@
+[Unit]
+Description=MeowSystem — o que sai do pack (mascote, papel de parede, temas de apps) se refaz
+Documentation=file:%h/.local/state/meowsystem/raiz
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+
+StartLimitIntervalSec=60s
+StartLimitBurst=20
+
+[Service]
+Type=oneshot
+
+ExecCondition=/bin/sh -c '[ -f %h/.config/meow/meow.conf ]'
+
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStartPre=-/usr/bin/sleep 3
+
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/logo.sh" ] || exit 0; C=%h/.config/meow/meow.conf; set -a; [ -f "$C" ] && . "$C"; set +a; exec "$R/scripts/vigia_assets.sh" --disparo'
+
+SuccessExitStatus=1 3
+
+ExecStopPost=-/bin/sh -c '[ "$EXIT_STATUS" = 1 ] || exit 0; C=%h/.config/meow/meow.conf; [ -f "$C" ] && . "$C"; [ "${ASSETS_VIGIA_NOTIFICAR:-sim}" = sim ] || exit 0; exec /usr/bin/notify-send -a MeowSystem -i preferences-desktop-theme "MeowSystem" "O pack mudou e já está no ar — mascote, papel de parede e temas de apps."'
+
+TimeoutStartSec=2min
+
+StandardOutput=append:%h/.local/state/meowsystem/logo.log
+StandardError=inherit
+SyslogIdentifier=meow-assets

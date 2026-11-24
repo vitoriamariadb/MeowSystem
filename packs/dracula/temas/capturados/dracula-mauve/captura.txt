@@ -1,0 +1,5 @@
+captura: dracula-mauve
+quando: 2026-09-11T22:27:28-03:00
+origem: ~/.config/cosmic
+arquivos: 189
+claro: o do alucard-mauve, derivado de latte-mauve (scripts/derivar_flavor.py)

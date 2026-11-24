@@ -1,0 +1,2190 @@
+# ---------------------------------------------------------------------------
+# meow.conf — tudo que o MeowSystem-Theme decide fica aqui.
+# Editou uma linha? Rode:  meow aplicar
+# Ver o que mudaria sem aplicar:  meow aplicar --dry-run
+#
+# Prefere responder a perguntas em vez de editar?  meow configurar
+#   (é o mesmo arquivo: o wizard pergunta, grava AQUI e oferece aplicar. Cada
+#    pergunta é uma chave deste arquivo, na ordem em que ela aparece, e a ajuda
+#    que ele mostra é o comentário que está logo acima dela. Escreveu um
+#    comentário melhor aqui? O wizard passa a mostrá-lo.)
+#
+# COMO ESTE ARQUIVO É ORGANIZADO, E O QUE CADA MARCA SIGNIFICA
+#   Uma seção é um ASSUNTO, não um bloco de arquivo. Foi assim que o painel
+#   deixou de ter três páginas de papel de parede e três de ícones: as abas
+#   vinham da ordem das seções daqui, e a ordem daqui vinha de quando cada
+#   coisa foi escrita. Agora quem manda é o assunto — a coleção, os ajustes e
+#   as ações dele moram na mesma página.
+#
+#   `# --- Capitulares ---`  abre um ASSUNTO novo.
+#   `# --- CAIXA ALTA ---`   abre um bloco DENTRO do assunto anterior.
+#   A convenção é do arquivo e já existia; até 02/09/2026 ela não era
+#   respeitada aqui, e a forma da barra, as janelas e o modo de leitura
+#   apareciam pendurados em "Ícones", que não tem relação com nenhum dos três.
+#
+#   `# @ ` é o TÍTULO do controle na tela. Um rótulo não é derivável: derivar
+#         da primeira oração do comentário produziu "Reparo notificar",
+#         "Vírgula-separado" e "Base". É a menor frase que diz o que o
+#         controle faz, e alguém a escreve.
+#   `# > ` é a FRASE que aparece embaixo do controle: uma linha, sem data e
+#         sem caminho absoluto.
+#   O resto do comentário é a memória do projeto e continua inteiro, atrás do
+#   "Por quê" de cada cartão. Nenhuma das duas marcas o substitui.
+# ---------------------------------------------------------------------------
+
+# --- Cor e tela -------------------------------------------------------------
+
+# ESTA SEÇÃO ERA DUAS, E AS DUAS ERAM AS MENORES DO ARQUIVO — 06/09/2026
+#   `Cor e tema` tinha 3 chaves e `Janelas e tela` tinha 5 — as duas menores
+#   das dez seções, num arquivo cuja maior tem 30. Como o painel deriva UMA ABA
+#   POR SEÇÃO, isso eram duas abas para oito controles, e a segunda nascia
+#   entre `Painel e dock` e `Papel de parede`, três seções longe da cor.
+#   A pergunta que as oito respondem é uma só: como a tela se parece. Qual
+#   Catppuccin, claro ou escuro, o lado a lado, o tamanho de tudo e o ponteiro.
+#
+#   AS CINCO DE BAIXO VIERAM INTEIRAS, do lugar onde estavam. Nenhuma linha de
+#   chave mudou um byte, e a `CURSOR_VERSAO` veio COLADA na `CURSOR` — é a
+#   ausência de linha em branco entre as duas que faz a de baixo herdar o
+#   comentário da de cima. São 29 chaves deste arquivo que vivem assim; mover
+#   uma sem a irmã apaga a explicação das duas sem nada acusar.
+
+# @ Variante do tema
+# > Catppuccin em três escuros e um claro, ou Dracula. Vale com qualquer cor de destaque.
+# [essencial] Qual variante de cor. Vale qualquer par com o ACCENT: o tema sai
+# por DERIVAÇÃO da paleta, e a captura que o pack traz
+# (`packs/<id>/temas/capturados/`) é refinamento, não requisito. O pré-voo diz
+# se este par ainda não tem a dele.
+#
+# "SÓ VALE O QUE TEM CAPTURA" ERA MENTIRA, E ELA SAÍA DUAS VEZES NA MESMA TELA
+# [corrigido em 21/09/2026]
+#   Este bloco dizia "só valem as combinações que já têm captura pronta". Na
+#   MESMA execução do `meow configurar`, cinco perguntas adiante, o wizard
+#   imprime «isto NÃO fecha a porta: o tema deste par sai por DERIVAÇÃO da
+#   paleta, e a captura é refinamento, não requisito» — duas frases do mesmo
+#   programa se contradizendo. E a linha `# > ` daqui é também o subtítulo do
+#   cartão no painel (`_frase_curta`, app/servidor.py), então a versão errada
+#   aparecia nas duas interfaces.
+#
+#   QUEM ESTÁ CERTO É A FRASE NOVA, e foi medido: `scripts/gerar_temas.py
+#   --saida <tmp> macchiato-teal dracula-sky latte-red frappe-yellow` escreveu
+#   os quatro `.ron`, rc=0 — nenhum dos quatro pares tem captura.
+#
+#   O QUE A CAPTURA MUDA é um passo a mais, não uma porta fechada: ela fixa o
+#   que o COSMIC desenhou na tela. Sem ela a etapa `tema` do install.sh se pula
+#   e as cores da janela ficam como estavam, até você importar
+#   `~/.local/state/meowsystem/temas/meowsystem-<flavor>-<accent>.ron` em
+#   Configurações > Aparência > Importar e rodar
+#   `meow tema capturar <flavor>-<accent>`.
+#
+#   O `.ron` NASCE NA MÁQUINA, e não vem no clone [22/09/2026]: ele é produto
+#   de `scripts/gerar_temas.py`, e produto gerado saiu do git. Quem o escreve é
+#   a etapa `gerar` do `./install.sh`, que roda antes da etapa `tema`. Para
+#   tê-lo sem instalar nada: `python3 scripts/gerar_temas.py <flavor>-<accent>`.
+#
+# O DRACULA ENTROU COMO VARIANTE, NÃO COMO OUTRO TEMA — 15/09/2026
+#   A paleta dele tem as mesmas 26 cores nomeadas dos quatro flavors do
+#   Catppuccin (conferido chave a chave), então cabe inteiro no mecanismo que já
+#   existia: uma entrada em `assets/paleta/catppuccin.json`, um `.ron` gerado e
+#   uma captura. Por isso o título desta chave deixou de dizer "do Catppuccin" —
+#   a lista abaixo não é mais só dele.
+# mocha | macchiato | frappe | latte | dracula
+FLAVOR="mocha"
+
+# @ Theme pack
+# > De onde vêm as cores e os ícones. Vazio usa o embutido (Catppuccin).
+# O pack é um diretório com `pack.json` e `paleta.json` — e nada mais é
+# obrigatório: o que ele não declarar é herdado do embutido, e
+# `meow pack info <id>` imprime, categoria por categoria, o que veio de onde.
+# O contrato inteiro está em docs/PACKS.md.
+#
+# Onde os packs são procurados, nesta ordem:
+#   $MEOW_PACKS  ·  ~/.local/share/meowsystem/packs  ·  <raiz>/packs
+# A do meio é a sua: um pack que você baixe vai ali e o projeto não precisa
+# saber que ele existe.
+#
+# VAZIO NÃO É "SEM PACK", É "O EMBUTIDO" — e há uma adoção por convenção:
+#   sem esta chave, um FLAVOR que nomeie um pack existente adota esse pack.
+#   É o que faz um meow.conf escrito antes do formato continuar valendo:
+#   `FLAVOR="dracula"` sem linha `PACK` acha `packs/dracula` e o adota. Esta
+#   chave, quando preenchida, vence a convenção.
+PACK=""
+
+# @ Acervo de papel de parede do Dracula
+# > O repositório de onde vêm as imagens quando a variante é Dracula. Vazio usa o acervo comum.
+# [avancado] `dono/repo` do GitHub, ou um caminho começando com /, ~ ou ./ para
+# semear de uma pasta local. Vazio = o flavor `dracula` usa o mesmo acervo dos
+# sabores do Catppuccin.
+#
+# POR QUE ISTO É CONFIGURAÇÃO, E NÃO UM VALOR NO SCRIPT
+#   Esta é a única chave do arquivo que nomeia a CONTA de alguém. O sanitizer de
+#   identidade redige o `user.name` do git em tudo que entra num commit — e faz
+#   bem, porque o MeowSystem é repositório de duas pessoas. Escrito no
+#   `wallpaper.sh`, o valor virava `[REDACTED]/...` e a semeadura falhava. Aqui
+#   ele fica no `meow.conf`, que não é versionado, e cada máquina aponta para o
+#   acervo de quem quiser.
+WALLPAPER_DRACULA_REPO=""
+
+# @ Commit do acervo do Dracula
+# > O commit fixado do repositório acima. Obrigatório quando o acervo é do GitHub.
+# [avancado] Sem pino não há receita: um upstream que muda sozinho transforma
+# "rodei o instalador" em "rodei num dia em que o repositório estava de um
+# jeito". Para pasta local não se aplica.
+WALLPAPER_DRACULA_COMMIT=""
+
+# @ Cor de destaque
+# > A cor que marca o que está selecionado, em toda a máquina.
+# [essencial] A cor de destaque.
+# mauve | pink | lavender | blue | sapphire | sky | teal | green | yellow | peach | maroon | red
+ACCENT="mauve"
+
+# @ Claro ou escuro
+# > A variante acima diz qual escuro; esta diz se a máquina veste claro ou escuro. Em automático, quem decide é o relógio.
+# [essencial] Claro ou escuro em toda a máquina. O FLAVOR acima diz QUAL escuro
+# (mocha, macchiato, frappe); esta diz SE a máquina veste claro ou escuro, e
+# `auto` entrega a decisão ao relógio.
+#
+# A CHAVE NÃO TINHA UMA LINHA DE EXPLICAÇÃO, E O CARTÃO FICAVA COM A DA OPÇÃO
+#   Até 02/09/2026 o único texto aqui era a lista de valores. A página e o
+#   `meow configurar` tiram o título e o "Por quê" do PRIMEIRO parágrafo do
+#   comentário, e o que sobrava era o aparte entre parênteses: o cartão se
+#   chamava "Auto alterna Mocha/Latte por horário" — a descrição da TERCEIRA
+#   opção no lugar do nome da chave, com "Escuro" e "Claro" ao lado sem uma
+#   palavra dizendo o que mudam.
+# escuro | claro | auto   (auto alterna Mocha/Latte por horário)
+MODO="escuro"
+
+# A ESTRUTURA DO TEMA NÃO MORA AQUI, E TENTAR NÃO FUNCIONARIA
+#   Raio das quinas, gaps, espessura do contorno da janela em foco, nível de
+#   vidro fosco e o alpha do fundo vivem em `assets/paleta/cosmic-map.json`, sob
+#   `estrutura_preservada` — são os valores herdados do tema que VOCÊ montou, e
+#   o `gerar_temas.py` os copia sem recalcular.
+#
+#   Até 08/08/2026 este arquivo oferecia seis chaves para eles (RAIO,
+#   GAP_EXTERNO, GAP_INTERNO, DICA_ATIVA, VIDRO, ALPHA_FUNDO) e NENHUM script as
+#   lia — o `meow configurar` perguntava, dizia "gravado", e nada mudava.
+#   Implementá-las seria pior que removê-las: elas alimentariam os `.ron` de
+#   `~/.local/state/meowsystem/temas/`, que servem só para o import manual na
+#   GUI (o tema aplicado vem por CÓPIA da captura do pack, ver `meow pack`).
+#   A chave pareceria funcionar e só valeria depois de três
+#   cliques em Aparência — que é o defeito de "prometer o que não se cumpre".
+#
+#   Para mudar de verdade: edite `assets/paleta/cosmic-map.json`, rode
+#   `meow doctor --consertar` para regerar o .ron, importe uma vez pela GUI e
+#   `meow tema capturar <flavor>-<accent>`.
+
+# @ Janelas lado a lado
+# > Cada janela nova divide o espaço da que estava em foco.
+# AS JANELAS LADO A LADO (o "fibonacci")
+# O pedido de 25/08/2026 foi o layout dwindle do Hyprland — cada janela nova parte
+# ao meio o espaço da anterior, formando a espiral. O cosmic-comp JÁ FAZ ISSO,
+# sem patch: é BSP binário, divide 50/50 (`tiling/mod.rs:2898` e :177-190) e
+# escolhe a orientação pelo lado mais longo da janela focada (:585-591). Isso é
+# `dwindle` + `force_split = 2`, e `force_split` não existe aqui nem faz falta.
+#
+# VAZIO = NÃO TOCA, porque isto tem atalho de teclado: `Super+Y` alterna o lado
+# a lado, `Super+O` vira a divisão de um grupo, `Super+G` solta uma janela. Se
+# você mudar pelo atalho e a chave estiver preenchida, o doctor devolve o valor
+# daqui às 5h — o `conferir` avisa antes de isso virar mistério.
+#
+# O ESCOPO NÃO É DETALHE, É A DIFERENÇA ENTRE FUNCIONAR E NÃO FUNCIONAR:
+#   global     liga em todo workspace, inclusive nos que já existem. Medido:
+#              186.699 pixels mudaram na tela, na hora, sem reiniciar nada.
+#   workspace  cada workspace guarda o seu estado, e a chave só vale para
+#              workspace NOVO. Ligar com este escopo muda ZERO pixel na tela —
+#              `apply_tile_change` (shell/mod.rs:1485) só percorre os workspaces
+#              existentes dentro de `if matches!(.., TileBehavior::Global)`.
+#              Não é bug e não dá erro: é o que a palavra "PerWorkspace" quer
+#              dizer. Foi a armadilha que fez "Super+Y não faz nada" em 25/08.
+#
+# E o motivo mais simples de "apertei e nada aconteceu" continua valendo para os
+# dois escopos: COM UMA JANELA SÓ na tela, lado a lado é idêntico a maximizado.
+JANELAS_TILING="sim"              # sim | nao | vazio (vazio = não toca)
+
+# @ Onde o lado a lado vale
+# > Em todas as áreas de trabalho, ou só na atual.
+# O escopo do lado a lado: em quais workspaces ele passa a valer.
+#
+#   global     vale em todo workspace, inclusive nos que já existem — medido:
+#              186.699 pixels mudaram na tela, na hora, sem reiniciar nada.
+#   workspace  cada workspace guarda o seu, e a chave só vale para workspace
+#              NOVO. Ligar com este escopo muda ZERO pixel agora.
+#
+# NÃO HÁ TERCEIRO ESTADO AQUI, E O BLOCO DE CIMA FAZIA PARECER QUE HAVIA
+#   Esta linha vinha colada na `JANELAS_TILING`, sem comentário próprio, e
+#   herdava o bloco dela — que declara o terceiro estado ("não mexer") da OUTRA
+#   chave. A página lia aquilo como se valesse também aqui e desenhava um
+#   terceiro botão; o `janelas.sh:224` traduz linha em branco para `global`, ou
+#   seja, o contrário do que o botão prometia. Esta chave tem duas palavras e
+#   mais nada. Corrigido em 02/09/2026.
+JANELAS_TILING_ESCOPO="global"    # global | workspace
+
+# @ Tamanho de tudo na tela
+# > É também a única forma de aumentar a fonte no COSMIC.
+# O TAMANHO DE TUDO NA TELA — e a única forma de aumentar a FONTE no COSMIC.
+#
+# Não há chave de tamanho de fonte neste desktop: o texto da interface é 14 px
+# fixos no código da libcosmic, `interface_density` mexe só em espaçamento e
+# `COSMIC_SCALE` não alcança o painel nem a dock. Quem multiplica o texto (e
+# tudo o mais) é a escala da saída — Ajustes → Telas → Escala.
+#
+#   1.0 = 100% (padrão)   1.25 = 25% maior   1.5 = 50% maior
+#
+# Vazio = o MeowSystem não mexe na escala. Com valor, o `install.sh` aplica em
+# todas as telas ligadas — e SÓ o install: o `meow doctor` não toca nisto, para
+# que mudar pela GUI não seja desfeito no dia seguinte.
+#
+# Escala fracionária faz o Xwayland (Steam, jogos antigos) sair levemente
+# borrado, porque o compositor reamostra. Em 1.0 isso não acontece.
+#
+# A LISTA ESTÁ AQUI PORQUE A PÁGINA E O WIZARD LEEM ESTA LINHA — 02/09/2026.
+# Sem ela a chave virava campo de texto livre e aceitava `gigante` calado; o
+# `escala.sh` então caía no `*)` e ninguém ligava o erro ao clique.
+# vazio | nitida | 1.0 | 1.25 | 1.5 | 2.0
+ESCALA_TELA=""
+
+# @ Tema do ponteiro
+# > O único elemento que atravessa a tela inteira o tempo todo.
+# O PONTEIRO — o único elemento que atravessa a tela inteira o tempo todo.
+# Vazio = não toca, como as VIDRO_OPACIDADE_* logo acima.
+#
+# ATENÇÃO AO NOME, PORQUE ELE MENTE SOBRE A COR. Nos flavors de ACCENT do
+# acervo (`-mauve`, `-blue`, …) o CORPO do cursor recebe o accent e o contorno
+# recebe a Base — o oposto do que o nome sugere. Medido em 25/08/2026,
+# decodificando o XCursor e tirando a luminância do pixel opaco mais frequente:
+#
+#     catppuccin-mocha-light    #CDD6F4    214   <- o Text do Mocha
+#     catppuccin-mocha-mauve    #CBA6F7    180
+#     catppuccin-frappe-mauve   #CA9EE6    173
+#     catppuccin-latte-mauve    #8839EF     87   <- ESCURO, some no campo escuro
+#     catppuccin-mocha-dark     #1E1E2E     31
+#     Pop (o de fábrica)        #FFFFFF    255
+#
+# Por isso o `latte-mauve`, escolhido em 25/08 sob a premissa de que "só o Latte
+# tem corpo claro", é justamente o pior sobre papel de parede escuro. E há um
+# segundo critério: um cursor `-mauve` é mauve o tempo todo, o que contraria a
+# regra da Sprint T ("mauve significa aceso"). O `mocha-light` é o único que
+# resolve os dois — claro e neutro.
+#
+# Para ver antes de escolher:  scripts/cursor.sh estado
+# O TAMANHO não mora aqui de propósito: 24 é o padrão dos dois lados, e gravá-lo
+# seria impor um valor onde não havia nenhum.
+#
+# O PONTEIRO DO PACK — 24/09/2026. O pack Dracula traz o dele, baixado de um
+# release pinado: `CURSOR="Dracula-Cursor"` o escolhe, e ele desce na primeira
+# passagem. Ele só aparece na lista do painel depois de instalado, como todo
+# ponteiro que precisa de rede. Quem escolhe continua sendo esta chave.
+CURSOR="catppuccin-mocha-light"
+# @ Versão do tema do ponteiro
+# > Vazio usa a última versão que o projeto testou.
+# [avancado] O release do tema do ponteiro que o instalador baixa, fixado para
+# o acervo não mudar sozinho. Não escolhe QUAL ponteiro (isso é a chave acima):
+# por isso o painel o guarda no «⋯» dos ajustes técnicos (P77, U6).
+CURSOR_VERSAO="v2.0.0"       # release fixado, para o acervo não mudar sozinho
+
+# --- Áreas de trabalho ------------------------------------------------------
+
+# AS DUAS ÁREAS DE TRABALHO, E POR QUE ELAS SÃO O ÚNICO ASSUNTO DESTE ARQUIVO
+#   QUE NÃO VALE NA HORA — 06/09/2026
+#
+#   Pedido de quem usa, literal: "não temos a seção pra setar os dois ambientes de
+#   trabalho tipo o Meow e o OS". Havia duas áreas com nome nesta máquina e
+#   nenhuma porta no projeto para vê-las, renomeá-las ou reordená-las: a única
+#   forma era editar RON na mão.
+#
+#   O ALFINETE É O QUE SEGURA TUDO. Uma área de trabalho do COSMIC só tem NOME
+#   se estiver alfinetada; sem alfinete o cosmic-comp a destrói assim que ela
+#   esvazia, e o painel passa a mostrar a POSIÇÃO dela (o "3" seco). Por isso
+#   `meow areas aplicar` renomeia, reordena, liga o encaixe e ACRESCENTA, mas
+#   nunca TIRA. Tirar é um comando à parte, que pede confirmação e diz o que se
+#   perde: `MEOW_SIM=1 ./scripts/areas.sh desalfinetar <nome>`.
+#
+#   SÓ VALE NO PRÓXIMO INÍCIO DE SESSÃO. O cosmic-comp lê o
+#   `~/.config/cosmic/com.system76.CosmicComp/v1/pinned_workspaces` UMA vez, ao
+#   iniciar — medido duas vezes em 04/08/2026: escrita às 04:03, nome velho na
+#   tela 3s depois, nome novo só no boot das 10:26. Não há inotify neste
+#   caminho, ao contrário do tema. Mudar aqui e olhar a barra não mostra nada, e
+#   isso NÃO é defeito.
+#
+#   O ARQUIVO É NOSSO EM QUALQUER MÁQUINA DESDE 24/09/2026. Até aqui o
+#   `areas.sh` media um vizinho do Ritual da Aurora que repunha o nome dos
+#   alfinetes de hora em hora, e recusava gravar onde o nome era dele. O
+#   vizinho saiu do Spellbook, e a guarda saiu daqui (sprint P39).
+
+# @ Áreas em várias telas
+# > Juntas: trocar de área troca todas as telas. Independentes: cada tela tem as suas.
+# AS ÁREAS COM MAIS DE UM MONITOR — 06/11/2026
+#   juntas         `workspace_mode: Global` na chave `workspaces` do cosmic-comp,
+#                  com o `cosmic-comp-sem-workspace-vazio.patch` tirando a área
+#                  vazia do fim. Uma lista de áreas só, e trocar de área troca
+#                  as duas telas. O `cosmic-comp-nomes-nas-duas-telas.patch`
+#                  repete os nomes na outra tela, sem repetir no arquivo. Tirar
+#                  o monitor não duplica nada: as janelas dele entram na área
+#                  de mesmo nome e voltam quando ele volta. Vale mesmo com
+#                  `AREAS_NOMES` vazio.
+#   independentes  cada tela tem a sua lista, repetida pelo doctor com os mesmos
+#                  nomes. Ao tirar o monitor as áreas dele vêm para a tela que
+#                  ficou, e a barra mostra as duplicadas mais a vazia do fim.
+#
+# Pedido de quem usa em 06/11: «ou a solução é mesmas duas áreas pros dois
+# monitores ou manter agora mas impedir o 5 e que as duplicatas apareçam. isso
+# vira correção e chave de feature». Vale a primeira, o padrão é juntas.
+#
+# O MODO VALE NA HORA, E A LISTA SÓ NO PRÓXIMO INÍCIO DE SESSÃO. O cosmic-comp
+# relê `workspaces` ao vivo (`Workspaces::update_config`) e lê o
+# `pinned_workspaces` uma vez, ao iniciar. Só é tocado com `AREAS_NOMES`
+# preenchido: sem nomes, as áreas e o modo são do COSMIC.
+AREAS_MODO="juntas"               # juntas | independentes
+
+# @ Nomes das áreas de trabalho
+# > A primeira da lista é a primeira do painel. Trocar a ordem aqui troca a sua tela.
+# A ORDEM É O ASSUNTO INTEIRO, e não um detalhe de apresentação.
+#
+# No cosmic-comp (`src/shell/mod.rs`, `add_output`) as áreas alfinetadas são
+# criadas PRIMEIRO, na ordem deste arquivo, e só depois as dinâmicas entram.
+# Com duas áreas, inverter a lista aqui inverte a tela: alfinetar só a segunda
+# a empurraria para a posição 1, na frente da primeira. É por isso que "Meow"
+# vem antes de "OS" — é a única forma de a «Meow» ser a primeira.
+#
+# São DUAS de fábrica, e não três. Houve uma terceira ("III") entre 24 e
+# 25/08/2026, e ela saiu a pedido: "o III é pra sair mesmo, é pra mantermos
+# na tela só os dois basicamente". O `.bak-pre-iii-fora` que existe no disco ao
+# lado do arquivo é HISTÓRIA e não modelo.
+#
+# Em `AREAS_MODO="independentes"` as áreas valem em cada tela ligada; em `juntas`
+# a lista é uma só e mora no monitor interno, quando ele existe. Um nome a mais
+# nesta lista CRIA uma área nova. Um nome a MENOS é recusado: faltar um nome
+# aqui apagaria uma área.
+# Não cabem aspas, contrabarra, parênteses nem `#` — os três primeiros quebram o
+# formato do arquivo do COSMIC e o `#` corta a linha deste arquivo aqui.
+#
+# NASCE VAZIO, E ATÉ 21/09/2026 NASCIA COM "Meow, OS" — 21/09/2026
+#   "Meow" e "OS" são os nomes das áreas DESTA casa. Na sua máquina, a primeira
+#   passagem do instalador renomeava as suas áreas de trabalho para os nossos
+#   dois nomes, sem perguntar — e o comentário acima diz, com todas as letras,
+#   que um nome a mais aqui CRIA área. Era a chave deste arquivo com o efeito
+#   mais visível e menos pedido.
+#   Vazio já era caso tratado no código desde antes: o `scripts/areas.sh`
+#   não toca nos nomes das suas áreas; só o modo acima vale.
+#   Para assumir as áreas, escreva os nomes na ordem em que você os quer na
+#   barra; `meow areas` imprime a linha pronta a partir do que está no disco.
+AREAS_NOMES=""
+
+# @ Folga invisível no nome
+# > Quais áreas ganham um espaço fantasma dos dois lados, para o nome não encostar na borda.
+# O ESPAÇO-FIGURA (U+2007), E ELE FOI UM PEDIDO — 30/08/2026
+#   Com a topbar na frente: "Pq não pode ficar Meow? Já tava assim antes e o
+#   nome precisa de mais espaço, adiciona um caracter fantasma pra ser um espaço
+#   invisível." Encurtar o nome e trocá-lo por um glifo foram recusados — o
+#   problema é o desenho da pastilha, não a palavra.
+#
+#   O applet de áreas (`cosmic-applet-workspaces`, src/components/app.rs:190-205)
+#   desenha cada área como o TEXTO com um piso do tamanho de um quadrado da
+#   barra. Com "Meow" em negrito o texto empata com o piso e as letras encostam
+#   na borda do círculo.
+#
+#   U+2007 e não espaço comum: espaço comum morre em qualquer aparo, e o U+2007
+#   tem a largura de um dígito e não quebra linha. O cosmic-comp não apara nome
+#   de área — conferido no fonte 5c93094, não há um `.trim()` sequer no caminho
+#   do `create_workspace_from_pinned`.
+#
+#   Escreva aqui os nomes que levam a folga, como estão na chave de cima, sem os
+#   espaços. Vazio: nenhuma leva.
+AREAS_FOLGA="Meow"
+
+# @ Encaixe de janelas por área
+# > Uma resposta por área, na ordem de cima. Vazio deixa o lado a lado geral mandar em todas.
+# O ENCAIXE POR ÁREA — e ele tem um DONO CONCORRENTE dentro do próprio projeto.
+#
+# O `JANELAS_TILING` lá em cima (seção "Cor e tela") é o lado a lado GERAL, e o
+# `scripts/janelas.sh` o grava em TODAS as áreas de uma vez, numa varredura só.
+# O `meow doctor` chama aquele script todo dia. Ou seja: um valor POR ÁREA
+# escrito aqui seria achatado por ele na passagem seguinte, calado.
+#
+# Por isso o padrão é VAZIO, que quer dizer "não encosto no campo, quem manda é
+# o `JANELAS_TILING`". Preenchendo, esta chave passa a ser a dona por área — e o
+# `areas.sh` RECUSA (código 4) enquanto o `JANELAS_TILING` continuar preenchido
+# com uma resposta diferente, dizendo qual dos dois esvaziar. Dois donos da
+# mesma linha é o defeito que mais custou caro neste repositório.
+#
+# Uma resposta só vale para todas as áreas; uma lista separada por vírgula vale
+# área a área, na mesma ordem do `AREAS_NOMES`. As palavras são `sim` e `nao`.
+AREAS_ENCAIXE=""
+
+# --- Logo do sistema --------------------------------------------------------
+
+# O NOME DIZIA DE QUEM É O MASCOTE, NÃO O QUE A SEÇÃO FAZ — 06/09/2026
+#   São 21 chaves aqui, e só QUATRO trazem o nome de um mascote no valor de
+#   fábrica: `LOGO`, `LOGO_DIA`, `LOGO_NOITE` e `FASTFETCH_LOGO_GATO`. As
+#   outras dezessete não nomeiam mascote nenhum: falam de horário, de tamanho, de
+#   alinhamento, de título e de quando recarregar o painel.
+#   A Coquinha e o Mimir continuam sendo o que vem de fábrica, e continuam
+#   sendo os mascotes da casa. O que muda é o título: quem chega a este arquivo sem
+#   ter os dois mascotes lê `Logo do sistema` e sabe do que se trata.
+
+# @ Logo do programa
+# > A do cabeçalho do painel e a do ícone no lançador.
+# Vazio segue o pack no ar. O nome de um pack instalado fixa a logo dele, qualquer que seja o
+# pack no ar.
+LOGO_PROGRAMA=""
+
+# --- NO DOCK ----------------------------------------------------------------
+
+# @ Qual mascote fica no dock
+# > Solte um .svg na pasta de mascotes e ele entra na lista; apague e ele sai.
+# Qual mascote do acervo fica no ar. O acervo é a pasta `packs/meowsystem/mascote/`: soltou um
+# .svg lá, ele entra; apagou, sai. `meow logo` lista os que existem.
+# Com LOGO_ROTACAO="sim" esta chave é só o ponto de partida — quem manda depois
+# é o relógio. Os mascotes desenhados pelo projeto foram excluídos em 08/08/2026,
+# a pedido: ficaram a Coquinha e o Mimir, mascotes de verdade da casa onde o
+# projeto nasceu.
+LOGO="coquinha"
+
+# @ O mascote troca sozinho
+# > Gira pela lista em vez de ficar num só.
+# [avancado] O mascote do painel troca sozinho, girando pelo acervo?
+# O ACERVO É A PASTA: tudo que estiver em packs/meowsystem/mascote/*.svg entra na rotação,
+# junto com o mascote gerado do flavor. Soltou um SVG lá, ele entra; apagou, sai.
+# Nada de lista dentro de script — ela envelheceria no dia em que você
+# desenhasse outro mascote, e o sintoma seria "coloquei o arquivo e não aconteceu".
+# `meow logo listar` mostra o acervo e quem está no ar; `meow logo girar` passa
+# ao próximo na hora, sem reiniciar nada.
+LOGO_ROTACAO="nao"
+
+# @ Como o mascote do dock é escolhido
+# > Fixo, por horário (um de dia, outro de noite), ou girando.
+# Como o mascote do dock e o do terminal são escolhidos:
+#
+#   hora     (padrão) LOGO_NOITE de noite, LOGO_DIA de dia. A janela de noite é
+#            a MESMA do resto da máquina — ver NOITE_INICIO/NOITE_FIM abaixo.
+#   rotacao  gira pelo acervo ao encerrar a sessão, um a cada LOGO_INTERVALO.
+#            É o desenho antigo; LOGO_ROTACAO="sim" continua ligando-o sozinho.
+#   fixo     LOGO= vence sempre; nada gira, nada segue relógio.
+LOGO_MODO="hora"
+
+# @ Mascote de dia no dock
+# > Vale quando a escolha é por horário.
+# Os dois rostos. Os nomes saem do acervo (packs/meowsystem/mascote/<nome>.svg).
+LOGO_DIA="mimir"       # o dock de dia
+# @ Mascote de noite no dock
+# > Vale quando a escolha é por horário.
+LOGO_NOITE="coquinha"  # o dock de noite
+
+# @ Recarregar o painel na virada
+# > Sem isto o mascote novo só aparece no próximo login. Custa uns 2 s de pisca, duas vezes por dia.
+# [avancado] Na virada, o mascote do dock só aparece depois de o painel reciclar (~2 s de
+# pisca, duas vezes por dia). MEDIDO em 01/09/2026: reescrever o SVG sem
+# reciclar não muda um pixel — o cosmic-panel-button resolve o ícone no arranque
+# e guarda. Com "nao" o arquivo troca do mesmo jeito e o mascote novo aparece no
+# próximo login; o do fastfetch troca na hora de qualquer forma, porque o
+# fastfetch relê o arquivo a cada execução.
+LOGO_RECICLAR="sim"
+
+# @ De quanto em quanto o mascote gira
+# > Só vale quando o mascote está girando.
+# UM MASCOTE POR DIA — e o número aqui não é escolha estética, é consequência
+#   O pedido original era o mascote trocar junto com o papel de parede, a cada 5
+#   minutos. Medido em 05/08/2026, e isso derruba a ideia: o `cosmic-panel` tem
+#   SEIS watches de inotify — as três configs de painel e as três de tema — e
+#   NENHUM sobre arquivo de ícone. Ele carrega o mascote do dock uma vez, ao
+#   iniciar a sessão, e não relê. Trocar o arquivo a cada 5 min seriam 288
+#   escritas por dia para um efeito que só aparece no login seguinte.
+#
+#   O applet "Logo Menu" resolveria isso ao vivo, mas foi recusado com razão: ele
+#   nasce AO LADO do botão do dock, e ficariam dois mascotes iguais na barra.
+#
+#   Então o desenho é o que foi pedido depois: "não me importo de trocar o mascote
+#   por dia. Tipo a ideia é essa." Um dia de intervalo, e o mascote novo aparece no
+#   próximo login. Diminuir este número não faz o mascote trocar mais rápido na
+#   tela — só escreve mais no disco.
+# Duração: número e unidade. A lista abaixo é EXEMPLO de escala, não cerca — o
+# `segundos_de` aceita qualquer uma, e a página confere só a forma.
+# 6h | 12h | 1d | 7d
+LOGO_INTERVALO="1d"
+
+# --- Ícones -----------------------------------------------------------------
+
+# @ Nome do tema de ícones
+# > Como ele aparece nos Ajustes do COSMIC. Trocar aqui cria uma pasta nova.
+# O nome do tema de ícones que este projeto constrói e instala em
+# ~/.local/share/icons/. Trocar aqui muda a árvore inteira de destino — e a
+# antiga não é apagada, então o `meow doctor` passa a conferir a nova e a
+# velha fica no disco até você removê-la à mão.
+NOME_TEMA_ICONES="MeowSystem-Icons"
+
+# A BASE DE ÍCONES NÃO SE ESCOLHE AQUI — chave `ICONES_BASE` aposentada
+#   A decisão de 24/09/2026 foi «Tirar a linha do conf»: o tema de onde o nosso
+#   herda o que não desenha vem do pack no ar, pinado por sha256 (docs/PACKS.md,
+#   "A base de ícones"), e o Papirus-Dark fica para o pack que não traz base.
+#   Desde a P75 (09/10/2026) o `scripts/migrar_conf.py` a tem na lista das
+#   APOSENTADAS: não a devolve e tira a linha ativa de um meow.conf antigo.
+
+# @ Ícones resgatados do PNG
+# > Os desenhos que só existiam como PNG, agora em vetor. "nao" devolve o PNG.
+# O QUE FOI RESGATADO
+#   Ícones desenhados à mão, exportados para PNG, e cujos SVG originais se
+#   perderam. O PNG num COSMIC a 100% de escala em tela de 24" fica borrado — foi
+#   a queixa de 11/09/2026, "meus pngs originais ficaram horríveis aqui no
+#   cosmic". Cada um foi REDESENHADO em vetor, decalcando o original: mesma
+#   silhueta, mesmas cores, gradiente virando `<linearGradient>` de verdade.
+#   Medido no mesmo dia: dos 86 nomes de ícone que os 91 aplicativos visíveis
+#   pedem, 20 caíam em PNG. A lista, com a procedência de cada um, está em
+#   `packs/dracula/icones/apps-resgatados.map`.
+#
+# ISTO NÃO É O `ICONES_COR_MARCA` NEM O CONVERSOR
+#   O conversor pega arte de terceiro e a reescreve no traço do Arcticons. Aqui a
+#   arte já era autoral e já estava certa; o que se perdeu foi o arquivo. Por isso
+#   estes ficam COLORIDOS e fiéis, no meio de um tema de traço — é o desenho
+#   original de volta, não um ícone novo.
+#
+# DESLIGAR DESLIGA: "nao" remove do tema os SVG que este projeto pôs, por nome, e
+# o PNG que estava atrás volta a valer na passagem seguinte. Não há estado
+# guardado, não há resíduo. O acervo em `packs/dracula/icones/apps/resgatados/` continua no
+# repo de qualquer forma — desligar é sobre o que aparece na tela, não sobre
+# apagar o desenho.
+ICONES_RESGATADOS="sim"           # sim | nao
+
+# @ Pack de ícones Dracula nos aplicativos
+# > Os desenhos autorais do Dracula vestindo os aplicativos do lançador.
+# Os dezoito desenhos de `assets/icones/apps-dracula.map` entram no tema, em
+# `scalable/apps`. É arte acabada e colorida — 6 a 10 cores por desenho, todas
+# já da paleta Dracula —, ao contrário do Arcticons, que é traço monocromático
+# pintado por nós. Aqui não se recolore nada: a cópia é byte a byte.
+#
+# ESCOLHER O PACK LIGA OS DESENHOS DELE, e por isso nasce em "sim" — P74, 09/10/2026
+#   Até aqui nascia em "nao", para não trocar de fábrica os onze nomes que já
+#   vestiam Arcticons. Medido em 09/10/2026: com `PACK="dracula"` e o resto de
+#   fábrica, o tema saía com 28 ícones de aplicativo contra 230 com a camada
+#   ligada — escolher o Dracula entregava metade dele. "Dracula vence tudo" foi
+#   escolhido em 16/09/2026. A camada põe no tema o mapa do PACK NO AR, e um
+#   pack sem mapa não põe nada: "sim" é "o pack decide", e a chave só serve
+#   para desligar. O `scalable/apps` VENCE o `48x48/apps` no resolvedor (strace
+#   de 08/08/2026), então desligar devolve o Arcticons a esses onze.
+#
+# DESLIGAR DESLIGA, E NÃO CUSTA NADA: "nao" apaga só o que este projeto pôs, por
+# nome e conferindo o conteúdo byte a byte (arquivo editado à mão fica). O
+# Arcticons nunca saiu do `48x48` — ele reaparece sozinho na passagem seguinte.
+ICONES_DRACULA="sim"              # sim | nao
+
+# @ Logo própria do Hefesto
+# > Um SVG seu para o ícone do Hefesto. Vazio = o desenho gerado do pack.
+# [avancado] [so-com-app hefesto-dualsense4unix com.vitoriamaria.HefestoDualsense4Unix]
+# O painel só mostra este ajuste numa máquina com o Hefesto instalado, e o
+# guarda no «⋯» dos ajustes técnicos: é a logo de UM programa, e não escolha
+# de quem usa o MeowSystem (P77, 09/10/2026).
+# O Hefesto (o app do controle DualSense) tem logo desenhada pela autora dele —
+# a bigorna com o martelo —, e autoria vence tema: com um caminho aqui, é ela
+# que entra no tema para os dois nomes de ícone do app (`hefesto-dualsense4unix`
+# e `com.vitoriamaria.HefestoDualsense4Unix`). O arquivo não é copiado para o
+# projeto de propósito: ele mora no projeto do Hefesto, e uma cópia aqui
+# congelaria a versão.
+#
+# ATÉ 24/09/2026 ESTE CAMINHO ERA CRAVADO NO `scripts/completar_icones.sh`, na
+# pasta de projetos de uma casa. Quem tem o clone do Hefesto aponta aqui, uma
+# vez, algo como "$HOME/<onde está o clone>/assets/hefesto-logo.svg".
+#
+# COM A CHAVE VAZIA, UMA LOGO QUE JÁ ESTÁ NO TEMA NÃO É TROCADA. O `meow doctor`
+# avisa, o auto-reparo não mexe, e a escolha fica com você: preencher a chave,
+# ou apagar o ícone do tema para ficar com o desenho gerado.
+ICONES_LOGO_HEFESTO=""            # caminho de um .svg; vazio = o desenho gerado
+
+# @ Cor das pastas
+# > Deixe escrito com ${FLAVOR} e ${ACCENT} para acompanhar o tema sozinho.
+# A cor das PASTAS comuns, pintada pelo `papirus-folders`. Deixe escrito com
+# `${FLAVOR}` e `${ACCENT}` em vez do nome já expandido: assim trocar o flavor lá
+# em cima repinta as pastas na mesma passagem, sem ninguém voltar aqui.
+#
+# O PADRÃO NÃO EXISTE PARA TODO FLAVOR, E ISSO É TRATADO — 16/09/2026
+#   `cat-${FLAVOR}-${ACCENT}` funciona para os quatro sabores do Catppuccin
+#   porque o papirus-folders traz exatamente as 56 combinações deles (4 flavors
+#   × 14 accents). Com `FLAVOR="dracula"` o valor vira `cat-dracula-mauve`, que
+#   NÃO existe — e não vai existir: o papirus-folders é um pack de terceiro e
+#   não conhece o Dracula.
+#
+#   O `construir_pastas.sh` confere a cor contra o disco antes de usar e, não
+#   achando, cai no `mocha` — o mais escuro do Catppuccin, que é onde o Dracula
+#   mora — PRESERVANDO o accent: quem pediu `pink` continua com pink. E avisa na
+#   tela qual cor entrou no lugar.
+#
+#   Antes dessa guarda a falha era CALADA: `montar_de_para` não achava o arquivo,
+#   devolvia 1, e as pastas ficavam sem pintura nenhuma sem uma linha de aviso.
+#   Escrever aqui uma cor fixa do Catppuccin "resolveria" o sintoma e quebraria
+#   a promessa da linha de cima — a de que trocar o flavor repinta as pastas
+#   sozinho. Por isso o valor continua escrito com as variáveis.
+#
+# E VOLTA A SER ESCRITO ASSIM — 10/10/2026, P79. Um nome com um flavor que o
+#   pack no ar não tem (`cat-dracula-${ACCENT}` com o Catppuccin no ar) é resto
+#   de pack: o `meow doctor --consertar`, o install.sh e a troca de pack
+#   (`scripts/migrar_conf.py`, `VESTIGIOS`) devolvem a linha à forma de cima.
+#   Uma variante do pack no ar (`cat-frappe-blue` com o Catppuccin,
+#   `cat-dracula-${ACCENT}` com o Dracula) é escolha, e fica.
+ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"   # cor das pastas (papirus-folders)
+
+# @ Variante dos ícones de arquivo
+# > A dos ícones por tipo de arquivo, que o gerenciador de arquivos desenha.
+# O flavor dos ÍCONES DE TIPO DE ARQUIVO, do pack `catppuccin/vscode-icons` —
+# aquilo que o cosmic-files desenha quando você abre uma pasta. É uma chave
+# PRÓPRIA, e não `$FLAVOR`, porque o pedido foi ícones em frappe ou macchiato com
+# a interface em mocha. Reusar `$FLAVOR` aqui teria um efeito colateral feio: ele
+# também nomeia o arquivo da logo do painel (`construir_icones.sh` §), cujo dono é
+# o `logo.sh` — as duas etapas ficariam criando e apagando o mesmo arquivo a cada
+# rodada. Chave separada, dono separado.
+# A ORDEM É A DE «Cor e tela» (escuro → claro), e isso é regra de tela: a cerca
+# é a ordem dos botões, e a mesma lista em duas abas com ordens diferentes lê
+# como duas listas. Era alfabética aqui e mocha-primeiro lá.
+#   mocha | macchiato | frappe | latte
+#
+# HERDA O `FLAVOR` DE FÁBRICA — 21/09/2026
+#   Estava `macchiato` cravado, com o `FLAVOR` da linha 63 em `mocha`: duas
+#   linhas do MESMO arquivo discordando, e a divergência era um pedido PESSOAL
+#   (ícones em macchiato, interface em mocha), não um padrão. Na sua máquina, os
+#   ícones de tipo de arquivo nasciam de um flavor que você não escolheu.
+#   `$FLAVOR` aqui não é truque: este arquivo é lido com `.` pelo shell e a
+#   linha 63 vem antes, então a expansão vale. É o mesmo recurso do
+#   `ICONES_PASTAS="cat-${FLAVOR}-${ACCENT}"` da linha 519, e o wizard já sabe
+#   mostrar as duas coisas (`$FLAVOR  ->  mocha`).
+#   Quem quiser a divergência de propósito escreve o nome do flavor aqui.
+#
+# QUANDO O TEMA NÃO TEM ÍCONE DE ARQUIVO, VALE O QUE O PACK ESCOLHEU — 23/09/2026
+#   O de fábrica acompanha o `FLAVOR`, e nem todo flavor tem acervo de ícone de
+#   arquivo: o Dracula não tem nenhum, e herda o do Catppuccin. Nesse caso vale
+#   o flavor que o pack escolheu para os ícones que herda — o campo
+#   `icones.mimetypes.flavor` do pack.json dele; o Dracula escolhe o macchiato.
+#   Era o `ICONES_FLAVOR="dracula"` expandido, que não existe, e os ícones de
+#   arquivo não se vestiam. A regra mora num lugar só (`scripts/pack.py`, verbo
+#   `flavor-icones`), e é ela que os três scripts de ícone e o painel perguntam.
+#   Um nome escrito aqui à mão continua vencendo, exista ou não o acervo dele,
+#   desde que seja um flavor do pack no ar (abaixo); vazio vale o mesmo que o
+#   de fábrica.
+#
+# O FLAVOR DE OUTRO PACK VOLTA AO DE FÁBRICA — 10/10/2026, P79
+#   Um nome que o pack no ar NÃO tem (o `macchiato` com o Dracula no ar, resto
+#   de antes da P74) é vestígio de outro pack, e não escolha: o `meow doctor
+#   --consertar` e o install.sh (`scripts/migrar_conf.py`, `VESTIGIOS`) devolvem
+#   a linha a `"$FLAVOR"`. A divergência de propósito vale dentro do mesmo pack.
+ICONES_FLAVOR="$FLAVOR"
+
+# @ Cor pela marca do programa
+# > Em vez da cor da categoria: Firefox laranja, Telegram azul.
+# A cor do traço de cada aplicativo vem da MARCA dele, em vez da CATEGORIA?
+#
+#   nao (padrão)  a cor é por categoria — a escolha de 10/08/2026
+#   sim           `packs/meowsystem/icones/apps-marca.map` sobrepõe a cor de quem está listado lá
+#
+# ISTO ESTÁ DESLIGADO PORQUE FOI UMA ESCOLHA, NÃO PORQUE NÃO FUNCIONA
+#   Em 23/08/2026, diante do dock: "a cor de alguns svgs tão diferentes
+#   das logos originais. tipo a do wpp ou steam, chrome, coisa que nas linhas ia
+#   facilitar nossa vida". O pedido é só de COR: o traço continua traço,
+#   `fill:none` continua, e a paleta continua sendo `assets/paleta/catppuccin.json` —
+#   nenhum hex de fora entra. Muda QUAL cor da paleta cada aplicativo recebe.
+#
+#   O que a chave carrega é uma CONTRADIÇÃO com uma decisão anterior. Em
+#   10/08/2026, entre "uma cor só", "por categoria" e "uma a uma", a escolha foi
+#   POR CATEGORIA — seis cores para trinta e cinco nomes. Cor por marca é a
+#   terceira opção com outro nome, e as duas não convivem: a categoria "rede"
+#   (hoje `sky` inteira) se reparte em verde, lavender, sapphire e blue, e some.
+#
+#   Por isso a folha visual existe e o código espera. Ligar sem a folha vista é
+#   pôr o código antes dela.
+#
+# O QUE MUDA DE FATO, se ligar (13 aplicativos; o resto não é tocado):
+#   WhatsApp  sky -> green      Steam     green -> sapphire
+#   Discord   sky -> lavender   Telegram  sky -> sapphire
+#   qBittorrent sky -> blue     Thunderbird sky -> blue
+#   Firefox   blue -> peach     Brave     blue -> peach
+#   VLC       green -> peach    Obsidian  peach -> mauve
+#   GitHub Desktop pink -> mauve  VS Code pink -> blue
+#   Foliate   peach -> teal     (o mais fraco da lista; ver o mapa)
+#
+#   O CHROME NÃO MUDA, e é medido: o azul oficial dele (#4285F4) está a 0° de
+#   matiz do `blue` do Catppuccin Mocha — não existe cor melhor na paleta. Um
+#   Chrome de quatro cores foi tentado e é impossível sem redesenhar: os 8
+#   `<path>` da conversão são contornos traçados, não as regiões de cor da logo.
+#
+# DESLIGAR DESLIGA: o `icones_apps_arcticons.sh` é dono único de `48x48/apps` e
+# reescreve por CONTEÚDO divergente. Voltar para "nao" devolve a cor de
+# categoria na passagem seguinte, sem resíduo — não há estado guardado.
+ICONES_COR_MARCA="nao"
+
+# @ Ícones das pastas especiais
+# > Imagens, Documentos, Downloads, Músicas, Vídeos, Modelos e Público.
+# As PASTAS ESPECIAIS (Imagens, Documentos, Downloads, Músicas, Vídeos, Modelos e
+# Público) vêm do desenho do pack no ar (no Catppuccin, o `vscode-icons`) em vez
+# das cheias do papirus-folders, na cor das outras pastas?
+#
+# FOI VISTO E RECUSADO — e o padrão aqui é a decisão de 08/08/2026:
+#   "as pastas do temas dos icons do vscode catpuccin, tipo as folders, essas
+#    nao tão legais tambem".
+# São pasta VAZADA de traço claro ao lado das CHEIAS na cor das outras pastas —
+# na máquina onde isto nasceu, em 08/08, o `mauve` de fábrica, que nenhuma das 7 usa. O conjunto
+# não fecha. O risco estava previsto desde o desenho da Sprint C; quem decidiu
+# foi a tela.
+#
+# Com "sim", elas voltam; com "nao", o `icones_pastas.sh` LIMPA o que tinha posto
+# e o `construir_pastas.sh` as devolve à cor das outras pastas na mesma passagem.
+# Se um dia quiser experimentar de novo, vale olhar junto com ICONES_FLAVOR="latte",
+# que a folha `~/folha-pastas-2.html` mostra com contraste bem melhor sobre fundo
+# claro.
+PASTAS_XDG="nao"
+
+# --- Painel e dock ----------------------------------------------------------
+
+# --- FORMA ------------------------------------------------------------------
+
+# @ Painel descolado da borda
+# > Deixa um vão entre o painel e a borda da tela.
+# Estas chaves existiam só como variável de ambiente do `scripts/forma.sh`:
+# ninguém conseguia mudá-las sem editar o script. Passaram para cá em
+# 11/08/2026, quando a primeira delas precisou de fato ser trocada.
+#
+# SOLTO  = a barra descola das bordas (ganha margem e cantos arredondados).
+# ILHA   = a barra ENCOLHE até o tamanho do conteúdo, virando uma pastilha.
+#
+# ATENÇÃO, e é a razão de a chave estar aqui: `ILHA="sim"` grava
+# `expand_to_edges=false`, e nesse modo o `cosmic-panel` FUNDE os três segmentos
+# (inicial, central, final) num bloco único centralizado. Está no fonte dele
+# (`space/layout.rs`), não é defeito nosso. Ou seja: com a ilha ligada, arrumar
+# os miniaplicativos por segmento na GUI de Configurações não tem efeito nenhum
+# — foi o que levou à pergunta, em 11/08, de por que o mascote aparecia colado nos
+# aplicativos mesmo estando no "Segmento inicial".
+#
+# Por isso o dock nasce com ILHA="nao": o pedido foi o mascote à esquerda, os
+# aplicativos no centro e nada à direita, e esse layout só existe com
+# `expand_to_edges=true`. Para voltar à pastilha (e aceitar a fusão), é uma
+# palavra: FORMA_DOCK_ILHA="sim".
+FORMA_PAINEL_SOLTO="sim"          # sim | nao
+# @ Dock descolada da borda
+# > Deixa um vão entre a dock e a borda da tela.
+FORMA_DOCK_SOLTO="sim"            # sim | nao
+# @ Painel em pastilha
+# > O painel encolhe até o tamanho do conteúdo, em vez de atravessar a tela.
+FORMA_PAINEL_ILHA="nao"           # sim | nao
+# @ Dock em pastilha
+# > A dock encolhe até o tamanho dos ícones.
+FORMA_DOCK_ILHA="nao"             # sim | nao  <- ver o aviso acima
+
+# @ Distância da borda — painel
+# > Em pixels.
+# Quatro medidas em pixels, uma para o painel e outra para a dock: a margem da
+# borda, o raio dos cantos, o espaço entre applets e o recheio de dentro. Vazio
+# = o MeowSystem não toca.
+#
+# A FAIXA DE CADA UMA ESTÁ NO COMENTÁRIO DA PRÓPRIA LINHA, E ISSO É O CONTROLE
+#   A página e o `meow configurar` derivam o controle do texto: onde há uma
+#   faixa declarada de cara (`80..900` da MIDIA_LARGURA, `1000–6500` da
+#   temperatura) nasce um deslizante; onde não há, nasce campo de texto livre.
+#   Até 02/09/2026 estas oito não declaravam nada, e as oito apareciam como
+#   caixinha vazia para digitar um número de cabeça — sem unidade na tela e sem
+#   nada segurando o valor que apaga a barra. A faixa mora no comentário DE
+#   LINHA, e não neste bloco, porque o bloco é um só para as oito e cada uma tem
+#   a sua.
+#
+# AS QUATRO ABAIXO TÊM SLIDER NA GUI, E POR ISSO NASCEM VAZIAS (26/08/2026)
+#   `margin`, `border_radius`, `spacing` e `padding` são ajustáveis no COSMIC
+#   Tweaks (o flatpak `dev.edfloreshz.CosmicTweaks`, que declara
+#   `filesystems=xdg-config/cosmic` e escreve direto em ~/.config/cosmic). Não é
+#   o cosmic-settings: a página Painel dele não tem controle de raio nenhum.
+#
+#   Até 26/08 o `forma.sh` gravava essas quatro chaves TODA passagem, com
+#   defaults preenchidos — e o `meow doctor --consertar` roda sozinho às 05:00.
+#   Ou seja: você mexia no slider de noite e de manhã o número era nosso de novo,
+#   sem nada dizer por quê. É a mesma fronteira que o `vidro.sh` atravessou três
+#   vezes com a opacidade antes de mudar o dono, e o critério é o mesmo: onde a
+#   GUI tem um controle, o valor é seu.
+#
+#   VAZIO = NÃO TOCA. Preencha só se quiser IMPOR um valor daqui — e aí ele é
+#   gravado como sempre foi. Os números que estavam aqui viraram comentário:
+#   painel margem 6, raio 8, espaço 4, recheio 5; dock margem 8, raio 16,
+#   espaço 8, recheio 6.
+#
+#   O RAIO TEM UM TETO FÍSICO, E ELE NÃO É UM NÚMERO FIXO
+#   Um raio acima do teto faz o compositor recusar a layer surface, e como
+#   painel e dock são o MESMO processo os dois somem JUNTOS. O teto é derivado
+#   (`lib/painel.sh`), não cravado: `meow painel teto` mostra a conta. Era a
+#   METADE DA ALTURA da barra (22 no painel e 32 no dock, nesta máquina) até o
+#   cosmic-comp de 11/09/2026, que mede o raio antes de a barra ter tamanho:
+#   sem o patch em execução, o teto é 0.
+#   Com `patches/cosmic-comp-raio-clampado.patch` EM EXECUÇÃO não há teto: o
+#   compositor reduz o canto em vez de derrubar o cliente, e o raio é todo seu.
+#
+#   A FAIXA DAS DUAS LINHAS DE RAIO É A MAIOR, E A PÁGINA MOSTRA A DE AGORA
+#   `0 a 22` no painel e `0 a 32` na dock é a régua de metade da altura. Desde
+#   24/09/2026 (P50) o deslizante da página termina no teto que o `lib/painel.sh`
+#   calcula NA HORA, diz embaixo por quê, e a página não grava acima dele —
+#   arrastar até o fim não pode ser um gesto que apaga a sua barra. Escrever um
+#   número maior à mão continua possível, e o `forma.sh` avisa e CORTA (ou
+#   segue, se o compositor estiver clampado).
+FORMA_MARGEM_PAINEL=""            # 0 a 8 px   (o quanto o painel descola da borda; acima de 8 a barra cai)
+# @ Distância da borda — dock
+# > Em pixels.
+FORMA_MARGEM_DOCK=""              # 0 a 8 px   (o quanto a dock descola da borda; acima de 8 a barra cai)
+# @ Canto arredondado — painel
+# > Em pixels.
+FORMA_RAIO_PAINEL=""              # 0 a 22 px  (o teto desta máquina; acima disso a barra some)
+# @ Canto arredondado — dock
+# > Em pixels.
+FORMA_RAIO_DOCK=""                # 0 a 32 px  (o teto desta máquina; acima disso a barra some)
+# @ Espaço entre ícones — painel
+# > Em pixels.
+FORMA_ESPACO_PAINEL=""            # 0 a 24 px  (folga entre um applet e o vizinho)
+# @ Espaço entre ícones — dock
+# > Em pixels.
+FORMA_ESPACO_DOCK=""              # 0 a 24 px  (folga entre um applet e o vizinho)
+# @ Folga interna — painel
+# > Em pixels, entre o conteúdo e a borda.
+FORMA_RECHEIO_PAINEL=""           # 0 a 16 px  (folga interna; cada px sobe a barra em 2)
+# @ Folga interna — dock
+# > Em pixels, entre os ícones e a borda.
+FORMA_RECHEIO_DOCK=""             # 0 a 16 px  (folga interna; cada px sobe a barra em 2)
+
+# @ Ícones do meio — painel
+# > Vazio deixa o segmento herdar o tamanho geral.
+# O tamanho de cada segmento da barra, um por um: o MEIO e as duas PONTAS.
+# Vazio = aquele segmento herda o tamanho da barra inteira.
+#
+# ESTAS SEIS CHAVES FALTAVAM AQUI, E ISSO É O DEFEITO QUE ESTE ARQUIVO MAIS FAZ
+#   Elas existem no `forma.sh` desde 25/08/2026 e nunca chegaram ao exemplo.
+#   Quem lesse este arquivo concluiria que o tamanho da barra é um só — que é
+#   exatamente a mentira que o commit de 26/08 já teve de consertar em outro
+#   bloco. Postas aqui em 27/08/2026, com o padrão que o script já usa (vazio).
+#
+# A GUI DE CONFIGURAÇÕES NÃO EXPÕE ISTO. Ela oferece UM tamanho para a barra
+# inteira; estas chaves separam o MEIO das duas PONTAS. Os degraus são cinco, e
+# só eles: XS, S, M, L e XL — ou vazio, que herda o tamanho da barra.
+#
+# OS CINCO DEGRAUS FICAM NO COMENTÁRIO DE CADA LINHA, E NÃO AQUI — 02/09/2026
+#   A página e o `meow configurar` viram botões de escolha quando acham uma
+#   lista `a | b | c`; até hoje a linha acima escrevia os degraus junto com a
+#   palavra `vazio` e uma explicação no meio, o que não é lista de valores e é
+#   descartado inteiro (um token com espaço derruba a linha, dos dois lados).
+#   As seis caíam em campo de texto livre, e a auditoria digitou `XG`, `l` e
+#   `64`: os três foram aceitos calados, para o `forma.sh:528` recusar depois.
+#   Como este bloco é UM para as seis e o wizard do `bin/meow` não herda
+#   comentário de vizinha, a lista tem de morar no comentário DE LINHA de cada
+#   chave — é o único lugar que a página e o wizard leem igual.
+#   MAIÚSCULAS de propósito: o `_tam` do `forma.sh` só aceita `XS|S|M|L|XL`, e
+#   uma lista em minúsculas daria botões que gravam valor recusado.
+#
+# O QUE CADA SEGMENTO HOSPEDA no dock desta máquina:
+#   ala inicial  o Botão da Biblioteca — o mascote que abre o lançador
+#   centro       os aplicativos abertos e fixados (`CosmicAppList`)
+#   ala final    bandeja, rede, área de transferência, bluetooth, desligar
+#
+# O PREÇO DE SUBIR UM SEGMENTO É A BARRA INTEIRA FICAR MAIS ALTA
+#   `altura_barra = 2*padding + o MAIOR applet que ela hospeda` (lib/painel.sh),
+#   e o applet mede XS=32 · S=40 · M=56 · L=64 · XL=80 unidades lógicas. Ou
+#   seja: pôr `L` na ala inicial para o mascote crescer sobe o dock de 64 para 72,
+#   mesmo que só um botão tenha mudado. O teto do raio sobe junto (é metade da
+#   altura), então isso nunca aperta o `border_radius` — só afrouxa.
+#
+# MEXER AQUI RESPAWNA OS APPLETS. As chaves entram no `must_recreate` do daemon
+# (junto com `size`, `spacing` e `plugins_*`): vale na hora, sem tocar na sessão,
+# mas a barra PISCA — ao contrário do raio e da margem, que trocam sem piscar.
+FORMA_CENTRO_PAINEL=""            # XS | S | M | L | XL   (o meio do painel de cima)
+# @ Ícones do meio — dock
+# > Vazio deixa o segmento herdar o tamanho geral.
+FORMA_CENTRO_DOCK=""              # XS | S | M | L | XL   (o meio da dock: os aplicativos)
+# @ Ponta esquerda — painel
+# > Vazio deixa o segmento herdar o tamanho geral.
+FORMA_ALA_INICIAL_PAINEL=""       # XS | S | M | L | XL   (a ponta esquerda do painel)
+# @ Ponta direita — painel
+# > Vazio deixa o segmento herdar o tamanho geral.
+FORMA_ALA_FINAL_PAINEL=""         # XS | S | M | L | XL   (a ponta direita do painel)
+# @ Ponta esquerda — dock
+# > Vazio deixa o segmento herdar o tamanho geral.
+FORMA_ALA_INICIAL_DOCK=""         # XS | S | M | L | XL   (a ponta esquerda da dock: o mascote)
+# @ Ponta direita — dock
+# > Vazio deixa o segmento herdar o tamanho geral.
+FORMA_ALA_FINAL_DOCK=""           # XS | S | M | L | XL   (a ponta direita: bandeja, rede, desligar)
+
+# --- VIDRO E RELÓGIO --------------------------------------------------------
+
+# @ Manter o vidro com janela maximizada
+# > "Não" devolve o comportamento de fábrica: painel, dock e janela ficam opacos.
+# O painel, o dock E A JANELA mantêm o vidro fosco quando uma janela é
+# maximizada? "nao" devolve o comportamento de fábrica do COSMIC: os três ficam
+# opacos. Valem na hora — o painel vigia as chaves dele.
+#
+# A BARRA E A JANELA SÃO MECANISMOS DIFERENTES, E ISTO É UMA CHAVE SÓ [18/09/2026]
+#   A barra se resolve com `keep_style_on_maximize` (Panel e Dock), que não tem
+#   controle na GUI: se ninguém escrever, ela se perde em silêncio. A janela se
+#   resolve por outro caminho, porque o COSMIC troca a paleta ao maximizar
+#   (`transparent_background`, translúcido, vira `background`, opaco).
+#
+#   Quem liga esta chave não está pedindo "vidro na barra": está pedindo vidro
+#   ao maximizar. Ligar a mesma coisa em dois lugares é trabalho do programa,
+#   não da pessoa — então a chave é uma só e cobre os três.
+#
+#   E O CAMINHO DA JANELA SE ADAPTA AO COSMIC QUE A MÁQUINA TEM: onde existe a
+#   chave nativa `frosted_maximized_apps` (cosmic-panel#457), é ela que é
+#   escrita — suportada, sobrevive a upgrade, e o assunto acaba aí. Onde não
+#   existe, `scripts/vidro_janela.py` sincroniza o alpha das duas paletas. A
+#   nativa não é "preferida": ela EXCLUI o remendo, senão os dois mexeriam no
+#   mesmo pixel por caminhos diferentes.
+VIDRO_AO_MAXIMIZAR="sim"
+
+# @ Opacidade do painel
+# > 0 é transparente, 1 é opaco. É o mesmo ajuste que os Ajustes do COSMIC escrevem.
+# A OPACIDADE DO FUNDO É SUA, E POR ISSO ESTAS DUAS NASCEM VAZIAS (17/08/2026).
+#
+# Ajustes → Área de trabalho → Painel (e Dock) → "Opacidade do fundo" escreve
+# EXATAMENTE a chave que estas duas escreviam. Enquanto elas tinham valor, o
+# `meow doctor` devolvia 0.19/0.26 todo dia e a sua escolha sumia sem aviso.
+# Vazio = o MeowSystem não toca em `opacity`; o slider manda.
+#
+# Preencher volta a IMPOR o número, em toda passagem do doctor. Se fizer isso:
+# o alpha desenhado é  opacity x alpha_map[frosted]  — e `alpha_map`/`frosted`
+# são os dois sliders de Aparência → Vidro fosco. Não há tabela fixa aqui: o
+# `alpha_map` é reescrito toda vez que você mexe naqueles sliders, então
+# qualquer porcentagem escrita neste arquivo envelhece. Para ver a de hoje:
+#     scripts/vidro.sh --conferir
+# (Os valores impostos até 17/08 eram 0.19 no painel e 0.26 no dock, mirando
+#  ~12,5% e ~17% de cor. Ficam aqui como ponto de partida, não como padrão.)
+#
+# A FAIXA NO COMENTÁRIO DE LINHA É A CERCA — 07/09/2026
+#   Estas duas eram as únicas chaves numéricas do arquivo sem faixa escrita, e
+#   por isso as únicas que a página não sabia recusar: medido, `999` e `banana`
+#   entravam pelo /api/definir sem uma palavra na tela, para o `vidro.sh` errar
+#   depois, todo dia, num horário em que ninguém liga o erro ao clique. O
+#   `validar_valor` não tem tabela própria de propósito — a cerca É o esquema —,
+#   então a chave sem faixa é a chave sem cerca. Com a faixa aqui, a página
+#   passa a desenhar deslizante em vez de campo de texto, e as duas coisas vêm
+#   da mesma linha.
+VIDRO_OPACIDADE_PAINEL=""         # 0.0 a 1.0
+# @ Opacidade da dock
+# > 0 é transparente, 1 é opaco.
+VIDRO_OPACIDADE_DOCK=""           # 0.0 a 1.0
+
+# @ Segundos no relógio
+# > Mostra os segundos ao lado da hora.
+# OS SEGUNDOS DO RELÓGIO DA BARRA DE CIMA. "nao" tira, "sim" põe de volta.
+#
+# ESTA CHAVE OBEDECE AO MESMO CONTRATO DAS DUAS DE VIDRO ACIMA. O relógio tem
+# controle na GUI (Ajustes → Data e hora), e a regra do projeto é que onde a GUI
+# tem controle o valor é SEU. Vazio = o MeowSystem não toca; o botão manda.
+# Preencher volta a IMPOR, em toda passagem do `meow doctor` — inclusive às 5h.
+# Se um dia você mexer no botão e quiser que a sua escolha valha, ESVAZIE esta
+# linha em vez de brigar com o doctor.
+#
+# Medido em 25/08/2026: vale na hora, em menos de 2 s, sem reiniciar o painel.
+# E APAGAR O ARQUIVO NÃO REVERTE — o `remover` escreve `true` de volta, e o
+# valor de antes fica guardado em ~/.local/state/meowsystem/relogio/.
+#
+# O QUE ELA NÃO MEXE: a data ("25 de ago.") e o dia da semana. As chaves existem
+# no binário (`show_date_in_top_panel`, `show_weekday`) e não estão no disco —
+# ficam de fora até você pedir.
+# A ORDEM DA CERCA É A ORDEM DOS BOTÕES NA TELA, e esta chave era a única das
+# doze de duas opções que listava o `nao` primeiro. No painel, onde as duas
+# opções viram dois desenhos lado a lado, isso punha o "Não" à esquerda em UM
+# cartão e o "Sim" à esquerda nos outros nove da mesma aba — a conferência de
+# uso de 07/09/2026 pegou o desencontro. O padrão da chave continua `nao`; o que
+# mudou foi a ordem em que ela se oferece.
+RELOGIO_SEGUNDOS="nao"            # sim | nao | vazio (= não toca)
+
+# --- MÚSICA NO PAINEL -------------------------------------------------------
+
+# @ Música no painel
+# > Capa, nome e controles do que está tocando, ao lado do relógio.
+# A capa do álbum, a cor dela e os ⏮⏸⏭ na barra da dock (applet Now Playing).
+#   A QUEIXA INTEIRA MORAVA EM UMA LINHA. O `src/media.rs` do upstream descartava
+#   todo `mpris:artUrl` que não fosse `file://`, e o Spotify publica
+#   `https://i.scdn.co/...`. Capa e cor caíam JUNTAS porque a cor dominante é
+#   EXTRAÍDA da capa: sem imagem, não há de onde tirá-la. O fork publicado do
+#   applet (`assets/extensoes/now-playing.pino`) desfaz esse descarte.
+#
+#   NASCE LIGADO, a pedido: "se é requisição, nosso install teria que
+#   por default trazer a cura".
+#
+#   "nao" não é só deixar de instalar: a passada seguinte do install ou do
+#   conserto do doctor REVERTE — tira a nossa sombra e o binário, e o applet do
+#   flatpak volta no próximo login. Desligar e continuar vendo o de antes seria o
+#   pior sintoma possível, porque não há onde olhar.
+#
+#   Quem compila é o install, o conserto do doctor e o botão da página Extensões,
+#   pelo pino (veja EXTENSOES).
+# sim | nao
+MIDIA="sim"
+
+# @ Largura do nome da música
+# > Em pixels, antes de virar reticências.
+# Quantos pixels o nome da música pode ocupar na barra antes de virar "…".
+#   O upstream crava 260, e 260 já corta na tela medida: "This City's Tryna Br…".
+#   Medi ~215 px de folga na asa direita da dock — o Now Playing divide a asa
+#   com a Área de status —, então 440 cabe sem empurrar ninguém.
+#
+#   Valor fora de 80..900 é RECUSADO em vez de gravado. O applet tem um clamp
+#   próprio: uma largura de 5000 voltaria ao padrão em silêncio, e a conferência
+#   passaria a acusar divergência para sempre, sem ninguém entender por quê.
+# 80..900
+#
+# NASCE VAZIO PORQUE 440 FOI MEDIDO NUMA TELA SÓ — 21/09/2026
+#   Os ~215 px de folga do parágrafo acima são da asa direita da dock DESTA
+#   casa, com a Área de status do lado. Noutra tela, noutra dock, o número é
+#   outro — e cravá-lo aqui fazia o exemplo parecer um padrão universal.
+#   Vazio NÃO muda nada hoje: `scripts/midia.sh` já tem `${MIDIA_LARGURA:-440}`,
+#   o mesmo número. O que muda é o que o arquivo DIZ: que isto se mede.
+#   Para medir a sua: deixe tocar uma música de nome longo e suba o número até
+#   o "…" sumir sem empurrar a Área de status.
+MIDIA_LARGURA=""                  # 80..900 px
+
+# @ Como a cor da capa entra
+# > Tingindo só o traço, ou chapando o fundo.
+# Como a cor dominante da capa entra na barra.
+#   traco    contorno e glifos tingidos; o fundo do painel fica intacto
+#   chapado  o comportamento do upstream: a cor entra no FUNDO do botão
+#
+#   O padrão é `traco` por duas razões que se somam. A folha visual de
+#   11/08/2026: "o nosso tema é o traço, não o chapado". E o `scripts/vidro.sh`
+#   deste projeto escreve a opacidade do painel — um fundo opaco no botão abriria
+#   um retângulo sólido no meio de uma dock translúcida.
+#
+#   AVISO DE GOSTO, NÃO DE DEFEITO: a cor do álbum vai DESTOAR do Catppuccin, e
+#   isso é medido. Os 14 acentos do Mocha vivem em luminância 0,69–0,86; a cor do
+#   álbum, depois de normalizada, trava em 0,38–0,62. Zero sobreposição: nenhuma
+#   capa vai calhar de cair na paleta do tema. É a cor do disco, não a do tema.
+#
+#   Quem liga e desliga a cor por completo é o popup do próprio applet
+#   (`album-color-enabled`), que é escolha sua e o MeowSystem não enforça.
+# traco | chapado
+MIDIA_COR_ALBUM="traco"
+
+# @ Baixar a capa da internet
+# > Alguns tocadores publicam a capa como link, não como arquivo.
+# Baixar a capa quando o player publica `mpris:artUrl` como http(s)?
+#   O Spotify SÓ publica https. Um player local que publica `file://` (o VLC, um
+#   arquivo no disco) continua com capa mesmo em "nao".
+#
+#   Esta chave existe para desligar o download SEM recompilar: o applet a lê do
+#   disco, não é um `cfg` de build. Ele a lê UMA vez, na subida — o laço roda a
+#   cada 500 ms e reler ali seriam 120 leituras por minuto —, então trocar aqui
+#   vale no próximo login. O que já foi baixado fica em cache
+#   (`~/.cache/cosmic-ext-applet-now-playing`), um JPEG por álbum tocado.
+# sim | nao
+MIDIA_CAPA="sim"
+
+# @ Tamanho da letra
+# > Automático usa a mesma escala do relógio.
+#
+# Tamanho da letra na barra. "auto" = a MESMA escala tipográfica que o painel usa
+# no relógio (body/title4/title3, conforme a altura da barra) — é o certo em
+# quase todo caso. O upstream do applet não fazia isso: ele passava o tamanho do
+# ÍCONE como tamanho da FONTE, e numa dock de ícone grande a letra saía gigante
+# ao lado de tudo. Foi a primeira coisa reparada, em 24/08/2026.
+#
+# A UNIDADE É PIXEL, E A FAIXA VAI DE 6 A 48. Um número dentro dela crava o
+# tamanho e ignora o painel; a palavra `auto` devolve a escala do painel. São os
+# dois únicos valores que o applet entende, e a auditoria mostrou o preço de não
+# dizê-lo: um `999` digitado no campo entrou como escolha pendente, calado.
+MIDIA_FONTE="auto"                # auto, ou 6 a 48 px
+
+# @ Cor do nome da música
+# > Qualquer cor da paleta.
+#
+# A música e a banda em cores diferentes, para separar as duas de relance.
+# Vale qualquer nome da paleta (assets/paleta/catppuccin.json): mauve, green, blue,
+# peach, teal, pink, sky, yellow, red, lavender, text, subtext0…  "auto" deixa
+# o texto na cor padrão do painel — que é o que o traço do álbum tinge.
+#
+# Quem traduz nome para hex é o `scripts/midia.sh`, contra o FLAVOR desta conf.
+# O applet só lê `#rrggbb`, e é de propósito: a paleta é do MeowSystem, e uma
+# cópia dela dentro do Rust seria a segunda verdade que discorda no dia em que
+# você trocar de flavor.
+#
+# A escolha de 24/08/2026: roxo na música, verde na banda.
+MIDIA_COR_TITULO="mauve"
+# @ Cor do nome da banda
+# > Diferente da do título, para separar as duas de relance.
+MIDIA_COR_ARTISTA="green"
+
+# @ Botões de anterior, pausa e próxima
+# > Desenhados no painel, ao lado do nome.
+#
+# Desenhar ⏮⏸⏭ NA BARRA, ao lado do nome, com o acento do pack.
+#
+# Nasce LIGADO: os três da barra levam a cor de acento, como o botão de tocar
+# do popup. Desligado, sobra `[capa] música · banda`, que é o que serve quando
+# o applet fica colado no de Som do COSMIC, que já desenha os dele. O popup tem
+# os três de qualquer jeito, sempre.
+MIDIA_CONTROLES="sim"
+
+# --- Papel de parede --------------------------------------------------------
+
+# @ Pasta do carrossel
+# > Dentro dela nascem as duas que importam: ativos e originais.
+# [avancado] A pasta-mãe do carrossel. As duas que importam nascem dentro dela:
+#   ativos/ (é a que gira) · originais/ (a foto antes de qualquer recolorização).
+#   A recusada é apagada e fica só o nome dela no BANIDOS.txt.
+# O nome era WALLPAPER_DIR e apontava para `ativos/`, mas quem lia era
+# WALLPAPER_BASE — chave que não existia neste arquivo. Ou seja: mudar o valor
+# não movia nada. Corrigido em 08/08/2026; agora o nome daqui é o nome lido.
+WALLPAPER_BASE="$HOME/.local/share/backgrounds/meowsystem"
+
+# @ De quanto em quanto a imagem troca
+# > Vale para o carrossel automático.
+WALLPAPER_INTERVALO="5m"          # 30s | 5m | 2h
+
+# @ Quanto tempo dura a imagem escolhida
+# > Em minutos, depois de você usar avançar ou voltar. Zero fixa até você soltar.
+# Quanto tempo dura a imagem que você escolheu com "avançar"/"voltar" (no menu
+# de contexto da área de trabalho, ou `meow wallpaper proximo`). Enquanto ela
+# vale, o carrossel está PARADO — o cosmic-bg gira o que estiver na pasta, e uma
+# imagem escolhida é um arquivo só. Quem devolve o carrossel é o
+# meow-wallpaper.timer, que já roda a cada 15 min.
+# "0" = para sempre; aí quem solta é `meow wallpaper carrossel`.
+WALLPAPER_FIXO_TTL="30m"
+
+# @ Ordem do carrossel
+# > Sorteada, ou em ordem de nome.
+WALLPAPER_ORDEM="aleatoria"       # aleatoria | alfabetica
+
+# @ Como a imagem ocupa a tela
+# > Preencher corta as bordas; caber deixa faixas nas laterais.
+# Como a imagem ocupa a tela. Em 11/08/2026 chegou uma captura com duas
+# tarjas pretas, uma de cada lado, e a frase: "o wallpaper precisa preencher a
+# largura e altura". A causa era um `Fit` cravado no `wallpaper.sh` — sob um
+# comentário que dizia que a escolha era sua e estava sendo preservada.
+#   preencher  cobre a tela inteira; o que não couber, corta   (o que foi pedido)
+#   caber      mostra a imagem inteira; o que sobrar vira tarja preta
+#   esticar    deforma a imagem até caber (praticamente nunca é o que se quer)
+WALLPAPER_AJUSTE="preencher"      # preencher | caber | esticar
+
+# @ Pastas suas que o carrossel respeita
+# > Caminhos que ele não deve substituir, um por ficha.
+# OS CAMINHOS QUE VOCÊ ESCOLHEU, E QUE O CARROSSEL NÃO DEVE DEVOLVER
+#   Caminhos absolutos separados por `:` (a mesma convenção do $PATH). Cada um
+#   vale para ele mesmo e para tudo abaixo dele. Vazio = nenhum.
+#
+# POR QUE ESTA CHAVE EXISTE — 11/08/2026
+#   Até aqui a fronteira do `scripts/wallpaper.sh` tinha três casos: o papel de
+#   parede apontando para o nosso acervo (confere), para a pasta de fábrica
+#   `/usr/share/backgrounds` (é reset programático, conserta) e para QUALQUER
+#   outro lugar (é escolha sua, não se toca). O terceiro caso era generoso
+#   demais, e a conta chegou: o `output.DP-1` voltou a apontar para
+#   `~/Imagens/Parede_papel/Cyberpunk Neon Cat…jpeg` — a pasta onde o papel de
+#   parede morava ANTES do MeowSystem —, o script leu aquilo como escolha de
+#   agora e devolveu código 4. O relógio de 15 minutos rodou, devolveu 4, e
+#   repetiu isso a cada quinze minutos sem consertar nada — e ninguém tinha
+#   escolhido aquele papel de parede de novo.
+#
+#   O que faltava era distinguir "a escolha de agora" de "onde o papel de
+#   parede estava antes". Não há como ler isso do disco — o COSMIC grava o mesmo
+#   arquivo nos dois casos. Então a decisão passou a ser DITA, uma vez, em vez
+#   de adivinhada toda vez: um caminho listado aqui é seu e não se toca
+#   (código 4); qualquer outro caminho não-nosso é reversão e se conserta
+#   (código 1), com o caminho substituído dito no log.
+#
+# O NOME MUDOU EM 24/09/2026. Até ali a chave se chamava WALLPAPER_FONTES_DELA,
+#   herança de quando o projeto era de uma pessoa só. Um meow.conf com o nome
+#   antigo continua valendo — o nome novo vence quando os dois estão no
+#   arquivo —, e o `install.sh` troca o nome na própria linha, com o valor de
+#   antes.
+#
+#   Você não precisa editar esta linha à mão. Quando o script consertar algo que
+#   você de fato queria, ele imprime o comando que autoriza:
+#       meow wallpaper permitir "/home/voce/Imagens/aquela-pasta"
+WALLPAPER_FONTES_PERMITIDAS=""
+
+# @ Avisar quando a imagem troca
+# > Uma notificação com o nome da imagem nova.
+# A notificação quando o carrossel troca de imagem. Sem uma linha própria, esta
+# chave HERDAVA o comentário do LOGO_INTERVALO logo acima — e passou a herdar a
+# lista de durações dele junto, ganhando quatro botões (6h, 12h, 1d, 7d) para
+# responder sim ou não. Pego pelo `tests/app.sh` no mesmo dia em que a lista foi
+# escrita: o painel e o wizard leram a mesma chave de formas diferentes.
+WALLPAPER_NOTIFICAR="sim"         # avisa qual imagem entrou
+
+# @ Avançar e voltar no botão direito
+# > Dois itens de papel de parede no menu da área de trabalho.
+# "Voltar papel de parede" e "Próximo papel de parede", com os glifos ⏮ ⏭, no botão direito da
+# área de trabalho. Não há sistema de plugin no COSMIC: os itens só existem
+# patchando o `cosmic-files` e recompilando. O binário patchado mora em
+# ~/.local/bin (que vem antes de /usr/bin no PATH), então um `apt upgrade` não o
+# sobrescreve — e quando a versão do pacote sobe sem que haja build para ela, o
+# nosso SAI DA FRENTE sozinho até o build novo ficar pronto.
+FILES_MENU="sim"                  # sim | nao
+
+# @ Reconstruir sozinho quando atualizar
+# > A reconstrução baixa uns 161 MB e leva minutos. Sem isto os dois itens somem na próxima atualização.
+# [avancado] Compilar sozinho quando o apt subir a versão do cosmic-files? O build baixa
+# ~161 MB de fonte e leva minutos; roda em background (Nice=19, IO idle), no
+# máximo 3 tentativas por versão, e adia se houver jogo aberto.
+# Com "nao", o doctor avisa e você roda `meow files-menu build` quando quiser.
+FILES_MENU_AUTOBUILD="sim"
+
+# @ Compartilhar tela e janela
+# > O portal do COSMIC cai ao compartilhar tela em várias máquinas, e a tela congela no meio da call.
+# Compila o xdg-desktop-portal-cosmic com a série de patches/graficos.series (o ajuste da
+# negociação do formato, #286, e a corrida no toolkit, #384), liga o shim que escolhe entre
+# o build e o portal do pacote, e põe a policy do Chrome que libera captura de tela. Sem
+# Chrome a policy não é escrita. Sai do trilho sozinho quando o pacote traz a correção.
+GRAFICOS="sim"                    # sim | nao
+
+# (havia um WALLPAPER_SEMENTES aqui, com "comunidade,cosmic,minhas". Nunca
+#  existiu categoria nenhuma no `cmd_semear`: ele baixa a coleção Catppuccin do
+#  commit pinado, e ponto. Removido em 08/08/2026 — chave que nada lê.)
+
+# --- Dia e noite ------------------------------------------------------------
+
+# @ A noite começa às
+# > A hora em que o mascote do dock e o do terminal trocam para a noite. O papel de parede e o modo de leitura têm hora própria.
+# Vazio = herda WALLPAPER_NOITE_INICIO/FIM (ou 18:00-07:00). Preenchido, manda
+# no que pergunta "é noite?" pelo `lib/noite.sh`: o mascote do dock e o do
+# terminal. A regra é a de sempre —
+# inicio > fim atravessa a meia-noite; inicio == fim é noite o dia inteiro.
+#
+# O CARROSSEL E O MODO DE LEITURA NÃO LEEM ESTAS DUAS — revisão da P54,
+# 24/09/2026. Este bloco e a frase de baixo dos dois controles diziam que elas
+# mandavam "no carrossel de papel de parede claro e escuro, e no padrão do modo
+# de leitura", e não mandam: o `wallpaper.sh` lê só WALLPAPER_NOITE_* (vazias,
+# 18:00 e 07:00), e o `leitura.sh` lê o horário do applet ou LEITURA_HORARIO_*.
+# Quem punha 20:00 aqui continuava vendo o carrossel escurecer às 18:00.
+#
+# QUEM VENCE, NESTA ORDEM: estas duas chaves; depois a janela que você arrasta
+# na interface do applet do modo de leitura; depois WALLPAPER_NOITE_*; depois
+# 18:00-07:00. `meow logo listar` diz qual delas está valendo agora.
+NOITE_INICIO=""
+# @ A noite termina às
+# > A hora em que o mascote do dock e o do terminal trocam para o dia. O papel de parede e o modo de leitura têm hora própria.
+NOITE_FIM=""
+
+# @ O tema escuro termina às
+# > Com «Claro ou escuro» em Automático: desta hora em diante, o tema é o claro.
+# DUAS CHAVES QUE EXISTIAM SEM EXISTIR — 07/09/2026. O `bin/meow` lê
+# MODO_AUTO_CLARO_DE/ATE desde que o modo automático nasceu, com 7 e 18 de
+# fábrica — e nenhum arquivo as declarava: quem quisesse o claro começando às
+# 8 tinha de LER O CÓDIGO para descobrir que a chave existe. A conferência de
+# tarefas tropeçou na consequência: a página "Dia e noite" parecia não ter nada
+# a ver com o tema, e tem — só que as horas do TEMA são estas, separadas da
+# noite da máquina (NOITE_INICIO/FIM manda no mascote do dock e no do terminal;
+# estas duas mandam só no claro/escuro quando MODO="auto").
+# São horas cheias (7, 18), sem minutos — é assim que o `modo_desejado`
+# compara. (E esta frase evita soletrar o formato de relógio por extenso:
+# a sigla dele no comentário é o que faz o leitor classificar a chave como
+# horário — foi medido nesta mesma rodada, nesta mesma chave.)
+#
+# OS TÍTULOS FALAM DA NOITE, COMO OS DAS OUTRAS DUAS LINHAS — 10/10/2026, P80.
+# Na página "Dia e noite" as três linhas (o mascote, o tema, a imagem) dizem cada
+# uma quando a noite DELA começa e termina, e esta lia ao contrário: «O tema
+# claro termina às» à esquerda, embaixo de «A noite começa às». O escuro começa
+# quando o claro termina, então as chaves não mudaram — só o título, que agora
+# diz o escuro. E «hora cheia» na linha é o que dá a esta chave o seletor de
+# hora das outras linhas (sem minutos), no lugar do deslizante de 0 a 23.
+MODO_AUTO_CLARO_DE=""             # 0 a 23, hora cheia  (vazio = 7)
+# @ O tema escuro começa às
+# > Com «Claro ou escuro» em Automático: desta hora em diante, o tema é o escuro.
+MODO_AUTO_CLARO_ATE=""            # 0 a 23, hora cheia  (vazio = 18)
+
+# @ Separar imagens de dia e de noite
+# > À noite o carrossel sorteia só entre as escuras.
+# Em 24/08/2026, numa captura de 23:57, o papel de parede era vaporwave pastel
+# CLARO dentro de um sistema Mocha, e as duas barras apareciam lavadas. O papel
+# é 95% dos pixels da tela: sem campo escuro não existe "aceso".
+#
+# Com isto ligado, o `wallpaper.sh` mede a luminância perceptual de cada imagem
+# de `ativos/` e monta duas pastas de LINK DURO ao lado dela — `ativos-noite/` e
+# `ativos-dia/` —, apontando o carrossel para a do horário. NENHUM ARQUIVO É
+# MOVIDO: o acervo continua sendo `ativos/`, que é o que o `permitir`, o `banir`,
+# o `semear` e o README conhecem.
+#
+# DESLIGAR DESLIGA: com "nao" a rotação volta para `ativos/` e as duas pastas
+# derivadas somem do disco no mesmo comando.
+WALLPAPER_NOITE="sim"             # sim | nao
+# @ Imagem escura a partir das
+# > A hora em que o carrossel passa às imagens escuras.
+WALLPAPER_NOITE_INICIO="18:00"    # HH:MM — a janela pode atravessar a meia-noite
+# @ Imagem escura até as
+# > A hora em que o carrossel volta às imagens claras.
+WALLPAPER_NOITE_FIM="07:00"       # HH:MM — início == fim = noite o dia inteiro
+
+# @ Onde separa imagem clara de escura
+# > 0 é preto, 1 é branco. Acima do corte, a imagem conta como de dia.
+# O CORTE, E POR QUE ELE NÃO É UM NÚMERO REDONDO
+#   0 = preto, 1 = branco, em luminância perceptual (0,2126·R + 0,7152·G +
+#   0,0722·B). Medidos os 54 papéis em 25/08/2026, o histograma tem um vale
+#   exatamente aqui: só DUAS imagens entre 0,35 e 0,40, contra 7 em cada faixa
+#   vizinha. E o vale coincide com o `surface2` do Mocha (#585B70 = 0,3603), o
+#   tom mais claro que o tema usa como FUNDO — mais claro que isso, o papel
+#   deixa de ser campo e passa a competir com a interface.
+#
+#   0,37 e não 0,36 porque 0,3603 cai EM CIMA de uma imagem (0,3605): o trecho
+#   vazio mais largo dentro do vale vai de 0,3605 a 0,3818, e 0,37 é o meio
+#   dele — nenhuma imagem fica a menos de 0,01 do corte.
+#
+#   NÃO USE `%[fx:mean]` PARA MEDIR ISTO. Ele é a média dos três canais com peso
+#   igual, e erra caso a caso: um papel com R=0,412 G=0,029 B=0,279 dá 0,240 na
+#   crua (15º lugar) e 0,128 na perceptual (2º mais escuro do acervo). O
+#   `%[fx:luminance]` também não serve — é símbolo POR PIXEL, avaliado em (0,0).
+#   O caminho certo é `-colorspace Gray` antes do `%[fx:mean]`.
+#
+#   Neste acervo dá 32 na noite e 22 no dia. Baixar põe mais imagem na noite e
+#   clareia o grupo; subir faz o contrário e aperta o dia, que já está no piso.
+# A faixa escrita no formato que o derivador entende — é o que dá o deslizante,
+# igual ao LEITURA_TEXTURA, que é o mesmo tipo de número. Antes desta linha a
+# chave aceitava qualquer texto sem uma palavra na tela.
+WALLPAPER_LIMIAR_LUZ="0.37"       # 0.0 a 1.0 (0 = preto, 1 = branco)
+
+# --- Modo de leitura --------------------------------------------------------
+
+# SETE DAS TREZE CHAVES DE `Dia e noite` FALAVAM DE OUTRA COISA — 06/09/2026
+#   `Dia e noite` respondia duas perguntas ao mesmo tempo: QUANDO é noite (o
+#   mascote, o carrossel de papel de parede) e O QUE a tela faz quando é. As sete
+#   `LEITURA_*` eram a maioria da seção — sete de treze — e o efeito delas é o
+#   único que o COMPOSITOR pinta: quem escreve `leitura_temperatura` e
+#   `leitura_textura` em `com.system76.CosmicComp/v1` é o `scripts/leitura.sh`,
+#   e mais ninguém. As outras seis só dizem QUANDO é noite, e quem as lê é o
+#   `wallpaper.sh` e o `lib/noite.sh`. Dono diferente, seção própria.
+#
+#   NADA MUDOU DE LUGAR NO ARQUIVO: as sete já estavam nesta ordem e neste
+#   ponto — o que entrou foi o cabeçalho acima. E a janela DESTE modo não é a
+#   do `NOITE_INICIO`/`NOITE_FIM`, como esta linha dizia até a revisão da P54:
+#   o `leitura.sh` lê o horário do applet ou LEITURA_HORARIO_*, abaixo.
+
+# @ Ligar o modo de leitura no horário
+# > A tela esquenta e ganha textura de papel à noite, sem você tocar.
+# O RELÓGIO QUE O LIGA SOZINHO
+# Às 18:00 a tela esquenta e ganha textura de papel; às 07:00 volta ao normal,
+# sem você tocar em nada. São DOIS números escritos em
+# ~/.config/cosmic/com.system76.CosmicComp/v1/ — `leitura_temperatura` (Kelvin) e
+# `leitura_textura` (0.0 a 1.0) —, e quem os PINTA é o `cosmic-comp` recompilado.
+#
+# QUEM PINTA É O COMPOSITOR, E DESDE 30/08/2026 ELE JÁ SABE LER.
+#   Até hoje estas linhas diziam o contrário — "o compositor desta máquina ainda
+#   não sabe ler as duas chaves, escrevê-las é inofensivo e não muda um pixel".
+#   Deixou de ser verdade às 04:59 de 30/08, quando o patch entrou no binário, e
+#   o arquivo que você edita foi o último a saber. Conferido em 31/08/2026, com
+#   esta sessão de pé:
+#       strings -a /usr/bin/cosmic-comp | grep -c AURORA-READING-MODE          ->  1
+#       strings -a /proc/$(pgrep -x cosmic-comp)/exe | grep -c AURORA-READING-MODE  ->  1
+#   O binário do disco E o cosmic-comp que está desenhando esta tela carregam o
+#   patch. Ou seja: os dois números daqui de baixo valem na tela na hora em que
+#   são escritos, sem logout e sem esperar nada.
+#
+#   NO DIA EM QUE UM `apt upgrade` TROCAR O COMPOSITOR por um sem o patch,
+#   escrever aqui volta a ser inofensivo e sem efeito nenhum — nada quebra, a
+#   tela só para de obedecer, calada. Quem responde é `meow leitura estado`, em
+#   duas linhas: se o binário do DISCO sabe ler, e se a sessão que você está
+#   usando AGORA sabe. São perguntas diferentes — um build feito e um logout
+#   ainda não dado dão respostas opostas —, e é a diferença entre elas que
+#   explica "escrevi e não aconteceu nada".
+#
+# VAZIO = NÃO TOCA, e aqui a chave tem três estados, não dois:
+#   vazio  o modo de leitura é seu e de mais ninguém. Nada é lido, nada é escrito,
+#          o `meow doctor` devolve verde sem olhar. É o mesmo contrato do
+#          RELOGIO_SEGUNDOS e do JANELAS_TILING acima.
+#          E se uma execução anterior já tiver armado o relógio, o `./install.sh`
+#          o REMOVE: um relógio nosso de pé já é decidir por você.
+#   nao    DESLIGA DE VERDADE: os dois números voltam a 0 e o `./install.sh`
+#          desarma o `meow-leitura.timer`. Não é "parar de escrever" — é apagar o
+#          efeito, do mesmo jeito que WALLPAPER_NOITE="nao" apaga as pastas
+#          derivadas em vez de deixá-las paradas parecendo ligadas.
+#   sim    o agendamento vale.
+#
+# E EXISTE UM QUARTO PORTÃO, QUE NÃO É ESTA CHAVE: com AUTO_REPARO="nao" o modo de
+# leitura não é aplicado NEM agendado, mesmo com "sim" aqui — quem desliga o
+# auto-reparo está dizendo "não mexa sozinha na minha máquina", e virar a cor da
+# tela às 18:00 é mexer. O `./install.sh` não chega a chamar o script: nada é
+# lido, nada é escrito, e o degrau que estiver no disco FICA onde está. Se você
+# desligar o auto-reparo às 20:00, com a tela já âmbar, ela fica âmbar até
+# alguém desfazer — `meow leitura remover` zera os dois números.
+LEITURA_AGENDA="sim"              # sim | nao | vazio (vazio = não toca)
+
+# @ Modo de leitura começa às
+# > Vale enquanto o controle do painel não tiver gravado um horário seu.
+# O HORÁRIO MORA NO APPLET, NÃO AQUI — decisão de 29/08/2026.
+#   O pedido foi escolher a faixa pela interface, então a fonte da verdade são
+#   as chaves `leitura_hora_inicio` e `leitura_hora_fim` do CosmicComp, gravadas
+#   pelo applet da barra. Uma fonte só, em vez de duas que podem divergir em
+#   silêncio.
+#
+#   As DUAS linhas abaixo são o PADRÃO para enquanto o applet não tiver gravado
+#   horário nenhum. O applet existe desde 30/08/2026, mas ele só ESCREVE o que
+#   você mexe: instalá-lo não cria as chaves. No instante em que você mudar a
+#   hora no popup, estas duas linhas param de valer sozinhas — e o
+#   `meow leitura estado` diz qual das duas fontes está mandando, sempre, em vez
+#   de deixar você adivinhar.
+#
+#   A janela pode atravessar a meia-noite, e é o caso normal: com início > fim a
+#   noite é "depois do início OU antes do fim". Início == fim vale o dia inteiro.
+#   É a MESMA regra do carrossel de papel de parede (WALLPAPER_NOITE_* abaixo);
+#   duas definições de noite na mesma máquina seria pedir para elas discordarem.
+LEITURA_HORARIO_INICIO="18:00"    # HH:MM  (a que horas a tela esquenta)
+# @ Modo de leitura termina às
+# > Vale enquanto o controle do painel não tiver gravado um horário seu.
+LEITURA_HORARIO_FIM="07:00"       # HH:MM  (a que horas ela volta ao normal)
+
+# @ Temperatura da tela
+# > Em kelvin: 6500 é neutro, 1000 é o âmbar mais forte.
+# A TEMPERATURA DA NOITE, em Kelvin. A faixa é 1000–6500, inteira: foi decisão
+# de 29/08/2026 ("se é um slider por que não dá pra comportar todos?"), e
+# 6500K é o NEUTRO — ou seja, pôr 6500 aqui é o mesmo que desligar.
+#
+# ESTA LINHA VIROU O PADRÃO DE FÁBRICA, NÃO MAIS O ALVO — 31/08/2026
+#   Quem manda no QUANTO, desde hoje, é o SLIDER do applet. O defeito veio relatado
+#   com todas as letras: "o negócio fica mudando de temperatura sozinho sem
+#   respeitar a temperatura que eu defini" — e estava certa: o relógio bate de
+#   minuto em minuto e cada tique reescrevia esta linha por cima do que você tinha
+#   acabado de arrastar.
+#
+#   Agora o `scripts/leitura.sh` lê primeiro o ponto que o applet guardou em
+#   `~/.local/state/cosmic/io.github.meowsystem.Leitura/v1/ultima_temperatura`, e
+#   só cai AQUI quando aquele não existe ou não passa no filtro — máquina nova,
+#   applet não instalado, sessão em que você nunca tocou num slider. O relógio
+#   ficou com o QUANDO, que é tudo o que foi pedido que ele tivesse.
+#
+#   Para ver qual das duas fontes está valendo agora:  ./scripts/leitura.sh estado
+#   (a linha `alvo que vale` nomeia a fonte de cada um dos dois números).
+#
+# 3500 não é chute meu: é o valor que a luz noturna da Aurora já usa nesta
+# máquina hoje (`/var/lib/aurora/night-light-temp`). Quer dizer que a virada das
+# 18:00 entrega exatamente a temperatura com que você já convive, agora num
+# horário que é seu.
+LEITURA_TEMPERATURA="3500"        # 1000–6500 K (6500 = neutro = desligado)
+
+# @ Textura de papel
+# > De 0 a 1. No teto o preto sobe e o branco desce, e a tela fica com cara de papel.
+# A TEXTURA DE PAPEL: 0.0 é nenhuma, 1.0 é o teto. No 100% o papel sobe o preto
+# para ~0.12, desce o branco para ~0.93 e dessatura 30%.
+#
+# ESTE NÚMERO É UMA PROPOSTA, NÃO UMA DECISÃO — e o plano de 29/08 registra o
+# teto da textura como escolha ainda em aberto, sua. 0.35 está aqui para que você
+# VEJA a coisa uma vez, que é o que a decisão está esperando; se for demais, é um
+# número; se não quiser nenhuma, é `0`.
+#
+# PONTO, NUNCA VÍRGULA. Num teclado pt_BR `0,35` é o erro mais fácil de cometer
+# nesta linha, e ele não dá erro nenhum: o número vira 0 lá dentro e o papel fica
+# desligado para sempre, calado. Os DOIS comandos avisam — `meow leitura estado` e
+# `meow leitura conferir` —, e o `estado` ainda imprime o número do jeito que você
+# o escreveu, vírgula e tudo, na linha logo acima do aviso. Mas os dois só falam
+# depois de você já ter passado uma noite sem textura sem saber por quê. (Vale
+# para a temperatura também: qualquer coisa que não seja um inteiro cai no
+# neutro, ou seja, desligado.)
+# E VALE PARA ELA A MESMA COISA DA TEMPERATURA (31/08/2026): esta linha é o
+# PADRÃO DE FÁBRICA. O alvo que o relógio persegue é o `ultima_textura` que o
+# applet guardou quando você soltou o slider; esta só entra quando aquele falta.
+LEITURA_TEXTURA="0.35"            # 0.0 a 1.0
+
+# @ Quanto a virada demora
+# > Em minutos, até chegar ao valor cheio. Zero é a virada imediata.
+# Quantos minutos a virada leva para chegar ao valor cheio. `0` é o degrau seco.
+#
+# A VIRADA: SECA OU RAMPA? Também é sua, e também está em aberto no plano.
+#   0     virada SECA: às 18:00 o degrau salta de uma vez.
+#   N     rampa de N minutos, um passo por minuto, DEPOIS da hora: às 18:00 começa
+#         a esquentar e chega ao valor cheio às 18:00+N. (O GNOME usa rampa.)
+#         SE N COUBER NA JANELA: com uma rampa maior que o tempo ligado — ou que
+#         o tempo desligado — o degrau para onde deu e nunca chega ao cheio. Não
+#         é defeito, é o relógio não ter minuto suficiente para subir; e não há
+#         conserto sem o script guardar estado entre um tique e outro, que é
+#         justamente o que o faz sobreviver a um tique perdido e a um boot no
+#         meio da noite. Onde ele parou é a fração que o `meow leitura estado`
+#         mostra, e os dois comandos avisam quando a rampa não cabe — o `estado`
+#         quando você perguntar, o `conferir` uma vez por dia, às 5h, junto com o
+#         resto do doctor.
+#
+# A rampa vai depois da hora e nunca antes: "ligar às 18:00" não pode significar
+# "às 17:30 a tela já mexeu". E trocar entre as duas é só esta palavra — o timer
+# é o mesmo, não há unidade a rearmar nem `./install.sh` a rodar de novo.
+#
+# A UNIDADE É MINUTO, E O FIM DO DESLIZANTE É 60 — 02/09/2026
+#   Até hoje esta linha dizia `0 = seca | N minutos de rampa`, que parece uma
+#   lista de valores e não é nenhuma das duas coisas: a página descartava a
+#   linha inteira e desenhava campo de texto livre, sem unidade e sem faixa. A
+#   auditoria digitou `banana`, `-5`, `999` e `2,5` — os quatro entraram calados
+#   e só o script reclamaria, uma noite depois. Uma faixa escrita `0 a 60` vira
+#   deslizante, e 60 é uma hora de subida: acima disso a rampa deixa de ser a
+#   virada e vira o horário, e o aviso de "não coube na janela" ali em cima passa
+#   a valer com facilidade. Não é trava do script — ele aceita qualquer inteiro.
+LEITURA_RAMPA_MIN="0"             # 0 a 60 min  (0 = virada seca)
+
+# @ Controle no painel
+# > Um ícone com dois deslizantes, para mexer sem abrir este painel.
+# O APPLET DA TOPBAR — o ícone com os dois sliders (30/08/2026).
+#   sim  o install e o conserto do doctor compilam o applet pinado em
+#        `assets/extensoes/leitura.pino` e plantam o `.desktop`.
+#   nao  DESLIGA DE VERDADE: a sombra sai primeiro, o binário depois, e a topbar
+#        volta sem ele no próximo login. As cinco chaves NÃO são apagadas — elas
+#        são o seu ajuste, e o relógio continua lendo e escrevendo nelas.
+#
+# TRÊS COISAS PRECISAM SER VERDADE PARA O ÍCONE APARECER:
+#   1. o binário em ~/.local/bin/meowsystem-leitura   (esta chave)
+#   2. a sombra .desktop em ~/.local/share/applications (esta chave)
+#   3. a linha "io.github.meowsystem.Leitura" no plugins_wings da topbar. A ordem
+#      dos applets é sua: só o «Pôr no painel» da página Extensões a escreve, por
+#      gesto seu, no fim da barra.
+# O `meow leitura estado` mostra as três, uma por linha, justamente porque elas
+# somem por motivos diferentes.
+#
+# ESCREVER A TERCEIRA RECRIA A TOPBAR NA HORA — medido em 30/08/2026. O painel
+# ouve aquele diretório por inotify e `plugins_wings` está na lista que o obriga
+# a refazer o espaço: todos os applets renascem no mesmo segundo. Uma vez, por
+# gesto, é barato e o ícone aparece sem logout. Num laço seria a fábrica do
+# painel fantasma — por isso nem o install nem o doctor escrevem nesse arquivo.
+#
+# COMPILAR É CARO UMA VEZ E DE GRAÇA DEPOIS: o build frio do libcosmic leva
+# minutos, e os applets da casa dividem uma pasta de build só
+# (~/.local/state/meowsystem/extensoes/.target); a segunda passagem não invoca o
+# cargo, porque o carimbo (fonte, Cargo.toml, Cargo.lock, binário e rustc) bate e
+# o script devolve 0 na hora. Sem cargo na máquina, o conserto instala o rust pelo
+# rustup em ~/.cargo; sem rede, a etapa cai em "pulados" e tenta de novo na
+# passada seguinte.
+LEITURA_APPLET="sim"              # sim | nao
+
+# OS APPLETS DA CASA QUE O MEOWSYSTEM COMPILA E INSTALA, pelo id. São os 10 pinos
+#   de `assets/extensoes/*.pino` com TIPO="applet": ascii-battery, clipboard,
+#   drives, eyedropper, leitura, now-playing, performance, quick-settings, soneca e
+#   status-hub. O compositor e o menu do Arquivos também têm pino, mas quem manda
+#   neles é COMPOSITOR e FILES_MENU, não esta lista.
+#   Vazio quer os 10, menos o que MIDIA (now-playing) ou LEITURA_APPLET (leitura)
+#   dizem "nao"; "-" não quer nenhum; uma lista separada por vírgula manda sozinha,
+#   e o applet que sai dela é desinstalado na passada seguinte.
+#   Quem compila é o install e o conserto do doctor, que baixam da internet sem
+#   perguntar (o pino é da casa); os applets compilam todos numa pasta de build só,
+#   ~/.local/state/meowsystem/extensoes/.target.
+#   A página Extensões mostra o catálogo: os applets da casa e os repositórios que
+#   você adicionou, que só baixam e compilam por gesto seu e ficam fora desta
+#   lista. Instalar ou remover ali um applet da casa reescreve esta chave.
+EXTENSOES=""
+
+# O COMPOSITOR DA CASA: o cosmic-comp com os remendos (patches/series), ligado
+#   pelo shim em ~/.local/bin/cosmic-comp. "sim" compila em segundo plano e liga
+#   o shim; "nao" tira o shim e a sessão volta ao /usr/bin/cosmic-comp.
+#   A página Extensões (aba Builds) escreve esta chave.
+COMPOSITOR="sim"                   # sim | nao
+
+# @ GPU do compositor
+# > Em qual placa de vídeo o compositor desenha.
+# A GPU DO COMPOSITOR: "dedicada" grava no /etc/environment o COSMIC_RENDER_DEVICE da placa
+#   dedicada que o instalador acha em /sys (com uma GPU só, não grava nada); "padrao" não toca
+#   e tira a linha que o MeowSystem gravou. Vale no próximo login.
+GPU_COMPOSITOR="dedicada"          # dedicada | padrao
+
+# REFAZER OS BUILDS AO ENTRAR NA SESSÃO: o compositor e o menu do Arquivos, quando a
+#   versão instalada muda. A página Extensões (Builds) liga e desliga esta chave.
+BUILDS_AO_ENTRAR="sim"            # sim | nao
+
+# --- Terminal ---------------------------------------------------------------
+
+# @ Paleta do terminal
+# > As dezesseis cores que o terminal usa.
+# A PALETA ANSI do cosmic-term — a última peça da tela que era de fábrica.
+#
+# O esquema é gerado a partir de FLAVOR e da `assets/paleta/catppuccin.json`, e bate
+# CAMPO A CAMPO com o port oficial (`catppuccin/cosmic-desktop`), conferido nos
+# quatro flavors em 25/08/2026. Nada é baixado: a paleta é local.
+#
+# São escritos QUATRO arquivos em `~/.config/cosmic/com.system76.CosmicTerm/v1`:
+# os dois mapas de esquema e as duas chaves que os SELECIONAM — um esquema
+# instalado e não selecionado não muda um pixel, e esse era o modo de falha mais
+# provável desta sprint. `font_name`, `font_size` e `opacity` NÃO são tocados:
+# são escolha sua, e o `opacity: 96` está no ponto.
+#
+# "nao" DESINSTALA — tira o nosso esquema e volta à paleta de fábrica,
+# preservando qualquer esquema que você tenha importado pela GUI. Deixar de
+# aplicar manteria de pé o que uma passagem anterior escreveu, e o sintoma seria
+# "desliguei e continua".
+TERMINAL_ESQUEMA="sim"      # sim | nao
+
+# @ Cor do cursor
+# > A cor de destaque, ou a do esquema de origem do terminal.
+# ONDE O ACCENT ENTRA, E É A ÚNICA DECISÃO DE GOSTO DESTE MÓDULO.
+# O port oficial pinta o cursor de `rosewater` e não usa `mauve` em lugar nenhum
+# (o magenta do ANSI no Catppuccin é o `pink`, #F5C2E7, não o mauve). "accent"
+# troca o cursor pela cor de ACCENT — com mocha/mauve, #CBA6F7, a assinatura
+# do resto da sua máquina. "port" devolve exatamente o arquivo oficial.
+TERMINAL_CURSOR="accent"    # accent | port
+
+# @ Prompt do zsh
+# > O prompt do starship que vem com o MeowSystem, nas cores do pack no ar.
+# O prompt do zsh, pelo starship. O DESENHO é o do preset oficial
+# catppuccin-powerline; as CORES são as da paleta do pack no ar, no flavor da
+# máquina (P74, 09/10/2026: até aqui o arquivo saía com a paleta do Mocha
+# fosse qual fosse o pack, e com o Dracula no ar o prompt era Catppuccin).
+#
+#   ESTA CHAVE MANDA EM METADE DA COISA, E É DE PROPÓSITO. O preset é nosso e vai
+#   para ~/.config/starship.toml. Quem LIGA o starship é o bloco marcado que o
+#   meow põe no .bashrc e no .zshrc (o «Bloco do terminal»): ele carrega
+#   ~/.config/meowsystem/terminal.sh, que inicia o starship sempre que ele existe
+#   na máquina, com esta chave em "sim" ou em "nao".
+#
+#   Com "nao" o módulo não mexe em nada — NÃO desfaz: o starship que já está
+#   instalado continua desenhando o prompt, com o nosso preset enquanto o arquivo
+#   existir e com o PADRÃO do starship depois que ele sai.
+#
+#   O starship NÃO está no apt do Pop!_OS (medido em 25/08/2026: `apt-cache
+#   policy starship` devolve vazio). Com "sim", o install o BAIXA DA INTERNET, de
+#   starship.rs para ~/.local/bin, sem sudo; se você recusou, ou sem rede, a
+#   etapa se pula sem escrever nada. O doctor não baixa: só confere e põe o
+#   preset quando o starship já existe.
+#
+#   O nome não é `PROMPT` porque `PROMPT` é a variável do prompt no zsh: um
+#   `. meow.conf` dado num zsh para inspecionar o arquivo transformaria o prompt
+#   daquele terminal em "sim".
+# sim | nao
+PROMPT_STARSHIP="sim"
+
+# --- Logo do sistema --------------------------------------------------------
+
+# --- NO TERMINAL ------------------------------------------------------------
+
+# @ Mascote no lugar do logo
+# > Troca o logo do Pop!_OS pelo mascote, desenhado em letras.
+# O logo do fastfetch: a Coquinha em ANSI no lugar do Pop!_OS.
+#
+# O DESENHO É NOSSO, A CHAVE NÃO É. O arquivo nasce em
+# ~/.local/share/meowsystem/fastfetch/<mascote>.ansi, que é território do
+# MeowSystem. Quem manda o fastfetch usá-lo é `logo.source`, no config.jsonc de
+# ~/.config/fastfetch — que é o seu arquivo do fastfetch, e não nosso.
+# Com FASTFETCH_LOGO_CONF="sim" o módulo troca ali as chaves do logo; com "nao"
+# ele GERA e CONFERE, e o patch para colar sai em
+# `scripts/fastfetch_logo.sh patch`. Enquanto ninguém colar, o `meow doctor`
+# mostra a pendência e NÃO notifica.
+#
+# A arte sai do SVG da Coquinha (packs/meowsystem/mascote/), não de foto e não de desenho
+# meu — não existe foto dela nesta máquina, e desenho autoral já foi reprovado
+# em 05/08/2026.
+FASTFETCH_LOGO="sim"              # sim | nao
+
+# @ Qual mascote
+# > Um nome da lista, ou o caminho de um .svg seu.
+# Qual mascote. `coquinha` e `mimir` saem de packs/meowsystem/mascote/; qualquer outro valor é
+# tratado como caminho de um SVG seu.
+FASTFETCH_LOGO_GATO="coquinha"
+
+# @ Como o mascote do terminal é escolhido
+# > Espelhando o do dock, por horário, ou fixo.
+# Como o mascote do TERMINAL é escolhido:
+#
+#   espelho  (padrão) mostra o mascote que o dock NÃO está mostrando. É o que faz
+#            os DOIS mascotes estarem sempre na tela ao mesmo tempo: de dia o Mimir
+#            no dock e a Coquinha no terminal; de noite, invertido. A regra se
+#            mantém sozinha — trocar LOGO_DIA acima basta, o terminal segue.
+#   hora     segue o relógio igual ao dock (os dois mostram o mesmo mascote).
+#   fixo     FASTFETCH_LOGO_GATO vence sempre.
+#
+# FASTFETCH_LOGO_DIA/NOITE só são lidas nos modos `hora` e no fallback do
+# `espelho` (primeira instalação, quando o botão do dock ainda não existe).
+#
+# O arquivo gerado se chama `gato.ansi`, e não `<nome>.ansi`: um arquivo cujo
+# conteúdo muda duas vezes por dia não pode ter o nome de um mascote só.
+FASTFETCH_LOGO_MODO="espelho"
+# @ Mascote de dia no terminal
+# > Vale quando a escolha é por horário.
+FASTFETCH_LOGO_DIA=""             # vazio = herda LOGO_DIA
+# @ Mascote de noite no terminal
+# > Vale quando a escolha é por horário.
+FASTFETCH_LOGO_NOITE=""           # vazio = herda LOGO_NOITE
+
+# @ Largura do desenho
+# > Em colunas de texto. 40 é a largura do logo que ele substitui.
+# O TAMANHO DO MASCOTE NO TERMINAL, EM CÉLULAS.
+#
+# Largura em COLUNAS. 40 é a largura do logo `pop` que ele substitui, então o
+# bloco de texto continua começando na mesma coluna. Mexer aqui é seguro, e é a
+# forma mais direta de aumentar a resolução: cada célula a mais é mais detalhe,
+# porque o desenho é reamostrado do SVG a cada geração, nunca ampliado.
+# Faixa: de 20 a 120 colunas.
+FASTFETCH_LOGO_COLUNAS="40"
+
+# @ Altura do desenho
+# > Em linhas. Vazio é calculada, e é o que mantém o disco redondo.
+# Altura em LINHAS. Vazio = calculada de `colunas / FASTFETCH_LOGO_CELULA`, que
+# é o que mantém o disco redondo em vez de oval.
+#
+# ATÉ 06/09/2026 ESTA CHAVE NÃO EXISTIA, e o arquivo dizia "A ALTURA NÃO SE
+# CONFIGURA". Era verdade sobre o desenho e mentira sobre o pedido: o
+# terminal medido tem 27 polegadas e sobra altura, e o mascote podia ser maior sem
+# empurrar nada. O que continua valendo é o AVISO — sair da proporção da célula
+# deforma o mascote, e o `aplicar` diz isso em voz alta quando acontece, em vez de
+# entregar uma elipse calada.
+# Faixa: de 8 a 60 linhas.
+FASTFETCH_LOGO_LINHAS=""
+
+# @ Linhas em branco antes
+# > Empurra o desenho para baixo.
+# Quantas LINHAS EM BRANCO antes do mascote — o `padding.top` do config.jsonc.
+#
+#   auto  (padrão) centra os dois blocos um no outro: a sobra entre a altura do
+#         mascote e a altura do texto é dividida em duas metades, e a maior vai
+#         para baixo. O problema foi medido na tela, em 06/09/2026: com
+#         o mascote em 32 linhas e o texto em 25, sobrava UMA linha de mascote acima
+#         da primeira informação e OITO abaixo da última — o desenho parecia
+#         escorregado para baixo. Com `auto` a conta se refaz sozinha sempre
+#         que você muda a altura do mascote ou acrescenta um módulo no fastfetch.
+#   0-24  o número, quando você quiser mandar.
+FASTFETCH_LOGO_QUEBRAS="auto"
+
+# @ Onde o texto começa
+# > Numa coluna ao lado do desenho, ou contornando-o.
+# Onde cada linha de informação COMEÇA. Os quatro últimos são a mesma medida
+# vista de quatro jeitos, e a diferença entre eles é só estética:
+#
+#   tabular    (padrão) todas na mesma coluna, logo depois da largura do mascote.
+#              É o único alinhamento que o fastfetch sabe fazer sozinho.
+#   contorno   cada linha começa logo depois do fim do DESENHO naquela linha —
+#              o texto abraça a silhueta, e as linhas de cima (onde o círculo
+#              ainda é estreito, ou onde nem há mascote) começam à esquerda.
+#   degraus    o contorno arredondado para múltiplos de 4 colunas. Num mascote
+#              redondo e alto o contorno puro faz a borda esquerda do texto
+#              subir de um em um caractere, e uma escada de um caractere parece
+#              tremor; de quatro em quatro, parece decisão.
+#   crescente  o contorno que nunca VOLTA: o texto acompanha o mascote enquanto
+#              ele engorda e fica onde está quando ele afina. Tira a onda da
+#              metade de baixo, que é onde o serrilhado mais aparece.
+#   reto       todas na mesma coluna, como o tabular — mas medida pelo trecho
+#              que o texto de fato ocupa, e não pela largura total do desenho.
+#              Num mascote mais alto que o texto, isso cola o bloco no mascote.
+#
+# O `contorno` NÃO é uma chave do fastfetch: medido na versão 2.61.0, ele
+# imprime o logo, sobe o cursor e emite o MESMO avanço de coluna para toda
+# linha de módulo. O contorno é composto depois, pelo `meow-fetch` — ver o
+# `scripts/fastfetch_alinhar.py`, que conta a medição inteira.
+FASTFETCH_LOGO_ALINHAR="tabular"   # tabular | contorno | degraus | crescente | reto
+
+# @ Título do bloco
+# > A primeira linha do texto, acima do traço. Vazio devolve o título de fábrica do fastfetch.
+# O TÍTULO DO BLOCO — a primeira linha, que o fastfetch monta de `usuário@host`.
+#
+# Vazio = não toca, e o fastfetch decide. Com texto, o valor é passado ao
+# fastfetch em `--title-format`, o que NÃO mexe no seu config.jsonc: a linha de
+# comando vence a configuração, e desligar é apagar esta chave.
+#
+# As variáveis que o fastfetch entende aqui: {user-name}, {full-user-name},
+# {host-name}, {user-name-colored}, {host-name-colored}, {at-symbol-colored},
+# {user-shell}, {home-dir}, {cwd}. As `-colored` são as que respeitam a cor de
+# título do tema; as outras saem na cor do texto.
+#
+# `{full-user-name}` sai do campo de nome completo do sistema (o GECOS). Se ele
+# estiver vazio ou sem acento, o lugar de consertar é lá — `chfn -f`, uma vez,
+# e a tela de login também melhora.
+FASTFETCH_TITULO="{full-user-name} @ {host-name-colored}"
+
+# @ Espaço entre desenho e texto
+# > Em colunas.
+# Quantas COLUNAS entre o fim do desenho e o começo do texto. Vale nos dois
+# alinhamentos: no tabular é o `padding.right` do config.jsonc, no contorno é o
+# respiro que separa o traço do mascote da primeira letra.
+# O 0 vale 0 de verdade desde 06/09/2026: o compositor forçava uma coluna de
+# respiro contra um risco que não se mede, e a chave mentia por uma coluna.
+# Faixa: de 0 a 12 colunas.
+FASTFETCH_LOGO_RECUO="3"
+
+# @ Proporção da célula do terminal
+# > Altura dividida pela largura, na sua fonte. É o que impede o mascote de achatar.
+# [avancado] PROPORÇÃO ALTURA/LARGURA DA CÉLULA do terminal — 23,00 / 9,00 px, medido no
+# cosmic-term com a JetBrainsMono Nerd Font Mono de 16 px. É o que converte
+# colunas em linhas quando `FASTFETCH_LOGO_LINHAS` está vazio. Quem trocar de
+# fonte muda este número uma vez, e o mascote volta a sair redondo.
+# Faixa: de 1.0 a 4.0.
+#
+# NASCE VAZIO PORQUE 2.556 É DE UMA FONTE E DE UM TAMANHO — 21/09/2026
+#   23,00 / 9,00 px é a célula do cosmic-term DESTA casa, com a JetBrainsMono
+#   Nerd Font Mono em 16 px. Se você instala tudo deste projeto, cai nessa mesma
+#   fonte e o número serve; se mantém a sua fonte, tem outra célula, e o mascote
+#   sai achatado sem nada acusar.
+#   Vazio NÃO muda nada hoje: `scripts/fastfetch_logo.sh` já tem
+#   `${FASTFETCH_LOGO_CELULA:-2.556}`, o mesmo número. O que muda é o convite a
+#   medir: `meow fastfetch logo` diz quantas linhas dá para as colunas atuais, e
+#   é por aí que se descobre a proporção desta tela.
+FASTFETCH_LOGO_CELULA=""          # 1.0 a 4.0
+
+# @ Detalhe do desenho
+# > Quanto detalhe cabe em cada célula. Depende do que a sua fonte desenha.
+# [avancado] QUANTOS SUBPIXELS CABEM EM CADA CÉLULA — é o teto de detalhe de um desenho
+# feito de letras, e ele depende do que a FONTE do terminal tem:
+#
+#   auto        (padrão) usa sextantes se a fonte os tiver, senão quadrantes.
+#   quadrante   2x2 por célula (▘▝▖▗▚▞▌▐▛▜▙▟). Qualquer fonte monoespaçada.
+#   sextante    2x3 por célula (🬀🬁🬂…). Precisa de `Symbols for Legacy
+#               Computing` (Unicode 13) — 50% mais detalhe vertical.
+#
+# MEDIDO NESTA MÁQUINA: a JetBrainsMono Nerd Font Mono NÃO tem os sextantes, e
+# nenhuma fonte instalada aqui tem — por isso o `auto` cai em quadrante hoje. O
+# código dos sextantes existe para o dia em que você trocar de fonte: o mascote
+# ganha o detalhe sozinho, sem ninguém lembrar de vir aqui.
+FASTFETCH_LOGO_BLOCOS="auto"
+
+# @ Corrigir a configuração do fastfetch
+# > Deixa o MeowSystem manter a linha do logo em dia sozinho.
+# [avancado] Deixar o MeowSystem corrigir sozinho a linha `logo.source` do config.jsonc do
+# fastfetch — que é o seu arquivo do fastfetch, e não nosso.
+# A escrita é CIRÚRGICA (duas chaves, o resto do arquivo intacto), guarda backup
+# antes em ~/.local/state/meowsystem/backups/ e diz em voz alta o que tocou.
+# Com "nao", o script volta a só imprimir o patch e sair 4.
+FASTFETCH_LOGO_CONF="sim"
+
+# --- Lançadores e jogos -----------------------------------------------------
+
+# `LANÇADORES` NOMEIA O QUE ESTAS CHAVES TOCAM: O `.desktop` — 06/09/2026
+#   `LANCADOR_SISTEMA` esconde e encurta os de /usr/share/applications;
+#   `AUTOSTART_BLOQUEADOS` impede que os de ~/.config/autostart subam no login.
+#   As outras duas — `APPS_ATIVOS` e `SPOTIFY_MARKETPLACE` — vestem o programa
+#   em si, e ficam aqui porque é nesta aba que se procura por elas.
+#
+#   E `jogos` no título nunca foi chave deste arquivo: medido em 06/09/2026, o
+#   `scripts/jogos_steam.sh` não lê UMA linha daqui — ele lê o mapa
+#   `assets/apps/jogos-fora.map` e a pasta `steamapps/`. Os jogos chegam à
+#   aba pelas fichas que o painel serve, não por uma chave.
+
+# @ Programas que o MeowSystem veste
+# > Um por ficha. Só os que estiverem instalados são tocados.
+# Vírgula-separado. `meow apps` lista o que está instalado e o que falta.
+#
+# ESTA LISTA FICA, E O MOTIVO FOI MEDIDO — 21/09/2026
+#   Ela parece "os 24 programas DESTA casa", e a sprint P24 a tratava assim.
+#   Medido antes de mexer: dos 24 slugs, só 11 têm módulo em
+#   `scripts/temas-de-apps/` (são 8 pastas: btop-bat, heroic, obsidian,
+#   qbittorrent, spotify, toolkits-gtk-qt, vscode, zapzap). Os outros 13 caem
+#   no `return 4` do `rodar_modulo` (`scripts/aplicar_apps.sh`) — "não temos
+#   módulo para esse app ainda" —, e os que têm módulo mas não estão
+#   instalados viram "pendente" e NUNCA falham.
+#   Ou seja: na sua máquina esta lista não veste nada que você não tenha, e não
+#   quebra nada. Esvaziá-la desligaria o recurso para todo mundo para corrigir
+#   um problema que não existe. Fica, e fica dito por quê.
+#
+# E GANHA OS TRÊS MÓDULOS QUE A P42 TROUXE — decisão de 24/09/2026, sprint P45
+#   `kitty`, `gnome-terminal` e `onlyoffice` têm módulo em
+#   `scripts/temas-de-apps/` desde a P42, e nenhum estava aqui: numa instalação
+#   nova eles nunca rodavam. Entram pelo mesmo motivo do parágrafo acima — cada
+#   módulo se pula sozinho quando o programa não existe. O seu `meow.conf`, se
+#   você já instalou, não muda: este arquivo é o de FÁBRICA, e o seu conf é seu.
+APPS_ATIVOS="cosmic-term,fastfetch,zsh,fzf,bat,btop,vscode,obsidian,qbittorrent,firefox,brave,chrome,thunderbird,discord,telegram,spotify,zapzap,obs,gimp,krita,vlc,steam,heroic,qt5ct,kitty,gnome-terminal,onlyoffice,libadwaita"
+
+# App que não estiver instalado vira "pendente": o próximo `meow doctor --consertar`
+# aplica o tema sozinho quando ele aparecer. Nunca falha por app ausente.
+
+# @ Marketplace no Spotify
+# > A página de extensões dentro do Spotify, habilitada pelo spicetify.
+# O Marketplace do spicetify: a página DENTRO do Spotify de onde se instalam
+# extensões, snippets e outros CustomApps. Ele não vem no binário do spicetify e
+# o instalador oficial dele é um `curl | sh` que não é idempotente — aqui quem
+# baixa, registra e repõe é o módulo `scripts/temas-de-apps/spotify`, no mesmo ciclo do
+# doctor. Nasce ligado; "nao" só deixa de instalar (não desinstala o que já foi).
+#
+# Ele NUNCA troca o `current_theme`: o Catppuccin continua vindo daqui, do
+# FLAVOR e do ACCENT. Temas baixados pelo Marketplace exigiriam
+# `current_theme=marketplace`, e aí o doctor e o Marketplace brigariam todo dia.
+SPOTIFY_MARKETPLACE="sim"
+
+# @ Vencord no Discord
+# > O Discord oficial não carrega tema; o meow injeta o Vencord em cada versão nova que ele baixa.
+# O Discord oficial (o .deb) se atualiza sozinho para `~/.config/discord/app-<versão>/`, e o cliente
+# dele não lê tema. Com "sim", o módulo `scripts/temas-de-apps/discord` injeta o Vencord (instalador
+# de versão fixada, com sha256, guardado em `~/.local/share/meowsystem/vencord/`) na versão mais nova,
+# com o Discord fechado, e o par `meow-discord.path`/`meow-discord.service` repõe o Vencord depois de
+# cada atualização. "nao" tira o Vencord do Discord (com ele fechado) e o vigia.
+DISCORD_VENCORD="sim"
+
+# @ Correções do Flatpak
+# > Os apps libadwaita sem tema quebrado, sem ícones em dobro e no runtime validado.
+# "nao" devolve o override do Flatpak de antes e tira o runtime forçado.
+FLATPAK_CORRECOES="sim"            # sim | nao
+
+# @ Arrumar o lançador
+# > Esconde programas de sistema e encurta nomes longos. A lista é de uma máquina só — leia antes de ligar.
+# [essencial] Mexer nos .desktop de /usr/share/applications: esconder
+# aplicativos que você não usa e encurtar nomes que estouram a célula do
+# lançador.
+#
+# POR QUE ISTO É UMA PERGUNTA E NÃO UM PADRÃO
+#   É a única coisa que este projeto faz FORA do seu home. Precisa de sudo, um
+#   `apt upgrade` do pacote desfaz (e o app reaparece), e a lista de nomes em
+#   `scripts/ocultar_apps.sh` é o gosto de quem escreveu, não o seu.
+#   Não é o caminho que a spec do freedesktop manda usar — o override em
+#   ~/.local/share/applications seria — mas o cosmic-app-library não honra o
+#   override (pop-os/cosmic-applets#667), então marcar o arquivo do apt é hoje a
+#   única coisa que funciona.
+#   Com backup em ~/.local/state/meowsystem/backups/ e volta por
+#   `meow desfazer --lancador`.
+#   "nao" = o lançador fica exatamente como o sistema entregou.
+# sim | nao
+LANCADOR_SISTEMA="nao"
+
+# @ Quais programas o lançador esconde
+# > Um por ficha. Só vale com a chave acima ligada, e só esconde o que estiver instalado.
+# O ID do `.desktop` sem a extensão, vírgula-separado.
+#
+# ESTA LISTA ERA CÓDIGO ATÉ 21/09/2026, E ISSO ERA O DEFEITO
+#   Os 32 nomes abaixo viviam cravados em `scripts/ocultar_apps.sh`. A chave
+#   de cima já avisava que eles são "o gosto de quem escreveu, não o seu" —
+#   mas avisar sem oferecer saída deixa uma opção só: editar um arquivo
+#   versionado, que o próximo `git pull` desfaz. Quem tem OUTROS programas a
+#   esconder passa a dizer aqui.
+#
+#   ELA SUBSTITUI a lista de fábrica, não acrescenta — então tirar um nome é
+#   apagá-lo desta linha, e não procurar onde ele estava escondido no código.
+#   Apagar a linha inteira (ou deixá-la vazia) devolve a lista de fábrica.
+#
+#   Programa que não está instalado é pulado em silêncio: sobra na lista sem
+#   custo nenhum, e o placar do doctor diz quantos foram.
+#
+#   O PACK NO AR SOMA A LISTA DELE (P74, 09/10/2026): o Dracula esconde o que o
+#   tema Dracula de antes escondia (`lancador.ocultar` no pack.json). Para
+#   manter um deles à vista, escreva o nome aqui com `-` na frente (`-mpv`).
+#   Trocar de pack devolve ao lançador o que o pack anterior escondia (P82).
+#
+#   [P82, 15/10/2026: o `google-chrome`, o `steam` e o `github-desktop` saíram
+#   da fábrica. Eram duplicatas de UMA máquina (a cópia que ela usa mora em
+#   /usr/local/share ou no Flatpak), e não programas de sistema; quem tem a
+#   mesma duplicata os escreve aqui.]
+LANCADOR_OCULTAR="vim,debian-xterm,debian-uxterm,qt5ct,qt6ct,display-im6.q16,info,im-config,ibus-setup,org.freedesktop.IBus.Setup,org.gnome.font-viewer,gnome-language-selector,system-config-printer,org.gnome.eog,org.gnome.Evince,org.gnome.baobab,org.gnome.PowerStats,org.gnome.seahorse.Application,org.gnome.DiskUtility,simple-scan,yelp,gucharmap,nm-connection-editor,repoman,com.system76.Popsicle,gparted,nvidia-settings,syncthing-start,syncthing-ui"
+
+# @ Programas bloqueados no início
+# > Um por ficha. Impede que iniciem junto com a sessão.
+# APPS QUE NÃO PODEM SUBIR SOZINHOS NO LOGIN.
+# Lista separada por vírgula de IDs de `.desktop` — o nome do arquivo em
+# `~/.config/autostart/`, sem a extensão. VAZIA = não faz nada.
+#
+# O bloqueio é `systemctl --user mask app-<id>@autostart.service`, e NÃO uma
+# edição do `.desktop`: `~/.config/autostart/` é do Ritual da Aurora, e um
+# `Hidden=true` ali some no próximo ciclo do self-heal (~1h) ou depois do
+# próximo `apt`.
+#
+# Abrir o app pelo ícone continua funcionando: o lançador do COSMIC cria um
+# escopo (`app-cosmic-<id>-<pid>.scope`), que não é a unidade mascarada.
+#
+# 25/08/2026: o qBittorrent, que motivou a Sprint L, JÁ estava resolvido em dois
+# lugares desde 11/08 — a Aurora desligou o próprio bloco de autostart, e o mask
+# está no disco desde 11/08 09:59. O nome fica aqui para virar política
+# declarada e conferível, em vez de um link para /dev/null sem dono.
+#
+# NASCE VAZIO — 21/09/2026
+#   Estava `org.qbittorrent.qBittorrent`, que é o cliente de torrent DESTA
+#   casa. Na sua máquina, o instalador mascarava o autostart de um programa que
+#   você escolheu deixar subindo no login. Um padrão que é fácil de ligar e
+#   difícil de desligar não pode vir ligado de fábrica.
+#   TIRAR UM NOME DAQUI DESMASCARA (30/10/2026): a passada seguinte do install
+#   ou do conserto do doctor devolve ao login o que o MeowSystem mascarou e saiu
+#   da lista; o que já estava mascarado antes dele fica como estava. Vazio não
+#   mascara nada, e devolve o que estava mascarado por nós.
+#   Para bloquear algum, use o ID do `.desktop` (sem `.desktop`), separado por
+#   vírgula. `meow autostart` lista o que sobe no login desta máquina.
+AUTOSTART_BLOQUEADOS=""
+
+# --- Manutenção -------------------------------------------------------------
+
+# @ Consertos de sistema sem pedir senha
+# > Pede a senha só na instalação e registra um perfil no sudo. Sem ele, cada conserto de sistema volta a pedir senha no terminal.
+# [essencial] Instala `/usr/local/lib/meowsystem/ponte_root.sh` e a regra
+# `/etc/sudoers.d/49-meowsystem-ponte`, para que o painel e o auto-reparo
+# consigam fazer sozinhos o que precisa de root.
+#
+# O QUE ISTO RESOLVE, MEDIDO
+#   Sem a ponte, `meow doctor --consertar` recusa TRÊS itens com a mesma frase —
+#   "o conserto usa sudo, e o doctor não usa" — e os botões de senha do painel
+#   não têm como pedir senha nenhuma, porque o painel roda sem terminal. Em
+#   08/09/2026 um `full-upgrade` derrubou o hook do apt e o auto-reparo ficou
+#   olhando.
+#
+# O QUE ELA LIBERA, E O QUE NÃO
+#   A regra não é `NOPASSWD` para tudo: ela libera UM programa nosso, que tem um
+#   conjunto fechado de verbos com os destinos cravados dentro dele — marcar
+#   `.desktop` de sistema, atualizar os pacotes dos repositórios já
+#   configurados, repor o hook do apt e vestir a tela de login. Nenhum verbo
+#   aceita argumento: o nome do arquivo e o conteúdo entram pelo stdin, então a
+#   regra não tem um único curinga. É o mesmo desenho da ponte de Bluetooth do
+#   Hefesto, que já vive nesta máquina.
+#   O custo, dito sem enfeite: quem puder rodar comando como você passa a poder
+#   fazer essas quatro coisas sem senha. É muito menos que root, e não é nada.
+#   "nao" = a ponte e a regra são REMOVIDAS na próxima passagem, e o sudo volta a
+#   ser pedido no terminal a cada conserto.
+# sim | nao
+PONTE_ROOT="sim"
+
+# @ Conferir e consertar todo dia
+# > Um agendamento diário que reaplica o que estiver fora do lugar.
+# O auto-reparo é UM timer do systemd --user, diário, e mais nada. Não há hook de
+# APT nosso de propósito: o do Ritual da Aurora já roda o self-heal completo depois
+# de todo apt, e dois reparadores no mesmo evento dariam avisos contraditórios.
+AUTO_REPARO="sim"                 # timer diário: meow doctor --consertar às 5h
+# @ Avisar quando consertar algo
+# > Uma notificação só quando houver conserto.
+AUTO_REPARO_NOTIFICAR="sim"       # avisa quando consertar algo sozinho
+
+# @ Desligar nos vizinhos o que o MeowSystem já faz
+# > Quando outro projeto desta casa repete o que o MeowSystem faz, o conserto diário desliga a repetição lá, com cópia.
+# [avancado] Os trechos que saem estão em `assets/contratos/vizinhos.tsv` (hoje, o Ritual
+# da Aurora e o Dracula_OS-Theme). Cada um só sai quando o MeowSystem instalado já faz o
+# mesmo; sai comentado, com cópia de antes, e `scripts/vizinhos.sh --restaurar <item>` o
+# devolve. O que você devolveu não volta a sair. É a única escrita do MeowSystem na pasta
+# de outro projeto. "nao" = o doctor só confere e avisa.
+VIZINHOS_DESATIVAR="sim"          # sim | nao
+
+# @ Mascote novo entra na hora
+# > Sem esperar o relógio: solte o .svg na pasta e ele aparece.
+# O mascote solto em `packs/meowsystem/mascote/` entra NA HORA, sem esperar o relógio?
+#   Com "sim", o par `meow-assets.path`/`meow-assets.service` vigia a pasta por
+#   inotify: soltou um SVG, ele vai para o disco e entra na rotação; apagou, sai.
+#   Sem isso, a mudança só chega na volta seguinte do `meow-logo.timer` — que
+#   com LOGO_INTERVALO="1d" é um dia inteiro de espera para descobrir se o
+#   arquivo entrou.
+#
+#   O vigia NÃO gira o mascote: acrescentar um arquivo não muda qual está no ar. Quem
+#   gira é o relógio, um por dia, que é a escolha de fábrica.
+#
+#   E ele é do MeowSystem, não do self-heal do Ritual da Aurora: aquele é de outro
+#   projeto e pode ser desligado, e o recurso morreria junto sem dizer por quê.
+ASSETS_VIGIA="sim"
+# @ Avisar quando um mascote entrar
+# > Uma notificação com o nome do arquivo.
+ASSETS_VIGIA_NOTIFICAR="sim"      # avisa quando o acervo mudou sozinho
+
+# @ Devolver os ícones depois de atualizar flatpak
+# > Uma atualização de flatpak apaga o ícone da bandeja; isto o repõe.
+# O ícone da BANDEJA volta sozinho depois de um `flatpak update`?
+#   A queixa, 23/08/2026: "ao atualizar o flatpak tipo zap zap, o tray, o icon
+#   que fica no applet, voltaram aos originais". É real e se repete: um
+#   `flatpak update` troca a árvore de deploy inteira do aplicativo, e o desenho
+#   que o MeowSystem escreveu lá dentro some junto. Aconteceu em
+#   `ago 20 03:30:36`, segundo o `flatpak history`, e foi notado três dias depois.
+#
+#   Com "sim", o par `meow-flatpak.path`/`meow-flatpak.service` vigia o
+#   `.changed` das duas instalações de flatpak (a sua e a do sistema) — o
+#   arquivo que o próprio flatpak carimba a cada deploy — e repõe SÓ o que é da
+#   bandeja, no mesmo evento. Não é o tema inteiro: um update do Calculator não
+#   é motivo para reconstruir 1.200 ícones.
+#
+#   O `AUTO_REPARO` acima não substitui isto: ele passa às 5h, então uma
+#   atualização das 10h da manhã deixaria o ícone errado por dezenove horas.
+#   É a mesma lição que criou o hook de apt do lançador — gatilho de EVENTO.
+#
+#   O desenho novo só aparece quando o APLICATIVO for fechado e aberto de novo:
+#   o item da bandeja nasce quando o app abre e publica o raster no D-Bus.
+FLATPAK_VIGIA="sim"
+# @ Avisar quando repor os ícones
+# > Uma notificação depois de repor.
+FLATPAK_VIGIA_NOTIFICAR="sim"     # avisa quando repôs um ícone que o update desfez
+
+# @ Tirar do lançador o jogo desinstalado
+# > O atalho sai junto com o jogo.
+# O atalho do jogo sai do lançador quando você desinstala o jogo?
+#   A queixa, 02/09/2026: "tem jogo da steam que tá desinstalado mas ainda tem
+#   o .desktop, em teoria isso não deveria ocorrer". Estava certa. A limpeza de
+#   órfãos já existia — o que não existia era alguém chamá-la depois de uma
+#   desinstalação: o `jogos_steam.sh` só rodava no `./install.sh` e no
+#   `meow doctor`, então o cartão de um jogo removido às 3h da tarde ficava na
+#   tela até as 5h da manhã seguinte.
+#
+#   Com "sim", o par `meow-steam.path`/`meow-steam.service` vigia a pasta
+#   `steamapps/` — onde a Steam mantém um `appmanifest_<appid>.acf` por jogo
+#   instalado e o apaga ao desinstalar — e roda a mesma limpeza de sempre, com
+#   uns 45 segundos de espera para o download em curso não disparar o vigia
+#   dezenas de vezes.
+#
+#   Ele NÃO enxerga a biblioteca de outro disco (`/mnt/…/SteamLibrary`): com o
+#   disco desmontado a ausência do manifesto seria falsa, e o script adia a
+#   limpeza de propósito para não apagar o atalho de um jogo que continua lá.
+#   Para esses, quem limpa continua sendo o `meow doctor` e o instalador.
+STEAM_VIGIA="sim"
+
+# @ Pôr no lançador o jogo que você instalar pelo Heroic
+# > Instalou ou desinstalou no Heroic, o atalho acerta sozinho.
+# O atalho do jogo do Heroic entra (e sai) do lançador sozinho?
+#   O pedido, 10/09/2026, no mesmo dia em que os jogos do Heroic ganharam
+#   cartão: "o ponto é que qualquer jogo que eu instalar quero que
+#   automaticamente isso se corrija". Sem isto, quem escreve o cartão é o
+#   `./install.sh`, o botão do painel ou o `meow doctor` das 5h da manhã — um
+#   jogo instalado à tarde passaria a noite fora da tela.
+#
+#   Com "sim", o par `meow-heroic.path`/`meow-heroic.service` vigia os arquivos
+#   de biblioteca que o Heroic guarda em `store_cache/` — os mesmos de onde o
+#   módulo tira título e capa — e roda o `scripts/jogos_heroic.sh` uns 20
+#   segundos depois da mudança.
+#
+#   Ele NÃO é o vigia da Steam: são gatilhos separados, e desligar um não
+#   desliga o outro. E não encosta nos arquivos do jogo — o que ele mexe é
+#   atalho e ícone.
+HEROIC_VIGIA="sim"
+
+# @ Quantos backups guardar
+# > Cada escrita em arquivo do sistema deixa uma cópia antes. Acima disso, o mais antigo sai.
+# Quantos backups o projeto guarda antes de apagar o mais antigo. Cada
+# escrita em arquivo do sistema deixa uma cópia; sem teto, elas se acumulam
+# para sempre. "0" desliga a poda e guarda todos.
+BACKUPS_MANTIDOS="10"             # 0 a 100 — 0 guarda todos
+
+# @ Quanto o MeowSystem fala
+# > Só erro, o que mudou, ou cada passo.
+# Quanto o MeowSystem fala: `silencioso` só erro, `info` o que mudou e `debug`
+# cada passo — é o nível que o `meow doctor` pede quando um conserto não bate.
+#
+# O CARTÃO DELA EXPLICAVA A VIZINHA, E ISSO ESTAVA NA TELA
+#   Esta linha vinha COLADA na `BACKUPS_MANTIDOS` acima, sem branco e sem
+#   comentário próprio, e chave sem comentário herda o da chave de cima. O
+#   cartão do nível de log se chamava "Quantos backups o projeto guarda antes de
+#   apagar o mais antigo" e trazia embaixo três botões de verbosidade; o "Por
+#   quê" repetia a poda de backups. Uma linha em branco e um parágrafo desfazem
+#   a herança — 02/09/2026.
+LOG_NIVEL="info"                  # silencioso | info | debug
+
+# @ Som ao mudar o volume
+# > Troca o bipe de fábrica por um sino curto. O timbre vem do theme pack.
+# Instala o som que o COSMIC toca quando você mexe no volume?
+#
+#   É UM SOM SÓ, E NÃO É POR PREGUIÇA. Varrendo os 41 binários
+#   `/usr/bin/cosmic-*` em 04/08/2026: `pw-play` aparece em DOIS e `canberra` em
+#   NENHUM (os três acertos no `cosmic-initial-setup` são a cidade Canberra, da
+#   lista de fusos). Quem toca é o `cosmic-osd`, e o único evento que ele anuncia
+#   é a mudança de volume. O `cosmic-notifications` ANUNCIA a capacidade "sound"
+#   no `GetCapabilities` e não tem reprodutor nenhum — `notify-send -h
+#   string:sound-name:message` produz zero sink-inputs. Não há tema de som a
+#   fazer aqui; há um sino.
+#
+#   O ARQUIVO NASCE DO CÓDIGO, não de um download: WAV PCM 16 bit / 48 kHz /
+#   estéreo, 85 ms, sintetizado por `scripts/som.sh` na hora de instalar. Não há
+#   binário de áudio no repositório e não há licença de terceiro para auditar —
+#   o que se instala é obra do projeto, em CC0.
+#
+#   O TIMBRE VEM DO PACK. Um theme pack pode declarar as próprias frequências
+#   (ver `docs/PACKS.md`, seção "O som"); o Dracula usa sol com a terça menor
+#   acima, e o embutido usa lá com a quinta justa. As chaves `SOM_*` no seu
+#   meow.conf valem só para o pack em que você mexeu nelas: trocou de pack, o
+#   timbre volta a ser o dele.
+#
+#   COM "nao" o arquivo é removido e o COSMIC volta ao som de fábrica —
+#   `~/.local/share/sounds/freedesktop/` sombreia UM arquivo do tema do sistema,
+#   nunca o tema inteiro, então não há o que sobrar.
+#
+#   Para ouvir sem instalar: o botão «Ouvir o som» na página, ou
+#   `./scripts/som.sh ouvir` no terminal.
+SOM="sim"
+
+# @ Nota do sino
+# > A frequência da nota base, em Hz. Vazio usa a do theme pack.
+# [avancado] As CINCO chaves abaixo são o TIMBRE, e todas seguem a mesma regra: VAZIO
+# significa "use o que o theme pack declarar", e o pack embutido usa lá (880 Hz)
+# com a quinta justa acima (1320). Preencher aqui VENCE o pack em que você mexeu, e só nele
+# (o painel anota qual; trocou de pack, as cinco voltam ao timbre do novo).
+#
+#   ELAS EXISTEM NO PAINEL PORQUE O TESTE COBRA ISSO, e o teste tem razão: uma
+#   chave que um script lê do meow.conf e que o painel não oferece é um ajuste
+#   que só quem lê o fonte descobre (tests/app.sh, "script lê do meow.conf e o
+#   painel não oferece"). Entraram em 18/09/2026, depois de o próprio teste
+#   pegar a falta.
+#
+#   O QUE DÁ CARÁTER AO SOM NÃO É A NOTA: é a distância entre as duas. Sobre uma
+#   base de 880, o harmônico em 1320 é quinta justa (resolvido, claro), 1100 é
+#   terça maior (alegre) e 1046.5 é terça menor (sombrio). O pack Dracula usa
+#   784 com 932.3, que é a terça menor — noturno sem virar alarme.
+#
+#   Para ouvir antes de decidir: o botão «Ouvir o som» logo abaixo, ou
+#   `./scripts/som.sh aplicar && ./scripts/som.sh ouvir` no terminal.
+SOM_FUNDAMENTAL=""                # 60 a 8000 Hz — vazio = o do pack
+
+# @ Segunda nota do sino
+# > O harmônico, em Hz. A distância até a nota base é o que dá o caráter.
+# [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
+SOM_HARMONICO=""                  # 60 a 12000 Hz — vazio = o do pack
+
+# @ Peso da nota base
+# > Quanto a primeira senoide pesa na mistura. Os dois pesos somados têm de caber em 1.
+# [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
+SOM_PESO_FUNDAMENTAL=""           # 0.0 a 1.0 — vazio = o do pack
+
+# @ Peso da segunda nota
+# > Quanto a segunda senoide pesa. Acima de 1 somado, a onda satura e vira estalo.
+# [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
+SOM_PESO_HARMONICO=""             # 0.0 a 1.0 — vazio = o do pack
+
+# @ Secura do sino
+# > O quanto o som cai rápido. Maior = mais seco; abaixo de 20 a cauda arrasta.
+# [avancado] Parte do timbre do sino: a regra do vazio está na «Nota do sino».
+SOM_DECAIMENTO=""                 # 5 a 200 — vazio = o do pack

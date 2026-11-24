@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Chrononauta">
+  <title>org.andrebfarias.Crononauta — resgatado do PNG</title>
+  <defs>
+    <clipPath id="crono-clip-disco">
+      <circle cx="24" cy="23.96" r="23.94"/>
+    </clipPath>
+    <clipPath id="crono-clip-mostrador">
+      <circle cx="23.96" cy="25.37" r="10.93"/>
+    </clipPath>
+  </defs>
+
+  <!-- disco de fundo -->
+  <circle cx="24" cy="23.96" r="23.94" fill="#2D2232"/>
+
+  <!-- sombra longa a 45 graus, lancada pelo aro, recortada no disco -->
+  <g clip-path="url(#crono-clip-disco)">
+    <path d="M33.48 15.84 L69.30 51.71 L50.27 70.76 L14.45 34.89 A13.46 13.46 0 0 0 33.48 15.84 Z" fill="#1D1622"/>
+  </g>
+
+  <!-- sombra da argola e do botao (copia deslocada 45 graus) -->
+  <rect x="22.14" y="8.03" width="7.02" height="4.38" rx="2.19" fill="#1D1622"/>
+  <g transform="translate(1.72 1.72)">
+    <g transform="translate(23.96 25.37) rotate(-47.6)">
+      <rect x="12.60" y="-1.04" width="2.30" height="2.08" rx="0.45" fill="#1D1622"/>
+      <rect x="14.54" y="-2.01" width="1.94" height="4.02" rx="0.60" fill="#1D1622"/>
+    </g>
+  </g>
+
+  <!-- mostrador: base escura, lavanda deslocada deixa o crescente de sombra -->
+  <circle cx="23.96" cy="25.37" r="10.93" fill="#1D1725"/>
+  <g clip-path="url(#crono-clip-mostrador)">
+    <circle cx="25.49" cy="26.89" r="11.11" fill="#615465"/>
+    <!-- lobulo escuro a direita da placa, varrendo ate o aro -->
+    <path d="M30.90 21.40
+             C31.80 22.40 33.00 24.20 34.30 26.20
+             C34.50 26.55 34.57 26.88 34.57 27.20
+             A10.75 10.75 0 0 1 23.07 36.09
+             A6.17 6.17 0 0 0 29.52 30.71
+             L31.20 30.71 L31.20 21.40 Z" fill="#1D1725"/>
+    <!-- faixa de sombra sob a placa, com a volta enrolada na ponta -->
+    <path d="M18.77 30.50 L27.80 30.50
+             C27.90 31.45 27.72 32.20 27.30 32.85
+             C26.75 33.70 25.80 34.35 24.57 34.44
+             C25.00 33.80 25.25 33.10 25.29 32.43
+             C24.60 32.24 23.70 32.20 22.93 32.14
+             C21.45 31.98 20.10 31.45 18.91 30.85 Z" fill="#1D1725"/>
+  </g>
+
+  <!-- placa creme do play -->
+  <path d="M20.99 20.09
+           C19.33 20.09 18.35 20.09 16.69 21.75
+           C16.69 23.41 16.69 27.11 16.69 28.77
+           C18.35 30.43 19.33 30.43 20.99 30.43
+           L26.94 30.43
+           C28.60 30.43 29.58 30.43 31.24 28.77
+           C31.24 27.11 31.24 23.41 31.24 21.75
+           C29.58 20.09 28.60 20.09 26.94 20.09 Z" fill="#FFF9EE"/>
+  <polygon points="22.42,22.81 22.42,27.62 26.72,25.22" fill="#1B1521"/>
+
+  <!-- marcas de hora -->
+  <g fill="#E5A866">
+    <rect x="23.50" y="15.07" width="0.93" height="2.29" rx="0.47"/>
+    <rect x="23.50" y="33.22" width="0.93" height="2.37" rx="0.47"/>
+    <rect x="13.61" y="24.83" width="2.15" height="0.93" rx="0.47"/>
+    <rect x="32.17" y="24.83" width="2.15" height="0.93" rx="0.47"/>
+  </g>
+
+  <!-- haste e argola -->
+  <rect x="22.35" y="8.39" width="3.23" height="6.03" rx="0.60" fill="#E5A866"/>
+  <g stroke="#C08E52" stroke-width="0.16">
+    <line x1="23.07" y1="9.20" x2="23.07" y2="11.60"/>
+    <line x1="23.92" y1="9.20" x2="23.92" y2="11.60"/>
+    <line x1="24.93" y1="9.20" x2="24.93" y2="11.60"/>
+  </g>
+  <path d="M20.42 8.50 A2.19 2.19 0 0 1 22.61 6.31 L25.25 6.31 A2.19 2.19 0 0 1 27.44 8.50 L27.44 8.50 A2.19 2.19 0 0 1 25.25 10.69 L22.61 10.69 A2.19 2.19 0 0 1 20.42 8.50 Z
+           M21.28 8.65 A1.33 1.33 0 0 0 22.61 9.97 L25.32 9.97 A1.33 1.33 0 0 0 26.65 8.65 A1.33 1.33 0 0 0 25.32 7.32 L22.61 7.32 A1.33 1.33 0 0 0 21.28 8.65 Z"
+        fill="#E5A866" fill-rule="evenodd"/>
+
+  <!-- botao lateral -->
+  <g transform="translate(23.96 25.37) rotate(-47.6)">
+    <rect x="12.60" y="-1.04" width="2.30" height="2.08" rx="0.45" fill="#E5A866"/>
+    <rect x="14.54" y="-2.01" width="1.94" height="4.02" rx="0.60" fill="#E5A866"/>
+  </g>
+
+  <!-- aro do cronometro -->
+  <circle cx="23.96" cy="25.37" r="12.32" fill="none" stroke="#E5A866" stroke-width="2.78"/>
+</svg>

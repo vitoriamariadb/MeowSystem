@@ -1,0 +1,221 @@
+#compdef meow
+# OVERRIDE
+
+_meow_raiz() {
+  local ponteiro="${XDG_STATE_HOME:-$HOME/.local/state}/meowsystem/raiz"
+  local cand
+  if [[ -n "${MEOW_RAIZ:-}" && -f "$MEOW_RAIZ/scripts/lib/comum.sh" ]]; then
+    print -r -- "$MEOW_RAIZ"
+    return 0
+  fi
+  if [[ -f "$ponteiro" ]]; then
+    cand="$(<"$ponteiro")"
+    cand="${cand%%$'\n'*}"
+    if [[ -f "$cand/scripts/lib/comum.sh" ]]; then
+      print -r -- "$cand"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+_meow_capturas() {
+  local raiz
+  raiz="$(_meow_raiz)" || return 1
+  local -a nomes
+  nomes=("$raiz"/state/tema/*(/N:t))
+  (( ${#nomes} )) && _describe -t capturas 'captura de tema' nomes
+}
+
+_meow_logos() {
+  local raiz
+  raiz="$(_meow_raiz)" || return 1
+  local -a nomes
+  local f
+  for f in "$raiz"/packs/*/mascote/*.svg(N); do
+    f="${f:t:r}"
+    [[ "$f" == *-symbolic ]] && continue
+    nomes+=("$f")
+  done
+  (( ${#nomes} )) && _describe -t logos 'gato do acervo' nomes
+}
+
+_meow_chaves() {
+  local raiz conf
+  local -a nomes
+  raiz="$(_meow_raiz)" && conf="$raiz/meow.conf.exemplo"
+  [[ -f "$conf" ]] || conf="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
+  [[ -f "$conf" ]] || return 1
+  nomes=(${(f)"$(grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' -- "$conf" | sed 's/=$//' | sort -u)"})
+  (( ${#nomes} )) && _describe -t chaves 'chave do meow.conf' nomes
+}
+
+_meow() {
+  local curcontext="$curcontext" state line
+  local -a comandos
+  comandos=(
+    'status:painel de estado e o que está divergente'
+    'doctor:confere tudo em seco; sai 1 se houver divergência'
+    'tema:mostra, aplica ou captura um tema'
+    'logo:variantes da logo do painel'
+    'icones:estado do tema de ícones'
+    'wallpaper:carrossel de papéis de parede'
+    'files-menu:os 2 itens de papel de parede no menu da área de trabalho'
+    'compositor:baixa, patcha e compila o cosmic-comp (é o que a linha patches do doctor pede)'
+    'espaco:quanto o MeowSystem ocupa no disco, e o que dá para liberar'
+    'levantamento:lê a máquina antes do install e lista tudo o que vai travar'
+    'apps:tabela de módulo, app instalado e tema'
+    'configurar:wizard curto: as chaves essenciais do meow.conf (--tudo para o resto)'
+    'cursor:o tema do ponteiro: estado, aplicar, listar, adicionar e remover'
+    'areas:as áreas de trabalho: estado, aplicar, reverter e alfinetar'
+    'fontes:as fontes do tema: estado, aplicar e adicionar'
+    'graficos:o portal de compartilhar tela e a policy do Chrome'
+    'dock:o build da dock e o shim do cosmic-app-list'
+    'painel:diagnóstico da barra e o supervisor dela'
+    'pack:os theme packs instalados, e se cada um valida'
+    'leitura:o degrau do modo de leitura da hora'
+    'atualizar:puxa o master verde do GitHub e instala'
+    'cosmic:o veredito sobre o COSMIC da fila do apt'
+    'abrir:abre o painel de configuração no navegador'
+    'restaurar:devolve os arquivos de uma pasta de cópias'
+    'ativar:roda o install.sh inteiro'
+    'aplicar:o mesmo que ativar'
+    'desfazer:volta o tema do COSMIC para antes do MeowSystem'
+    'log:últimas 50 linhas do log'
+    'ajuda:lista todos os comandos'
+  )
+
+  _arguments -C '1: :->comando' '*:: :->resto'
+
+  case "$state" in
+    comando)
+      _describe -t comandos 'comando do meow' comandos
+      ;;
+    resto)
+      case "$words[1]" in
+        tema)
+          if (( CURRENT == 2 )); then
+            local -a fixos
+            fixos=(
+              'claro:escreve is_dark=false'
+              'escuro:escreve is_dark=true'
+              'auto:deixa o horário decidir'
+              'capturar:fotografa o estado atual como uma captura nova'
+              'desfazer:volta para a captura original'
+            )
+            _describe -t modos 'modo' fixos
+            _meow_capturas
+          fi
+          ;;
+        logo)
+          (( CURRENT == 2 )) && _meow_logos
+          ;;
+        doctor)
+          _arguments '--consertar[aplica só o que falhou]'
+          ;;
+        icones)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'estado:só mostra'
+              'reconstruir:remonta o tema de ícones e as pastas coloridas'
+            )
+            _describe -t acoes 'ação' acoes
+          fi
+          ;;
+        wallpaper)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'estado:pasta, quantas imagens, intervalo e ordem'
+              'aplicar:liga ou reafirma a rotação nativa do COSMIC'
+              'proximo:avança para a próxima imagem do grupo (fixa por WALLPAPER_FIXO_TTL)'
+              'anterior:volta para a imagem anterior do grupo'
+              'carrossel:solta a fixação e devolve a rotação agora'
+              'adicionar:copia imagem ou pasta para Minhas/'
+              'banir:apaga a imagem e a põe no BANIDOS.txt'
+              'semear:baixa a coleção Catppuccin do commit pinado (usa rede)'
+              'permitir:marca um caminho como escolha sua — o carrossel para de devolvê-lo'
+            )
+            _describe -t acoes 'ação' acoes
+          else
+            case "$words[2]" in
+              adicionar|banir|permitir) _files ;;
+            esac
+          fi
+          ;;
+        compositor)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'validar:baixa o fonte e só roda o dry-run da série nele'
+              'conferir:os marcadores no disco e na sessão'
+              'reverter:diz como voltar ao binário do pacote'
+              '--seco:diz o que faria, sem baixar, compilar nem pedir senha'
+            )
+            _describe -t acoes 'ação' acoes
+          fi
+          ;;
+        espaco)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'json:o mesmo relatório, para outro programa ler'
+              'inventario:cada caminho que o MeowSystem escreve'
+              'aparar:corta o que passou do teto'
+              'liberar:tira o que se reconstrói'
+            )
+            _describe -t acoes 'ação' acoes
+          fi
+          ;;
+        files-menu)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'estado:versão do pacote, artefato guardado e qual binário está no PATH'
+              'aplicar:põe o binário patchado no lugar (nunca compila)'
+              'build:baixa o fonte da versão instalada, patcha e compila (minutos)'
+              'remover:tira o nosso e devolve o cosmic-files do pacote'
+            )
+            _describe -t acoes 'ação' acoes
+          fi
+          ;;
+        apps)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'tabela:módulo, instalado, tema'
+              'conferir:roda o conferir de cada módulo'
+              'aplicar:tematiza um app, ou todos'
+              'reverter:desfaz num app (slug obrigatório)'
+            )
+            _describe -t acoes 'ação' acoes
+          elif [[ "$words[2]" == (aplicar|reverter) ]]; then
+            local conf="${MEOW_CONF:-$HOME/.config/meow/meow.conf}"
+            local linha
+            local -a slugs
+            if [[ -f "$conf" ]]; then
+              linha="$(grep -m1 '^APPS_ATIVOS=' "$conf" 2>/dev/null)"
+              linha="${linha#APPS_ATIVOS=}"
+              linha="${linha//\"/}"
+              slugs=(${(s:,:)linha})
+              (( ${#slugs} )) && _describe -t slugs 'app' slugs
+            fi
+          fi
+          ;;
+        configurar|config|wizard)
+          if (( CURRENT == 2 )); then
+            _alternative \
+              'flags:opção:((--tudo\:"pergunta o meow.conf inteiro, chave por chave"))' \
+              'chaves:chave: _meow_chaves'
+          fi
+          ;;
+        aplicar|ativar)
+          _arguments '--seco[mostra o que faria, sem escrever nada]'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_meow "$@"

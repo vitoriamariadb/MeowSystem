@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Mozc (entrada japonesa)">
+  <title>Mozc — tecla que escreve em kana</title>
+
+  <!-- corpo da tecla -->
+  <rect x="2.5" y="2.5" width="43" height="43" rx="8" fill="#21222C"/>
+  <rect x="3.7" y="3.7" width="40.6" height="40.6" rx="7" fill="#44475A"/>
+
+  <!-- face da tecla -->
+  <rect x="6.2" y="5.8" width="35.6" height="33.4" rx="5.5" fill="#BD93F9"/>
+
+  <!-- kana あ desenhado a traço -->
+  <g fill="none" stroke="#282A36" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11.5 15.2C18.6 14.42 29.8 13.64 36.3 13.3"/>
+    <path d="M24.87 7.7C24.42 14.54 23.86 21.26 23.64 27.3C23.53 31.34 22.97 33.8 22.07 35.14"/>
+    <path d="M33.27 8.82C31.6 14.76 28.79 19.69 24.54 22.82C19.38 25.96 12.89 27.53 12 31.78C11.21 35.6 16.48 37.83 21.85 36.26C27 34.7 31.03 31.78 33.49 27.53"/>
+  </g>
+</svg>

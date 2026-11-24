@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="guvcview">
+  <title>guvcview — resgatado do PNG</title>
+  <defs>
+    <radialGradient id="guv-corpo" gradientUnits="userSpaceOnUse" cx="22.5" cy="10.5" r="18">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.5" stop-color="#f8f8f8"/>
+      <stop offset="0.72" stop-color="#e8e8e8"/>
+      <stop offset="0.95" stop-color="#c6c6c6"/>
+      <stop offset="1" stop-color="#c2c2c2"/>
+    </radialGradient>
+    <linearGradient id="guv-aro" gradientUnits="userSpaceOnUse" x1="23.81" y1="12.75" x2="23.81" y2="28.13">
+      <stop offset="0" stop-color="#08090a"/>
+      <stop offset="1" stop-color="#6e7071"/>
+    </linearGradient>
+    <radialGradient id="guv-vidro" gradientUnits="userSpaceOnUse" cx="23.81" cy="20.44" r="6.45">
+      <stop offset="0" stop-color="#1f2224"/>
+      <stop offset="0.6" stop-color="#1c2836"/>
+      <stop offset="1" stop-color="#1f3454"/>
+    </radialGradient>
+    <linearGradient id="guv-domo" gradientUnits="userSpaceOnUse" x1="23.81" y1="15.4" x2="23.81" y2="19.3">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.7" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#a9aaab"/>
+    </linearGradient>
+    <linearGradient id="guv-tampa" gradientUnits="userSpaceOnUse" x1="23.81" y1="3.6" x2="23.81" y2="5.8">
+      <stop offset="0" stop-color="#9fc0e0"/>
+      <stop offset="0.55" stop-color="#72a3d0"/>
+      <stop offset="1" stop-color="#4d7db5"/>
+    </linearGradient>
+    <radialGradient id="guv-led" gradientUnits="userSpaceOnUse" cx="15.11" cy="12.23" r="2.25">
+      <stop offset="0" stop-color="#fffbe8"/>
+      <stop offset="0.12" stop-color="#f9f2b4"/>
+      <stop offset="0.32" stop-color="#ebe150"/>
+      <stop offset="0.45" stop-color="#dfcf01"/>
+      <stop offset="0.75" stop-color="#adbd0b"/>
+      <stop offset="1" stop-color="#85af09"/>
+    </radialGradient>
+    <linearGradient id="guv-base-v" gradientUnits="userSpaceOnUse" x1="0" y1="35.25" x2="0" y2="43.13">
+      <stop offset="0" stop-color="#585a57"/>
+      <stop offset="0.1" stop-color="#40423f"/>
+      <stop offset="0.29" stop-color="#787a76"/>
+      <stop offset="0.43" stop-color="#969892"/>
+      <stop offset="0.67" stop-color="#969892"/>
+      <stop offset="0.76" stop-color="#b4b6b3"/>
+      <stop offset="0.83" stop-color="#aeb0ad"/>
+      <stop offset="0.85" stop-color="#2e3436"/>
+      <stop offset="1" stop-color="#282c2e"/>
+    </linearGradient>
+    <linearGradient id="guv-base-h" gradientUnits="userSpaceOnUse" x1="13.13" y1="0" x2="34.5" y2="0">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.68"/>
+      <stop offset="0.16" stop-color="#000000" stop-opacity="0.39"/>
+      <stop offset="0.32" stop-color="#000000" stop-opacity="0.19"/>
+      <stop offset="0.5" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.68" stop-color="#000000" stop-opacity="0.21"/>
+      <stop offset="0.84" stop-color="#000000" stop-opacity="0.43"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.68"/>
+    </linearGradient>
+    <filter id="guv-borrao" filterUnits="userSpaceOnUse" x="0" y="30" width="48" height="18">
+      <feGaussianBlur stdDeviation="0.75"/>
+    </filter>
+  </defs>
+
+  <ellipse cx="23.81" cy="39.38" rx="15.38" ry="3.94" fill="#000000" opacity="0.2" filter="url(#guv-borrao)"/>
+
+  <path d="M39.94 29.63C38.63 30.94 37.24 31.69 37.24 33.0C37.24 34.5 39.6 34.69 41.44 36.0C42.75 36.94 42.0 37.58 40.5 37.58L34.5 37.58"
+        fill="none" stroke="#555753" stroke-width="0.64" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <circle cx="23.81" cy="20.06" r="16.73" fill="#4e504c"/>
+  <circle cx="23.81" cy="20.06" r="16.13" fill="url(#guv-corpo)"/>
+  <path d="M8.5 24.0A16.05 16.05 0 0 0 39.12 24.0" fill="none" stroke="#ffffff" stroke-width="1.28" stroke-opacity="0.6"/>
+
+  <ellipse cx="23.81" cy="4.69" rx="4.88" ry="1.88" fill="#3465a4"/>
+  <ellipse cx="23.81" cy="4.69" rx="3.0" ry="1.03" fill="url(#guv-tampa)"/>
+
+  <circle cx="15.38" cy="12.75" r="2.06" fill="url(#guv-led)"/>
+
+  <circle cx="23.81" cy="20.44" r="7.69" fill="url(#guv-aro)"/>
+  <circle cx="23.81" cy="20.44" r="6.45" fill="url(#guv-vidro)"/>
+  <ellipse cx="23.81" cy="15.56" rx="2.25" ry="0.75" fill="#5c6c7c" opacity="0.85"/>
+  <rect x="21.19" y="18.38" width="5.25" height="4.88" rx="1.5" fill="#000000"/>
+  <ellipse cx="23.81" cy="23.63" rx="1.88" ry="0.94" fill="#5a5c5e"/>
+  <path d="M21.75 24.38A2.4 2.4 0 0 0 25.88 24.38" fill="none" stroke="#a89a1a" stroke-width="0.85" stroke-linecap="round"/>
+  <ellipse cx="23.81" cy="17.4" rx="3.0" ry="1.95" fill="url(#guv-domo)"/>
+
+  <ellipse cx="32.25" cy="29.06" rx="0.75" ry="1.2" transform="rotate(22 32.25 29.06)" fill="#555753"/>
+
+  <g>
+    <path id="guv-pe" d="M15.56 33.38C14.63 34.5 13.69 35.81 13.31 37.5C12.94 39.0 13.31 40.5 14.25 41.44C15.38 42.45 19.5 42.83 23.81 42.83C28.13 42.83 32.25 42.45 33.38 41.44C34.31 40.5 34.59 39.0 34.31 37.5C33.94 35.81 33.0 34.5 32.06 33.38C32.06 34.61 28.39 35.7 23.81 35.7C19.24 35.7 15.56 34.61 15.56 33.38Z"
+          fill="url(#guv-base-v)"/>
+    <use href="#guv-pe" fill="url(#guv-base-h)"/>
+  </g>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Downloads">
+  <title>folder-download — pasta Downloads</title>
+  <path fill="#383a4c" d="M 0.91,7.27 A 3.22,3.22 0 0 1 4.13,4.05 L 14.59,4.05 Q 15.55,4.05 16.2,4.69 L 19.84,8.29 Q 20.49,8.93 21.45,8.93 L 43.71,8.93 A 3.22,3.22 0 0 1 46.93,12.15 L 46.93,39.55 A 4.29,4.29 0 0 1 42.64,43.84 L 5.2,43.84 A 4.29,4.29 0 0 1 0.91,39.55 Z" stroke="#A267F6" stroke-width="1.5" stroke-linejoin="round"/>
+  <path fill="#44475a" d="M 0.91,16.44 A 4.08,4.08 0 0 1 4.99,12.36 L 42.85,12.36 A 4.08,4.08 0 0 1 46.93,16.44 L 46.93,39.55 A 4.29,4.29 0 0 1 42.64,43.84 L 5.2,43.84 A 4.29,4.29 0 0 1 0.91,39.55 Z" stroke="#A267F6" stroke-width="1.5" stroke-linejoin="round"/>
+  <path fill="#383a4c" d="M 4.56,40.52 C 5.09,37.25 7.78,35.75 10.19,35.42 C 15.02,34.94 22.53,35.32 27.89,36.01 C 32.18,36.6 36.47,38.05 38.61,38.96 C 39.69,39.45 40.44,39.87 40.87,40.52 Z"/>
+  <path fill="#50fa7b" d="M 22,23.2 L 22,15.6 A 2,2 0 0 1 26,15.6 L 26,23.2 L 28,23.0 Q 29.8,24.6 32.8,21.6 Q 34.8,23.6 38.4,19.4 L 25.6,35.4 L 25,37.8 L 24,36.7 L 23,37.8 L 22.4,35.4 L 9.6,19.4 Q 13.2,23.6 15.2,21.6 Q 18.2,24.6 20,23.0 Z"/>
+  <g fill="none" stroke="#282a36" stroke-opacity="0.45" stroke-width="0.7" stroke-linecap="round">
+    <path d="M 21.4,27.4 L 15.2,21.9 M 21.4,27.4 L 11.2,20.6 M 26.6,27.4 L 32.8,21.9 M 26.6,27.4 L 36.8,20.6"/>
+  </g>
+  <g fill="#282a36">
+    <circle cx="23" cy="32.2" r="0.6"/>
+    <circle cx="25" cy="32.2" r="0.6"/>
+  </g>
+  <path fill="none" stroke="#50fa7b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M 13.2,35.6 L 13.2,39.8 L 34.8,39.8 L 34.8,35.6"/>
+</svg>

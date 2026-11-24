@@ -1,0 +1,248 @@
+# cosmic-comp-area-do-cliente.patch
+#
+# MARCADOR: AURORA-AREA-DO-CLIENTE-1   (base: AURORA-AREA-DO-CLIENTE)
+#
+# Janela de primeiro nível cujo processo tem MEOW_AREA=<nome> no ambiente nasce
+# na área de trabalho com esse nome, e com MEOW_TELA=<saída> nessa tela. Não
+# troca a área visível, não ganha o foco do teclado e não marca a área urgente:
+# entra na pilha de foco da área dela, para ter o foco quando alguém for até lá.
+# Sem a variável, nada muda. Nome ou tela que não existe: comportamento de
+# fábrica e uma linha no log. Área com esse nome que já está na tela ativa:
+# também a fábrica, com o foco: a variável passa aos filhos do app, e a janela
+# nova dele na área que está na tela ganha o foco como qualquer outra.
+#
+# No X11, o _NET_ACTIVE_WINDOW que o app manda ao se mostrar chegava depois de
+# a janela nascer em OS e trocava a área visível para lá, numa corrida. O pedido
+# de ativação X11 de janela marcada fora da área visível é ignorado.
+#
+# Mover depois de nascer (zcosmic_toplevel_manager_v1.move_to_ext_workspace)
+# deixa a janela um quadro na área visível e rouba o foco até mover (P238). O
+# caminho sem piscar já existia no map_window, o da ativação por token, que põe
+# a janela em outra área; aqui ele é tomado sem o urgente e sem o foco.
+#
+# O pid vem das credenciais do soquete Wayland e, no X11, do _NET_WM_PID; o
+# ambiente é o /proc/<pid>/environ, lido uma vez por janela nova. Janela filha
+# segue a mãe e nem lê. O nome casa sem o espaço de figura (U+2007) que o
+# AREAS_NOMES põe em volta, e sem MEOW_TELA vale a área da tela ativa.
+#
+# Entra antes do cosmic-comp-nomes-nas-duas-telas.patch, que segue o último da
+# série. Aplica com -F0 sem deslocamento no ec674cd e com 4 linhas no f2beba6.
+#
+--- a/src/shell/mod.rs
++++ b/src/shell/mod.rs
+@@ -3056,7 +3056,20 @@
+                 Some((handle, parent_output, anchor))
+             });
+ 
+-        let (workspace_handle, mut output, parent_geometry) = match parent_placement {
++        let area_marcada = parent_placement
++            .is_none()
++            .then(|| self.area_do_cliente(&window, &seat.active_output()))
++            .flatten()
++            .filter(|(handle, saida)| {
++                saida != &seat.active_output()
++                    || self
++                        .active_space(saida)
++                        .is_some_and(|space| &space.handle != handle)
++            });
++        let marcada = area_marcada.is_some();
++        let (workspace_handle, mut output, parent_geometry) = match parent_placement.or_else(|| {
++            area_marcada.map(|(handle, saida)| (Some(handle), saida, None))
++        }) {
+             Some(placement) => placement,
+             None => {
+                 let handle = match pending_activation {
+@@ -3106,7 +3119,8 @@
+         let mut workspace_state = workspace_state.update();
+ 
+         let workspace_output = workspace.output.clone();
+-        let was_activated = workspace_handle.is_some()
++        let was_activated = !marcada
++            && workspace_handle.is_some()
+             && (workspace_output != seat.active_output() || active_handle != workspace.handle);
+         let workspace_handle = workspace.handle;
+         let is_dialog = layout::is_dialog(&window);
+@@ -3188,6 +3202,9 @@
+ 
+         let new_target = if should_be_minimized {
+             None
++        } else if marcada {
++            self.append_focus_stack(mapped, &seat);
++            None
+         } else if (workspace_output == seat.active_output() && active_handle == workspace_handle)
+             || should_be_sticky
+         {
+@@ -3209,6 +3226,51 @@
+         new_target
+     }
+ 
++    pub fn area_do_cliente(
++        &self,
++        window: &CosmicSurface,
++        tela_ativa: &Output,
++    ) -> Option<(WorkspaceHandle, Output)> {
++        use smithay::reexports::wayland_server::Resource;
++
++        let pid = if let Some(toplevel) = window.0.toplevel() {
++            let surface = toplevel.wl_surface();
++            let cliente = surface.client()?;
++            surface
++                .handle()
++                .upgrade()?
++                .get_client_credentials(cliente.id())
++                .ok()?
++                .pid
++        } else {
++            i32::try_from(window.x11_surface()?.pid()?).ok()?
++        };
++        let ambiente = std::fs::read(format!("/proc/{pid}/environ")).ok()?;
++        let area = variavel_do_ambiente(&ambiente, "MEOW_AREA")?;
++        let tela = variavel_do_ambiente(&ambiente, "MEOW_TELA");
++        let escolhida = area_escolhida(
++            &area,
++            tela.as_deref(),
++            &tela_ativa.name(),
++            self.workspaces.spaces().map(|space| {
++                (
++                    (space.handle, space.output.clone()),
++                    space.output.name(),
++                    space.name.clone(),
++                )
++            }),
++        );
++        if escolhida.is_none() {
++            tracing::warn!(
++                pid,
++                ?area,
++                ?tela,
++                "MEOW_AREA sem área com esse nome: a janela nasce na área ativa"
++            );
++        }
++        escolhida
++    }
++
+     pub fn map_override_redirect(&mut self, window: X11Surface) {
+         let geo = window.geometry();
+         for (output, overlap) in self.outputs().cloned().filter_map(|o| {
+@@ -5453,3 +5515,99 @@
+ 
+     Some(start_data)
+ }
++
++#[used]
++static AURORA_AREA_DO_CLIENTE: &str = "AURORA-AREA-DO-CLIENTE-1";
++
++fn variavel_do_ambiente(ambiente: &[u8], nome: &str) -> Option<String> {
++    ambiente
++        .split(|byte| *byte == 0)
++        .find_map(|par| par.strip_prefix(nome.as_bytes())?.strip_prefix(b"="))
++        .map(|valor| String::from_utf8_lossy(valor).trim().to_string())
++        .filter(|valor| !valor.is_empty())
++}
++
++fn area_escolhida<A>(
++    area: &str,
++    tela: Option<&str>,
++    tela_ativa: &str,
++    areas: impl IntoIterator<Item = (A, String, Option<String>)>,
++) -> Option<A> {
++    let area = area.trim();
++    let mut achadas = areas
++        .into_iter()
++        .filter(|(_, saida, nome)| {
++            nome.as_deref().is_some_and(|nome| nome.trim() == area)
++                && tela.is_none_or(|tela| tela == saida)
++        })
++        .collect::<Vec<_>>();
++    let posicao = achadas
++        .iter()
++        .position(|(_, saida, _)| saida == tela_ativa)
++        .unwrap_or(0);
++    (!achadas.is_empty()).then(|| achadas.swap_remove(posicao).0)
++}
++
++#[cfg(test)]
++mod area_do_cliente_testes {
++    use super::{area_escolhida, variavel_do_ambiente};
++
++    fn areas() -> Vec<(u32, String, Option<String>)> {
++        vec![
++            (1, "eDP-1".to_string(), Some("\u{2007}Pop\u{2007}".to_string())),
++            (2, "eDP-1".to_string(), Some("\u{2007}OS\u{2007}".to_string())),
++            (3, "HDMI-A-1".to_string(), Some("\u{2007}Pop\u{2007}".to_string())),
++            (4, "HDMI-A-1".to_string(), Some("\u{2007}OS\u{2007}".to_string())),
++            (5, "HDMI-A-1".to_string(), None),
++        ]
++    }
++
++    #[test]
++    fn le_a_variavel_do_ambiente_do_cliente() {
++        let ambiente = b"HOME=/casa\0MEOW_AREA=OS\0MEOW_TELA=HDMI-A-1\0";
++        assert_eq!(variavel_do_ambiente(ambiente, "MEOW_AREA"), Some("OS".to_string()));
++        assert_eq!(
++            variavel_do_ambiente(ambiente, "MEOW_TELA"),
++            Some("HDMI-A-1".to_string())
++        );
++    }
++
++    #[test]
++    fn sem_a_variavel_nada_muda() {
++        let ambiente = b"HOME=/casa\0MEOW_AREAS=OS\0XMEOW_AREA=OS\0MEOW_AREA=\0";
++        assert_eq!(variavel_do_ambiente(ambiente, "MEOW_AREA"), None);
++        assert_eq!(variavel_do_ambiente(b"", "MEOW_AREA"), None);
++    }
++
++    #[test]
++    fn vale_a_primeira_como_no_getenv() {
++        let ambiente = b"MEOW_AREA=OS\0MEOW_AREA=Pop\0";
++        assert_eq!(variavel_do_ambiente(ambiente, "MEOW_AREA"), Some("OS".to_string()));
++    }
++
++    #[test]
++    fn o_nome_casa_sem_o_espaco_do_alfinete() {
++        assert_eq!(area_escolhida("OS", None, "eDP-1", areas()), Some(2));
++    }
++
++    #[test]
++    fn sem_tela_prefere_a_tela_ativa() {
++        assert_eq!(area_escolhida("OS", None, "HDMI-A-1", areas()), Some(4));
++        assert_eq!(area_escolhida("OS", None, "DP-9", areas()), Some(2));
++    }
++
++    #[test]
++    fn com_tela_vale_a_tela_pedida() {
++        assert_eq!(
++            area_escolhida("OS", Some("HDMI-A-1"), "eDP-1", areas()),
++            Some(4)
++        );
++    }
++
++    #[test]
++    fn nome_ou_tela_que_nao_existe_volta_a_fabrica() {
++        assert_eq!(area_escolhida("Jogos", None, "eDP-1", areas()), None);
++        assert_eq!(area_escolhida("OS", Some("DP-9"), "eDP-1", areas()), None);
++        assert_eq!(area_escolhida("", None, "eDP-1", areas()), None);
++    }
++}
+--- a/src/xwayland.rs
++++ b/src/xwayland.rs
+@@ -1267,6 +1267,19 @@
+         _currently_active_window: Option<X11Surface>,
+     ) {
+         if let Some(surface) = window.wl_surface() {
++            {
++                let shell = self.common.shell.read();
++                let output = shell.seats.last_active().active_output();
++                if shell.element_for_surface(&surface).is_some_and(|element| {
++                    shell.space_for(element).map(|space| space.handle)
++                        != shell.active_space(&output).map(|space| space.handle)
++                }) && shell
++                    .area_do_cliente(&CosmicSurface::from(window.clone()), &output)
++                    .is_some()
++                {
++                    return;
++                }
++            }
+             self.activate_surface(&surface, None);
+         }
+     }

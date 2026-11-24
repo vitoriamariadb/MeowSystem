@@ -1,0 +1,19 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: MeowSystem
+Upstream-Contact: https://github.com/vitoriamariadb/MeowSystem/issues
+Source: https://github.com/vitoriamariadb/MeowSystem
+
+Files: *
+Copyright: 2025-2026 Vitória Maria
+           2025-2026 André Farias
+License: GPL-3
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License, version 3, as
+ published by the Free Software Foundation.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ version 3 can be found in "/usr/share/common-licenses/GPL-3".
+ .
+ The art each theme pack brings from third parties, and its license, is
+ listed in /usr/share/meowsystem/docs/CREDITOS.md and in the PROCEDENCIA
+ file of each pack.

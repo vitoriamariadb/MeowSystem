@@ -1,0 +1,3612 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+__raiz_valida() {
+  [ -n "${1:-}" ] && [ -f "$1/scripts/lib/comum.sh" ] && [ -f "$1/install.sh" ]
+}
+
+__resolver_raiz() {
+  local eu dir ponteiro cand
+  if __raiz_valida "${MEOW_RAIZ:-}"; then printf '%s' "$MEOW_RAIZ"; return 0; fi
+
+  eu="${BASH_SOURCE[0]}"
+  eu="$(readlink -f -- "$eu" 2>/dev/null || printf '%s' "$eu")"
+  dir="$(cd "$(dirname -- "$eu")/.." 2>/dev/null && pwd)"
+  if __raiz_valida "$dir"; then printf '%s' "$dir"; return 0; fi
+
+  ponteiro="${XDG_STATE_HOME:-$HOME/.local/state}/meowsystem/raiz"
+  if [ -f "$ponteiro" ]; then
+    cand="$(head -n1 "$ponteiro" 2>/dev/null)"
+    if __raiz_valida "$cand"; then printf '%s' "$cand"; return 0; fi
+  fi
+
+  for cand in "$HOME/MeowSystem" \
+              "$HOME/.local/share/MeowSystem" \
+              ${MEOW_RAIZ_EXTRA:+"$MEOW_RAIZ_EXTRA"}; do
+    if __raiz_valida "$cand"; then printf '%s' "$cand"; return 0; fi
+  done
+  return 1
+}
+
+RAIZ="$(__resolver_raiz)" || {
+  printf 'meow: não achei o repositório do MeowSystem.\n' >&2
+  printf '      aponte com: MEOW_RAIZ=/caminho/do/clone meow %s\n' "${1:-status}" >&2
+  exit 3
+}
+MEOW_RAIZ="$RAIZ"; export MEOW_RAIZ
+# shellcheck source=lib/comum.sh
+. "$RAIZ/scripts/lib/comum.sh"
+
+CONF="$MEOW_CONF_ARQUIVO"
+CONF_PADRAO="$MEOW_CONF_PADRAO"
+COSMIC="$(meow_cosmic_dir)"
+IS_DARK="$COSMIC/com.system76.CosmicTheme.Mode/$(meow_cosmic_v com.system76.CosmicTheme.Mode)/is_dark"
+
+CONF_LIDA=""
+rodar_painel() {
+  "$1"/scripts/painel.sh "${2:-conferir}"
+}
+
+rodar_forma() {
+  "$1"/scripts/forma.sh
+}
+
+carregar_conf() {
+  local ponte_exigida=1
+  [ "${1:-}" = "--ponte-opcional" ] && ponte_exigida=0
+  local fonte="$CONF"
+  [ -f "$fonte" ] || fonte="$CONF_PADRAO"
+  [ -f "$fonte" ] || { meow_erro "não achei nem $CONF nem $CONF_PADRAO"; return "$MEOW_ERRO"; }
+  # shellcheck disable=SC1090
+  set -a
+  . "$fonte" || { set +a; meow_erro "$fonte tem erro de sintaxe"; return "$MEOW_ERRO"; }
+  set +a
+  CONF_LIDA="$fonte"
+  FLAVOR="$(meow_flavor)"; ACCENT="${ACCENT:-mauve}"
+  meow_pastas_do_molde
+  MODO="${MODO:-escuro}";    LOGO="${LOGO:-$FLAVOR}"
+  export FLAVOR ACCENT MODO LOGO
+  if ! meow_ponte_python; then
+    [ "$ponte_exigida" = "1" ] && return "$MEOW_ERRO"
+    meow_aviso "sigo assim mesmo: esta ação não escreve tema nenhum"
+  fi
+  return 0
+}
+
+conf_texto_definir() { meow_conf_texto_definir "$@"; }
+conf_definir()       { meow_conf_definir "$@"; }
+
+registrar() { meow_seco || meow_registrar "$@"; }
+notificar() { meow_seco || meow_notificar "$@"; }
+
+alvo_tema() { printf '%s-%s' "$FLAVOR" "$ACCENT"; }
+
+capturas() {
+  meow_capturas
+}
+
+tema_ativo() {
+  local n alvo; alvo="$(alvo_tema)"
+  while IFS= read -r n; do
+    [ -n "$n" ] || continue
+    if MEOW_DRY_RUN=0 "$RAIZ/scripts/aplicar_tema.sh" "$n" --conferir >/dev/null 2>&1; then
+      printf '%s' "$n"; return 0
+    fi
+  done < <(capturas | awk -v a="$alvo" '$0 == a { print; next } { resto[++n] = $0 }
+                                       END { for (i = 1; i <= n; i++) print resto[i] }')
+  return 1
+}
+
+modo_desejado() {
+  local hora ini fim
+  case "${MODO:-escuro}" in
+    escuro) printf 'true' ;;
+    claro)  printf 'false' ;;
+    auto)
+      hora="$(date +%-H)"
+      ini="${MODO_AUTO_CLARO_DE:-7}"; fim="${MODO_AUTO_CLARO_ATE:-18}"
+      if [ "$hora" -ge "$ini" ] && [ "$hora" -lt "$fim" ]; then printf 'false'; else printf 'true'; fi ;;
+    *) return 1 ;;
+  esac
+}
+
+is_dark_atual() { cat "$IS_DARK" 2>/dev/null || printf '?'; }
+
+logos_disponiveis() {
+  local f n
+  for f in "$(meow_mascote_dir)"/*.svg; do
+    [ -f "$f" ] || continue
+    n="$(basename "$f" .svg)"
+    case "$n" in *-symbolic) continue ;; esac
+    printf '%s\n' "$n"
+  done
+}
+
+chk_conf() {
+  [ -f "$CONF" ] || { echo "meow.conf ainda não existe — o install.sh cria a partir do exemplo"; return "$MEOW_DIVERGENTE"; }
+  local v migra
+  for v in FLAVOR ACCENT MODO LOGO; do
+    [ -n "${!v:-}" ] || { echo "$v não está definida em $CONF"; return "$MEOW_ERRO"; }
+  done
+  if ! migra="$(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" --conferir 2>&1)"; then
+    printf '%s\n' "$migra" | head -n 1
+    printf '%s\n' "$migra" | sed 1d
+    return "$MEOW_DIVERGENTE"
+  fi
+  echo "flavor=$FLAVOR accent=$ACCENT modo=$MODO logo=$LOGO"
+  return 0
+}
+
+chk_gerar() {
+  local rc=0 msg="" rc_ron=0
+  python3 "$RAIZ/scripts/gerar_temas.py" --conferir >/dev/null 2>&1; rc_ron=$?
+  case "$rc_ron" in
+    0) ;;
+    "$MEOW_SEM_DEPENDENCIA") ;;
+    *) rc=1; msg="algum .ron saiu da paleta" ;;
+  esac
+  local v1_saida
+  v1_saida="$(python3 "$RAIZ/scripts/gerar_tema_v1.py" --conferir 2>&1)" || {
+    rc=1
+    if [[ "$v1_saida" == *": derivaria de "* ]]; then
+      msg="${msg:+$msg; }a captura de $(alvo_tema) ainda não foi derivada"
+    fi
+    if [[ "$v1_saida" == *"divergente  "* || "$v1_saida" != *": derivaria de "* ]]; then
+      msg="${msg:+$msg; }a v1 das capturas saiu da paleta"
+    fi
+  }
+  if [ "$rc" = "0" ] && [ "$rc_ron" = "$MEOW_SEM_DEPENDENCIA" ]; then
+    echo "os .ron ainda não foram gerados nesta máquina — o conserto os escreve em $MEOW_ESTADO/temas/"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  [ "$rc" = "0" ] && { echo "os temas e a v1 das capturas conferem com $(meow_paleta_nome)"; return 0; }
+  echo "$msg — o conserto regenera"
+  return "$MEOW_DIVERGENTE"
+}
+
+chk_tema() {
+  local alvo; alvo="$(alvo_tema)"
+  [ -n "$(meow_captura "$alvo")" ] || {
+    local deriva
+    deriva="$(python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$alvo" 2>&1)"
+    if [ "$?" = "1" ]; then
+      echo "${deriva#  } — o conserto deriva e aplica"
+      return "$MEOW_DIVERGENTE"
+    fi
+    echo "não há captura para '$alvo' (${deriva#*não se deriva — })"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+  MEOW_DRY_RUN=0 "$RAIZ/scripts/aplicar_tema.sh" "$alvo" --respeitar-gui --conferir 2>&1
+}
+
+chk_modo() {
+  local desejado atual
+  desejado="$(modo_desejado)" || { echo "MODO='$MODO' desconhecido — esperado escuro|claro|auto"; return "$MEOW_ERRO"; }
+  atual="$(is_dark_atual)"
+  [ "$atual" = "$desejado" ] && { echo "modo $MODO (is_dark=$atual)"; return 0; }
+  echo "is_dark=$atual, mas MODO=$MODO pede $desejado"
+  return "$MEOW_DIVERGENTE"
+}
+
+chk_completar() {
+  MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/completar_icones.sh" 2>&1
+}
+
+chk_icones() {
+  MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" LOGO="$LOGO" \
+    ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/construir_icones.sh" 2>&1
+}
+
+chk_pastasxdg() {
+  PASTAS_XDG="${PASTAS_XDG:-nao}" ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
+    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_pastas.sh" --conferir 2>&1
+}
+
+chk_pastas() {
+  MEOW_DRY_RUN=1 ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+    ICONES_PASTAS="${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/construir_pastas.sh" 2>&1
+}
+
+chk_wallpaper() {
+  local semeia rc_s saida rc
+  semeia="$(MEOW_DRY_RUN=1 "$RAIZ/scripts/wallpaper.sh" semear-se-faltar 2>&1)"; rc_s=$?
+  saida="$(MEOW_DRY_RUN=1 WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+    WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+    WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
+    WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
+    WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
+    WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
+    "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1)"; rc=$?
+  if [ "$rc_s" = "$MEOW_DIVERGENTE" ] && [ "$rc" != "$MEOW_DIVERGENTE" ]; then
+    printf '%s\n%s\n' "$semeia" "$saida"; return "$MEOW_DIVERGENTE"
+  fi
+  printf '%s\n' "$saida"
+  [ "$rc_s" = "$MEOW_DIVERGENTE" ] && printf '%s\n' "$semeia"
+  return "$rc"
+}
+
+chk_basefundo() {
+  WALLPAPER_BASE="${WALLPAPER_BASE:-}" "$RAIZ/scripts/wallpaper.sh" base --conferir 2>&1
+}
+
+fix_basefundo() {
+  WALLPAPER_BASE="${WALLPAPER_BASE:-}" "$RAIZ/scripts/wallpaper.sh" base 2>&1
+}
+
+_ESTADO_ANTIGO=(midia leitura)
+
+_ESTADO_SEM_LEITOR=(precisa-de-gente.tsv)
+
+_estado_antigo_sobra() {
+  local d
+  for d in "${_ESTADO_ANTIGO[@]}"; do
+    [ -d "$MEOW_ESTADO/$d" ] && printf '%s\n' "$MEOW_ESTADO/$d"
+  done
+  return 0
+}
+
+_estado_sem_leitor_sobra() {
+  local a
+  for a in "${_ESTADO_SEM_LEITOR[@]}"; do
+    [ -f "$MEOW_ESTADO/$a" ] && printf '%s\n' "$MEOW_ESTADO/$a"
+  done
+  return 0
+}
+
+chk_estadovelho() {
+  local sobra solto
+  sobra="$(_estado_antigo_sobra)"
+  solto="$(_estado_sem_leitor_sobra)"
+  if [ -n "$sobra" ] || [ -n "$solto" ]; then
+    [ -z "$sobra" ] || printf '%s\n' "$sobra" | while IFS= read -r d; do
+      meow_muda "$d é árvore de build da era em que o applet morava aqui ($(du -sh -- "$d" 2>/dev/null | cut -f1)) — sai"
+    done
+    [ -z "$solto" ] || printf '%s\n' "$solto" | while IFS= read -r a; do
+      meow_muda "$a não tem mais leitor — sai"
+    done
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_ok "o estado não guarda árvore de build antiga"
+  return "$MEOW_OK"
+}
+
+fix_estadovelho() {
+  local d
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    if meow_seco; then meow_muda "removeria $d/"; continue; fi
+    rm -rf -- "$d" || { meow_erro "não consegui remover $d"; return "$MEOW_ERRO"; }
+    meow_ok "removido $d/"
+  done < <(_estado_antigo_sobra)
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    if meow_seco; then meow_muda "removeria $d"; continue; fi
+    rm -f -- "$d" || { meow_erro "não consegui remover $d"; return "$MEOW_ERRO"; }
+    meow_ok "removido $d"
+  done < <(_estado_sem_leitor_sobra)
+  return "$MEOW_DIVERGENTE"
+}
+
+_FUNDO_DIR="$HOME/.config/systemd/user"
+_FUNDO_UNIDADES=(meow-wallpaper.service meow-wallpaper.timer meow-fundo.path meow-ativos.path)
+_fundo_ligaveis() {
+  local u
+  for u in "${_FUNDO_UNIDADES[@]}"; do
+    case "$u" in *.service) ;; *) printf '%s\n' "$u" ;; esac
+  done
+}
+
+chk_fundo() {
+  local u texto sobrou=0
+  meow_tem systemctl && [ -d "/run/user/$(id -u)/systemd" ] || {
+    meow_pula "sem systemd de usuária — o gatilho do fundo não se aplica aqui"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    for u in "${_FUNDO_UNIDADES[@]}"; do [ -f "$_FUNDO_DIR/$u" ] && sobrou=1; done
+    while IFS= read -r u; do
+      case "$(systemctl --user is-enabled "$u" 2>/dev/null)" in
+        enabled|enabled-runtime) sobrou=1 ;;
+      esac
+      [ "$(systemctl --user is-active "$u" 2>/dev/null)" = "active" ] && sobrou=1
+    done < <(_fundo_ligaveis)
+    [ "$sobrou" = "1" ] && {
+      meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" mas o relógio e o gatilho do carrossel continuam ligados"
+      return "$MEOW_DIVERGENTE"
+    }
+    meow_pula "AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem relógio nem gatilho do carrossel"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  for u in "${_FUNDO_UNIDADES[@]}"; do
+    [ -f "$RAIZ/dados/systemd/$u" ] || { meow_erro "falta dados/systemd/$u"; return "$MEOW_ERRO"; }
+    texto="$(cat "$RAIZ/dados/systemd/$u")"
+    [ "$u" = "meow-ativos.path" ] && texto="$(meow_vigia_dos_papeis)"
+    if [ ! -f "$_FUNDO_DIR/$u" ] || [ "$texto" != "$(cat "$_FUNDO_DIR/$u" 2>/dev/null)" ]; then
+      meow_muda "instalaria/atualizaria $u"
+      return "$MEOW_DIVERGENTE"
+    fi
+  done
+  while IFS= read -r u; do
+    if [ "$(systemctl --user is-failed "$u" 2>/dev/null)" = "failed" ]; then
+      meow_muda "$u está em failed — religaria"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      meow_muda "ligaria o $u"
+      return "$MEOW_DIVERGENTE"
+    fi
+  done < <(_fundo_ligaveis)
+  meow_ok "carrossel protegido: relógio de 15 min + gatilho na config + vigia das pastas que giram"
+  return "$MEOW_OK"
+}
+
+fix_fundo() {
+  local u
+  meow_tem systemctl && [ -d "/run/user/$(id -u)/systemd" ] || return "$MEOW_SEM_DEPENDENCIA"
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    meow_seco && { meow_muda "removeria o relógio e o gatilho do carrossel"; return "$MEOW_DIVERGENTE"; }
+    while IFS= read -r u; do
+      systemctl --user disable --now "$u" >/dev/null 2>&1
+    done < <(_fundo_ligaveis)
+    for u in "${_FUNDO_UNIDADES[@]}"; do rm -f "$_FUNDO_DIR/$u"; done
+    systemctl --user daemon-reload >/dev/null 2>&1
+    meow_ok "AUTO_REPARO=\"${AUTO_REPARO:-}\" — relógio e gatilho do carrossel desligados e removidos"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if meow_seco; then
+    meow_muda "instalaria e ligaria o relógio (15 min) e o gatilho do carrossel"
+    return "$MEOW_DIVERGENTE"
+  fi
+  local texto
+  mkdir -p "$_FUNDO_DIR"
+  for u in "${_FUNDO_UNIDADES[@]}"; do
+    texto="$(cat "$RAIZ/dados/systemd/$u")"
+    [ "$u" = "meow-ativos.path" ] && texto="$(meow_vigia_dos_papeis)"
+    meow_escrever "$_FUNDO_DIR/$u" "$texto" 644
+    case $? in 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+  systemctl --user daemon-reload >/dev/null 2>&1
+  systemctl --user reset-failed "${_FUNDO_UNIDADES[@]}" >/dev/null 2>&1
+  while IFS= read -r u; do
+    systemctl --user enable --now "$u" >/dev/null 2>&1 \
+      || { meow_erro "não consegui ligar o $u"; return "$MEOW_ERRO"; }
+  done < <(_fundo_ligaveis)
+  meow_ok "carrossel protegido: relógio de 15 min + gatilho no instante da mudança"
+  return "$MEOW_DIVERGENTE"
+}
+
+_QT_DIR="$HOME/.config/systemd/user"
+_QT_UNIDADES=(meow-qt.service meow-qt.path)
+_qt_ligaveis() {
+  local u
+  for u in "${_QT_UNIDADES[@]}"; do
+    case "$u" in *.service) ;; *) printf '%s\n' "$u" ;; esac
+  done
+}
+
+chk_qtvigia() {
+  local u texto sobrou=0 lista
+  meow_tem systemctl && [ -d "/run/user/$(id -u)/systemd" ] || {
+    meow_pula "sem systemd de usuária — o gatilho do Qt não se aplica aqui"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+
+  lista=",$(printf '%s' "${APPS_ATIVOS:-}" | tr -d ' '),"
+  case "$lista" in
+    *,qt5ct,*|*,qt,*|*,gtk,*) ;;
+    *)
+      for u in "${_QT_UNIDADES[@]}"; do [ -f "$_QT_DIR/$u" ] && sobrou=1; done
+      [ "$sobrou" = "1" ] && {
+        meow_muda "qt5ct fora do APPS_ATIVOS mas o vigia do Qt continua instalado"
+        return "$MEOW_DIVERGENTE"
+      }
+      meow_pula "qt5ct fora do APPS_ATIVOS — sem vigia do Qt"
+      return "$MEOW_SEM_DEPENDENCIA" ;;
+  esac
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    for u in "${_QT_UNIDADES[@]}"; do [ -f "$_QT_DIR/$u" ] && sobrou=1; done
+    while IFS= read -r u; do
+      case "$(systemctl --user is-enabled "$u" 2>/dev/null)" in
+        enabled|enabled-runtime) sobrou=1 ;;
+      esac
+      [ "$(systemctl --user is-active "$u" 2>/dev/null)" = "active" ] && sobrou=1
+    done < <(_qt_ligaveis)
+    [ "$sobrou" = "1" ] && {
+      meow_muda "AUTO_REPARO=\"${AUTO_REPARO:-}\" mas o vigia do Qt continua ligado"
+      return "$MEOW_DIVERGENTE"
+    }
+    meow_pula "AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem vigia do Qt"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  for u in "${_QT_UNIDADES[@]}"; do
+    [ -f "$RAIZ/dados/systemd/$u" ] || { meow_erro "falta dados/systemd/$u"; return "$MEOW_ERRO"; }
+    texto="$(cat "$RAIZ/dados/systemd/$u")"
+    if [ ! -f "$_QT_DIR/$u" ] || [ "$texto" != "$(cat "$_QT_DIR/$u" 2>/dev/null)" ]; then
+      meow_muda "instalaria/atualizaria $u"
+      return "$MEOW_DIVERGENTE"
+    fi
+  done
+  while IFS= read -r u; do
+    if [ "$(systemctl --user is-failed "$u" 2>/dev/null)" = "failed" ]; then
+      meow_muda "$u está em failed — religaria"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if [ "$(systemctl --user is-enabled "$u" 2>/dev/null)" != "enabled" ] ||
+       [ "$(systemctl --user is-active  "$u" 2>/dev/null)" != "active" ]; then
+      meow_muda "ligaria o $u"
+      return "$MEOW_DIVERGENTE"
+    fi
+  done < <(_qt_ligaveis)
+  meow_ok "vigiando qt5ct/qt6ct — o ícone do Qt volta sozinho depois do login"
+  return "$MEOW_OK"
+}
+
+fix_qtvigia() {
+  local u lista
+  meow_tem systemctl && [ -d "/run/user/$(id -u)/systemd" ] || return "$MEOW_SEM_DEPENDENCIA"
+
+  lista=",$(printf '%s' "${APPS_ATIVOS:-}" | tr -d ' '),"
+  case "$lista" in
+    *,qt5ct,*|*,qt,*|*,gtk,*) ;;
+    *)
+      meow_seco && { meow_muda "removeria o vigia do Qt (qt5ct fora do APPS_ATIVOS)"; return "$MEOW_DIVERGENTE"; }
+      while IFS= read -r u; do systemctl --user disable --now "$u" >/dev/null 2>&1; done < <(_qt_ligaveis)
+      for u in "${_QT_UNIDADES[@]}"; do rm -f "$_QT_DIR/$u"; done
+      systemctl --user daemon-reload >/dev/null 2>&1
+      meow_ok "qt5ct fora do APPS_ATIVOS — vigia do Qt desligado e removido"
+      return "$MEOW_DIVERGENTE" ;;
+  esac
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    meow_seco && { meow_muda "removeria o vigia do Qt"; return "$MEOW_DIVERGENTE"; }
+    while IFS= read -r u; do systemctl --user disable --now "$u" >/dev/null 2>&1; done < <(_qt_ligaveis)
+    for u in "${_QT_UNIDADES[@]}"; do rm -f "$_QT_DIR/$u"; done
+    systemctl --user daemon-reload >/dev/null 2>&1
+    meow_ok "AUTO_REPARO=\"${AUTO_REPARO:-}\" — vigia do Qt desligado e removido"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if meow_seco; then
+    meow_muda "instalaria e ligaria o vigia do Qt (qt5ct/qt6ct)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  mkdir -p "$_QT_DIR"
+  for u in "${_QT_UNIDADES[@]}"; do
+    meow_escrever "$_QT_DIR/$u" "$(cat "$RAIZ/dados/systemd/$u")" 644
+    case $? in 2) meow_erro "não consegui instalar $u"; return "$MEOW_ERRO" ;; esac
+  done
+  systemctl --user daemon-reload >/dev/null 2>&1
+  systemctl --user reset-failed "${_QT_UNIDADES[@]}" >/dev/null 2>&1
+  while IFS= read -r u; do
+    systemctl --user enable --now "$u" >/dev/null 2>&1 \
+      || { meow_erro "não consegui ligar o $u"; return "$MEOW_ERRO"; }
+  done < <(_qt_ligaveis)
+  meow_ok "vigia do Qt ligado — o ícone volta em segundos, não às 5h da manhã"
+  return "$MEOW_DIVERGENTE"
+}
+
+chk_apps() {
+  MEOW_DRY_RUN=1 APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+    SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir 2>&1
+}
+
+chk_heroictema() {
+  local id="com.heroicgameslauncher.hgl" raiz asar=""
+  meow_flatpak_tem "$id" || {
+    echo "Heroic não está instalado — nada a conferir"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+  for raiz in "$HOME/.local/share/flatpak" "/var/lib/flatpak"; do
+    [ -f "$raiz/app/$id/current/active/files/bin/heroic/resources/app.asar" ] || continue
+    asar="$raiz/app/$id/current/active/files/bin/heroic/resources/app.asar"
+    break
+  done
+  [ -n "$asar" ] || {
+    echo "Heroic presente, mas sem app.asar de flatpak ao alcance — nada a conferir"
+    return "$MEOW_SEM_DEPENDENCIA"
+  }
+  local saida nome tema embutido motivo
+  local cauda="o módulo grava com o .css, e está certo"
+  local pesa="o módulo grava 'theme' COM o .css por causa dessa linha; confira o handler antes de confiar na tela"
+  nome="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null | sed -n 's/^nome=//p')"
+  saida="$(exec 2>/dev/null
+           . "$RAIZ/scripts/temas-de-apps/heroic/manifesto.sh" || exit "$MEOW_ERRO"
+           _heroic_do_pack
+           printf 'tema=%s\nembutido=%s\nmotivo=%s\n' "$_HEROIC_TEMA" "$_HEROIC_EMBUTIDO" "$_HEROIC_MOTIVO")"
+  tema="$(printf '%s\n' "$saida" | sed -n 's/^tema=//p')"
+  embutido="$(printf '%s\n' "$saida" | sed -n 's/^embutido=//p')"
+  motivo="$(printf '%s\n' "$saida" | sed -n 's/^motivo=//p')"
+  if [ -n "$motivo" ]; then
+    cauda="o módulo não grava nada com o pack no ar: ${motivo#Heroic: }"
+    pesa="a linha pesa num pack de tema em arquivo, e com o pack no ar o módulo não grava nada: ${motivo#Heroic: }"
+  elif [ "$embutido" = 1 ]; then
+    cauda="o pack no ar (${nome:-?}) usa o '$tema', que o Heroic já traz, e sem arquivo não passa por aí"
+    pesa="o pack no ar (${nome:-?}) usa o '$tema', que o Heroic já traz e não passa por essa linha — ela pesa num pack de tema em arquivo"
+  fi
+  if grep -aq -- 'join(customThemesPath, theme)' "$asar"; then
+    echo "o Heroic abre o tema pelo nome do arquivo — $cauda"
+    return 0
+  fi
+  echo "o getThemeCSS do Heroic mudou de forma: não achei 'join(customThemesPath, theme)' no app.asar"
+  echo "$pesa"
+  echo "arquivo: $asar"
+  return "$MEOW_DIVERGENTE"
+}
+
+chk_midia() {
+  MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
+    MIDIA_COR_ALBUM="${MIDIA_COR_ALBUM:-}" MIDIA_CAPA="${MIDIA_CAPA:-}" \
+    MIDIA_FONTE="${MIDIA_FONTE:-}" MIDIA_COR_TITULO="${MIDIA_COR_TITULO:-}" \
+    MIDIA_COR_ARTISTA="${MIDIA_COR_ARTISTA:-}" \
+    MIDIA_CONTROLES="${MIDIA_CONTROLES:-}" FLAVOR="${FLAVOR:-}" \
+    "$RAIZ/scripts/midia.sh" --conferir 2>&1
+}
+
+chk_extensoes() {
+  EXTENSOES="${EXTENSOES:-}" MIDIA="${MIDIA:-}" LEITURA_APPLET="${LEITURA_APPLET:-}" \
+    "$RAIZ/scripts/extensoes_build.sh" --todas --conferir 2>&1
+}
+
+chk_disco() {
+  meow_tem python3 || { meow_pula "sem python3 para medir o disco"; return "$MEOW_SEM_DEPENDENCIA"; }
+  MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$RAIZ" \
+    python3 "$RAIZ/scripts/espaco.py" conferir 2>&1
+}
+
+chk_extensoestema() {
+  FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/extensoes_tema.sh" --conferir 2>&1
+}
+
+chk_vidro() {
+  MEOW_DRY_RUN=1 VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
+    VIDRO_OPACIDADE="${VIDRO_OPACIDADE:-}" \
+    VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-}" \
+    VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-}" \
+    "$RAIZ/scripts/vidro.sh" 2>&1
+}
+
+chk_forma() {
+  MEOW_DRY_RUN=1 rodar_forma "$RAIZ" 2>&1
+}
+
+chk_painel() {
+  local reciclagens desistiu=0
+  reciclagens="$(rodar_painel "$RAIZ" reciclagens 2>&1)" || desistiu=1
+  [ "$desistiu" = 1 ] && printf '%s\n' "$reciclagens"
+  MEOW_DRY_RUN=1 rodar_painel "$RAIZ" conferir 2>&1
+  local rc=$?
+  [ "$desistiu" = 0 ] && [ -n "$reciclagens" ] && printf '%s\n' "$reciclagens"
+  if [ -d "/run/user/$(id -u)/systemd" ] \
+     && [ "$(systemctl --user is-active meow-painel.service 2>/dev/null)" != "active" ] \
+     && [ -f "$HOME/.config/systemd/user/meow-painel.service" ]; then
+    printf 'o supervisor do painel está parado — a barra não volta sozinha se cair\n'
+    return "$MEOW_DIVERGENTE"
+  fi
+  return "$rc"
+}
+
+chk_hicolor() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/hicolor.sh" 2>&1
+}
+
+chk_mimetypes() {
+  ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
+    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_mimetypes.sh" --conferir 2>&1
+}
+
+chk_arcticons() {
+  FLAVOR="${FLAVOR:-}" ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao}" \
+    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_apps_arcticons.sh" --conferir 2>&1
+}
+
+chk_convertidos() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/construir_convertidos.sh" --conferir 2>&1
+}
+
+chk_resgatados() {
+  ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_resgatados.sh" --conferir 2>&1
+}
+
+chk_som() { SOM="${SOM:-sim}" "$RAIZ/scripts/som.sh" conferir 2>&1; }
+fix_som() { SOM="${SOM:-sim}" "$RAIZ/scripts/som.sh" aplicar 2>&1; }
+
+chk_dracula() {
+  ICONES_DRACULA="${ICONES_DRACULA:-sim}" \
+    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_apps_dracula.sh" --conferir 2>&1
+}
+
+chk_sistema() {
+  ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_sistema.sh" --conferir 2>&1
+}
+
+chk_bandeja() {
+  ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_bandeja.sh" --conferir 2>&1
+}
+
+chk_traysteam() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/icones_tray_steam.sh" --conferir 2>&1
+}
+
+chk_trayzapzap() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/icones_tray_zapzap.sh" --conferir 2>&1
+}
+
+chk_absolutos() {
+  _lancador_do_sistema || return "$MEOW_SEM_DEPENDENCIA"
+  MEOW_DRY_RUN=1 ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/icones_absolutos.sh" 2>&1
+}
+
+chk_jogos() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/jogos_steam.sh" 2>&1
+}
+
+chk_jogosheroic() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/jogos_heroic.sh" --conferir 2>&1
+}
+
+chk_ocultar() {
+  _lancador_do_sistema || return "$MEOW_SEM_DEPENDENCIA"
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/ocultar_apps.sh" 2>&1
+}
+
+_lancador_do_sistema() {
+  [ "${LANCADOR_SISTEMA:-nao}" = "sim" ] && return 0
+  meow_pula 'LANCADOR_SISTEMA não é "sim" — o lançador do sistema fica como está'
+  return 1
+}
+
+chk_ocultarcasa() {
+  MEOW_DRY_RUN=1 LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+    "$RAIZ/scripts/ocultar_casa.sh" --conferir 2>&1
+}
+
+chk_janeladock() {
+  local saida rc
+  saida="$(MEOW_DRY_RUN=1 "$RAIZ/scripts/appid_dock.sh" --conferir 2>&1)"; rc=$?
+  printf '%s\n' "$saida" | grep -F 'janela sem app_id'
+  printf '%s\n' "$saida" | tail -n 1
+  printf '%s\n' "$saida" | sed '$d' | grep -vF 'janela sem app_id'
+  return "$rc"
+}
+
+chk_lancador() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/lancador.sh" --conferir 2>&1
+}
+
+_ponte_reparo_ha() {
+  [ -f /usr/local/lib/meowsystem/reserva.sha256 ] &&
+    [ "$(systemctl show -p LoadState --value meowsystem-ponte-reparo.service 2>/dev/null)" = loaded ]
+}
+
+_ponte_reparo_motivo() {
+  if ! _ponte_reparo_ha; then
+    printf ' — sem reserva, entra no «Instalar tudo»'
+    return 0
+  fi
+  local u=meowsystem-ponte-reparo.service
+  if [ "$(systemctl show -p Result --value "$u" 2>/dev/null)" = exit-code ]; then
+    case "$(systemctl show -p ExecMainStatus --value "$u" 2>/dev/null)" in
+      3) printf ' — sem reserva, entra no «Instalar tudo»'; return 0 ;;
+      4) printf ' — a reserva não confere com o sha256, entra no «Instalar tudo»'; return 0 ;;
+      5) printf ' — a regra da reserva não passa no visudo, entra no «Instalar tudo»'; return 0 ;;
+    esac
+  fi
+  printf ' — o reparo a repõe da reserva'
+}
+
+_ponte_regra_igual_a_reserva() {
+  grep -q '^regra_sha256=' <<< "$1" || return 0
+  [ "$(sed -n 's/^regra_sha256=//p' <<< "$1")" = \
+    "$(sed -n 's/  49-meowsystem-ponte$//p' /usr/local/lib/meowsystem/reserva.sha256 2>/dev/null)" ]
+}
+
+chk_ponte() {
+  local ponte=/usr/local/lib/meowsystem/ponte_root.sh
+  local regra=/etc/sudoers.d/49-meowsystem-ponte
+  local somas=/usr/local/lib/meowsystem/reserva.sha256
+  local origem="$RAIZ/scripts/ponte_root.sh"
+
+  if [ "${PONTE_ROOT:-sim}" != "sim" ]; then
+    if [ -e "$ponte" ] || [ -e "$regra" ]; then
+      meow_muda 'PONTE_ROOT="nao" mas a ponte root continua instalada'
+      return "$MEOW_DIVERGENTE"
+    fi
+    meow_pula 'PONTE_ROOT="nao" — cada conserto de sistema pede senha no terminal'
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  local falta=""
+  if [ ! -x "$ponte" ]; then
+    falta="falta $ponte"
+  elif [ ! -f "$regra" ]; then
+    falta="falta $regra"
+  elif [ -f "$somas" ] &&
+       [ "$(sha256sum < "$ponte" | cut -d' ' -f1)" != "$(sed -n 's/  ponte_root\.sh$//p' "$somas")" ]; then
+    falta="$ponte difere da reserva"
+  fi
+  if [ -n "$falta" ]; then
+    meow_muda "$falta$(_ponte_reparo_motivo)"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  local estado
+  if [ "${MEOW_SO_LE:-0}" = 1 ]; then
+    estado="$(grep '^raiz=' "${ponte%/*}/perfil" 2>/dev/null)"
+  elif ! estado="$(sudo -n "$ponte" estado 2>/dev/null)"; then
+    meow_muda "a regra existe e o sudo ainda pede senha para a ponte$(_ponte_reparo_motivo)"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if ! _ponte_reparo_ha; then
+    meow_muda "a ponte está sem reserva — entra no «Instalar tudo»"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if ! _ponte_regra_igual_a_reserva "$estado"; then
+    meow_muda "$regra difere da reserva$(_ponte_reparo_motivo)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if grep -q '^polkit_sha256=' <<< "$estado"; then
+    local polkit_tem
+    polkit_tem="$(sed -n 's/^polkit_sha256=//p' <<< "$estado")"
+    if [ -z "$polkit_tem" ]; then
+      meow_muda "falta a regra do polkit do reparo — entra no «Instalar tudo»"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if [ "$polkit_tem" != "$(sha256sum < "$RAIZ/dados/ponte/49-meowsystem-ponte-reparo.rules" 2>/dev/null | cut -d' ' -f1)" ]; then
+      meow_muda "a regra do polkit do reparo difere do repositório — entra no «Instalar tudo»"
+      return "$MEOW_DIVERGENTE"
+    fi
+  fi
+
+  cmp -s "$origem" "$ponte" 2>/dev/null ||
+    { meow_muda "a ponte do repositório mudou — entra no «Instalar tudo»"; return "$MEOW_DIVERGENTE"; }
+
+  local raiz_reg
+  raiz_reg="$(sed -n 's/^raiz=//p' <<< "$estado")"
+  if [ "$raiz_reg" != "$RAIZ" ]; then
+    meow_muda "o perfil da ponte aponta para '$raiz_reg', e o clone está em '$RAIZ'"
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  if [ "${MEOW_SO_LE:-0}" = 1 ]; then
+    meow_ok "ponte root no lugar — a senha e as regras dela se conferem no conserto"
+    return 0
+  fi
+  meow_ok "ponte root no ar — o conserto de sistema não pede senha"
+  return 0
+}
+
+fix_ponte() {
+  local u=meowsystem-ponte-reparo.service
+  if [ "${PONTE_ROOT:-sim}" != "sim" ]; then
+    meow_pula 'PONTE_ROOT="nao" — tirar a ponte entra no «Instalar tudo»'
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if ! _ponte_reparo_ha; then
+    meow_pula "sem reserva — entra no «Instalar tudo»"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  local ponte=/usr/local/lib/meowsystem/ponte_root.sh estado
+  if [ -x "$ponte" ] && [ -f /etc/sudoers.d/49-meowsystem-ponte ] &&
+     [ "$(sha256sum < "$ponte" | cut -d' ' -f1)" = \
+       "$(sed -n 's/  ponte_root\.sh$//p' /usr/local/lib/meowsystem/reserva.sha256)" ] &&
+     estado="$(sudo -n "$ponte" estado 2>/dev/null)" &&
+     _ponte_regra_igual_a_reserva "$estado"; then
+    if cmp -s "$RAIZ/scripts/ponte_root.sh" "$ponte"; then
+      meow_pula "a ponte está igual à reserva — o resto entra no «Instalar tudo»"
+    else
+      meow_pula "a ponte do repositório mudou — entra no «Instalar tudo»"
+    fi
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if meow_seco; then
+    meow_muda "repor a ponte da reserva, pelo reparo do sistema"
+    return "$MEOW_DIVERGENTE"
+  fi
+  local erro pid rc estado antes=""
+  erro="$(mktemp)" || return "$MEOW_ERRO"
+  systemctl start --no-ask-password "$u" >/dev/null 2>"$erro" &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    estado="$(systemctl show -p ActiveState --value "$u" 2>/dev/null)"
+    case "$estado" in activating|reloading) estado="repondo" ;; *) estado="" ;; esac
+    [ -n "$estado" ] && [ "$estado" != "$antes" ] && meow_info "reparo da ponte: $estado"
+    antes="$estado"
+    sleep 0.2
+  done
+  wait "$pid"; rc=$?
+  if [ "$rc" = 0 ] && [ -x "$ponte" ] && [ -f /etc/sudoers.d/49-meowsystem-ponte ]; then
+    rm -f "$erro"
+    meow_ok "ponte reposta da reserva, sem senha"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if grep -qiE 'authentication|access denied|not authorized' "$erro"; then
+    meow_erro "o polkit recusou o reparo: só a sessão local ativa o dispara"
+  else
+    meow_erro "o reparo não repôs a ponte$(_ponte_reparo_motivo)"
+  fi
+  rm -f "$erro"
+  return "$MEOW_ERRO"
+}
+
+_lancadorapt_igual_a_reserva() {
+  local pecas=/usr/local/lib/meowsystem/reserva-pecas.sha256
+  local hook=/etc/apt/apt.conf.d/99-meow-lancador
+  local wrapper=/usr/local/sbin/meow-lancador-apt.sh
+  [ -f "$pecas" ] && [ -f "$hook" ] && [ -f "$wrapper" ] || return 1
+  [ "$(sha256sum < "$hook" | cut -d' ' -f1)" = "$(sed -n 's/  99-meow-lancador$//p' "$pecas")" ] &&
+    [ "$(sha256sum < "$wrapper" | cut -d' ' -f1)" = "$(sed -n 's/  meow-lancador-apt\.sh$//p' "$pecas")" ]
+}
+
+chk_lancadorapt() {
+  local hook=/etc/apt/apt.conf.d/99-meow-lancador
+  local wrapper=/usr/local/sbin/meow-lancador-apt.sh
+
+  if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
+    if [ -f "$hook" ] || [ -f "$wrapper" ]; then
+      if meow_conf_diz LANCADOR_SISTEMA nao; then
+        meow_muda 'LANCADOR_SISTEMA="nao" mas o hook de apt continua instalado'
+        return "$MEOW_DIVERGENTE"
+      fi
+      meow_pula "o hook de apt está instalado e o meow.conf não diz nada — fica como está"
+      return "$MEOW_SEM_DEPENDENCIA"
+    fi
+    meow_pula 'LANCADOR_SISTEMA="nao" — sem reaplique após apt'
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  local repoe=" — a ponte o repõe da reserva"
+  [ -f /usr/local/lib/meowsystem/reserva-pecas.sha256 ] || repoe=" — sem reserva, entra no «Instalar tudo»"
+  [ -f "$hook" ]    || { meow_muda "falta $hook$repoe";    return "$MEOW_DIVERGENTE"; }
+  [ -f "$wrapper" ] || { meow_muda "falta $wrapper$repoe"; return "$MEOW_DIVERGENTE"; }
+
+  local esperado
+  esperado="$(sed -e "s|@ACERVO@|$RAIZ|g" \
+                  -e "s|@USUARIA@|$(id -un)|g" \
+                  -e "s|@LAR@|$HOME|g" "$RAIZ/scripts/meow-lancador-apt.sh")"
+  if ! cmp -s "$RAIZ/scripts/99-meow-lancador" "$hook" 2>/dev/null ||
+     [ "$(cat "$wrapper" 2>/dev/null)" != "$esperado" ]; then
+    if _lancadorapt_igual_a_reserva || [ ! -f /usr/local/lib/meowsystem/reserva-pecas.sha256 ]; then
+      meow_muda "o hook do repositório mudou — entra no «Instalar tudo»"
+    else
+      meow_muda "o hook instalado difere da reserva$repoe"
+    fi
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  meow_ok "o lançador se reaplica sozinho após cada apt"
+  return 0
+}
+
+chk_nomes() {
+  "$RAIZ/scripts/nomes_apps.sh" --conferir 2>&1
+}
+
+chk_assets() {
+  "$RAIZ/scripts/vigia_assets.sh" --conferir 2>&1
+}
+
+_derivados_pior() {
+  { [ "$1" = 2 ] || [ "$2" = 2 ]; } && return 2
+  { [ "$1" = 1 ] || [ "$2" = 1 ]; } && return 1
+  return "$1"
+}
+chk_derivados() {
+  local s1 s2 r1 r2
+  s1="$("$RAIZ/scripts/derivados.sh" --conferir 2>&1)"; r1=$?
+  s2="$("$RAIZ/scripts/vigia_derivados.sh" --conferir 2>&1)"; r2=$?
+  printf '%s\n%s\n' "$s1" "$s2"
+  _derivados_pior "$r1" "$r2"
+}
+
+chk_atalho() {
+  "$RAIZ/scripts/atalho.sh" --conferir 2>&1
+}
+
+chk_svg() {
+  meow_tem python3 || { echo "python3 não está aqui — nada a conferir"; return 0; }
+  local pastas=() p
+  for p in packs/meowsystem/mascote/ packs/dracula/mascote/; do
+    [ -d "$RAIZ/$p" ] && pastas+=("$RAIZ/$p")
+  done
+  for p in "$RAIZ"/packs/meowsystem/icones/sistema/leitura-*.svg; do [ -f "$p" ] && pastas+=("$p"); done
+  while IFS= read -r p; do [ -n "$p" ] && pastas+=("$p"); done < <(python3 -I - "$RAIZ" <<'PYAUT' 2>/dev/null
+import glob, json, os, sys
+for d in sorted(glob.glob(os.path.join(sys.argv[1], "packs", "*"))):
+    try:
+        fl = json.load(open(os.path.join(d, "paleta.json"), encoding="utf-8"))["flavors"]
+    except Exception:
+        continue
+    for f in sorted(glob.glob(os.path.join(d, "icones", "apps", "*.svg"))):
+        if any(f.endswith("-%s.svg" % x) for x in fl):
+            print(f)
+PYAUT
+  )
+  [ "${#pastas[@]}" -gt 0 ] || return 0
+  local saida rc
+  saida="$(python3 "$RAIZ/scripts/normalizar_svg.py" --conferir "${pastas[@]}" 2>&1)"; rc=$?
+  if [ "$rc" = "0" ]; then
+    printf '%s desenho(s) nossos conferem com o que o painel sabe desenhar\n' \
+      "$(find "${pastas[@]}" -name '*.svg' 2>/dev/null | wc -l)"
+    return 0
+  fi
+  printf '%s\n' "$saida"
+  return "$rc"
+}
+
+chk_flatpak() {
+  FLATPAK_VIGIA="${FLATPAK_VIGIA:-sim}" "$RAIZ/scripts/vigia_flatpak.sh" --conferir 2>&1
+}
+
+chk_steamvigia() {
+  STEAM_VIGIA="${STEAM_VIGIA:-sim}" "$RAIZ/scripts/vigia_steam.sh" --conferir 2>&1
+}
+
+chk_heroicvigia() {
+  HEROIC_VIGIA="${HEROIC_VIGIA:-sim}" "$RAIZ/scripts/vigia_heroic.sh" --conferir 2>&1
+}
+
+chk_discordvigia() {
+  DISCORD_VENCORD="${DISCORD_VENCORD:-sim}" "$RAIZ/scripts/vigia_discord.sh" --conferir 2>&1
+}
+
+chk_greeter() {
+  MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1
+}
+
+chk_cursor() {
+  MEOW_DRY_RUN=1 CURSOR="${CURSOR:-}" CURSOR_VERSAO="${CURSOR_VERSAO:-v2.0.0}" \
+    "$RAIZ/scripts/cursor.sh" conferir 2>&1
+}
+
+chk_flatpaktema() {
+  MEOW_DRY_RUN=1 CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/flatpak_tema.sh" conferir usuario 2>&1
+}
+
+chk_flatpakadwaita() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/flatpak_tema.sh" conferir libadwaita 2>&1
+}
+
+chk_flatpakicones() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/flatpak_tema.sh" conferir icones 2>&1
+}
+
+chk_flatpakruntime() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/flatpak_tema.sh" conferir runtime 2>&1
+}
+
+chk_flatpakglobal() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/flatpak_tema.sh" conferir global 2>&1
+}
+
+chk_onlyoffice() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/escritorio.sh" conferir onlyoffice 2>&1
+}
+
+chk_libreoffice() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/escritorio.sh" conferir libreoffice 2>&1
+}
+
+chk_prompt() {
+  MEOW_DRY_RUN=1 PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \
+    "$RAIZ/scripts/prompt.sh" conferir 2>&1
+}
+
+chk_fzf() {
+  MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/fzf.sh" conferir 2>&1
+}
+
+chk_terminal() {
+  FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
+    TERMINAL_ESQUEMA="${TERMINAL_ESQUEMA:-sim}" \
+    TERMINAL_CURSOR="${TERMINAL_CURSOR:-accent}" \
+    "$RAIZ/scripts/terminal.sh" conferir 2>&1
+}
+
+chk_fastfetch() {
+  MEOW_DRY_RUN=1 \
+    FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}" \
+    FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}" \
+    FASTFETCH_LOGO_COLUNAS="${FASTFETCH_LOGO_COLUNAS:-40}" \
+    FASTFETCH_LOGO_MODO="${FASTFETCH_LOGO_MODO:-hora}" FASTFETCH_LOGO_DIA="${FASTFETCH_LOGO_DIA:-}" FASTFETCH_LOGO_NOITE="${FASTFETCH_LOGO_NOITE:-}" FASTFETCH_LOGO_CONF="${FASTFETCH_LOGO_CONF:-sim}" LOGO_DIA="${LOGO_DIA:-}" LOGO_NOITE="${LOGO_NOITE:-}" NOITE_INICIO="${NOITE_INICIO:-}" NOITE_FIM="${NOITE_FIM:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" \
+    "$RAIZ/scripts/fastfetch_logo.sh" conferir 2>&1
+}
+
+chk_files_menu() {
+  FILES_MENU="${FILES_MENU:-sim}" FILES_MENU_AUTOBUILD="${FILES_MENU_AUTOBUILD:-sim}" \
+    "$RAIZ/scripts/files_menu.sh" --conferir 2>&1
+}
+
+chk_relogio() {
+  RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" "$RAIZ/scripts/relogio.sh" conferir 2>&1
+}
+
+chk_janelas() {
+  JANELAS_TILING="${JANELAS_TILING:-}" JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}" \
+    "$RAIZ/scripts/janelas.sh" conferir 2>&1
+}
+
+chk_areas() {
+  AREAS_MODO="${AREAS_MODO:-juntas}" AREAS_NOMES="${AREAS_NOMES:-}" AREAS_FOLGA="${AREAS_FOLGA:-}" AREAS_ENCAIXE="${AREAS_ENCAIXE:-}" \
+    "$RAIZ/scripts/areas.sh" alfinetes 2>&1
+}
+
+_patches_shim_falta() {
+  [ "${COMPOSITOR:-sim}" != nao ] || return 1
+  "$RAIZ/scripts/garantir_builds.sh" estado 2>/dev/null | grep -x 'compositor_estado=desligado' >/dev/null
+}
+chk_gpu() {
+  MEOW_DRY_RUN=1 GPU_COMPOSITOR="${GPU_COMPOSITOR:-dedicada}" "$RAIZ/scripts/gpu_compositor.sh" conferir 2>&1
+}
+
+chk_patches() {
+  if _patches_shim_falta; then
+    echo "o build da casa do cosmic-comp está pronto e o shim em ~/.local/bin/cosmic-comp não está ligado"
+    return "$MEOW_DIVERGENTE"
+  fi
+  "$RAIZ/scripts/compositor_patches.sh" conferir 2>&1
+}
+
+chk_graficos() {
+  GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/graficos.sh" conferir 2>&1
+}
+
+chk_dock() {
+  DOCK="${DOCK:-}" "$RAIZ/scripts/dock.sh" conferir 2>&1
+}
+
+chk_leitura() {
+  "$RAIZ/scripts/leitura.sh" conferir 2>&1
+}
+
+chk_arquivosfilhos() { "$RAIZ/scripts/arquivos_filhos.sh" --conferir 2>&1; }
+
+chk_autostart() {
+  AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" "$RAIZ/scripts/autostart.sh" conferir 2>&1
+}
+
+chk_bloco() { "$RAIZ/scripts/terminal_bloco.sh" --conferir 2>&1; }
+fix_bloco() { "$RAIZ/scripts/terminal_bloco.sh" aplicar 2>&1; }
+
+chk_vizinhos() {
+  local rc saida
+  if [ "${VIZINHOS_DESATIVAR:-sim}" = "sim" ]; then
+    saida="$("$RAIZ/scripts/vizinhos.sh" --prontos 2>&1)"; rc=$?
+    [ "$rc" = "1" ] && { printf '%s\n' "$saida"; return "$MEOW_DIVERGENTE"; }
+  fi
+  "$RAIZ/scripts/vizinhos.sh" --conferir 2>&1; rc=$?
+  case "$rc" in 0|4) return "$rc" ;; *) return 3 ;; esac
+}
+
+fix_vizinhos() {
+  if meow_seco; then
+    "$RAIZ/scripts/vizinhos.sh" --prontos 2>&1
+    meow_muda "desligaria nos vizinhos os trechos acima, com cópia de antes"
+    return "$MEOW_DIVERGENTE"
+  fi
+  VIZINHOS_DESATIVAR="${VIZINHOS_DESATIVAR:-sim}" "$RAIZ/scripts/vizinhos.sh" --desativar-prontos 2>&1
+}
+
+
+_autoreparo_unidades() {
+  printf '%s\n' meow-doctor.service meow-doctor.timer
+  case "${VIDRO_AO_MAXIMIZAR:-sim}" in nao|não|false|0) ;; *) printf '%s\n' meow-vidro.service meow-vidro.path ;; esac
+}
+
+_autoreparo_ligaveis() {
+  printf '%s\n' meow-doctor.timer
+  case "${VIDRO_AO_MAXIMIZAR:-sim}" in nao|não|false|0) ;; *) printf '%s\n' meow-vidro.path ;; esac
+}
+
+_autoreparo_sobra_vidro() {
+  case "${VIDRO_AO_MAXIMIZAR:-sim}" in nao|não|false|0) ;; *) return 1 ;; esac
+  [ -f "$HOME/.config/systemd/user/meow-vidro.path" ] || [ -f "$HOME/.config/systemd/user/meow-vidro.service" ]
+}
+
+chk_autoreparo() {
+  local destino="$HOME/.config/systemd/user" u faltam=() difere=() desarmados=()
+
+  if [ "${AUTO_REPARO:-sim}" != "sim" ]; then
+    if [ -f "$destino/meow-doctor.timer" ] || [ -f "$destino/meow-doctor.service" ] || [ -f "$destino/meow-vidro.path" ]; then
+      echo "AUTO_REPARO=\"${AUTO_REPARO:-}\" no meow.conf, mas o meow-doctor continua em $destino"
+      return "$MEOW_DIVERGENTE"
+    fi
+    echo "AUTO_REPARO=\"${AUTO_REPARO:-}\" — sem reparo automático, por escolha sua"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  if ! meow_tem systemctl || [ ! -d "/run/user/$(id -u)/systemd" ]; then
+    echo "não há systemd --user nesta sessão — o conserto diário fica de fora; o «Consertar», no Manter, faz o mesmo"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  for u in $(_autoreparo_unidades); do
+    [ -f "$RAIZ/dados/systemd/$u" ] || { echo "falta $RAIZ/dados/systemd/$u — repositório incompleto"; return "$MEOW_ERRO"; }
+    if [ ! -f "$destino/$u" ]; then faltam+=("$u"); continue; fi
+    meow_mesmo_conteudo "$RAIZ/dados/systemd/$u" "$destino/$u" || difere+=("$u")
+  done
+
+  for u in $(_autoreparo_ligaveis); do
+    meow_unidade_armada "$u" || desarmados+=("$u")
+  done
+
+  local preso=0
+  meow_timer_preso_ao_boot meow-doctor.timer && preso=1
+
+  if [ "${#faltam[@]}" -gt 0 ] || [ "${#difere[@]}" -gt 0 ] || [ "${#desarmados[@]}" -gt 0 ] || [ "$preso" = "1" ] || _autoreparo_sobra_vidro; then
+    [ "$preso" = "1" ] && echo "o meow-doctor.timer está preso ao boot (timers.target) — o disparo das 5h cai antes da sessão gráfica"
+    [ "${#faltam[@]}" -gt 0 ] && echo "não estão instaladas: ${faltam[*]}"
+    [ "${#difere[@]}" -gt 0 ] && echo "diferentes das do repositório: ${difere[*]}"
+    for u in "${desarmados[@]}"; do
+      case "$u" in
+        meow-doctor.timer) echo "o meow-doctor.timer não está armado — o reparo das 5h não dispara" ;;
+        meow-vidro.path)   echo "o meow-vidro.path não está armado — o vidro da janela maximizada só volta às 5h" ;;
+      esac
+    done
+    _autoreparo_sobra_vidro && echo "VIDRO_AO_MAXIMIZAR=\"${VIDRO_AO_MAXIMIZAR:-}\", mas o meow-vidro.path continua em $destino"
+    return "$MEOW_DIVERGENTE"
+  fi
+  echo "auto-reparo ligado (meow-doctor.timer, todo dia às 5h, com até 20min de folga)"
+  return 0
+}
+
+chk_cli() {
+  local alvo="$HOME/.local/bin/meow" ponteiro="$MEOW_ESTADO/raiz" ruins=() extra="" aponta
+  case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) extra="aviso: ~/.local/bin não está no \$PATH — o comando 'meow' não vai ser achado" ;;
+  esac
+
+  if [ ! -f "$alvo" ]; then
+    echo "~/.local/bin/meow não existe — o conserto copia o scripts/meow deste clone"
+    [ -n "$extra" ] && echo "$extra"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_mesmo_conteudo "$alvo" "$RAIZ/scripts/meow" || ruins+=("a CLI em ~/.local/bin/meow está diferente do scripts/meow deste clone")
+  [ -x "$alvo" ] || ruins+=("~/.local/bin/meow está sem bit de execução — seria um 'command not found' inexplicável")
+  if [ ! -f "$ponteiro" ]; then
+    ruins+=("$ponteiro não existe — a CLI e a completion não acham o clone")
+  else
+    aponta="$(cat "$ponteiro" 2>/dev/null)"
+    [ "$aponta" = "$RAIZ" ] || ruins+=("$ponteiro aponta para '$aponta', e este clone é '$RAIZ'")
+  fi
+
+  if [ "${#ruins[@]}" -gt 0 ]; then
+    printf '%s\n' "${ruins[@]}"
+    [ -n "$extra" ] && echo "$extra"
+    return "$MEOW_DIVERGENTE"
+  fi
+  echo "a CLI instalada é byte a byte o scripts/meow, e o ponteiro da raiz confere"
+  [ -n "$extra" ] && echo "$extra"
+  return 0
+}
+
+_pacotes_faltando() {
+  local faltam=() bin pac lista="$RAIZ/dados/pacotes/sistema.tsv"
+  [ -s "$lista" ] || { echo "não consegui ler a lista de pacotes (dados/pacotes/sistema.tsv)"; return "$MEOW_ERRO"; }
+  while IFS=$'\t' read -r bin pac; do
+    [ -n "$bin" ] && [ -n "$pac" ] || continue
+    meow_tem "$bin" || faltam+=("$pac")
+  done < "$lista"
+  [ -d "${MEOW_ICONES_SISTEMA:-/usr/share/icons}/Papirus-Dark" ] || faltam+=(papirus-icon-theme)
+  python3 -I -c 'import numpy' 2>/dev/null || faltam+=(python3-numpy)
+  [ -d /usr/share/fonts/opentype/fira ] || ! apt-cache show pop-fonts >/dev/null 2>&1 \
+    || faltam+=(pop-fonts)
+  local pacote
+  while IFS= read -r pacote; do
+    [ -n "$pacote" ] && faltam+=("$pacote")
+  done < <(meow_pacotes_de_compilar_faltando)
+  [ "${#faltam[@]}" -eq 0 ] || printf '%s\n' "${faltam[@]}"
+  return 0
+}
+
+chk_pacotes() {
+  local lista faltam=()
+  lista="$(_pacotes_faltando)" || { echo "$lista"; return "$MEOW_ERRO"; }
+  [ -n "$lista" ] && mapfile -t faltam <<< "$lista"
+  [ "${#faltam[@]}" -eq 0 ] && { echo "todos os pacotes necessários já estão instalados"; return 0; }
+  if meow_ponte_viva; then
+    echo "faltam: ${faltam[*]} — o conserto os instala pela ponte root, sem senha"
+  else
+    echo "faltam: ${faltam[*]} — sem a ponte root, instalar pacote pede a sua senha uma vez, no ./install.sh"
+  fi
+  return "$MEOW_DIVERGENTE"
+}
+
+chk_rust() {
+  "$RAIZ/scripts/rust.sh" conferir 2>&1
+}
+
+chk_botoeslado() { BOTOES_LADO="${BOTOES_LADO:-direita}" "$RAIZ/scripts/botoes_lado.sh" conferir 2>&1; }
+
+chk_escala() {
+  ESCALA_TELA="${ESCALA_TELA:-}" "$RAIZ/scripts/escala.sh" --conferir 2>&1
+}
+
+chk_upstream() {
+  MEOW_DRY_RUN=1 "$RAIZ/scripts/baixar_upstream.sh" 2>&1
+}
+
+chk_fontes() {
+  local saida rc
+  saida="$("$RAIZ/scripts/instalar_fontes.sh" --conferir 2>&1)"; rc=$?
+  saida="$(printf '%s\n' "$saida" | sed '/^[[:space:]]*$/d')"
+  printf '%s\n' "$saida" | tail -n 1
+  printf '%s\n' "$saida" | sed '$d'
+  return "$rc"
+}
+
+chk_efeito() {
+  MEOW_DRY_RUN=1 NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+    "$RAIZ/scripts/oraculo_tema.sh" efeito 2>&1
+}
+
+chk_logo() {
+  MEOW_DRY_RUN=1 FLAVOR="$FLAVOR" LOGO="$LOGO" "$RAIZ/scripts/logo.sh" --conferir 2>&1
+}
+
+fix_gerar() {
+  meow_seco && {
+    meow_muda "geraria os .ron da paleta em $MEOW_ESTADO/temas/ e a v1 das capturas"
+    return "$MEOW_DIVERGENTE"
+  }
+  python3 "$RAIZ/scripts/gerar_temas.py" 2>&1 || return "$MEOW_ERRO"
+  python3 "$RAIZ/scripts/gerar_tema_v1.py" 2>&1 || return "$MEOW_ERRO"
+  return "$MEOW_DIVERGENTE"
+}
+fix_tema()      { "$RAIZ/scripts/aplicar_tema.sh" "$(alvo_tema)" --respeitar-gui 2>&1; }
+fix_modo()      { local d; d="$(modo_desejado)" || return "$MEOW_ERRO"; meow_escrever "$IS_DARK" "$d" 644; }
+fix_completar() { FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/completar_icones.sh" 2>&1; }
+chk_indice()    { MEOW_DRY_RUN=1 NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/construir_icones.sh" indice 2>&1; }
+fix_indice()    { NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/construir_icones.sh" indice 2>&1; }
+fix_icones()    { FLAVOR="$FLAVOR" LOGO="$LOGO" \
+                    ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/construir_icones.sh" 2>&1; }
+fix_pastasxdg() { PASTAS_XDG="${PASTAS_XDG:-nao}" ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
+                    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_pastas.sh" --aplicar 2>&1; }
+fix_pastas()    { ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+                    ICONES_PASTAS="${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/construir_pastas.sh" 2>&1; }
+fix_wallpaper() { "$RAIZ/scripts/wallpaper.sh" semear-se-faltar 2>&1
+                  WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+                    WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+                    WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
+                    WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
+                    WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
+                    WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
+        WALLPAPER_FIXO_TTL="${WALLPAPER_FIXO_TTL:-}" NOITE_INICIO="${NOITE_INICIO:-}" NOITE_FIM="${NOITE_FIM:-}" \
+                    "$RAIZ/scripts/wallpaper.sh" aplicar 2>&1; }
+fix_apps()      { APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+  SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" \
+                    "$RAIZ/scripts/aplicar_apps.sh" aplicar 2>&1; }
+fix_midia()     { MIDIA="${MIDIA:-}" MIDIA_LARGURA="${MIDIA_LARGURA:-}" \
+                    MIDIA_COR_ALBUM="${MIDIA_COR_ALBUM:-}" MIDIA_CAPA="${MIDIA_CAPA:-}" \
+                    MIDIA_FONTE="${MIDIA_FONTE:-}" MIDIA_COR_TITULO="${MIDIA_COR_TITULO:-}" \
+                    MIDIA_COR_ARTISTA="${MIDIA_COR_ARTISTA:-}" \
+                    MIDIA_CONTROLES="${MIDIA_CONTROLES:-}" FLAVOR="${FLAVOR:-}" \
+                    "$RAIZ/scripts/midia.sh" 2>&1; }
+fix_vidro()     { VIDRO_AO_MAXIMIZAR="${VIDRO_AO_MAXIMIZAR:-sim}" \
+                    VIDRO_OPACIDADE="${VIDRO_OPACIDADE:-}" \
+                    VIDRO_OPACIDADE_PAINEL="${VIDRO_OPACIDADE_PAINEL:-}" \
+                    VIDRO_OPACIDADE_DOCK="${VIDRO_OPACIDADE_DOCK:-}" \
+                    "$RAIZ/scripts/vidro.sh" 2>&1; }
+fix_forma()     { rodar_forma "$RAIZ" 2>&1; }
+fix_extensoes()  { EXTENSOES_COMPILAR=1 EXTENSOES="${EXTENSOES:-}" MIDIA="${MIDIA:-}" \
+                    LEITURA_APPLET="${LEITURA_APPLET:-}" \
+                    "$RAIZ/scripts/extensoes_build.sh" --todas --aplicar 2>&1; }
+fix_disco()      { MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$RAIZ" \
+                    python3 "$RAIZ/scripts/espaco.py" aparar 2>&1; }
+fix_extensoestema() { FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" "$RAIZ/scripts/extensoes_tema.sh" --aplicar 2>&1; }
+fix_patches()    { "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1; local rc=$? r; "$RAIZ/scripts/compositor_patches.sh" cuidar 2>&1; r=$?; case "$r" in 1) [ "$rc" = 0 ] && rc=1 ;; 2) rc=2 ;; esac; _patches_shim_falta || return "$rc"; "$RAIZ/scripts/compositor_patches.sh" ativar 2>&1; }
+
+fix_graficos()  { GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1
+                  GR_COMPILAR=nao GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/graficos.sh" aplicar 2>&1; }
+
+fix_dock()      { DOCK="${DOCK:-}" "$RAIZ/scripts/garantir_builds.sh" --fundo 2>&1
+                  DK_COMPILAR=nao DOCK="${DOCK:-}" "$RAIZ/scripts/dock.sh" aplicar 2>&1; }
+
+fix_painel()    {
+  rodar_painel "$RAIZ" conferir 2>&1
+  local rc=$?
+  [ -f "$HOME/.config/systemd/user/meow-painel.service" ] \
+    && meow_limpar_falha_da_unidade meow-painel.service \
+    && systemctl --user start meow-painel.service >/dev/null 2>&1
+  return "$rc"
+}
+fix_hicolor()   { "$RAIZ/scripts/hicolor.sh" 2>&1; }
+fix_mimetypes() { ICONES_FLAVOR="${ICONES_FLAVOR:-}" \
+                    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_mimetypes.sh" --aplicar 2>&1; }
+fix_arcticons() { FLAVOR="${FLAVOR:-}" ICONES_COR_MARCA="${ICONES_COR_MARCA:-nao}" \
+                    ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_apps_arcticons.sh" --aplicar 2>&1; }
+fix_resgatados(){ ICONES_RESGATADOS="${ICONES_RESGATADOS:-sim}" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_resgatados.sh" --aplicar 2>&1; }
+fix_dracula()   { ICONES_DRACULA="${ICONES_DRACULA:-sim}" \
+                    NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_apps_dracula.sh" --aplicar 2>&1; }
+fix_sistema()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_sistema.sh" --aplicar 2>&1; }
+fix_bandeja()   { ICONES_TEMA="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/icones_bandeja.sh" --aplicar 2>&1; }
+fix_traysteam() { "$RAIZ/scripts/icones_tray_steam.sh" --aplicar 2>&1; }
+fix_trayzapzap(){ "$RAIZ/scripts/icones_tray_zapzap.sh" --aplicar 2>&1; }
+fix_flatpak(){ FLATPAK_VIGIA="${FLATPAK_VIGIA:-sim}" \
+                    "$RAIZ/scripts/vigia_flatpak.sh" --aplicar 2>&1; }
+fix_steamvigia(){ STEAM_VIGIA="${STEAM_VIGIA:-sim}" \
+                    "$RAIZ/scripts/vigia_steam.sh" --aplicar 2>&1; }
+fix_heroicvigia(){ HEROIC_VIGIA="${HEROIC_VIGIA:-sim}" \
+                    "$RAIZ/scripts/vigia_heroic.sh" --aplicar 2>&1; }
+fix_discordvigia(){ DISCORD_VENCORD="${DISCORD_VENCORD:-sim}" \
+                    "$RAIZ/scripts/vigia_discord.sh" --aplicar 2>&1; }
+fix_jogos()     { "$RAIZ/scripts/jogos_steam.sh" 2>&1; }
+fix_jogosheroic(){ "$RAIZ/scripts/jogos_heroic.sh" --aplicar 2>&1; }
+fix_nomes()     { "$RAIZ/scripts/nomes_apps.sh" 2>&1; }
+
+fix_ocultar()   { _lancador_do_sistema 2>&1 || return "$MEOW_SEM_DEPENDENCIA"
+                  LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+                    "$RAIZ/scripts/ocultar_apps.sh" 2>&1; }
+fix_absolutos() { _lancador_do_sistema 2>&1 || return "$MEOW_SEM_DEPENDENCIA"
+                  LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+                    "$RAIZ/scripts/icones_absolutos.sh" 2>&1; }
+fix_ocultarcasa(){ LANCADOR_SISTEMA="${LANCADOR_SISTEMA:-nao}" \
+                    "$RAIZ/scripts/ocultar_casa.sh" --aplicar 2>&1; }
+fix_arquivosfilhos() { "$RAIZ/scripts/arquivos_filhos.sh" aplicar 2>&1; }
+fix_janeladock() { "$RAIZ/scripts/appid_dock.sh" --aplicar 2>&1; }
+fix_lancador()  { "$RAIZ/scripts/lancador.sh" --aplicar 2>&1; }
+fix_lancadorapt() {
+  if [ "${LANCADOR_SISTEMA:-nao}" != "sim" ]; then
+    if ! meow_conf_diz LANCADOR_SISTEMA nao; then
+      meow_aviso "o meow.conf não diz LANCADOR_SISTEMA=\"nao\" — não removo o hook"
+      return "$MEOW_SEM_DEPENDENCIA"
+    fi
+    meow_ponte apt-hook-remover 2>&1 && meow_ok "hook de apt removido pela ponte"
+    return $?
+  fi
+  if [ ! -f /usr/local/lib/meowsystem/reserva-pecas.sha256 ]; then
+    meow_pula "sem reserva — entra no «Instalar tudo»"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if _lancadorapt_igual_a_reserva; then
+    meow_pula "o hook do repositório mudou — entra no «Instalar tudo»"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  if meow_ponte apt-hook-instalar 2>&1; then
+    meow_ok "hook de apt reposto da reserva, pela ponte"
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_aviso "a ponte não repôs o hook de apt"
+  return "$MEOW_ERRO"
+}
+fix_assets()    { "$RAIZ/scripts/vigia_assets.sh" --aplicar 2>&1; }
+fix_derivados() { local r1 r2
+                  MEOW_DERIVADOS_ESPERA=0 "$RAIZ/scripts/derivados.sh" --aplicar 2>&1; r1=$?
+                  "$RAIZ/scripts/vigia_derivados.sh" --aplicar 2>&1; r2=$?
+                  _derivados_pior "$r1" "$r2"; }
+fix_atalho()    { "$RAIZ/scripts/atalho.sh" --aplicar 2>&1; }
+fix_svg()       { local pastas=() p
+                  meow_tem python3 || return 0
+                  for p in packs/meowsystem/mascote/ packs/dracula/mascote/; do
+                    [ -d "$RAIZ/$p" ] && pastas+=("$RAIZ/$p")
+                  done
+                  for p in "$RAIZ"/packs/meowsystem/icones/sistema/leitura-*.svg; do [ -f "$p" ] && pastas+=("$p"); done
+                  while IFS= read -r p; do [ -n "$p" ] && pastas+=("$p"); done < <(python3 -I - "$RAIZ" <<'PYAUT' 2>/dev/null
+import glob, json, os, sys
+for d in sorted(glob.glob(os.path.join(sys.argv[1], "packs", "*"))):
+    try:
+        fl = json.load(open(os.path.join(d, "paleta.json"), encoding="utf-8"))["flavors"]
+    except Exception:
+        continue
+    for f in sorted(glob.glob(os.path.join(d, "icones", "apps", "*.svg"))):
+        if any(f.endswith("-%s.svg" % x) for x in fl):
+            print(f)
+PYAUT
+                  )
+                  [ "${#pastas[@]}" -gt 0 ] || return 0
+                  python3 "$RAIZ/scripts/normalizar_svg.py" "${pastas[@]}" 2>&1; }
+fix_greeter()   { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/greeter.sh" 2>&1; }
+fix_cursor()    { CURSOR="${CURSOR:-}" CURSOR_VERSAO="${CURSOR_VERSAO:-v2.0.0}" \
+                    "$RAIZ/scripts/cursor.sh" aplicar 2>&1; }
+fix_flatpaktema() { CURSOR="${CURSOR:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                    "$RAIZ/scripts/flatpak_tema.sh" aplicar usuario 2>&1; }
+fix_flatpakadwaita() { "$RAIZ/scripts/flatpak_tema.sh" aplicar libadwaita 2>&1; }
+fix_flatpakicones() { "$RAIZ/scripts/flatpak_tema.sh" aplicar icones 2>&1; }
+fix_flatpakruntime() { "$RAIZ/scripts/flatpak_tema.sh" aplicar runtime 2>&1; }
+fix_gpu() { GPU_COMPOSITOR="${GPU_COMPOSITOR:-dedicada}" "$RAIZ/scripts/gpu_compositor.sh" aplicar 2>&1; }
+fix_flatpakglobal() { "$RAIZ/scripts/flatpak_tema.sh" aplicar global 2>&1; }
+fix_onlyoffice() { "$RAIZ/scripts/escritorio.sh" aplicar onlyoffice 2>&1; }
+fix_libreoffice() { "$RAIZ/scripts/escritorio.sh" aplicar libreoffice 2>&1; }
+fix_prompt()    { PROMPT_STARSHIP="${PROMPT_STARSHIP:-sim}" \
+                    "$RAIZ/scripts/prompt.sh" aplicar 2>&1; }
+fix_fzf()       { FLAVOR="$FLAVOR" ACCENT="$ACCENT" "$RAIZ/scripts/fzf.sh" aplicar 2>&1; }
+fix_terminal()  { FLAVOR="$FLAVOR" ACCENT="$ACCENT" \
+                    TERMINAL_ESQUEMA="${TERMINAL_ESQUEMA:-sim}" \
+                    TERMINAL_CURSOR="${TERMINAL_CURSOR:-accent}" \
+                    "$RAIZ/scripts/terminal.sh" aplicar 2>&1; }
+fix_fastfetch() { FASTFETCH_LOGO="${FASTFETCH_LOGO:-sim}" \
+                    FASTFETCH_LOGO_GATO="${FASTFETCH_LOGO_GATO:-coquinha}" \
+                    FASTFETCH_LOGO_COLUNAS="${FASTFETCH_LOGO_COLUNAS:-40}" \
+                    FASTFETCH_LOGO_MODO="${FASTFETCH_LOGO_MODO:-hora}" FASTFETCH_LOGO_DIA="${FASTFETCH_LOGO_DIA:-}" FASTFETCH_LOGO_NOITE="${FASTFETCH_LOGO_NOITE:-}" FASTFETCH_LOGO_CONF="${FASTFETCH_LOGO_CONF:-sim}" LOGO_DIA="${LOGO_DIA:-}" LOGO_NOITE="${LOGO_NOITE:-}" NOITE_INICIO="${NOITE_INICIO:-}" NOITE_FIM="${NOITE_FIM:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" \
+                    "$RAIZ/scripts/fastfetch_logo.sh" aplicar 2>&1; }
+fix_files_menu() { FILES_MENU="${FILES_MENU:-sim}" FILES_MENU_AUTOBUILD="${FILES_MENU_AUTOBUILD:-sim}" \
+                    "$RAIZ/scripts/files_menu.sh" aplicar 2>&1; }
+fix_relogio()   { RELOGIO_SEGUNDOS="${RELOGIO_SEGUNDOS:-}" \
+                    "$RAIZ/scripts/relogio.sh" aplicar 2>&1; }
+fix_janelas()   { JANELAS_TILING="${JANELAS_TILING:-}" JANELAS_TILING_ESCOPO="${JANELAS_TILING_ESCOPO:-}" \
+                  "$RAIZ/scripts/janelas.sh" aplicar 2>&1; }
+fix_botoeslado() { BOTOES_LADO="${BOTOES_LADO:-direita}" "$RAIZ/scripts/botoes_lado.sh" aplicar 2>&1; }
+fix_areas()     { AREAS_MODO="${AREAS_MODO:-juntas}" AREAS_NOMES="${AREAS_NOMES:-}" AREAS_FOLGA="${AREAS_FOLGA:-}" AREAS_ENCAIXE="${AREAS_ENCAIXE:-}" \
+                  "$RAIZ/scripts/areas.sh" refazer-alfinetes 2>&1; }
+fix_leitura()   { "$RAIZ/scripts/leitura.sh" aplicar 2>&1; }
+fix_autostart() { AUTOSTART_BLOQUEADOS="${AUTOSTART_BLOQUEADOS:-}" \
+                    "$RAIZ/scripts/autostart.sh" aplicar 2>&1; }
+
+fix_escala()    { ESCALA_TELA="${ESCALA_TELA:-}" "$RAIZ/scripts/escala.sh" 2>&1; }
+
+fix_conf() {
+  [ -f "$CONF" ] || { meow_pula "o meow.conf nasce no ./install.sh, a partir do exemplo"; return "$MEOW_SEM_DEPENDENCIA"; }
+  if meow_seco; then
+    meow_muda "migraria o meow.conf: $(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" --conferir 2>&1 | em_linha)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  local saida
+  saida="$(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" 2>&1)" ||
+    { meow_erro "não consegui migrar o meow.conf: $saida"; return "$MEOW_ERRO"; }
+  [ -n "$saida" ] || return 0
+  meow_ok "$saida"
+  return "$MEOW_DIVERGENTE"
+}
+
+recarregar_conf_migrado() {
+  local k
+  for k in $(python3 -I -B -c 'import sys; sys.path.insert(0, sys.argv[1]); import migrar_conf; print(" ".join(migrar_conf.APOSENTADAS))' \
+               "$RAIZ/scripts" 2>/dev/null); do
+    unset "$k"
+  done
+  carregar_conf --ponte-opcional >/dev/null 2>&1
+}
+
+fix_pacotes() {
+  local lista
+  lista="$(_pacotes_faltando)" || { echo "$lista"; return "$MEOW_ERRO"; }
+  [ -n "$lista" ] || return 0
+  if meow_seco; then
+    meow_muda "instalaria pela ponte root: $(printf '%s' "$lista" | em_linha)"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if ! printf '%s\n' "$lista" | meow_ponte pacotes 2>&1; then
+    meow_erro "a ponte root não instalou: $(printf '%s' "$lista" | em_linha)"
+    return "$MEOW_ERRO"
+  fi
+  meow_ok "instalados pela ponte root: $(printf '%s' "$lista" | em_linha)"
+  return "$MEOW_DIVERGENTE"
+}
+fix_rust()      { "$RAIZ/scripts/rust.sh" aplicar 2>&1; }
+fix_upstream()  { "$RAIZ/scripts/baixar_upstream.sh" 2>&1; }
+fix_fontes()    { "$RAIZ/scripts/instalar_fontes.sh" 2>&1; }
+fix_efeito() {
+  local rc_i rc_f
+  fix_icones; rc_i=$?
+  fix_fontes; rc_f=$?
+  [ "$rc_i" -ge 2 ] && return "$rc_i"
+  [ "$rc_f" -ge 2 ] && return "$rc_f"
+  [ "$rc_i" = "1" ] || [ "$rc_f" = "1" ] && return "$MEOW_DIVERGENTE"
+  return "$MEOW_OK"
+}
+fix_cli() {
+  local rc mudou=0
+  meow_escrever "$HOME/.local/bin/meow" "$(cat "$RAIZ/scripts/meow")" 755; rc=$?
+  [ "$rc" -ge 2 ] && { meow_erro "não consegui instalar ~/.local/bin/meow"; return "$MEOW_ERRO"; }
+  [ "$rc" = "1" ] && mudou=1
+  if ! meow_seco && [ -f "$HOME/.local/bin/meow" ] && [ ! -x "$HOME/.local/bin/meow" ]; then
+    chmod 755 "$HOME/.local/bin/meow" && mudou=1
+  fi
+  meow_escrever "$MEOW_ESTADO/raiz" "$RAIZ" 644; rc=$?
+  [ "$rc" -ge 2 ] && { meow_erro "não consegui gravar $MEOW_ESTADO/raiz"; return "$MEOW_ERRO"; }
+  [ "$rc" = "1" ] && mudou=1
+  [ "$mudou" = "1" ] && { meow_seco || meow_ok "a CLI e o ponteiro da raiz no lugar"; return "$MEOW_DIVERGENTE"; }
+  return 0
+}
+fix_logo()      { FLAVOR="$FLAVOR" LOGO="$LOGO" "$RAIZ/scripts/logo.sh" 2>&1; }
+
+chk_atualiza() { "$RAIZ/scripts/atualiza.sh" conferir 2>&1; }
+fix_atualiza() { "$RAIZ/scripts/atualiza.sh" aplicar 2>&1; }
+
+fix_autoreparo() {
+  local destino="$HOME/.config/systemd/user" u rc
+  if meow_seco; then
+    meow_muda "instalaria as unidades do auto-reparo e armaria o meow-doctor.timer"
+    return "$MEOW_DIVERGENTE"
+  fi
+  mkdir -p "$destino" "$MEOW_ESTADO" || { meow_erro "não consegui criar $destino"; return "$MEOW_ERRO"; }
+  for u in $(_autoreparo_unidades); do
+    [ -f "$RAIZ/dados/systemd/$u" ] || { meow_erro "falta dados/systemd/$u — repositório incompleto"; return "$MEOW_ERRO"; }
+    meow_escrever "$destino/$u" "$(cat "$RAIZ/dados/systemd/$u")" 644
+    rc=$?
+    [ "$rc" -ge 2 ] && { meow_erro "não consegui instalar $u"; return "$MEOW_ERRO"; }
+  done
+  if _autoreparo_sobra_vidro; then
+    systemctl --user disable --now meow-vidro.path >/dev/null 2>&1
+    rm -f "$destino/meow-vidro.path" "$destino/meow-vidro.service" "$destino"/*.wants/meow-vidro.path
+    meow_muda "VIDRO_AO_MAXIMIZAR=\"${VIDRO_AO_MAXIMIZAR:-}\" — vigia do vidro desligado e removido"
+  fi
+  if meow_timer_preso_ao_boot meow-doctor.timer; then
+    meow_soltar_timer_do_boot meow-doctor.timer
+    meow_muda "meow-doctor.timer solto do boot (timers.target) e preso à sessão gráfica"
+  fi
+  systemctl --user daemon-reload >/dev/null 2>&1
+  for u in $(_autoreparo_ligaveis); do
+    if ! meow_armar_unidade "$u"; then
+      meow_erro "não consegui armar o $u"
+      return "$MEOW_ERRO"
+    fi
+  done
+  meow_ok "auto-reparo ligado (meow-doctor.timer, todo dia às 5h, com até 20min de folga)"
+  return "$MEOW_DIVERGENTE"
+}
+
+VERIFICAVEIS=(conf ponte pacotes rust upstream gerar tema modo vidro forma painel janelas botoeslado areas patches graficos dock relogio leitura extensoes extensoestema disco gpu greeter cursor flatpaktema flatpakadwaita flatpakicones flatpakruntime flatpakglobal prompt fzf terminal som fastfetch bloco files_menu icones completar hicolor mimetypes resgatados arcticons dracula convertidos sistema bandeja traysteam trayzapzap jogos jogosheroic ocultar absolutos nomes ocultarcasa janeladock lancadorapt pastasxdg pastas basefundo wallpaper fundo onlyoffice libreoffice apps heroictema midia assets svg flatpak steamvigia heroicvigia discordvigia qtvigia derivados autostart arquivosfilhos atalho lancador autoreparo atualiza cli escala fontes estadovelho vizinhos efeito logo indice)
+SEM_CONSERTO=" convertidos heroictema "
+
+declare -A SEM_CONSERTO_RAZAO=(
+  [ocultar]="o conserto usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [absolutos]="o conserto usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [convertidos]="reconverter trocaria arte que você aprovou por arte que ninguém viu — a oficina de ícones reconverte o que você escolher"
+  [heroictema]="não dá para adivinhar a forma nova do handler — leia o app.asar e ajuste scripts/temas-de-apps/heroic/manifesto.sh"
+  [lancadorapt]="instalar em /etc e /usr/local/sbin usa sudo, e o doctor não usa — entra no «Instalar tudo»"
+  [flatpakglobal]="limpar o override do sistema usa root, e o doctor não usa — entra no «Instalar tudo»"
+  [gpu]="gravar o /etc/environment usa root, e o doctor não usa — entra no «Instalar tudo»"
+  [libreoffice]="tirar o LibreOffice do apt usa root, e o doctor não usa — entra no «Instalar tudo»"
+  [pacotes]="sem a ponte root, instalar pacote pede a sua senha, e o auto-reparo não tem a quem pedir — o ./install.sh pede uma vez e instala a ponte"
+)
+
+FALTA_NOSSA=" gerar "
+
+declare -a CHK_NOME=() CHK_RC=() CHK_SAIDA=()
+
+rodar_checks() {
+  CHK_NOME=(); CHK_RC=(); CHK_SAIDA=()
+  local nome saida rc
+  local LOG_NIVEL=info; export LOG_NIVEL
+  for nome in "${VERIFICAVEIS[@]}"; do
+    saida="$("chk_$nome" 2>&1)"; rc=$?
+    CHK_NOME+=("$nome"); CHK_RC+=("$rc"); CHK_SAIDA+=("$saida")
+  done
+}
+
+pad() {
+  local t="$1" n=$(( ${2:-0} - ${#1} ))
+  [ "$n" -lt 0 ] && n=0
+  printf '%s%*s' "$t" "$n" ""
+}
+
+rotulo_rc() {
+  case "$1" in
+    0) printf '%sok%s  ' "$C_VERDE" "$C_ZERO" ;;
+    1) printf '%s~~%s  ' "$C_AMARELO" "$C_ZERO" ;;
+    3|4) printf '%s--%s  ' "$C_DIM" "$C_ZERO" ;;
+    *) printf '%serro%s' "$C_VERM" "$C_ZERO" ;;
+  esac
+}
+
+sem_glifo() {
+  local l="$1"
+  l="${l#"${l%%[![:space:]]*}"}"
+  case "$l" in
+    'ok '*|'~~ '*|'-- '*|'!! '*|'>> '*|'erro '*)
+      l="${l#* }"; l="${l#"${l%%[![:space:]]*}"}" ;;
+  esac
+  printf '%s' "$l"
+}
+
+primeira_linha() { sem_glifo "${1%%$'\n'*}"; }
+
+em_linha() { paste -sd, - | sed 's/,/, /g'; }
+
+tem_aviso_de_espera() {
+  local i
+  for i in "${!CHK_RC[@]}"; do
+    [ "${CHK_RC[$i]}" = "0" ] && aviso_na_cabeca "${CHK_SAIDA[$i]}" && return 0
+  done
+  return 1
+}
+
+aviso_na_cabeca() {
+  local l="${1%%$'\n'*}"
+  l="${l#"${l%%[![:space:]]*}"}"
+  case "$l" in '!! '*) return 0 ;; esac
+  return 1
+}
+
+imprimir_check() {
+  local i="$1" detalhar="${2:-0}" linha rotulo aviso=0
+  linha="$(primeira_linha "${CHK_SAIDA[$i]}")"
+  rotulo="$(rotulo_rc "${CHK_RC[$i]}")"
+  if [ "${CHK_RC[$i]}" = "0" ] && aviso_na_cabeca "${CHK_SAIDA[$i]}"; then
+    rotulo="$(printf '%s!!%s  ' "$C_AMARELO" "$C_ZERO")"; aviso=1
+  fi
+  local saida="${CHK_SAIDA[$i]}"
+  if pulado_com_aviso "$i"; then
+    rotulo="$(printf '%s!!%s  ' "$C_AMARELO" "$C_ZERO")"
+    local l_aviso; l_aviso="$(printf '%s\n' "$saida" | grep -m1 -E '^[[:space:]]*!! ')"
+    linha="$(sem_glifo "$l_aviso")"
+    saida="$(printf 'x\n%s\n' "$saida" | grep -vxF -- "$l_aviso")"
+  fi
+  if [ -z "$linha" ]; then
+    case "${CHK_RC[$i]}" in
+      0) linha="confere" ;;
+      3|4) linha="não se aplica com o que está no ar" ;;
+      *) linha="saiu ${CHK_RC[$i]}, sem detalhe" ;;
+    esac
+  fi
+  printf '  %s %s %s\n' "$rotulo" "$(pad "${CHK_NOME[$i]}" 11)" "$linha"
+  if [ "$detalhar" = "1" ] && { [ "${CHK_RC[$i]}" != "0" ] || [ "$aviso" = "1" ]; }; then
+    printf '%s\n' "$saida" | tail -n +2 | while IFS= read -r l; do
+      l="$(sem_glifo "$l")"
+      [ -n "$l" ] || continue
+      printf '       %s%s%s\n' "$C_DIM" "$l" "$C_ZERO"
+    done
+  fi
+}
+
+pulado_com_aviso() {
+  [ "${CHK_RC[$1]}" = "3" ] || return 1
+  printf '%s\n' "${CHK_SAIDA[$1]}" | grep -E '^[[:space:]]*!! ' >/dev/null
+}
+
+fora_do_lugar() {
+  case "${CHK_RC[$1]}" in
+    0|4) return 1 ;;
+    3)   pulado_com_aviso "$1" ;;
+    *)   return 0 ;;
+  esac
+}
+
+pior_rc() {
+  local pior=0 i
+  for i in "${!CHK_RC[@]}"; do
+    fora_do_lugar "$i" || continue
+    case "${CHK_RC[$i]}" in
+      1|3) pior=1 ;;
+      *)   printf '2'; return ;;
+    esac
+  done
+  printf '%s' "$pior"
+}
+
+pior_de() {
+  local rc pior=0
+  for rc in "$@"; do
+    case "$rc" in
+      0) ;;
+      1) [ "$pior" = "2" ] || pior=1 ;;
+      3) [ "$pior" = "0" ] && pior=3 ;;
+      *) pior=2 ;;
+    esac
+  done
+  printf '%s' "$pior"
+}
+
+campo() { printf '    %s%s%s %s\n' "$C_DIM" "$(pad "$1" 12)" "$C_ZERO" "$2"; }
+
+cmd_status() {
+  export MEOW_SO_LE=1
+  meow_fontconfig_sem_rastro
+  carregar_conf --ponte-opcional || return "$MEOW_ERRO"
+  meow_titulo "MeowSystem — estado"
+
+  meow_passo "Configuração"
+  campo "arquivo"  "$CONF_LIDA"
+  campo "flavor"   "$FLAVOR"
+  campo "accent"   "$ACCENT"
+  campo "modo"     "$MODO (is_dark=$(is_dark_atual))"
+
+  meow_passo "Tema"
+  local alvo ativo
+  alvo="$(alvo_tema)"
+  campo "alvo"     "$alvo"
+  if ativo="$(tema_ativo)"; then
+    if [ "$ativo" = "$alvo" ]; then
+      campo "ativo"  "$(printf '%s%s%s' "$C_VERDE" "$ativo" "$C_ZERO")"
+    else
+      campo "ativo"  "$(printf '%s%s%s  (o alvo é %s)' "$C_AMARELO" "$ativo" "$C_ZERO" "$alvo")"
+    fi
+  else
+    campo "ativo"    "$(printf '%snenhum tema pronto confere%s' "$C_AMARELO" "$C_ZERO")"
+  fi
+  campo "capturas"  "$(capturas | em_linha)"
+
+  meow_passo "Ícones e logo"
+  local tema_icones logo_path n_icones
+  tema_icones="$(cat "$COSMIC/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/icon_theme" 2>/dev/null || printf '(nenhum)')"
+  logo_path="$(MEOW_DRY_RUN=1 "$RAIZ/scripts/logo.sh" applet 2>/dev/null)" || logo_path=""
+  n_icones="$(find "$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+                \( -type f -o -type l \) 2>/dev/null | wc -l)"
+  campo "tema"     "$tema_icones"
+  campo "arquivos" "$n_icones em ~/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+  local no_dock modo_logo
+  no_dock="$(MEOW_DRY_RUN=1 NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-}" \
+               "$RAIZ/scripts/logo.sh" no-dock 2>/dev/null)" || no_dock=""
+  modo_logo="$(LOGO_MODO="${LOGO_MODO:-}" LOGO_ROTACAO="${LOGO_ROTACAO:-}" \
+                 "$RAIZ/scripts/logo.sh" modo 2>/dev/null)"
+  campo "logo"     "${no_dock:-nenhum mascote do acervo} no dock  (modo ${modo_logo:-desconhecido})"
+  [ -n "$logo_path" ] && campo "applet"   "$logo_path"
+
+  meow_passo "Papéis de parede"
+  local l
+  while IFS= read -r l; do
+    campo "${l%%:*}" "$(printf '%s' "${l#*:}" | sed 's/^ *//')"
+  done < <(MEOW_DRY_RUN=1 WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+             WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+             WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
+             WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
+             WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
+             WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
+             "$RAIZ/scripts/wallpaper.sh" estado 2>/dev/null)
+
+  meow_passo "Divergências"
+  rodar_checks
+  local i qtd=0
+  for i in "${!CHK_NOME[@]}"; do
+    fora_do_lugar "$i" || continue
+    imprimir_check "$i" 0
+    qtd=$((qtd+1))
+  done
+  if [ "$qtd" = "0" ]; then
+    meow_ok "nada divergente — tudo no lugar"
+  else
+    meow_info "o conserto das divergências está no painel, em «Consertar»"
+  fi
+  printf '\n'
+  return "$(pior_rc)"
+}
+
+cmd_doctor() {
+  local consertar=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --consertar|-c) consertar=1 ;;
+      "") ;;
+      *) meow_erro "opção desconhecida: $1"; meow_info "use: meow doctor [--consertar]"; return "$MEOW_ERRO" ;;
+    esac
+    shift
+  done
+  [ "$consertar" = 1 ] || { export MEOW_SO_LE=1; meow_fontconfig_sem_rastro; }
+  carregar_conf --ponte-opcional || return "$MEOW_ERRO"
+
+  meow_titulo "MeowSystem — doctor"
+  meow_seco && meow_aviso "MEOW_DRY_RUN=1 — nada será escrito"
+  printf '\n'
+  rodar_checks
+  local i
+  for i in "${!CHK_NOME[@]}"; do imprimir_check "$i" 1; done
+
+  local pior; pior="$(pior_rc)"
+  if [ "$consertar" = "0" ]; then
+    printf '\n'
+    case "$pior" in
+      0) if tem_aviso_de_espera; then meow_ok "nada a consertar — fica só o aviso acima"
+         else meow_ok "nada a consertar"; fi ;;
+      1) meow_muda "há divergências — o conserto do doctor as acerta" ;;
+      *) meow_erro "algo falhou ao conferir; veja os detalhes acima" ;;
+    esac
+    printf '\n'
+    return "$pior"
+  fi
+
+  meow_travar || return "$MEOW_ERRO"
+  if ! meow_ponte_viva; then
+    SEM_CONSERTO=" ocultar absolutos convertidos lancadorapt heroictema pacotes flatpakglobal gpu libreoffice "
+  fi
+  meow_passo "Consertando o que falhou"
+  local nome rc saida mexeu=0 falhou=0
+  if ! meow_seco; then
+    MEOW_RELER_NO_FIM="$(mktemp "${TMPDIR:-/tmp}/meow-reler.XXXXXX" 2>/dev/null)" \
+      && export MEOW_RELER_NO_FIM
+  fi
+  for i in "${!CHK_NOME[@]}"; do
+    nome="${CHK_NOME[$i]}"
+    if [ "$nome" = "lancador" ] && [ "$mexeu" = "1" ] && [ "${CHK_RC[$i]}" = "0" ]; then
+      CHK_SAIDA[$i]="$(chk_lancador 2>&1)"; CHK_RC[$i]=$?
+    fi
+    [ "${CHK_RC[$i]}" = "0" ] && continue
+    case "$SEM_CONSERTO" in *" $nome "*)
+      meow_pula "$nome: sem conserto automático (${SEM_CONSERTO_RAZAO[$nome]:-é o install.sh que cria})"
+      continue ;;
+    esac
+    if [ "${CHK_RC[$i]}" = "3" ]; then
+      case "$FALTA_NOSSA" in
+        *" $nome "*) ;;
+        *) local de_novo; de_novo="$("chk_$nome" 2>&1)"; rc=$?
+           if [ "$rc" = "3" ] || [ "$rc" = "0" ]; then
+             CHK_RC[$i]="$rc"; CHK_SAIDA[$i]="$de_novo"
+           fi
+           if [ "$rc" = "3" ]; then
+             meow_pula "$nome: falta dependência — o conserto não é nosso"
+             continue
+           fi
+           [ "$rc" = "0" ] && continue ;;
+      esac
+    fi
+    if [ "${CHK_RC[$i]}" = "4" ]; then
+      meow_pula "$nome: é escolha sua, não divergência — o auto-reparo não mexe"
+      continue
+    fi
+    "fix_$nome" 2>&1 | sed -u 's/^/  /'; rc=${PIPESTATUS[0]}
+    case "$rc" in
+      0|1) mexeu=1 ;;
+      3)   ;;
+      *)   falhou=1 ;;
+    esac
+    if [ "$nome" = "conf" ] && [ "$rc" = "1" ]; then recarregar_conf_migrado; fi
+    if [ "$nome" = "basefundo" ] && [ "$rc" = "1" ]; then recarregar_conf_migrado; rodar_checks; fi
+    if [ "$nome" = "ponte" ] && [ "$rc" = "1" ] && meow_ponte_viva; then
+      SEM_CONSERTO=" convertidos heroictema "
+    fi
+  done
+  meow_tela_reler_no_fim
+
+  local restou=()
+  if ! meow_seco; then
+    local LOG_NIVEL=info; export LOG_NIVEL
+    for i in "${!CHK_NOME[@]}"; do
+      [ "${CHK_RC[$i]}" = "0" ] && [ "$mexeu" = "0" ] && continue
+      saida="$("chk_${CHK_NOME[$i]}" 2>&1)"; rc=$?
+      CHK_RC[$i]="$rc"; CHK_SAIDA[$i]="$saida"
+      fora_do_lugar "$i" && restou+=("$i")
+    done
+  fi
+
+  registrar "doctor --consertar mexeu=$mexeu falhou=$falhou restou=${#restou[@]}"
+  printf '\n'
+  if [ "${#restou[@]}" -gt 0 ]; then
+    meow_passo "Ficou fora do lugar"
+    for i in "${restou[@]}"; do
+      imprimir_check "$i" 1
+      nome="${CHK_NOME[$i]}"
+      case "$SEM_CONSERTO" in *" $nome "*)
+        printf '       %s%s%s\n' "$C_DIM" "${SEM_CONSERTO_RAZAO[$nome]:-é o install.sh que cria}" "$C_ZERO" ;;
+      esac
+    done
+    printf '\n'
+    meow_erro "$(printf '%s\n' "${restou[@]}" | while read -r i; do printf '%s\n' "${CHK_NOME[$i]}"; done | em_linha) — continua fora depois do conserto"
+    printf '\n'; return "$MEOW_ERRO"
+  fi
+  if [ "$falhou" = "1" ]; then
+    meow_erro "alguma etapa falhou — nada ficou pela metade, cada uma é independente"
+    printf '\n'; return "$MEOW_ERRO"
+  fi
+  if [ "$mexeu" = "1" ]; then
+    if meow_seco; then
+      meow_muda "é isto que o conserto FARIA — com MEOW_DRY_RUN=1 nada foi escrito"
+    else
+      meow_ok "consertado — conferido de novo, tudo no lugar"
+    fi
+    printf '\n'
+    return "$MEOW_DIVERGENTE"
+  fi
+  meow_ok "nada a consertar"
+  printf '\n'
+  return 0
+}
+
+cmd_tema() {
+  carregar_conf || return "$MEOW_ERRO"
+  local arg="${1:-}"
+  case "$arg" in
+    "")
+      meow_titulo "Tema"
+      local ativo
+      campo "alvo" "$(alvo_tema)"
+      if ativo="$(tema_ativo)"; then campo "ativo" "$ativo"
+      else campo "ativo" "nenhuma captura confere"; fi
+      campo "modo" "$MODO (is_dark=$(is_dark_atual))"
+      printf '\n  %stemas prontos%s\n' "$C_DIM" "$C_ZERO"
+      capturas | sed 's/^/    /'
+      printf '\n  %smeow tema <nome> aplica · meow tema claro|escuro|auto troca o modo%s\n\n' \
+             "$C_DIM" "$C_ZERO"
+      return 0 ;;
+
+    claro|escuro|auto)
+      MODO="$arg"
+      conf_definir MODO "$arg"; local rc_conf=$?
+      [ "$rc_conf" -ge 2 ] && { meow_erro "não consegui gravar MODO em $CONF"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      fix_modo; local rc=$?
+      case "$rc" in
+        0) meow_ok "modo $arg já estava ativo (is_dark=$(is_dark_atual))" ;;
+        1) if meow_seco; then
+             meow_muda "modo $arg ficaria valendo (is_dark=$(is_dark_atual) hoje)"
+           else
+             meow_ok "modo $arg aplicado (is_dark=$(is_dark_atual))"
+             registrar "tema modo=$arg"
+             notificar "MeowSystem" "Modo $arg."
+           fi ;;
+        *) meow_erro "não consegui escrever $IS_DARK"; return "$MEOW_ERRO" ;;
+      esac
+      return "$rc" ;;
+
+    capturar)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow tema capturar <nome>"; return "$MEOW_ERRO"; }
+      meow_seco && { meow_muda "capturaria $(python3 "$RAIZ/scripts/pack.py" captura-destino "$1" 2>/dev/null || printf '%s' "$1")"; return "$MEOW_DIVERGENTE"; }
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/capturar_tema.sh" "$1"; local rc=$?
+      [ "$rc" = "0" ] && registrar "tema capturar $1"
+      return "$rc" ;;
+
+    desfazer) cmd_desfazer ;;
+
+    -h|--help)
+      printf 'uso: meow tema [<tema>|claro|escuro|auto|capturar <nome>|desfazer]\n'; return 0 ;;
+
+    *)
+      if [ "$arg" = "original" ]; then
+        guarda_original "meow tema original" \
+          "o tema de antes DESTA máquina é o que o 'meow desfazer' devolve." \
+          || return "$MEOW_SEM_DEPENDENCIA"
+      fi
+      if [ -z "$(meow_captura "$arg")" ]; then
+        local deriva rc_d
+        deriva="$(python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$arg" 2>&1)"; rc_d=$?
+        if [ "$rc_d" != "1" ]; then
+          meow_erro "não existe captura '$arg'"
+          [ -n "$deriva" ] && meow_info "${deriva#  }"
+          meow_info "disponíveis: $(capturas | em_linha)"
+          return "$MEOW_SEM_DEPENDENCIA"
+        fi
+        if meow_seco; then
+          meow_muda "${deriva#  }, e aplicaria"
+          return "$MEOW_DIVERGENTE"
+        fi
+      fi
+      meow_travar || return "$MEOW_ERRO"
+      if [ -z "$(meow_captura "$arg")" ]; then
+        python3 "$RAIZ/scripts/derivar_acento.py" "$arg"
+        [ -n "$(meow_captura "$arg")" ] || { meow_erro "a derivação de '$arg' não deixou captura"; return "$MEOW_ERRO"; }
+      fi
+      "$RAIZ/scripts/aplicar_tema.sh" "$arg"; local rc=$?
+      if [ "$rc" = "0" ] && ! meow_seco; then
+        registrar "tema $arg"
+        notificar "MeowSystem" "Tema $arg aplicado."
+      fi
+      return "$rc" ;;
+  esac
+}
+
+cmd_logo() {
+  carregar_conf || return "$MEOW_ERRO"
+  local arg="${1:-}"
+
+  case "$arg" in
+    girar|listar)
+      meow_travar || return "$MEOW_ERRO"
+      FLAVOR="$FLAVOR" LOGO="$LOGO" \
+        LOGO_MODO="${LOGO_MODO:-}" LOGO_DIA="${LOGO_DIA:-}" LOGO_NOITE="${LOGO_NOITE:-}" \
+        LOGO_RECICLAR="${LOGO_RECICLAR:-}" LOGO_ROTACAO="${LOGO_ROTACAO:-}" \
+        LOGO_INTERVALO="${LOGO_INTERVALO:-}" NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-}" \
+        NOITE_INICIO="${NOITE_INICIO:-}" NOITE_FIM="${NOITE_FIM:-}" \
+        WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
+        WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" \
+        "$RAIZ/scripts/logo.sh" "$arg"; local rc=$?
+      [ "$rc" = "1" ] && [ "$arg" = "girar" ] && registrar "logo girou"
+      return "$rc" ;;
+  esac
+
+  if [ -z "$arg" ]; then
+    meow_titulo "Logo do painel"
+    campo "em uso" "$LOGO"
+    campo "arquivo" "$(MEOW_DRY_RUN=1 "$RAIZ/scripts/logo.sh" applet 2>/dev/null || printf '(nenhuma)')"
+    printf '\n  %smascotes do pack (%s)%s\n' "$C_DIM" "$(meow_mascote_dir)" "$C_ZERO"
+    logos_disponiveis | sed 's/^/    /'
+    printf '\n  %ssolte um .svg em %s e ele entra na hora — a pasta é a lista%s\n' \
+           "$C_DIM" "$(meow_mascote_dir)" "$C_ZERO"
+    printf '  %smeow logo listar diz qual mascote está no ar, e POR QUÊ (a fase e a janela)%s\n' "$C_DIM" "$C_ZERO"
+    printf '  %sno modo hora quem manda é o relógio: LOGO_DIA / LOGO_NOITE no meow.conf%s\n\n' "$C_DIM" "$C_ZERO"
+    return 0
+  fi
+
+  local disponiveis; disponiveis="$(logos_disponiveis)"
+  if ! grep -qx -- "$arg" <<< "$disponiveis"; then
+    meow_erro "não existe o mascote '$arg' em $(meow_mascote_dir)"
+    meow_info "disponíveis: $(logos_disponiveis | em_linha)"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+
+  LOGO="$arg"
+  conf_definir LOGO "$arg"; local rc_conf=$?
+  [ "$rc_conf" -ge 2 ] && { meow_erro "não consegui gravar LOGO em $CONF"; return "$MEOW_ERRO"; }
+  meow_travar || return "$MEOW_ERRO"
+  meow_info "a logo nova aparece no próximo login (o applet cacheia a imagem)"
+  FLAVOR="$FLAVOR" LOGO="$arg" "$RAIZ/scripts/logo.sh" aplicar; local rc=$?
+  [ "$rc" = "1" ] && { registrar "logo $arg"; notificar "MeowSystem" "Logo $arg."; }
+  return "$rc"
+}
+
+frase_dos_icones() {
+  case "$1" in
+    0) meow_frase "Os ícones $2 estão em dia." ;;
+    1) meow_frase "Os ícones $2 estão desatualizados: o botão Refazer os ícones conserta." ;;
+    *) meow_frase "Não foi possível conferir os ícones $2." ;;
+  esac
+}
+
+cmd_icones() {
+  carregar_conf || return "$MEOW_ERRO"
+  case "${1:-}" in
+    reconstruir)
+      meow_travar || return "$MEOW_ERRO"
+      local rc_i rc_p pior
+      fix_icones; rc_i=$?
+      fix_pastas; rc_p=$?
+      pior="$(pior_de "$rc_i" "$rc_p")"
+      [ "$pior" = "2" ] && return "$MEOW_ERRO"
+      [ "$pior" = "1" ] && registrar "icones reconstruir"
+      return "$pior" ;;
+    ""|estado)
+      local dir n_apps n_pastas base resp
+      dir="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+      resp="$(ICONES_BASE="${ICONES_BASE:-Papirus-Dark}" \
+              NOME_TEMA_ICONES="${NOME_TEMA_ICONES:-MeowSystem-Icons}" \
+              python3 "$RAIZ/scripts/pack.py" base-icones "$(meow_pack_dir)" 2>/dev/null)"
+      case "$(printf '%s\n' "$resp" | sed -n 's/^quem=//p')" in
+        pack) base="${NOME_TEMA_ICONES:-MeowSystem-Icons}-Base, a do pack $(printf '%s\n' "$resp" | sed -n 's/^pack=//p')" ;;
+        conf) base="$(printf '%s\n' "$resp" | sed -n 's/^tema=//p'), do meow.conf" ;;
+        motor) base="$(printf '%s\n' "$resp" | sed -n 's/^tema=//p')" ;;
+        *) base="${ICONES_BASE:-Papirus-Dark}" ;;
+      esac
+      meow_titulo "Ícones"
+      local tema_em_uso; tema_em_uso="$(cat "$COSMIC/com.system76.CosmicTk/$(meow_cosmic_v com.system76.CosmicTk)/icon_theme" 2>/dev/null)"
+      if [ -n "$tema_em_uso" ]; then
+        meow_frase "O tema de ícones em uso é $tema_em_uso."
+      else
+        meow_frase "Nenhum tema de ícones está em uso."
+      fi
+      campo "tema"      "${tema_em_uso:-(nenhum)}"
+      campo "diretório" "$dir"
+      campo "base"      "$base"
+      campo "pastas"    "${ICONES_PASTAS:-cat-${FLAVOR}-${ACCENT}}"
+      n_apps="$(find "$dir/scalable/apps" -type f 2>/dev/null | wc -l)"
+      n_pastas="$(find "$dir" -path '*/places/*' \( -type f -o -type l \) 2>/dev/null | wc -l)"
+      campo "aplicativos" "$n_apps"
+      campo "lugares"     "$n_pastas"
+      printf '\n'
+      local saida rc
+      local LOG_NIVEL=info; export LOG_NIVEL
+      saida="$(chk_icones)"; rc=$?
+      frase_dos_icones "$rc" "dos aplicativos"
+      printf '  %s %s %s\n' "$(rotulo_rc "$rc")" "$(pad "ícones" 10)" "$(primeira_linha "$saida")"
+      saida="$(chk_pastas)"; local rc2=$?
+      frase_dos_icones "$rc2" "das pastas"
+      printf '  %s %s %s\n\n' "$(rotulo_rc "$rc2")" "$(pad "pastas" 10)" "$(primeira_linha "$saida")"
+      return "$(pior_de "$rc" "$rc2")" ;;
+    resgatados)
+      shift
+      case "${1:-}" in
+        ""|estado)
+          local par postos total
+          par="$("$RAIZ/scripts/icones_resgatados.sh" estado)"
+          postos="${par%% *}"; total="${par##* }"
+          meow_titulo "Ícones resgatados"
+          campo "escolha"   "${ICONES_RESGATADOS:-sim}"
+          campo "no tema"   "$postos de $total"
+          local _ref; _ref="$(meow_pack_dir)"; _ref="${_ref:-$(meow_pack_padrao_dir)}"
+          campo "acervo"    "$(python3 "$RAIZ/scripts/pack.py" acervo "$_ref" icones.resgatados.desenhos 2>/dev/null || printf 'o pack no ar não traz')"
+          campo "mapa"      "$(python3 "$RAIZ/scripts/pack.py" acervo "$_ref" icones.resgatados.mapa 2>/dev/null || printf 'o pack no ar não traz')"
+          printf '\n'
+          local saida rc
+          local LOG_NIVEL=info; export LOG_NIVEL
+          saida="$(chk_resgatados)"; rc=$?
+          printf '  %s %s %s\n\n' "$(rotulo_rc "$rc")" "$(pad "resgatados" 10)" "$(primeira_linha "$saida")"
+          return "$rc" ;;
+        sim|nao)
+          meow_travar || return "$MEOW_ERRO"
+          local rc_conf
+          conf_definir ICONES_RESGATADOS "$1"; rc_conf=$?
+          [ "$rc_conf" -ge 2 ] && { meow_erro "não consegui gravar ICONES_RESGATADOS em $CONF"; return "$MEOW_ERRO"; }
+          ICONES_RESGATADOS="$1"
+          local rc; fix_resgatados; rc=$?
+          [ "$rc" = "2" ] && return "$MEOW_ERRO"
+          [ "$rc" = "1" ] && registrar "icones resgatados $1"
+          return "$rc" ;;
+        *) meow_erro "uso: meow icones resgatados [estado|sim|nao]"; return "$MEOW_ERRO" ;;
+      esac ;;
+    fonte)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow icones fonte <nome-do-ícone>"; return "$MEOW_ERRO"; }
+      # shellcheck source=lib/icones.sh
+      . "$RAIZ/scripts/lib/icones.sh"
+      local nome_f="$1" linhas rc_f tema_f
+      tema_f="$HOME/.local/share/icons/${NOME_TEMA_ICONES:-MeowSystem-Icons}"
+      linhas="$(MEOW_PACK_DIR="$(meow_pack_dir)" python3 "$RAIZ/scripts/pack.py" fonte "$nome_f")"; rc_f=$?
+      [ -n "$linhas" ] || return "$MEOW_DIVERGENTE"
+      local n_f fonte_f camada_f abs_f tipo destino chave valor estado tipos
+      while IFS=$'\t' read -r n_f fonte_f camada_f; do
+        abs_f="$fonte_f"; case "$abs_f" in /*) ;; *) abs_f="$RAIZ/$abs_f" ;; esac
+        tipos="$(meow_icones_derivados "$abs_f" "$nome_f" "$tema_f" 2>/dev/null | cut -f1 | paste -sd, - | sed 's/,/, /g')"
+        printf 'fonte: %s\n' "$fonte_f"
+        printf 'deriva: %s\n' "${tipos:-nada (a fonte não é SVG)}"
+        case "$camada_f" in
+          resgatados) chave=ICONES_RESGATADOS; valor="${ICONES_RESGATADOS:-sim}" ;;
+          *)          chave=ICONES_DRACULA;    valor="${ICONES_DRACULA:-sim}" ;;
+        esac
+        printf '       %-9s %s  (%s="%s")\n' "camada" "$camada_f" "$chave" "$valor"
+        while IFS=$'\t' read -r tipo destino; do
+          [ -n "$destino" ] || continue
+          if [ ! -f "$destino" ]; then estado="ausente no tema"
+          elif [ "$(cat "$abs_f")" = "$(cat "$destino")" ]; then estado="igual à fonte"
+          else estado="DIFERE da fonte"; fi
+          printf '       %-9s %s — %s\n' "$tipo" "${destino/#$HOME/\~}" "$estado"
+        done < <(meow_icones_derivados "$abs_f" "$nome_f" "$tema_f" 2>/dev/null)
+      done <<< "$linhas"
+      return "$rc_f" ;;
+    adicionar|remover)
+      local sub="$1"; shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow icones $sub <pasta-ou-zip>"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/construir_icones.sh" "$sub" "$1"; return $? ;;
+    *) meow_erro "uso: meow icones [estado|reconstruir|resgatados [sim|nao]|fonte <nome>|adicionar <pasta-ou-zip>|remover <nome>]"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_areas() {
+  carregar_conf || return "$MEOW_ERRO"
+  case "${1:-estado}" in
+    estado|conferir) "$RAIZ/scripts/areas.sh" "${1:-estado}"; return $? ;;
+    aplicar)
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/areas.sh" aplicar; return $? ;;
+    alfinetar-primeira)
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/areas.sh" alfinetar-primeira; return $? ;;
+    reverter)
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/areas.sh" reverter; return $? ;;
+    desalfinetar)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow areas desalfinetar <nome>"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/areas.sh" desalfinetar "$1"; return $? ;;
+    *) meow_erro "uso: meow areas [estado|conferir|aplicar|alfinetar-primeira|reverter|desalfinetar <nome>]"
+       return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_cursor() {
+  carregar_conf || return "$MEOW_ERRO"
+  local acao="${1:-estado}"
+  case "$acao" in
+    estado|conferir) "$RAIZ/scripts/cursor.sh" conferir; return $? ;;
+    aplicar)
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/cursor.sh" aplicar; return $? ;;
+    listar) "$RAIZ/scripts/cursor.sh" listar; return $? ;;
+    adicionar)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow cursor adicionar <url-ou-arquivo>"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/cursor.sh" adicionar "$1"; return $? ;;
+    remover)
+      shift
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/cursor.sh" remover ${1:+"$1"}; return $? ;;
+    *) meow_erro "uso: meow cursor [estado|aplicar|listar|adicionar <url-ou-arquivo>|remover [tema]]"
+       return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_fontes() {
+  carregar_conf || return "$MEOW_ERRO"
+  local acao="${1:-estado}"
+  case "$acao" in
+    estado|conferir) "$RAIZ/scripts/instalar_fontes.sh" --conferir; return $? ;;
+    aplicar)
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/instalar_fontes.sh"; return $? ;;
+    adicionar)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow fontes adicionar <arquivo.zip|.ttf|.otf>"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "$RAIZ/scripts/instalar_fontes.sh" adicionar "$1"; return $? ;;
+    *) meow_erro "uso: meow fontes [estado|aplicar|adicionar <arquivo>]"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_wallpaper() {
+  carregar_conf || return "$MEOW_ERRO"
+  local acao="${1:-estado}"
+  case "$acao" in
+    estado|aplicar|usar|adicionar|banir|semear|permitir|dispensar|proximo|anterior|carrossel|lado)
+      case "$acao" in aplicar|adicionar|banir|semear|permitir|proximo|anterior|carrossel|lado) meow_travar || return "$MEOW_ERRO" ;; esac
+      shift || true
+      WALLPAPER_BASE="${WALLPAPER_BASE:-}" WALLPAPER_INTERVALO="${WALLPAPER_INTERVALO:-5m}" \
+        WALLPAPER_ORDEM="${WALLPAPER_ORDEM:-aleatoria}" \
+        WALLPAPER_FONTES_PERMITIDAS="${WALLPAPER_FONTES_PERMITIDAS-${WALLPAPER_FONTES_DELA:-}}" \
+        WALLPAPER_AJUSTE="${WALLPAPER_AJUSTE:-preencher}" \
+        WALLPAPER_NOITE="${WALLPAPER_NOITE:-}" WALLPAPER_NOITE_INICIO="${WALLPAPER_NOITE_INICIO:-}" \
+        WALLPAPER_NOITE_FIM="${WALLPAPER_NOITE_FIM:-}" WALLPAPER_LIMIAR_LUZ="${WALLPAPER_LIMIAR_LUZ:-}" \
+        "$RAIZ/scripts/wallpaper.sh" "$acao" "$@"
+      return $? ;;
+    fixar|recolorir|intervalo|ordem)
+      meow_erro "'$acao' ainda não existe"
+      meow_info "o que existe hoje: estado, aplicar, proximo, anterior, carrossel, adicionar <img|pasta>, banir <img>, semear, permitir <caminho>"
+      meow_info "intervalo e ordem se mudam no $CONF (WALLPAPER_INTERVALO / WALLPAPER_ORDEM)"
+      return "$MEOW_SEM_DEPENDENCIA" ;;
+    *) meow_erro "uso: meow wallpaper [estado|aplicar|proximo|anterior|carrossel|adicionar <alvo>|banir <img>|semear|permitir <caminho>]"
+       return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_apps() {
+  carregar_conf || return "$MEOW_ERRO"
+  case "${1:-tabela}" in
+    tabela)
+      meow_titulo "Aplicativos"
+      printf '  %s%s %s %s %s%s\n' "$C_DIM" "$(pad "programa" 18)" "$(pad "instalado" 10)" "$(pad "tema" 10)" "nomes no meow.conf" "$C_ZERO"
+      local pasta slugs det conf motivo rc_geral=0
+      local t_inst c_inst t_tema c_tema pendentes="" sep_p="" slug_p
+      local -a lista_p=()
+      while IFS=$'\t' read -r pasta slugs det conf motivo; do
+        [ -n "$pasta" ] || continue
+        if [ "$conf" = 1 ] && [ "$det" = 0 ]; then
+          IFS=', ' read -ra lista_p <<< "$slugs"
+          for slug_p in "${lista_p[@]}"; do
+            [ -n "$slug_p" ] || continue
+            pendentes="$pendentes$sep_p${slug_p^}"; sep_p=", "
+          done
+        fi
+        case "$det" in
+          0) t_inst="sim"; c_inst="$C_VERDE" ;;
+          *) t_inst="não"; c_inst="$C_DIM" ;;
+        esac
+        case "$conf" in
+          0) t_tema="aplicado"; c_tema="$C_VERDE" ;;
+          1) t_tema="pendente"; c_tema="$C_AMARELO"; rc_geral=1 ;;
+          3) t_tema="--";       c_tema="$C_DIM"
+             [ "$det" = 0 ] && [ -n "$motivo" ] && t_tema="não aplica" ;;
+          *) t_tema="erro";     c_tema="$C_VERM"; rc_geral=2 ;;
+        esac
+        printf '  %s %s%s%s %s%s%s %s\n' \
+               "$(pad "$pasta" 18)" "$c_inst" "$(pad "$t_inst" 10)" "$C_ZERO" \
+               "$c_tema" "$(pad "$t_tema" 10)" "$C_ZERO" "$slugs"
+        [ "$conf" = 3 ] && [ "$det" = 0 ] && [ -n "$motivo" ] \
+          && printf '  %s %s%s%s\n' "$(pad "" 18)" "$C_DIM" "$motivo" "$C_ZERO"
+      done < <(APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+        SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
+      if [ -n "$pendentes" ]; then
+        meow_frase "Programas instalados com tema pendente: $pendentes."
+      else
+        meow_frase "Os temas dos programas instalados estão em dia."
+      fi
+      printf '\n  %snome sem programa ainda não é falha: aparece só quando alguém escrever o manifesto.%s\n' \
+             "$C_DIM" "$C_ZERO"
+      printf '  %smeow apps aplicar [nome] tematiza; sem nome, todos.%s\n\n' "$C_DIM" "$C_ZERO"
+      return "$rc_geral" ;;
+    conferir)
+      APPS_ATIVOS="${APPS_ATIVOS:-}" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+        SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" conferir; return $? ;;
+    aplicar)
+      shift
+      meow_travar || return "$MEOW_ERRO"
+      local lista="${APPS_ATIVOS:-}"
+      [ -n "${1:-}" ] && lista="$1"
+      APPS_ATIVOS="$lista" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+        SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" aplicar; local rc=$?
+      [ "$rc" = "1" ] && registrar "apps aplicar ${1:-todos}"
+      return "$rc" ;;
+    reverter)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow apps reverter <nome>"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      APPS_ATIVOS="$1" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+        SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" reverter; local rc=$?
+      [ "$rc" = "1" ] && registrar "apps reverter $1"
+      return "$rc" ;;
+    cartoes)
+      local m todos="${APPS_ATIVOS:-}" ativos=",$(printf '%s' "${APPS_ATIVOS:-}" | tr -d ' '),"
+      local pasta slugs det conf motivo s liga cartao tipo alvo _rotulo
+      local -a _lista=()
+      for m in "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh; do
+        [ -f "$m" ] || continue
+        m="${m%/manifesto.sh}"
+        case "$ativos" in *",${m##*/},"*) ;; *) todos="$todos,${m##*/}" ;; esac
+      done
+      while IFS=$'\t' read -r pasta slugs det conf motivo; do
+        [ -n "$pasta" ] || continue
+        slugs="${slugs// /}"
+        liga="nao"
+        IFS=',' read -ra _lista <<< "$slugs"
+        for s in "${_lista[@]}"; do
+          case "$ativos" in *",$s,"*) liga="sim" ;; esac
+        done
+        printf 'modulo\t%s\t%s\t%s\t%s\t%s\t%s\n' "$pasta" "$det" "$conf" "$liga" "$slugs" "$motivo"
+      done < <(APPS_ATIVOS="$todos" FLAVOR="${FLAVOR:-}" ACCENT="${ACCENT:-}" \
+        SPOTIFY_MARKETPLACE="${SPOTIFY_MARKETPLACE:-}" "$RAIZ/scripts/aplicar_apps.sh" tabela 2>/dev/null)
+      [ -f "$RAIZ/dados/contratos/modificacoes.tsv" ] || return "$MEOW_OK"
+      while IFS=$'\t' read -r cartao tipo alvo _rotulo; do
+        [ "$tipo" = "correcao" ] && [ -n "$cartao" ] || continue
+        declare -F "chk_$alvo" >/dev/null || continue
+        "chk_$alvo" </dev/null >/dev/null 2>&1
+        printf 'correcao\t%s\t%s\n' "$alvo" "$?"
+      done < "$RAIZ/dados/contratos/modificacoes.tsv"
+      return "$MEOW_OK" ;;
+    corrigir)
+      shift
+      [ -n "${1:-}" ] || { meow_erro "uso: meow apps corrigir <nome>"; return "$MEOW_ERRO"; }
+      cut -f2,3 "$RAIZ/dados/contratos/modificacoes.tsv" 2>/dev/null | grep -xF "correcao	$1" >/dev/null \
+        && declare -F "fix_$1" >/dev/null \
+        || { meow_erro "'$1' não é uma correção de programa"; return "$MEOW_ERRO"; }
+      meow_travar || return "$MEOW_ERRO"
+      "fix_$1"; local rc=$?
+      [ "$rc" = "1" ] && registrar "apps corrigir $1"
+      return "$rc" ;;
+    *) meow_erro "uso: meow apps [tabela|conferir|cartoes|aplicar [nome]|reverter <nome>|corrigir <nome>]"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+declare -a WIZ_CHAVES=()
+declare -A WIZ_AJUDA=() WIZ_SECAO=() WIZ_NOVO=() WIZ_ANTES=()
+declare -A WIZ_ESSENCIAL=()
+
+wiz_ler_esquema() {
+  local linha chave bloco="" secao=""
+  WIZ_CHAVES=(); WIZ_AJUDA=(); WIZ_SECAO=(); WIZ_ESSENCIAL=()
+  [ -f "$CONF_PADRAO" ] || return "$MEOW_SEM_DEPENDENCIA"
+  while IFS= read -r linha || [ -n "$linha" ]; do
+    case "$linha" in
+      '# --- '*)
+        secao="${linha#\# --- }"; secao="${secao%%-*}"
+        secao="${secao%"${secao##*[![:space:]]}"}"
+        bloco=""; continue ;;
+      '# @ '*|'# > '*)
+        continue ;;
+      '#'*)  bloco="$bloco$linha"$'\n'; continue ;;
+      '')    bloco=""; continue ;;
+    esac
+    case "$linha" in
+      [A-Za-z_]*=*)
+        chave="${linha%%=*}"
+        case "$chave" in *[!A-Za-z0-9_]*) bloco=""; continue ;; esac
+        [ -n "${WIZ_SECAO[$chave]+x}" ] || WIZ_CHAVES+=("$chave")
+        WIZ_AJUDA[$chave]="$bloco"; WIZ_SECAO[$chave]="$secao"
+        case "$bloco" in *'[essencial]'*) WIZ_ESSENCIAL[$chave]=1 ;; esac
+        ;;
+    esac
+    bloco=""
+  done < "$CONF_PADRAO"
+  [ "${#WIZ_CHAVES[@]}" -gt 0 ]
+}
+
+wiz_linha_da_chave() {
+  grep -E -- "^[[:space:]]*(export[[:space:]]+)?$1=" "$2" 2>/dev/null | tail -n1
+}
+
+wiz_valor_da_linha() {
+  local resto="${1#*=}"
+  case "$resto" in
+    '"'*) resto="${resto#\"}"; printf '%s' "${resto%%\"*}" ;;
+    "'"*) resto="${resto#\'}"; printf '%s' "${resto%%\'*}" ;;
+    *)    printf '%s' "${resto%%[[:space:]#]*}" ;;
+  esac
+}
+
+wiz_comentario_da_linha() {
+  local linha="$1" resto="${1#*=}" cauda
+  case "$resto" in
+    '"'*) cauda="${resto#\"}"; cauda="${cauda#*\"}" ;;
+    "'"*) cauda="${resto#\'}"; cauda="${cauda#*\'}" ;;
+    *)    cauda="$linha" ;;
+  esac
+  case "$cauda" in *'#'*) printf '%s' "$(printf '%s' "${cauda#*#}" | sed 's/^ *//')" ;; esac
+}
+
+wiz_opcoes() {
+  local chave="$1" ajuda="$2" inline="$3" l tok saida=""
+  if [ "$chave" = "LOGO" ]; then logos_disponiveis; return 0; fi
+  while IFS= read -r l; do
+    case "$l" in *'|'*) ;; *) continue ;; esac
+    l="${l#\#}"; l="${l%%(*}"
+    saida=""
+    while IFS= read -r tok || [ -n "$tok" ]; do
+      tok="${tok#"${tok%%[![:space:]]*}"}"; tok="${tok%"${tok##*[![:space:]]}"}"
+      case "$tok" in
+        ''|*[!A-Za-z0-9_.:+-]*) saida=""; break ;;
+      esac
+      saida="$saida$tok"$'\n'
+    done < <(printf '%s' "$l" | tr '|' '\n')
+    [ -n "$saida" ] && { printf '%s' "$saida"; return 0; }
+  done <<< "$ajuda"$'\n'"$inline"
+
+  local tabela padrao_bruto
+  tabela="$(printf '%s\n' "$ajuda" \
+    | grep -oP '^#\s{2,}\K[a-z][a-z0-9_-]{1,14}(?=\s{2,}\S)' 2>/dev/null || true)"
+  [ "$(printf '%s' "$tabela" | grep -c .)" -ge 3 ] || return 0
+  padrao_bruto="$(wiz_valor_da_linha "$(wiz_linha_da_chave "$chave" "$CONF_PADRAO")")"
+  printf '%s\n' "$tabela" | grep -xF -- "$padrao_bruto" >/dev/null || return 0
+  printf '%s' "$tabela"
+  return 0
+}
+
+wiz_lista_editar() {
+  local valor="$1"; shift
+  local -a itens=() novos=()
+  local op alvo item achou
+  IFS=',' read -r -a itens <<< "$valor"
+  for op in "$@"; do
+    alvo="${op#[+-]}"
+    [ -n "$alvo" ] || continue
+    case "$op" in
+      +*) achou=0
+          for item in "${itens[@]}"; do [ "$item" = "$alvo" ] && achou=1; done
+          [ "$achou" = "0" ] && itens+=("$alvo") ;;
+      -*) novos=()
+          for item in "${itens[@]}"; do [ "$item" = "$alvo" ] || novos+=("$item"); done
+          itens=("${novos[@]}") ;;
+    esac
+  done
+  local fora; fora="$(IFS=','; printf '%s' "${itens[*]}")"
+  printf '%s' "$fora"
+}
+
+wiz_ajuda_linhas() {
+  printf '%s' "$1" | sed 's/^# \{0,1\}//'
+}
+
+wiz_bruto() {
+  local linha; linha="$(wiz_linha_da_chave "$1" "$2")"
+  [ -n "$linha" ] || linha="$(wiz_linha_da_chave "$1" "$CONF_PADRAO")"
+  wiz_valor_da_linha "$linha"
+}
+
+wiz_perguntar() {
+  local chave="$1" arq="$2"
+  local linha bruto inline ajuda opcoes resp mostrado expandido n_ajuda
+  linha="$(wiz_linha_da_chave "$chave" "$arq")"
+  [ -n "$linha" ] || linha="$(wiz_linha_da_chave "$chave" "$CONF_PADRAO")"
+  bruto="$(wiz_valor_da_linha "$linha")"
+  inline="$(wiz_comentario_da_linha "$linha")"
+  ajuda="${WIZ_AJUDA[$chave]:-}"
+  ajuda="${ajuda//\[essencial\] /}"
+  ajuda="$(printf '%s' "$ajuda" | grep -v '^#[[:space:]]*\[essencial\][[:space:]]*$' || true)"
+  opcoes="$(wiz_opcoes "$chave" "$ajuda" "$inline")"
+  [ -z "$opcoes" ] && case "$bruto" in sim|nao) opcoes=$'sim\nnao' ;; esac
+  n_ajuda="$(printf '%s' "$ajuda" | grep -c '^#' || true)"
+
+  expandido="${!chave:-}"
+  mostrado="$bruto"
+  case "$bruto" in
+    *'$'*) [ -n "$expandido" ] && [ "$expandido" != "$bruto" ] \
+             && mostrado="$bruto  ->  $expandido" ;;
+  esac
+
+  local visivel=""
+  [ -n "$ajuda" ] && visivel="$(wiz_ajuda_linhas "$ajuda" | grep -v '^[[:space:]]*$' | head -n 3)"
+
+  printf '\n  %s%s%s\n' "$C_MAUVE$C_FORTE" "$chave" "$C_ZERO"
+  [ -n "$inline" ] && printf '    %s%s%s\n' "$C_DIM" "$inline" "$C_ZERO"
+  if [ -n "$visivel" ]; then
+    printf '%s\n' "$visivel" | while IFS= read -r l; do
+      printf '    %s%s%s\n' "$C_DIM" "$l" "$C_ZERO"
+    done
+    [ "${n_ajuda:-0}" -gt 3 ] && printf '    %s(? mostra o comentário inteiro)%s\n' "$C_DIM" "$C_ZERO"
+  fi
+  if [ -n "$opcoes" ]; then
+    case "$visivel$inline" in
+      *'|'*) ;;
+      *) printf '    %s%s%s\n' "$C_AZUL" "$(printf '%s' "$opcoes" | em_linha)" "$C_ZERO" ;;
+    esac
+  fi
+  case "$bruto" in
+    *,*) printf '    %s+slug acrescenta · -slug remove · ou digite a lista inteira%s\n' "$C_DIM" "$C_ZERO" ;;
+  esac
+
+  while :; do
+    printf '  %s[%s]%s %s>%s ' "$C_DIM" "$mostrado" "$C_ZERO" "$C_MAUVE" "$C_ZERO"
+    resp=""
+    read -r -t "${MEOW_TIMEOUT:-300}" resp || {
+      printf '\n'; meow_info "sem resposta — nada foi gravado"; return 1; }
+    case "$resp" in
+      '')      return 0 ;;
+      q|Q|sair) meow_info "saindo — nada foi gravado"; return 1 ;;
+      '?')     printf '\n'; wiz_ajuda_linhas "$ajuda" | sed "s/^/    /"; printf '\n'; continue ;;
+    esac
+    case "$resp" in
+      *'"'*|*'#'*) meow_erro 'sem aspas duplas nem # no valor — eles quebram a linha do conf'; continue ;;
+    esac
+    case "$resp" in
+      [+-]*) local -a ops=(); read -r -a ops <<< "${resp//,/ }"
+             resp="$(wiz_lista_editar "$bruto" "${ops[@]}")" ;;
+    esac
+    [ "$resp" = "$bruto" ] && return 0
+    if [ -n "$opcoes" ] && ! grep -qxF -- "$resp" <<< "$opcoes"; then
+      printf '    %s"%s" não está na lista.%s usar assim mesmo? (s/N) ' "$C_AMARELO" "$resp" "$C_ZERO"
+      local ok=""
+      read -r -t "${MEOW_TIMEOUT:-300}" ok || { printf '\n'; return 1; }
+      case "$ok" in s|S|sim|Sim) ;; *) continue ;; esac
+    fi
+    WIZ_ANTES[$chave]="$bruto"; WIZ_NOVO[$chave]="$resp"
+    return 0
+  done
+}
+
+cmd_configurar() {
+  carregar_conf || return "$MEOW_ERRO"
+  local todas=0
+  case "${1:-}" in --tudo|-a) todas=1; shift ;; esac
+  local so_uma=""
+  case "${1:-}" in
+    "") ;;
+    -h|--help)
+      printf 'uso: meow configurar [--tudo] [CHAVE]\n'
+      printf '     sem nada, pergunta só as chaves essenciais.\n'
+      printf '     --tudo pergunta o meow.conf inteiro, na ordem do arquivo.\n'
+      return 0 ;;
+    *) so_uma="$1" ;;
+  esac
+  wiz_ler_esquema || { meow_erro "não consegui ler as chaves de $CONF_PADRAO"; return "$MEOW_ERRO"; }
+
+  local fonte="$CONF"; [ -f "$fonte" ] || fonte="$CONF_PADRAO"
+  local chave achou=0
+  if [ -n "$so_uma" ]; then
+    for chave in "${WIZ_CHAVES[@]}"; do [ "$chave" = "$so_uma" ] && achou=1; done
+    [ "$achou" = "1" ] || {
+      meow_erro "não existe a chave '$so_uma'"
+      meow_info "as que existem: $(printf '%s\n' "${WIZ_CHAVES[@]}" | em_linha)"
+      return "$MEOW_SEM_DEPENDENCIA"; }
+  fi
+
+  meow_titulo "MeowSystem — configurar"
+  campo "arquivo" "$CONF"
+  [ "$fonte" = "$CONF_PADRAO" ] && meow_info "ainda não há $CONF — os padrões vêm de $CONF_PADRAO"
+
+  if [ ! -t 0 ]; then
+    printf '\n'
+    for chave in "${WIZ_CHAVES[@]}"; do
+      [ -n "$so_uma" ] && [ "$chave" != "$so_uma" ] && continue
+      campo "$chave" "$(wiz_bruto "$chave" "$fonte")"
+    done
+    printf '\n'
+    meow_info "sem terminal interativo — nada foi perguntado e nada foi escrito"
+    meow_info "num terminal: meow configurar    ·    ou edite $CONF na mão"
+    printf '\n'
+    return 0
+  fi
+
+  printf '\n  %sENTER mantém o valor · ? mostra a ajuda inteira · q sai sem gravar%s\n' \
+         "$C_DIM" "$C_ZERO"
+  WIZ_NOVO=(); WIZ_ANTES=()
+  local secao_atual="" saiu=0
+  for chave in "${WIZ_CHAVES[@]}"; do
+    [ -n "$so_uma" ] && [ "$chave" != "$so_uma" ] && continue
+    [ -z "$so_uma" ] && [ "$todas" = "0" ] && [ -z "${WIZ_ESSENCIAL[$chave]:-}" ] && continue
+    if [ -z "$so_uma" ] && [ "${WIZ_SECAO[$chave]}" != "$secao_atual" ]; then
+      secao_atual="${WIZ_SECAO[$chave]}"
+      meow_passo "${secao_atual:-Configuração}"
+    fi
+    wiz_perguntar "$chave" "$fonte" || { saiu=1; break; }
+  done
+
+  if [ -z "$so_uma" ] && [ "$saiu" = "0" ]; then
+    local _fl _ac _par _caps="" _c
+    _fl="${WIZ_NOVO[FLAVOR]:-$(wiz_bruto FLAVOR "$fonte")}"
+    _ac="${WIZ_NOVO[ACCENT]:-$(wiz_bruto ACCENT "$fonte")}"
+    _par="$_fl-$_ac"
+    if [ -n "$_fl" ] && [ -n "$_ac" ] && [ -z "$(meow_captura "$_par")" ] \
+       && { python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$_par" >/dev/null 2>&1
+            [ "$?" != "1" ]; }; then
+      while IFS= read -r _c; do
+        [ -n "$_c" ] || continue
+        [ "$_c" = "original" ] && continue
+        _caps="$_caps$_c "
+      done < <(meow_capturas)
+      _caps="${_caps% }"
+      printf '\n'
+      meow_info "o par \"$_par\" não tem captura de referência no repositório"
+      meow_info "  as que há: ${_caps:-nenhuma}"
+      meow_info "  isto NÃO fecha a porta: o tema deste par sai por DERIVAÇÃO da"
+      meow_info "  paleta, e a captura é refinamento, não requisito."
+      meow_info "  o que muda: a etapa \"tema\" do install.sh se pula e o COSMIC fica"
+      meow_info "  com as cores que já estava usando. O backup de \"voltar ao tema de"
+      meow_info "  antes\" é feito de qualquer jeito, na primeira passagem."
+    fi
+  fi
+
+  if [ -z "$so_uma" ] && [ "$todas" = "0" ] && [ "$saiu" = "0" ]; then
+    local n_ess="${#WIZ_ESSENCIAL[@]}"
+    meow_info "as outras $(( ${#WIZ_CHAVES[@]} - n_ess )) chaves ficaram no padrão"
+    meow_info "  ver todas:  meow configurar --tudo   ·   uma só:  meow configurar PASTAS_XDG"
+    meow_info "  ou abra o arquivo:  \$EDITOR $CONF"
+  fi
+
+  if [ "${#WIZ_NOVO[@]}" = "0" ]; then
+    printf '\n'
+    [ "$saiu" = "1" ] || meow_ok "nada mudou — $CONF não foi tocado"
+    printf '\n'
+    return 0
+  fi
+  if [ "$saiu" = "1" ]; then
+    printf '\n'
+    meow_aviso "saiu no meio — as ${#WIZ_NOVO[@]} respostas anteriores foram descartadas"
+    printf '\n'
+    return 0
+  fi
+
+  meow_passo "O que muda no meow.conf"
+  local texto
+  texto="$(cat "$fonte")"
+  for chave in "${WIZ_CHAVES[@]}"; do
+    [ -n "${WIZ_NOVO[$chave]+x}" ] || continue
+    printf '    %s- %s="%s"%s\n' "$C_VERM"  "$chave" "${WIZ_ANTES[$chave]}" "$C_ZERO"
+    printf '    %s+ %s="%s"%s\n' "$C_VERDE" "$chave" "${WIZ_NOVO[$chave]}"  "$C_ZERO"
+    texto="$(conf_texto_definir "$texto" "$chave" "${WIZ_NOVO[$chave]}")"
+  done
+  printf '\n'
+
+  meow_escrever "$CONF" "$texto" 644
+  local rc=$?
+  case "$rc" in
+    0) meow_ok "$CONF já estava assim — nada foi escrito"; printf '\n'; return 0 ;;
+    1) if meow_seco; then
+         meow_muda "MEOW_DRY_RUN=1 — o meow.conf NÃO foi escrito"
+         printf '\n'
+         return "$MEOW_DIVERGENTE"
+       fi
+       meow_ok "gravado em $CONF"
+       registrar "configurar: $(printf '%s\n' "${!WIZ_NOVO[@]}" | sort | em_linha)" ;;
+    *) meow_erro "não consegui gravar $CONF"; return "$MEOW_ERRO" ;;
+  esac
+
+  if [ "${MEOW_WIZARD_SEM_APLICAR:-0}" = "1" ]; then
+    meow_info "o install.sh segue daqui com os valores novos"
+    printf '\n'
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  printf '\n  aplicar agora? (S/n) '
+  local resp=""
+  if [ "${MEOW_SIM:-0}" = "1" ]; then
+    resp="s"; printf 's\n'
+  else
+    read -r -t "${MEOW_TIMEOUT:-300}" resp || resp="n"
+  fi
+  case "$resp" in
+    n|N|nao|não|Nao|Não)
+      printf '\n'
+      meow_info "não apliquei. Quando quiser: meow aplicar"
+      printf '\n'
+      return "$MEOW_DIVERGENTE" ;;
+  esac
+  printf '\n'
+  cmd_aplicar
+}
+
+cmd_aplicar() {
+  local seco="${MEOW_DRY_RUN:-0}"
+  case "${1:-}" in
+    --seco|--dry-run) seco=1 ;;
+    "") ;;
+    *) meow_erro "uso: meow aplicar [--seco]"; return "$MEOW_ERRO" ;;
+  esac
+  MEOW_DRY_RUN="$seco" "$RAIZ/install.sh"
+}
+
+desfazer_lancador() {
+  local d arq alvo n=0
+  local -A visto=()
+  for d in "$MEOW_ESTADO"/backups/*-sistema; do
+    [ -d "$d" ] || continue
+    while IFS= read -r arq; do
+      alvo="${arq#"$d"}"
+      [ -n "${visto[$alvo]:-}" ] && continue
+      visto[$alvo]=1
+      if meow_seco; then meow_muda "devolveria $alvo"; n=$((n+1)); continue; fi
+      if meow_desktop_escrever "$alvo" "$arq"; then n=$((n+1))
+      else meow_aviso "não consegui devolver $alvo"; fi
+    done < <(find "$d" -type f 2>/dev/null | sort)
+  done
+  if [ "$n" = "0" ]; then
+    meow_aviso "não há backup de .desktop do sistema em $MEOW_ESTADO/backups"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  meow_seco || meow_desktop_banco /usr/share/applications
+  meow_ok "$n arquivo(s) devolvidos ao estado do apt"
+  return "$MEOW_DIVERGENTE"
+}
+
+captura_original() {
+  python3 "$RAIZ/scripts/pack.py" captura original 2>/dev/null
+}
+
+guarda_original() {
+  local origem_cap aqui
+  origem_cap="$(sed -n 's/^origem: //p' "$(captura_original)/captura.txt" 2>/dev/null | head -n1)"
+  aqui="máquina $(printf '%s' "$COSMIC" | sha256sum | cut -c1-16)"
+  if [ -n "$origem_cap" ] && [ "$origem_cap" != "$aqui" ] && [ "$origem_cap" != "$COSMIC" ] \
+     && [ "${MEOW_TEMA_DE_OUTRA_MAQUINA:-0}" != "1" ]; then
+    meow_erro "a captura 'original' foi tirada de OUTRA máquina ($origem_cap)"
+    meow_info "  aplicá-la aqui instalaria o tema de fábrica de outra pessoa e"
+    meow_info "  apagaria as chaves que ela não tem."
+    meow_info "  $2"
+    [ -n "${3:-}" ] && meow_info "  $3"
+    meow_info "  se é mesmo o tema de fábrica de outra máquina que você quer:"
+    meow_info "      MEOW_TEMA_DE_OUTRA_MAQUINA=1 $1"
+    return 1
+  fi
+  return 0
+}
+
+cmd_desfazer() {
+  case "${1:-}" in --lancador) shift; desfazer_lancador; return $? ;; esac
+  carregar_conf --ponte-opcional || return "$MEOW_ERRO"
+
+  local primeiro="" d
+  for d in "$MEOW_ESTADO"/backups/*-tema-PRIMEIRO-*; do
+    [ -d "$d" ] && { primeiro="$d"; break; }
+  done
+  if [ -n "$primeiro" ]; then
+    local tem_tema=0 f
+    for f in "$primeiro"/com.system76.CosmicTheme.*; do [ -e "$f" ] && { tem_tema=1; break; }; done
+    if [ "$tem_tema" = "0" ]; then
+      meow_info "o backup de antes ($(basename "$primeiro" | cut -c1-19)) não tem tema do COSMIC:"
+      meow_info "  antes do MeowSystem esta máquina usava o tema de fábrica, sem nada gravado"
+      return "$MEOW_OK"
+    fi
+    meow_info "devolvendo o COSMIC ao estado de $(basename "$primeiro" | cut -c1-19)"
+    if [ -t 0 ] && [ "${MEOW_SIM:-0}" != "1" ]; then
+      printf '  %sisto devolve o tema do COSMIC para antes do MeowSystem.%s\n' "$C_AMARELO" "$C_ZERO"
+      printf '  continuar? (s/N) '
+      local r=""
+      read -r -t "${MEOW_TIMEOUT:-30}" r || true
+      case "$r" in s|S|sim|Sim) ;; *) printf '\n  cancelado.\n'; return 0 ;; esac
+    fi
+    meow_travar || return "$MEOW_ERRO"
+    if meow_seco; then
+      meow_muda "copiaria $primeiro/com.system76.CosmicTheme.* para $COSMIC/"
+      return "$MEOW_DIVERGENTE"
+    fi
+    if [ -n "${MEOW_BACKUPS:-}" ]; then
+      while IFS= read -r -d '' f; do
+        meow_guardar_antes "$COSMIC/${f#"$primeiro"/}"
+      done < <(find "$primeiro" -path "$primeiro/com.system76.CosmicTheme.*" -type f -print0)
+    fi
+    cp -a "$primeiro"/com.system76.CosmicTheme.* "$COSMIC/" || return "$MEOW_ERRO"
+    registrar "desfazer -> $primeiro"
+    notificar "MeowSystem" "Tema devolvido ao estado de antes da instalação."
+    meow_ok "pronto — o COSMIC relê por inotify, sem relogar"
+    return "$MEOW_OK"
+  fi
+
+  if [ -z "$(captura_original)" ]; then
+    meow_erro "não há backup pré-instalação nem captura 'original'"
+    meow_info "  isso quer dizer que o MeowSystem nunca escreveu tema aqui — nada a desfazer"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  guarda_original "meow desfazer" \
+    "o ponto de volta DESTA máquina nasce na primeira passagem do" \
+    "«Instalar tudo» (etapa 'backup_tema'); antes dela não há tema de antes." \
+    || return "$MEOW_SEM_DEPENDENCIA"
+  if [ -t 0 ] && [ "${MEOW_SIM:-0}" != "1" ]; then
+    printf '  %sisto devolve o tema do COSMIC para o tema "original".%s\n' "$C_AMARELO" "$C_ZERO"
+    printf '  continuar? (s/N) '
+    local resp=""
+    read -r -t "${MEOW_TIMEOUT:-30}" resp || true
+    case "$resp" in s|S|sim|Sim) ;; *) printf '\n  cancelado.\n'; return 0 ;; esac
+  fi
+  meow_travar || return "$MEOW_ERRO"
+  "$RAIZ/scripts/aplicar_tema.sh" original; local rc=$?
+  if [ "$rc" = "0" ] && ! meow_seco; then
+    registrar "desfazer -> original"
+    notificar "MeowSystem" "Tema devolvido para a captura original."
+  fi
+  return "$rc"
+}
+
+cmd_restaurar() {
+  local pasta="${1:-}" alvo estado painel=0 n=0 falhou=0 tmp
+  [ -n "$pasta" ] && [ -f "$pasta/tocados.tsv" ] || { meow_ok "nada a restaurar"; return "$MEOW_OK"; }
+  meow_travar || return "$MEOW_ERRO"
+  while IFS=$'\t' read -r alvo estado; do
+    case "$alvo" in /*) ;; *) continue ;; esac
+    meow_destino_permitido "$alvo" || { falhou=1; continue; }
+    if meow_seco; then meow_muda "devolveria $alvo"; n=$((n + 1)); continue; fi
+    case "$estado" in
+      existia)
+        mkdir -p "$(dirname "$alvo")" || { falhou=1; continue; }
+        tmp="$(mktemp -p "$(dirname "$alvo")" ".atomicwrite.meow.XXXXXX")" || { falhou=1; continue; }
+        rm -f -- "$tmp"
+        if cp -a -- "$pasta/antes$alvo" "$tmp" && mv -fT -- "$tmp" "$alvo"; then
+          meow_muda "voltou: ${alvo/#$HOME/\~}"
+          meow_manifesto_registrar "$alvo"
+        else
+          rm -f -- "$tmp"; falhou=1; continue
+        fi ;;
+      novo)
+        [ -e "$alvo" ] || [ -L "$alvo" ] || continue
+        rm -f -- "$alvo" || { falhou=1; continue; }
+        meow_muda "saiu: ${alvo/#$HOME/\~}" ;;
+      pasta)
+        rm -rf -- "$alvo" && mkdir -p "$(dirname "$alvo")" \
+          && cp -a -- "$pasta/antes$alvo" "$alvo" || { falhou=1; continue; }
+        meow_muda "voltou: ${alvo/#$HOME/\~}/" ;;
+      pasta-nova)
+        [ -e "$alvo" ] || continue
+        rm -rf -- "$alvo" || { falhou=1; continue; }
+        meow_muda "saiu: ${alvo/#$HOME/\~}/" ;;
+      *) continue ;;
+    esac
+    n=$((n + 1))
+    case "$alvo" in */com.system76.CosmicPanel*) painel=1 ;; esac
+  done < <(tac "$pasta/tocados.tsv")
+  if [ "$painel" = "1" ] && ! meow_seco; then
+    MEOW_QUEM_RECICLA="meow restaurar" "$RAIZ/scripts/painel.sh" reciclar || true
+  fi
+  [ "$falhou" = "1" ] && { meow_erro "parte do estado de antes não voltou"; return "$MEOW_ERRO"; }
+  [ "$n" -gt 0 ] && { registrar "restaurar -> $(basename "$pasta")"; meow_ok "o estado de antes voltou ($n arquivo(s))"; return "$MEOW_DIVERGENTE"; }
+  meow_ok "já estava como antes"
+  return "$MEOW_OK"
+}
+
+cmd_log() {
+  local arq="$MEOW_ESTADO/meow.log"
+  [ -f "$arq" ] || { meow_aviso "ainda não há log em $arq"; return "$MEOW_SEM_DEPENDENCIA"; }
+  meow_titulo "Últimas 50 linhas — $arq"
+  local l quando resto
+  while IFS= read -r l; do
+    quando="${l%% *}"; resto="${l#* }"
+    case "$resto" in
+      *falhou*|*erro*|*falhos=[1-9]*)
+        printf '  %s%s%s %s%s%s\n' "$C_DIM" "$quando" "$C_ZERO" "$C_VERM" "$resto" "$C_ZERO" ;;
+      *aplicad*|*consertou*|*mexeu=1*)
+        printf '  %s%s%s %s%s%s\n' "$C_DIM" "$quando" "$C_ZERO" "$C_VERDE" "$resto" "$C_ZERO" ;;
+      *)
+        printf '  %s%s%s %s\n' "$C_DIM" "$quando" "$C_ZERO" "$resto" ;;
+    esac
+  done < <(tail -n 50 "$arq")
+  printf '\n'
+  return 0
+}
+
+menu_itens() {
+  printf 'status\tPainel de estado: flavor, accent, tema, ícones, papel de parede e o que está divergente.\n'
+  printf 'doctor\tRoda todas as conferências em ensaio e lista as divergências. Não escreve nada.\n'
+  printf 'doctor --consertar\tConfere e aplica só o que falhou. Não usa sudo.\n'
+  printf 'tema\tMostra o tema escolhido, o que está no ar, e os temas prontos.\n'
+  local n
+  while IFS= read -r n; do
+    [ -n "$n" ] || continue
+    printf 'tema %s\tAplica o tema "%s" por cópia, sem passar pela GUI.\n' "$n" "$n"
+  done < <(capturas)
+  printf 'tema claro\tEscreve is_dark=false. Claro e escuro são o MESMO tema, com um interruptor.\n'
+  printf 'tema escuro\tEscreve is_dark=true.\n'
+  printf 'tema auto\tDeixa o horário decidir (claro das 7h às 18h, por padrão).\n'
+  printf 'logo\tLista as variantes de logo do painel.\n'
+  while IFS= read -r n; do
+    [ -n "$n" ] || continue
+    printf 'logo %s\tTroca a logo do painel e o botão do dock para a variante %s.\n' "$n" "$n"
+  done < <(logos_disponiveis)
+  printf 'icones\tEstado do tema de ícones: qual está selecionado e quantos arquivos tem.\n'
+  printf 'icones reconstruir\tRemonta MeowSystem-Icons e as pastas coloridas.\n'
+  printf 'wallpaper\tEstado do carrossel: pasta, quantas imagens, intervalo e ordem.\n'
+  printf 'apps\tTabela: módulo, app instalado, tema aplicado ou pendente.\n'
+  printf 'leitura\tModo de leitura: que degrau o relógio pede AGORA, o que a tela mostra, e se o compositor já sabe ler os dois números.\n'
+  printf 'leitura remover\tZera temperatura e textura e desarma o relógio do modo de leitura.\n'
+  printf 'abrir\tAbre o painel de configuração visual no navegador: as chaves e as ações, com a saída ao vivo.\n'
+  printf 'configurar\tPergunta chave por chave o que está no meow.conf. ENTER mantém; no fim grava e oferece aplicar.\n'
+  printf 'aplicar\tRoda o install.sh inteiro. Idempotente: nada é escrito duas vezes.\n'
+  printf 'log\tÚltimas 50 linhas do log do MeowSystem.\n'
+  printf 'desfazer\tDevolve o tema do COSMIC para a captura "original".\n'
+}
+
+menu_numerado() {
+  local -a cmds=() descs=()
+  local linha desc
+  while IFS=$'\t' read -r linha desc; do
+    cmds+=("$linha"); descs+=("$desc")
+  done < <(menu_itens)
+
+  meow_titulo "meow"
+  local i
+  for i in "${!cmds[@]}"; do
+    printf '  %s%2d%s  %-22s %s%s%s\n' "$C_MAUVE" "$((i+1))" "$C_ZERO" \
+           "${cmds[$i]}" "$C_DIM" "${descs[$i]}" "$C_ZERO"
+  done
+  printf '\n'
+
+  if [ ! -t 0 ]; then
+    meow_info "sem terminal interativo: o menu fica de fora, e os verbos acima valem direto"
+    return 0
+  fi
+  printf '  %sescolha (ENTER cancela):%s ' "$C_MAUVE" "$C_ZERO"
+  local escolha=""
+  read -r -t "${MEOW_TIMEOUT:-60}" escolha || { printf '\n'; return 0; }
+  [ -n "$escolha" ] || { printf '  cancelado.\n'; return 0; }
+  case "$escolha" in
+    ''|*[!0-9]*) meow_erro "não é um número: $escolha"; return "$MEOW_ERRO" ;;
+  esac
+  [ "$escolha" -ge 1 ] && [ "$escolha" -le "${#cmds[@]}" ] || {
+    meow_erro "fora da lista: $escolha"; return "$MEOW_ERRO"; }
+  local -a partes=()
+  read -r -a partes <<< "${cmds[$((escolha-1))]}"
+  printf '\n  %s>>>%s meow %s\n\n' "$C_MAUVE" "$C_ZERO" "${partes[*]}"
+  despachar "${partes[@]}"
+}
+
+cmd_menu() {
+  carregar_conf || return "$MEOW_ERRO"
+  if ! meow_tem fzf || [ ! -t 0 ]; then
+    menu_numerado
+    return $?
+  fi
+
+  local selecao rc itens
+  itens="$(menu_itens)"
+  selecao="$(fzf \
+      --height=60% --layout=reverse --border=rounded \
+      --margin=1 --padding=1 \
+      --prompt="  Meow > " \
+      --header="  ENTER executar | ESC sair" \
+      --color="bg+:#313244,fg+:#cdd6f4,hl:#cba6f7,hl+:#f5c2e7,pointer:#a6e3a1,marker:#a6e3a1,prompt:#cba6f7,header:#6c7086,border:#6c7086" \
+      --preview-window="right:50%:wrap" \
+      --delimiter=$'\t' --with-nth=1 \
+      --preview='printf "%s\n" {2}' <<< "$itens")"
+  rc=$?
+  if [ "$rc" = "130" ]; then printf '  %scancelado.%s\n' "$C_DIM" "$C_ZERO"; return 0; fi
+  if [ "$rc" != "0" ] || [ -z "$selecao" ]; then return 0; fi
+
+  local cmd="${selecao%%$'\t'*}"
+  local -a partes=()
+  read -r -a partes <<< "$cmd"
+  printf '\n  %s>>>%s meow %s\n' "$C_MAUVE" "$C_ZERO" "${partes[*]}"
+  despachar "${partes[@]}"
+}
+
+cmd_ajuda() {
+  local nome_pack
+  nome_pack="$(python3 "$RAIZ/scripts/pack.py" adocao \
+                 "${PACK:-$(meow_conf_valor PACK || true)}" \
+                 "${FLAVOR:-$(meow_conf_valor FLAVOR || true)}" 2>/dev/null \
+               | sed -n 's/^nome=//p')"
+  printf '\nmeow%s para o COSMIC\n' "${nome_pack:+ — $nome_pack}"
+  cat <<'FIM'
+
+  meow                         menu interativo (fzf; sem ele, menu numerado)
+  meow status                  painel de estado e o que está divergente
+  meow doctor                  confere tudo em seco. Sai 1 se houver divergência
+  meow doctor --consertar      confere e aplica só o que falhou
+  meow levantamento            lê a máquina antes do install e lista tudo o que vai travar
+
+  meow tema                    tema alvo, tema ativo e capturas disponíveis
+  meow tema <captura>          aplica a captura por cópia (sem GUI)
+  meow tema claro|escuro|auto  troca o modo e grava MODO no meow.conf
+  meow tema capturar <nome>    fotografa o estado atual como captura <nome>
+  meow tema desfazer           o mesmo que meow desfazer
+
+  meow logo                    variantes de logo do painel
+  meow logo <variante>         troca a logo do painel e o botão do dock
+  meow logo listar             o acervo, quem está no ar e POR QUÊ (fase e janela)
+  meow logo girar              passa ao próximo mascote — só no modo LOGO_MODO="rotacao";
+                               no padrão ("hora") quem manda é o relógio, e o
+                               comando diz isso em vez de fingir efeito
+
+  meow icones                  estado do tema de ícones
+  meow icones reconstruir      remonta o tema e as pastas coloridas
+  meow icones fonte <nome>     de onde sai aquele ícone, e o que deriva dele
+
+  meow wallpaper               estado do carrossel
+  meow wallpaper aplicar       liga/reafirma a rotação nativa do COSMIC
+  meow wallpaper proximo       avança para a próxima imagem do grupo (fixa por 30m)
+  meow wallpaper anterior      volta para a anterior
+  meow wallpaper carrossel     solta a fixação e devolve a rotação agora
+  meow files-menu              estado dos 2 itens de papel de parede no menu da área de trabalho
+  meow files-menu build        compila o cosmic-files patchado da versão instalada
+  meow wallpaper adicionar <alvo>   copia imagem ou pasta para Minhas/
+  meow wallpaper banir <img>   apaga a imagem e a põe no BANIDOS.txt
+  meow wallpaper semear        baixa a coleção do pack no ar (commit pinado; usa rede)
+
+  meow apps                    tabela: módulo, instalado, tema
+  meow apps aplicar [slug]     tematiza um app, ou todos
+  meow apps reverter <slug>    desfaz num app e o desliga do APPS_ATIVOS (slug obrigatório)
+
+  meow pack                    os theme packs instalados, e se cada um valida
+  meow pack info <id>          o que é próprio e o que é herdado no pack
+  meow pack construir <id>     refaz o que o pack deriva, dentro do próprio pack
+  meow pack sincronizar <id>   compara a arte copiada com a origem; só lê
+                               (o --help do subcomando tem a lista inteira)
+
+  meow leitura                 que degrau o modo de leitura pede agora
+  meow leitura aplicar         põe o degrau da hora (o timer já faz sozinho)
+  meow leitura remover         zera temperatura e textura, e desarma o timer
+
+  meow espaco                  quanto o MeowSystem ocupa no disco e o que dá para liberar
+  meow espaco liberar          tira o que se reconstrói (o próximo build refaz)
+
+  meow atualizar               puxa o master verde do GitHub e instala; o timer faz
+                               sozinho 3 minutos depois de entrar na sessão e uma vez por dia
+
+  meow compositor [--seco]     recompila o cosmic-comp com os patches de dados/patches/ e
+                               instala (sudo só no fim; vale no próximo login)
+  meow compositor validar      confere se a série entra na versão instalada
+
+  meow graficos [--seco]       confere o portal de compartilhar tela e a policy do Chrome
+  meow graficos aplicar        compila o portal com os patches, liga o shim e a policy
+  meow graficos reverter       devolve o portal e a policy ao pacote, e fica assim
+
+  meow dock [--seco]           confere o build da dock e o shim
+  meow dock aplicar            compila a dock com o casamento por padrão e liga o shim
+  meow dock reverter           devolve a dock ao pacote, e fica assim
+
+  meow abrir                   abre o painel de configuração no navegador
+                               (127.0.0.1, porta efêmera, token de sessão) — é a
+                               mesma coisa que o ícone "MeowSystem" do lançador
+
+  meow configurar              wizard curto: só as chaves essenciais
+  meow configurar --tudo       pergunta o meow.conf inteiro, chave por chave
+  meow configurar <CHAVE>      pergunta uma chave só (ex.: meow configurar ACCENT)
+  meow ativar [--seco]         roda o install.sh inteiro (o mesmo que 'aplicar')
+  meow aplicar [--seco]        idem — os dois nomes valem
+  meow desfazer                volta o tema do COSMIC para antes do MeowSystem
+  meow desfazer --lancador     devolve os .desktop de /usr/share ao estado do apt
+  meow log                     últimas 50 linhas do log
+
+Variáveis:
+  MEOW_DRY_RUN=1    não escreve nada
+  MEOW_RAIZ         onde está o clone do MeowSystem
+  MEOW_RAIZ_EXTRA   um lugar a mais onde procurar o clone (ex.: outro disco)
+  MEOW_CONF         outro meow.conf
+  MEOW_SIM=1        não pergunta nada (o desfazer, e o "aplicar agora?" do wizard)
+  MEOW_TEMA_DE_OUTRA_MAQUINA=1
+                    deixa o desfazer aplicar uma captura tirada de outro home
+  MEOW_TIMEOUT      segundos de espera em cada pergunta (300 no wizard)
+
+Códigos de saída: 0 certo · 1 divergente · 2 erro · 3 falta dependência.
+
+FIM
+  return 0
+}
+
+cmd_painel() {
+  case "${1:-estado}" in
+    conferir|teto|estado|reciclar|laco) "$RAIZ/scripts/painel.sh" "$1" ;;
+    -h|--help)
+      meow_titulo "meow painel"
+      printf '  meow painel estado     diagnóstico de uma tela\n'
+      printf '  meow painel teto       a conta do raio (altura, teto, compositor)\n'
+      printf '  meow painel conferir   corta o raio no que cabe, se for preciso\n'
+      printf '  meow painel reciclar   SIGTERM no painel, pela porta única\n\n'
+      printf '  O supervisor roda como meow-painel.service; ele repõe a barra em\n'
+      printf '  segundos quando ela cai, porque o cosmic-session desiste depois de\n'
+      printf '  ~20 mortes na mesma sessão (o backoff dele não tem teto e nunca zera).\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $1"; meow_info "veja: meow painel --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_espaco() {
+  local verbo="${1:-ver}"
+  carregar_conf --ponte-opcional || return "$MEOW_ERRO"
+  meow_tem python3 || { meow_erro "falta o python3 para medir o disco"; return "$MEOW_SEM_DEPENDENCIA"; }
+  case "$verbo" in
+    ver|json|inventario) MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$RAIZ" \
+                           python3 "$RAIZ/scripts/espaco.py" "$verbo" ;;
+    aparar|liberar)
+      meow_travar || return "$MEOW_ERRO"
+      MEOW_ESTADO="$MEOW_ESTADO" MEOW_CACHE="$MEOW_CACHE" MEOW_RAIZ="$RAIZ" \
+        python3 "$RAIZ/scripts/espaco.py" "$verbo" ;;
+    -h|--help)
+      meow_titulo "meow espaco"
+      printf '  meow espaco            quanto o MeowSystem ocupa, por categoria e por item\n'
+      printf '  meow espaco json       o mesmo, para outro programa ler\n'
+      printf '  meow espaco inventario cada caminho que o MeowSystem escreve, com a categoria\n'
+      printf '  meow espaco aparar     corta o que passou do teto (o doctor já faz sozinho)\n'
+      printf '  meow espaco liberar    tira tudo o que se reconstrói; o próximo build refaz\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow espaco --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_leitura() {
+  local verbo="${1:-estado}"
+
+  carregar_conf || return "$MEOW_ERRO"
+
+  case "$verbo" in
+    aplicar|conferir|estado|remover) "$RAIZ/scripts/leitura.sh" "$verbo" ;;
+    adotar) shift; "$RAIZ/scripts/leitura.sh" adotar "$@" ;;
+    -h|--help)
+      meow_titulo "meow leitura"
+      printf '  meow leitura estado     que degrau o relógio pede AGORA e o que a tela mostra\n'
+      printf '  meow leitura conferir   0 conforme ou escolha sua · 1 divergente\n'
+      printf '  meow leitura aplicar    põe o degrau da hora (o timer faz isto sozinho)\n'
+      printf '  meow leitura remover    zera os dois números e desarma o timer\n'
+      printf '  meow leitura adotar CHAVE...  o applet passa a guardar o valor do meow.conf\n\n'
+      printf '  O horário mora no APPLET da topbar, não no meow.conf: as chaves\n'
+      printf '  leitura_hora_inicio/fim de com.system76.CosmicComp. O applet só as\n'
+      printf '  escreve quando você mexe nele; até lá vale o padrão do meow.conf —\n'
+      printf '  e o estado diz na cara qual das duas fontes está mandando.\n\n'
+      printf '  Quem PINTA é o cosmic-comp recompilado (etapa 1). Até você deslogar\n'
+      printf '  depois desse build, escrever aqui é inofensivo e não muda um pixel.\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow leitura --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+compositor_compilar_sob_builds_lock() {
+  mkdir -p "$MEOW_ESTADO" || return "$MEOW_ERRO"
+  (
+    exec 9>>"$MEOW_ESTADO/builds.lock" || exit "$MEOW_ERRO"
+    flock -n 9 || { meow_info "outra passagem está compilando — espero ela acabar"; flock 9; }
+    MEOW_DRY_RUN=0 "$RAIZ/scripts/compositor_patches.sh" compilar
+  )
+}
+
+cmd_compositor() {
+  local verbo="compilar" seco="${MEOW_DRY_RUN:-0}"
+  local -a resto=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --seco|--dry-run) seco=1 ;;
+      *) resto+=("$1") ;;
+    esac
+    shift
+  done
+  [ "${#resto[@]}" -gt 0 ] && verbo="${resto[0]}"
+
+  case "$verbo" in
+    compilar)
+      [ "$seco" = "1" ] && { MEOW_DRY_RUN=1 "$RAIZ/scripts/compositor_patches.sh" compilar; return; }
+      meow_travar || return "$MEOW_ERRO"
+      compositor_compilar_sob_builds_lock ;;
+    validar)
+      [ "$seco" = "1" ] || meow_travar || return "$MEOW_ERRO"
+      MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
+    conferir|reverter|qual)
+      MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
+    ativar|desativar)
+      [ "$seco" = "1" ] || meow_travar || return "$MEOW_ERRO"
+      MEOW_DRY_RUN="$seco" "$RAIZ/scripts/compositor_patches.sh" "$verbo" ;;
+    -h|--help|ajuda)
+      meow_titulo "meow compositor"
+      printf '  meow compositor [--seco]   baixa o fonte da versão instalada, aplica a série de\n'
+      printf '                             dados/patches/, compila (~4 min) e guarda o build em\n'
+      printf '                             ~/.local/libexec/meow/cosmic-comp/<versão> — sem sudo\n'
+      printf '  meow compositor validar    baixa o fonte e só roda o dry-run da série nele\n'
+      printf '  meow compositor conferir   os marcadores no disco e na sessão (é a linha do doctor)\n'
+      printf '  meow compositor reverter   diz como voltar ao binário do pacote\n'
+      printf '  meow compositor ativar     liga o shim em ~/.local/bin: o próximo login usa o build\n'
+      printf '  meow compositor desativar  desliga o shim: o próximo login volta a /usr/bin\n'
+      printf '  meow compositor qual       o binário que o próximo login vai rodar\n\n'
+      printf '  Versão nova não pede commit: a série entra patch a patch, e o build bom vale no\n'
+      printf '  próximo login. A tela de login não vê o shim: ela fica sempre de fábrica.\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow compositor --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_pack() {
+  local acao="${1:-listar}"; shift 2>/dev/null || true
+  case "$acao" in
+    validar|--validar)
+      local alvo="${1:-${PACK:-}}"
+      if [ -z "$alvo" ]; then
+        carregar_conf 2>/dev/null || true
+        alvo="${PACK:-}"
+      fi
+      [ -n "$alvo" ] || { meow_erro "diga qual pack: meow pack validar <id-ou-caminho>"; return "$MEOW_ERRO"; }
+      python3 "$RAIZ/scripts/pack.py" validar "$alvo"
+      ;;
+    info|informacao|informação)
+      local alvo="${1:-${PACK:-}}"
+      if [ -z "$alvo" ]; then
+        carregar_conf 2>/dev/null || true
+        alvo="${PACK:-$(meow_pack_dir)}"
+        alvo="${alvo:-$(meow_pack_padrao_dir)}"
+      fi
+      python3 "$RAIZ/scripts/pack.py" info "$alvo"
+      ;;
+    listar|lista|ls)
+      local achou=0 base d
+      meow_titulo "Theme packs"
+      while IFS= read -r base; do
+        [ -d "$base" ] || continue
+        for d in "$base"/*/; do
+          [ -f "$d/pack.json" ] || continue
+          achou=1
+          local id nome
+          id="$(basename "${d%/}")"
+          nome="$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["nome"])' "$d/pack.json" 2>/dev/null || echo "$id")"
+          nome="$(meow_texto_seguro "$nome")"; id="$(meow_texto_seguro "$id")"
+          if python3 "$RAIZ/scripts/pack.py" validar "${d%/}" >/dev/null 2>&1; then
+            meow_ok "$id — $nome"
+          else
+            meow_aviso "$id — $nome (não valida: meow pack validar $id)"
+          fi
+          printf '       %s\n' "$(meow_texto_seguro "${d%/}")"
+        done
+      done < <(python3 "$RAIZ/scripts/pack.py" raizes)
+      [ "$achou" = 1 ] || meow_pula "nenhum pack instalado"
+      ;;
+    construir|build)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga qual pack construir: meow pack construir <id>"; return "$MEOW_ERRO"; }
+      local -a seco=()
+      meow_seco && seco=(--seco)
+      python3 "$RAIZ/scripts/pack.py" construir "$alvo" ${seco[@]+"${seco[@]}"}
+      ;;
+    usar|use)
+      local alvo="" pedido="" aplicar=1 arg
+      for arg in "$@"; do
+        case "$arg" in
+          --sem-aplicar) aplicar=0 ;;
+          -h|--help)
+            printf 'uso: meow pack usar <id> [flavor] [--sem-aplicar]\n\n'
+            printf '  Grava PACK e FLAVOR no meow.conf e aplica. Sem flavor, fica o que\n'
+            printf '  está no ar se ele for do pack; senão, o padrão do pack.\n'
+            return 0 ;;
+          -*) meow_erro "opção desconhecida: $arg"; meow_info "veja: meow pack usar --help"; return "$MEOW_ERRO" ;;
+          *)
+            if [ -z "$alvo" ]; then alvo="$arg"
+            elif [ -z "$pedido" ]; then pedido="$arg"
+            else meow_erro "sobrou um argumento: $arg"; return "$MEOW_ERRO"
+            fi ;;
+        esac
+      done
+      [ -n "$alvo" ] || {
+        meow_erro "diga qual pack usar: meow pack usar <id> [flavor]"
+        meow_info "os que existem: meow pack listar"
+        return "$MEOW_ERRO"
+      }
+      local agora_pack agora_flavor plano novo_pack novo_flavor porque
+      agora_pack="$(meow_conf_valor PACK || true)"
+      agora_flavor="$(meow_conf_valor FLAVOR || true)"
+      plano="$(FLAVOR="$agora_flavor" python3 "$RAIZ/scripts/pack.py" usar "$alvo" ${pedido:+"$pedido"})" \
+        || { meow_info "nada foi gravado — o meow.conf continua como estava"; return "$MEOW_ERRO"; }
+      novo_pack="$(sed -n 's/^PACK=//p' <<< "$plano")"
+      novo_flavor="$(sed -n 's/^FLAVOR=//p' <<< "$plano")"
+      porque="$(sed -n 's/^PORQUE=//p' <<< "$plano")"
+      [ -n "$novo_pack" ] && [ -n "$novo_flavor" ] || {
+        meow_erro "o scripts/pack.py não disse qual pack e qual flavor gravar"
+        return "$MEOW_ERRO"
+      }
+
+      meow_titulo "Trocar de pack"
+      campo "pack"   "${agora_pack:-(nenhum escrito — valia a adoção pelo FLAVOR)}  ->  $novo_pack"
+      campo "flavor" "${agora_flavor:-(nenhum)}  ->  $novo_flavor ($porque)"
+
+      local copia texto
+      copia="$(mktemp -d)" || return "$MEOW_ERRO"
+      trap 'rm -rf "$copia"' EXIT
+      trap 'exit 143' TERM; trap 'exit 130' INT; trap 'exit 129' HUP
+      if [ -f "$CONF" ]; then texto="$(cat "$CONF")"; else texto="$(cat "$CONF_PADRAO")"; fi
+      texto="$(meow_conf_texto_definir "$texto" PACK "$novo_pack")"
+      texto="$(meow_conf_texto_definir "$texto" FLAVOR "$novo_flavor")"
+      printf '%s\n' "$texto" > "$copia/meow.conf"
+
+      local junto
+      junto="$(python3 "$RAIZ/scripts/migrar_conf.py" "$copia/meow.conf" "$CONF_PADRAO" \
+                 --so-vestigios --pack-de-antes "$agora_pack" "$agora_flavor" 2>/dev/null)" || junto=""
+      junto="${junto#*: }"
+
+      local restos="" fora="" linha chave dono onde
+      linha="$(MEOW_RAIZ="$RAIZ" MEOW_CONF="$copia/meow.conf" MEOW_CONF_PADRAO="$CONF_PADRAO" \
+        python3 -I - "$RAIZ" 2>/dev/null <<'PY'
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "scripts", "app"))
+import servidor
+APOSENTADAS = {"MEOW_FAMILIA_PALETA"}
+com_cartao = set()
+for item in servidor.ler_esquema():
+    com_cartao.add(item["chave"])
+    if item.get("vestigio_de_pack"):
+        print("%s\t%s\tcartao" % (item["chave"], item["vestigio_de_pack"]["pack"]))
+for chave in sorted(servidor.valores_brutos()):
+    v = None if chave in com_cartao or chave in APOSENTADAS else servidor._vestigio_de_pack(chave)
+    if v:
+        print("%s\t%s\tfora" % (chave, v["pack"]))
+PY
+      )" || meow_info "não consegui perguntar ao painel o que fica de outro pack — confira lá, depois da troca"
+      while IFS=$'\t' read -r chave dono onde; do
+        [ -n "$chave" ] || continue
+        restos="${restos:+$restos, }$chave («$dono»)"
+        [ "$onde" = "fora" ] && fora="${fora:+$fora, }$chave"
+      done <<< "$linha"
+      if [ -n "$restos" ]; then
+        meow_aviso "continuam valendo, citando outro pack que não o «$novo_pack»: $restos"
+        meow_info "  o meow.conf vence o pack, então elas seguem valendo; no painel, cada uma com cartão aparece como «Vestígio do pack»"
+        [ -z "$fora" ] || meow_info "  sem cartão no painel: $fora"
+      fi
+
+      local par
+      par="$novo_flavor-$(meow_conf_valor ACCENT || printf 'mauve')"
+      aplicar_tema_da_troca() {
+        (
+          export PACK="$novo_pack" FLAVOR="$novo_flavor"
+          meow_seco || meow_travar || exit "$MEOW_ERRO"
+          meow_ponte_python >/dev/null || exit "$MEOW_ERRO"
+          if [ -z "$(meow_captura "$par")" ]; then
+            python3 "$RAIZ/scripts/derivar_acento.py" --conferir "$par" >/dev/null 2>&1
+            if [ "$?" = 1 ]; then
+              meow_seco && { meow_muda "derivaria a captura de '$par' da paleta do «$novo_pack»"; exit "$MEOW_DIVERGENTE"; }
+              python3 "$RAIZ/scripts/derivar_acento.py" "$par" | sed 's/^/  /'
+            fi
+          fi
+          "$RAIZ/scripts/aplicar_tema.sh" "$par"
+        )
+        case "$?" in
+          0|1) ;;
+          3) meow_aviso "o pack «$novo_pack» não tem captura para '$par' — o tema do COSMIC não troca, e o instalador abaixo diz o que falta" ;;
+          *) meow_aviso "o tema do COSMIC não trocou para '$par' — o instalador abaixo tenta de novo, do jeito dele" ;;
+        esac
+      }
+
+      if meow_seco; then
+        local rc_ensaio
+        meow_muda "gravaria PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\" em $CONF — ensaio: o arquivo não é tocado"
+        [ -z "$junto" ] || meow_muda "levaria junto, do pack de antes para o «$novo_pack»: $junto"
+        if [ "$aplicar" = "1" ]; then
+          meow_info "o tema '$par' e o ensaio do instalador olham a troca, e não o conf do disco"
+          aplicar_tema_da_troca
+          MEOW_CONF="$copia/meow.conf" MEOW_DRY_RUN=1 "$RAIZ/install.sh"; rc_ensaio=$?
+        else
+          rc_ensaio="$MEOW_DIVERGENTE"
+        fi
+        rm -rf "$copia"; trap - EXIT TERM INT HUP
+        return "$rc_ensaio"
+      fi
+      rm -rf "$copia"; trap - EXIT TERM INT HUP
+
+      local rc_par
+      conf_definir PACK "$novo_pack" FLAVOR "$novo_flavor"; rc_par=$?
+      if [ "$rc_par" -ge 2 ]; then
+        meow_erro "não consegui gravar em $CONF"
+        return "$MEOW_ERRO"
+      fi
+      if [ -n "$junto" ]; then
+        junto="$(python3 "$RAIZ/scripts/migrar_conf.py" "$CONF" "$CONF_PADRAO" \
+                   --so-vestigios --pack-de-antes "$agora_pack" "$agora_flavor" 2>&1)" \
+          || { meow_erro "não consegui levar o ponteiro e as pastas junto: $junto"; return "$MEOW_ERRO"; }
+        [ -z "$junto" ] || meow_muda "levado junto, do pack de antes para o «$novo_pack»: ${junto#*: }"
+      fi
+      if [ "$rc_par" = "0" ]; then
+        meow_ok "o meow.conf já dizia PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\""
+      else
+        meow_muda "gravado em $CONF: PACK=\"$novo_pack\" e FLAVOR=\"$novo_flavor\""
+        registrar "pack usar $novo_pack flavor=$novo_flavor"
+      fi
+      if [ "$aplicar" = "0" ]; then
+        meow_info "aplicar fica para depois: meow aplicar"
+        return 0
+      fi
+      meow_info "o tema do COSMIC primeiro, como decisão: '$par'"
+      aplicar_tema_da_troca
+      meow_info "agora o instalador inteiro, porque trocar de pack mexe em quase todas as etapas"
+      cmd_aplicar
+      ;;
+    raizes|raízes)
+      meow_info "onde o MeowSystem procura um pack, nesta ordem:"
+      python3 "$RAIZ/scripts/pack.py" raizes | sed 's/^/       /'
+      ;;
+    sincronizar|sync)
+      local alvo="${1:-}"
+      if [ -z "$alvo" ]; then
+        carregar_conf 2>/dev/null || true
+        alvo="$(meow_pack_dir)"
+        [ -n "$alvo" ] || alvo="$(meow_pack_padrao_dir)"
+      fi
+      python3 "$RAIZ/scripts/pack.py" sincronizar "$alvo"
+      ;;
+    novo|criar)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga o nome do pack novo: meow pack novo <id>"; return "$MEOW_ERRO"; }
+      shift
+      carregar_conf || return "$MEOW_ERRO"
+      local -a seco=()
+      meow_seco && seco=(--seco)
+      python3 "$RAIZ/scripts/pack.py" novo "$alvo" "$@" ${seco[@]+"${seco[@]}"}
+      ;;
+    exportar|export)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga qual pack exportar: meow pack exportar <id> [arquivo.meowpack]"; return "$MEOW_ERRO"; }
+      shift
+      local -a seco=()
+      meow_seco && seco=(--seco)
+      python3 "$RAIZ/scripts/pack.py" exportar "$alvo" "$@" ${seco[@]+"${seco[@]}"}
+      ;;
+    exportar-tema|export-theme)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga qual pack: meow pack exportar-tema <id> [flavor] [arquivo.tar.gz]"; return "$MEOW_ERRO"; }
+      shift
+      "$RAIZ/scripts/exportar_tema.sh" "$alvo" "$@"
+      ;;
+    importar|import)
+      local arquivo="${1:-}"
+      [ -n "$arquivo" ] || { meow_erro "diga qual arquivo: meow pack importar <arquivo.meowpack|arquivo.csv>"; return "$MEOW_ERRO"; }
+      shift
+      local -a seco=()
+      meow_seco && seco=(--seco)
+      python3 "$RAIZ/scripts/pack.py" importar "$arquivo" "$@" ${seco[@]+"${seco[@]}"}
+      ;;
+    remover|remove)
+      local alvo="${1:-}"
+      [ -n "$alvo" ] || { meow_erro "diga qual pack remover: meow pack remover <id>"; return "$MEOW_ERRO"; }
+      shift
+      carregar_conf || return "$MEOW_ERRO"
+      local -a seco=()
+      meow_seco && seco=(--seco)
+      local rc=0
+      PACK="${PACK:-}" FLAVOR="${FLAVOR:-}" \
+        python3 "$RAIZ/scripts/pack.py" remover "$alvo" "$@" ${seco[@]+"${seco[@]}"} || rc=$?
+      [ "$rc" = 0 ] && registrar "pack remover $alvo"
+      return "$rc"
+      ;;
+    de-csv|csv)
+      local arq="${1:-}"
+      [ -n "$arq" ] || { meow_erro "diga qual CSV: meow pack de-csv <cores.csv> > paleta.json"; return "$MEOW_ERRO"; }
+      [ $# -eq 1 ] || { meow_erro "um CSV só, e o destino vai pelo '>': meow pack de-csv $arq > paleta.json"; return "$MEOW_ERRO"; }
+      python3 "$RAIZ/scripts/pack.py" de-csv "$arq"
+      ;;
+    -h|--help|ajuda)
+      printf 'uso: meow pack [listar|usar <id>|validar <id>|info <id>|construir <id>|sincronizar <id>|novo <id>|exportar <id>|exportar-tema <id>|importar <arquivo>|remover <id>|de-csv <arq>|raizes]\n\n'
+      printf '  listar           os packs instalados, e se cada um valida\n'
+      printf '  usar <id> [fl]   troca o pack da máquina: grava PACK e FLAVOR e aplica\n'
+      printf '  validar <id>     confere o pack inteiro; 0 = ok\n'
+      printf '  info <id>        o que é próprio e o que é herdado, categoria a categoria\n'
+      printf '  construir <id>   refaz o que o pack deriva, escrevendo só dentro dele\n'
+      printf '  sincronizar <id> compara a arte copiada com a origem; só lê, nunca copia\n'
+      printf '  novo <id>        um pack seu, a partir do que está no ar; o resto ele herda\n'
+      printf '    --de-csv <arq> a paleta vem do CSV slot,flavor,hex; o resto, do pack padrão\n'
+      printf '  exportar <id> [arquivo.meowpack] [--sem-imagens]\n'
+      printf '                   o pack num arquivo só, para passar a alguém\n'
+      printf '  exportar-tema <id> [flavor] [arquivo.tar.gz]\n'
+      printf '                   o tema de ícones montado, com a base, pronto para instalar\n'
+      printf '  importar <arquivo.meowpack|arquivo.csv>\n'
+      printf '                   confere, e instala como opção — não troca o seu tema\n'
+      printf '  remover <id>     tira um pack que você importou; o que vem com o MeowSystem,\n'
+      printf '                   o que está no ar e o que outro pack herda ficam\n'
+      printf '  de-csv <arq>     a paleta.json de um CSV slot,flavor,hex; só imprime\n'
+      printf '  raizes           onde o MeowSystem procura\n\n'
+      printf 'A especificação do formato está em docs/PACKS.md.\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $acao"; meow_info "veja: meow pack --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+despachar() {
+  case "${1:-}" in
+    ""|menu)          cmd_menu ;;
+    status|estado)    shift; cmd_status "$@" ;;
+    doctor|medico)    shift; cmd_doctor "$@" ;;
+    tema)             shift; cmd_tema "$@" ;;
+    logo)             shift; cmd_logo "$@" ;;
+    icones|ícones)    shift; cmd_icones "$@" ;;
+    cursor|ponteiro)  shift; cmd_cursor "$@" ;;
+    areas|áreas|area) shift; cmd_areas "$@" ;;
+    fontes|fonte)     shift; cmd_fontes "$@" ;;
+    wallpaper|parede) shift; cmd_wallpaper "$@" ;;
+    graficos) shift
+      carregar_conf || exit "$MEOW_ERRO"
+      seco_g="${MEOW_DRY_RUN:-0}"
+      [ "${1:-}" = "--seco" ] && { seco_g=1; shift; }
+      verbo_g="${1:-conferir}"
+      case "$verbo_g" in
+        aplicar|reverter)
+          if [ "$seco_g" != 1 ]; then
+            meow_travar || exit "$MEOW_ERRO"
+            if [ "$verbo_g" = aplicar ]; then GRAFICOS=sim; else GRAFICOS=nao; fi
+            meow_conf_definir GRAFICOS "$GRAFICOS"
+            [ "$?" != "$MEOW_ERRO" ] || exit "$MEOW_ERRO"
+          fi ;;
+        conferir|validar|estado) ;;
+        -h|--help|ajuda)
+          meow_titulo "meow graficos"
+          printf '  meow graficos [--seco]   confere o portal, o shim, o drop-in e a policy do Chrome\n'
+          printf '  meow graficos aplicar    compila o portal da versão instalada com a série de dados/patches/graficos.series,\n'
+          printf '                           liga o shim e o drop-in e põe a policy do Chrome (se há Chrome)\n'
+          printf '  meow graficos reverter   tira o drop-in, o shim e a policy e grava GRAFICOS="nao": o portal volta ao do pacote\n'
+          printf '  meow graficos validar    baixa o fonte e só roda o dry-run da série nele\n'
+          exit 0 ;;
+        *) meow_erro "verbo desconhecido: $verbo_g"; meow_info "veja: meow graficos --help"; exit "$MEOW_ERRO" ;;
+      esac
+      MEOW_DRY_RUN="$seco_g" GRAFICOS="${GRAFICOS:-}" "$RAIZ/scripts/graficos.sh" "$verbo_g"; exit $? ;;
+    dock) shift
+      carregar_conf || exit "$MEOW_ERRO"
+      seco_d="${MEOW_DRY_RUN:-0}"
+      [ "${1:-}" = "--seco" ] && { seco_d=1; shift; }
+      verbo_d="${1:-conferir}"
+      case "$verbo_d" in
+        aplicar|reverter)
+          if [ "$seco_d" != 1 ]; then
+            meow_travar || exit "$MEOW_ERRO"
+            if [ "$verbo_d" = aplicar ]; then DOCK=sim; else DOCK=nao; fi
+            meow_conf_definir DOCK "$DOCK"
+            [ "$?" != "$MEOW_ERRO" ] || exit "$MEOW_ERRO"
+          fi ;;
+        conferir|validar|estado) ;;
+        -h|--help|ajuda)
+          meow_titulo "meow dock"
+          printf '  meow dock [--seco]   confere o build da dock e o shim em ~/.local/bin/cosmic-app-list\n'
+          printf '  meow dock aplicar    compila o cosmic-app-list da versão instalada com a série de dados/patches/dock.series\n'
+          printf '                       e liga o shim, que cai na dock do pacote quando o build some\n'
+          printf '  meow dock reverter   tira o shim e grava DOCK="nao": a dock volta à do pacote\n'
+          printf '  meow dock validar    baixa o fonte no commit da versão e só roda o dry-run da série nele\n'
+          exit 0 ;;
+        *) meow_erro "verbo desconhecido: $verbo_d"; meow_info "veja: meow dock --help"; exit "$MEOW_ERRO" ;;
+      esac
+      MEOW_DRY_RUN="$seco_d" DOCK="${DOCK:-}" "$RAIZ/scripts/dock.sh" "$verbo_d"; exit $? ;;
+    files-menu|menu-arquivos) shift
+      carregar_conf || exit "$MEOW_ERRO"
+      case "${1:-estado}" in
+        build|aplicar) meow_travar || exit "$MEOW_ERRO" ;;
+      esac
+      FILES_MENU="${FILES_MENU:-sim}" FILES_MENU_AUTOBUILD="${FILES_MENU_AUTOBUILD:-sim}" \
+        "$RAIZ/scripts/files_menu.sh" "${1:-estado}"; exit $? ;;
+    apps)             shift; cmd_apps "$@" ;;
+    configurar|config|wizard) shift; cmd_configurar "$@" ;;
+    painel)           shift; cmd_painel "$@" ;;
+    pack|packs)       shift; cmd_pack "$@" ;;
+    leitura)          shift; cmd_leitura "$@" ;;
+    compositor)       shift; cmd_compositor "$@" ;;
+    espaco|espaço)    shift; cmd_espaco "$@" ;;
+    atualizar)        shift; exec "$RAIZ/scripts/atualiza.sh" rodar ;;
+    levantamento)     shift; carregar_conf || exit "$MEOW_ERRO"; exec "$RAIZ/scripts/levantamento.sh" "$@" ;;
+    cosmic)           shift
+      case "${1:-prever}" in
+        prever|ler|icones) "$RAIZ/scripts/cosmic_prever.sh" "$@"; exit $? ;;
+        sentinela) shift; "$RAIZ/scripts/sentinela.sh" "$@"; exit $? ;;
+        -h|--help|ajuda)
+          printf '  meow cosmic prever [--sem-rede]  o veredito sobre o COSMIC da fila do apt, antes do upgrade\n'
+          printf '  meow cosmic ler                  o último veredito gravado\n'
+          printf '  meow cosmic icones               os apps do COSMIC instalados sem desenho em mapa nenhum\n'
+          printf '  meow cosmic sentinela [ler]      a medida diária da fila do apt (roda sozinha, uma vez por dia)\n' ;;
+        *) meow_erro "verbo desconhecido: $1"; meow_info "veja: meow cosmic --help"; exit "$MEOW_ERRO" ;;
+      esac ;;
+    abrir|app)        shift; exec "$RAIZ/scripts/app/run.sh" "$@" ;;
+    aplicar|ativar)   shift; cmd_aplicar "$@" ;;
+    desfazer)         shift; cmd_desfazer "$@" ;;
+    restaurar)        shift; cmd_restaurar "$@" ;;
+    log)              shift; cmd_log "$@" ;;
+    ajuda|-h|--help|help) cmd_ajuda ;;
+    *) meow_erro "comando desconhecido: $1"
+       meow_info "veja: meow --help  (ou 'meow' sem argumento para o menu)"
+       return "$MEOW_ERRO" ;;
+  esac
+}
+
+if [ "$(id -u)" = "0" ]; then
+  meow_erro "com sudo, não: os arquivos de ~/.config ficariam de dono root — nada foi feito."
+  meow_info "  o meow roda como o seu usuário, e pede o sudo por dentro onde precisa"
+  exit 2
+fi
+
+despachar "$@"

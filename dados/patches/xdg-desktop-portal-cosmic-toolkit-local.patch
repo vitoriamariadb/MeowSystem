@@ -1,0 +1,28 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -95,3 +95,7 @@
+ [profile.release]
+ opt-level = 3
+ lto = "thin"
++
++[patch."https://github.com/pop-os/cosmic-protocols"]
++cosmic-protocols = { path = "meow-toolkit" }
++cosmic-client-toolkit = { path = "meow-toolkit/client-toolkit" }
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1468,7 +1468,6 @@
+ [[package]]
+ name = "cosmic-client-toolkit"
+ version = "0.2.0"
+-source = "git+https://github.com/pop-os/cosmic-protocols?rev=c0cff4d#c0cff4db14c37ed954983158e4055aa94c7741d9"
+ dependencies = [
+  "bitflags 2.13.2",
+  "cosmic-protocols",
+@@ -1596,7 +1595,6 @@
+ [[package]]
+ name = "cosmic-protocols"
+ version = "0.2.0"
+-source = "git+https://github.com/pop-os/cosmic-protocols?rev=c0cff4d#c0cff4db14c37ed954983158e4055aa94c7741d9"
+ dependencies = [
+  "bitflags 2.13.2",
+  "wayland-backend",

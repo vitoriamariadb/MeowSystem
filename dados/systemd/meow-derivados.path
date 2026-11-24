@@ -1,0 +1,10 @@
+[Unit]
+Description=MeowSystem — vigia os desenhos dos packs e refaz o que deriva deles
+Documentation=man:systemd.path(5)
+
+[Path]
+@VIGIADOS@
+Unit=meow-derivados.service
+
+[Install]
+WantedBy=default.target

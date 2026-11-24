@@ -1,0 +1,17 @@
+[Unit]
+Description=MeowSystem — vigia a biblioteca do Heroic e acerta os atalhos de jogo
+Documentation=file:%h/.local/state/meowsystem/heroic.log
+
+[Path]
+PathChanged=%h/.var/app/com.heroicgameslauncher.hgl/config/heroic/store_cache/legendary_library.json
+PathChanged=%h/.var/app/com.heroicgameslauncher.hgl/config/heroic/store_cache/gog_library.json
+PathChanged=%h/.var/app/com.heroicgameslauncher.hgl/config/heroic/store_cache/nile_library.json
+PathChanged=%h/.var/app/com.heroicgameslauncher.hgl/config/heroic/sideload_apps/library.json
+PathChanged=%h/.config/heroic/store_cache/legendary_library.json
+PathChanged=%h/.config/heroic/store_cache/gog_library.json
+PathChanged=%h/.config/heroic/store_cache/nile_library.json
+PathChanged=%h/.config/heroic/sideload_apps/library.json
+Unit=meow-heroic.service
+
+[Install]
+WantedBy=default.target

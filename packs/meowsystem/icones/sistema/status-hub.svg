@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <mask id="furos">
+    <rect width="256" height="256" fill="white"/>
+    <circle cx="90" cy="96" r="10" fill="black"/>
+    <circle cx="128" cy="96" r="10" fill="black"/>
+    <circle cx="166" cy="96" r="10" fill="black"/>
+  </mask>
+  <path d="M24 40C24 31.1634 31.1634 24 40 24H216C224.837 24 232 31.1634 232 40V216C232 224.837 224.837 232 216 232H40C31.1634 232 24 224.837 24 216V40Z" fill="currentColor" fill-opacity=".14"/>
+  <rect x="52" y="66" width="152" height="60" rx="30" fill="currentColor" mask="url(#furos)"/>
+  <circle cx="82" cy="172" r="20" fill="currentColor" fill-opacity=".35"/>
+  <circle cx="128" cy="172" r="20" fill="currentColor" fill-opacity=".6"/>
+  <circle cx="174" cy="172" r="20" fill="currentColor"/>
+</svg>

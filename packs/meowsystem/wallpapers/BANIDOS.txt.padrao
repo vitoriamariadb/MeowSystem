@@ -1,0 +1,368 @@
+# BANIDOS.txt.padrao -- os papeis de parede recusados DE FABRICA, por nome de
+# arquivo. Curadoria de 24/08/2026. Uma linha por nome, como ele aparece numa
+# das pastas de ~/.local/share/backgrounds/meowsystem/, e o 'semear' nao repoe o que
+# estiver listado.
+#
+# CONFIRA O CAMINHO ANTES DE EDITAR -- 21/09/2026, revisto em 22/09
+#   Ate 21/09/2026 este arquivo se chamava `BANIDOS.txt`, era versionado, e o
+#   botao "Tirar" do painel gravava AQUI DENTRO. Usar o programa virava commit
+#   pendente: no clone dele o `git status` daquele dia trazia `+47` linhas neste
+#   arquivo, das 17h09, sem ninguem ter programado nada. Com dois usuarios reais
+#   e tres remotos entre eles, cada `git pull` era conflito de merge num arquivo
+#   que nenhum dos dois editou de proposito.
+#
+#   DESDE ENTAO EXISTEM DOIS ARQUIVOS, e este cabecalho esta nos DOIS: a
+#   semeadura copia byte a byte, o `cmd_banir` so faz APPEND, e por isso estas
+#   linhas continuam intactas na copia depois de anos de uso. A primeira versao
+#   deste texto dizia "ESTE ARQUIVO E SEMENTE, E NINGUEM ESCREVE NELE" e
+#   apontava a copia como sendo outro arquivo -- o que, lido de dentro da
+#   propria copia, e o contrario da verdade. Conferido com `head -22` num estado
+#   de brinquedo, depois de um banir de verdade.
+#
+#     packs/meowsystem/wallpapers/BANIDOS.txt.padrao  -- no clone, VERSIONADO
+#         A lista de FABRICA: o que nenhuma maquina nova deve baixar de volta.
+#         So o lixo do painel escreve nela, e so quando o painel roda de um
+#         checkout git (desde 04/11/2026), sem commit. Uma linha acrescentada
+#         aqui so alcanca quem AINDA NAO tem o estado semeado.
+#
+#     ~/.local/state/meowsystem/papeis-de-parede/BANIDOS.txt  -- fora do clone
+#         A lista VIVA desta maquina, semeada do `.padrao` uma unica vez. E
+#         nela que o painel escreve, e e ela que vale agora. Editar a mao aqui
+#         e o jeito de mudar o que ja esta em uso.
+#
+#   O contrato inteiro esta em `meow_estado_com_padrao` (`scripts/lib/comum.sh`),
+#   inclusive o porque de ser semente e nao sobreposicao.
+#
+# SO ENTRA NESTA LISTA O QUE O FONTES.TSV PODE REPOR
+#   O `cmd_banir` acrescenta aqui apenas o nome que estava no FONTES.tsv (e o
+#   tira de la): e a receita que uma maquina nova baixaria de volta. Foto da
+#   pasta pessoal dela, com emoji, acento ou espaco no nome, fica so na lista
+#   VIVA e na pasta `banidos/`; a etapa das banidas trata o nome como bytes e
+#   apaga a copia.
+_ (1).jpeg
+_ (2).jpeg
+_ (3).jpeg
+dithered-barn.png
+dithered-lighthouse.png
+dithered-marketplace.png
+dithered-motorbikes.png
+flatppuccin-flatppuccin_4k_macchiato.png
+flatppuccin-flatppuccin_4k_macchiato_inverted.png
+gradients-bkg1_bkg5.png
+gradients-bkg3_bkg5.png
+gradients-blue_bkg5.png
+gradients-blue_green.png
+gradients-cyan_bkg5.png
+gradients-flamingo_bkg1.png
+gradients-flamingo_bkg5.png
+gradients-flamingo_peach.png
+gradients-flamingo_yellow.png
+gradients-green_bkg5.png
+gradients-magenta_blue.png
+gradients-magenta_pink.png
+gradients-peach_bkg5.png
+gradients-red_bkg5.png
+gradients-red_peach.png
+gradients-red_pink.png
+landscapes-Clearday.jpg
+landscapes-salty_mountains.png
+landscapes-tropic_island_day.jpg
+landscapes-tropic_island_evening.jpg
+landscapes-tropic_island_morning.jpg
+landscapes-yosemite.png
+mandelbrot-mandelbrot_full_blue.png
+mandelbrot-mandelbrot_full_flamingo.png
+mandelbrot-mandelbrot_full_green.png
+mandelbrot-mandelbrot_full_lavender.png
+mandelbrot-mandelbrot_full_magenta.png
+mandelbrot-mandelbrot_full_maroon.png
+mandelbrot-mandelbrot_full_peach.png
+mandelbrot-mandelbrot_full_pink.png
+mandelbrot-mandelbrot_full_red.png
+mandelbrot-mandelbrot_full_rosewater.png
+mandelbrot-mandelbrot_full_sky.png
+mandelbrot-mandelbrot_full_teal.png
+mandelbrot-mandelbrot_full_yellow.png
+mandelbrot-mandelbrot_gap_blue.png
+mandelbrot-mandelbrot_gap_flamingo.png
+mandelbrot-mandelbrot_gap_green.png
+mandelbrot-mandelbrot_gap_lavender.png
+mandelbrot-mandelbrot_gap_magenta.png
+mandelbrot-mandelbrot_gap_maroon.png
+mandelbrot-mandelbrot_gap_peach.png
+mandelbrot-mandelbrot_gap_pink.png
+mandelbrot-mandelbrot_gap_red.png
+mandelbrot-mandelbrot_gap_rosewater.png
+mandelbrot-mandelbrot_gap_sky.png
+mandelbrot-mandelbrot_gap_teal.png
+mandelbrot-mandelbrot_gap_yellow.png
+mandelbrot-mandelbrot_side_blue.png
+mandelbrot-mandelbrot_side_flamingo.png
+mandelbrot-mandelbrot_side_green.png
+mandelbrot-mandelbrot_side_lavender.png
+mandelbrot-mandelbrot_side_magenta.png
+mandelbrot-mandelbrot_side_maroon.png
+mandelbrot-mandelbrot_side_peach.png
+mandelbrot-mandelbrot_side_pink.png
+mandelbrot-mandelbrot_side_red.png
+mandelbrot-mandelbrot_side_rosewater.png
+mandelbrot-mandelbrot_side_sky.png
+mandelbrot-mandelbrot_side_teal.png
+mandelbrot-mandelbrot_side_yellow.png
+minimalistic-black5_unicat.png
+minimalistic-blue-cat.png
+minimalistic-blue_unicat.png
+minimalistic-buttons.png
+minimalistic-catppuccin_triangle.png
+minimalistic-cats.png
+minimalistic-dark-cat-rosewater.png
+minimalistic-dark-cat.png
+minimalistic-darker_unicat.png
+minimalistic-flamingo-cat.png
+minimalistic-flamingo_unicat.png
+minimalistic-gradient-synth-cat.png
+minimalistic-green-cat.png
+minimalistic-hashtags-black.png
+minimalistic-hashtags-new.png
+minimalistic-heart.jpg
+minimalistic-hearts.png
+minimalistic-lavender-cat.png
+minimalistic-list-aligned-left.png
+minimalistic-list-aligned-right.png
+minimalistic-list-horizontal.png
+minimalistic-magenta-cat.png
+minimalistic-maroon-cat.png
+minimalistic-peach_unicat.png
+minimalistic-pink-cat.png
+minimalistic-pink_unicat.png
+minimalistic-red-cat.png
+minimalistic-red_unicat.png
+minimalistic-romb.png
+minimalistic-rosewater-cat.png
+minimalistic-sky-cat.png
+minimalistic-sports.png
+minimalistic-teal-cat.png
+minimalistic-teal_unicat.png
+minimalistic-tetris.png
+minimalistic-unicat.png
+minimalistic-yellow-cat.png
+misc-cat-sound.png
+misc-cat_bunnies.png
+misc-cat_colors.png
+misc-cat_pacman.png
+misc-comfy-home.png
+misc-doggocat.png
+misc-rainbow-cat.png
+misc-rainbow.png
+misc-virus.png
+misc-windows-error.jpg
+os-alpine-black-4k.png
+os-alpine-magenta-blue-1920x1080.png
+os-alpine-magenta-pink-1920x1080.png
+os-android-black-4k.png
+os-android-magenta-blue-1920x1080.png
+os-android-magenta-pink-1920x1080.png
+os-apple-black-4k.png
+os-apple-blue-black-1920x1080.png
+os-apple-colors-big-4k.png
+os-apple-colors-small-4k.png
+os-apple-magenta-blue-1920x1080.png
+os-apple-magenta-pink-1920x1080.png
+os-arch-black-4k.png
+os-arch-magenta-blue-1920x1080.png
+os-arch-magenta-pink-1920x1080.png
+os-arch-rainbow-1920x1080.png
+os-arco-black-4k.png
+os-arco-magenta-blue-1920x1080.png
+os-arco-magenta-pink-1920x1080.png
+os-artix-black-4k.png
+os-artix-magenta-blue-1920x1080.png
+os-artix-magenta-pink-1920x1080.png
+os-centos-black-4k.png
+os-crystal-linux-4k.png
+os-crystal-linux-magenta_blue1920x1080.png
+os-crystal-linux-magenta_pink1920x1080.png
+os-debian-black-4k.png
+os-debian-magenta-blue-1920x1080.png
+os-debian-magenta-pink-1920x1080.png
+os-deepin-black-4k.png
+os-deepin-magenta-blue-1920x1080.png
+os-deepin-magenta-pink-1920x1080.png
+os-elementary-black-4k.png
+os-elementary-sky-lavender-ascii.png
+os-endeavour-black-4k.png
+os-endeavour-blue-black-1920x1080.png
+os-endeavour-magenta-pink-1920x1080.png
+os-fedora-black-4k.png
+os-fedora-magenta-blue-1920x1080.png
+os-fedora-magenta-pink-1920x1080.png
+os-freebsd-black-4k.png
+os-freebsd-magenta-blue-1920x1080.png
+os-freebsd-magenta-pink-1920x1080.png
+os-garuda-black-4k.png
+os-gentoo-black-4k.png
+os-manjaro-black-4k.png
+os-manjaro-magenta-blue-1920x1080.png
+os-manjaro-magenta-pink-1920x1080.png
+os-mint-black-4k.png
+os-mint-magenta-blue-1920x1080.png
+os-mint-magenta-pink-1920x1080.png
+os-mxlinux-black-4k.png
+os-mxlinux-magenta-blue-1920x1080.png
+os-mxlinux-magenta-pink-1920x1080.png
+os-nix-black-4k.png
+os-nix-magenta-blue-1920x1080.png
+os-nix-magenta-pink-1920x1080.png
+os-opensuse-black-4k.png
+os-opensuse-magenta-blue-1920x1080.png
+os-opensuse-magenta-pink-1920x1080.png
+os-pop-black-4k.png
+os-pop-magenta-blue-1920x1080.png
+os-pop-magenta-pink-1920x1080.png
+os-raspberry-black-4k.png
+os-raspberry-magenta-blue-1920x1080.png
+os-raspberry-magenta-pink-1920x1080.png
+os-solus-black-4k.png
+os-solus-magenta-blue-1920x1080.png
+os-solus-magenta-pink-1920x1080.png
+os-tux-black-4k.png
+os-tux-magenta-blue-1920x1080.png
+os-tux-magenta-pink-1920x1080.png
+os-ubuntu-black-4k.png
+os-ubuntu-magenta-blue-1920x1080.png
+os-ubuntu-magenta-pink-1920x1080.png
+os-various-arch-1-4k.png
+os-various-arch-2-4k.png
+os-various-os-1-4k.png
+os-various-os-2-4k.png
+os-various-os-3-4k.png
+os-void-1920x1080.png
+os-void-black-4k.png
+os-void-black3-1920x1080.png
+os-void-magenta-blue-1920x1080.png
+os-void-magenta-pink-1920x1080.png
+os-windows-black.png
+os-windows-magenta-blue-1920x1080.png
+os-windows-magenta-pink-1920x1080.png
+os-zorin-black-4k.png
+os-zorin-magenta-blue-1920x1080.png
+os-zorin-magenta-pink-1920x1080.png
+patterns-emojis.png
+patterns-line_icons.png
+solids-bkg1.png
+solids-bkg2.png
+solids-bkg3.png
+solids-bkg4.png
+solids-bkg5.png
+solids-blue.png
+solids-cyan.png
+solids-flamingo.png
+solids-gray.png
+solids-green.png
+solids-magenta.png
+solids-peach.png
+solids-pink.png
+solids-red.png
+solids-white.png
+solids-yellow.png
+waves-Waves Dark 6016x6016.jpg
+waves-Waves Dark Alt 6016x6016.jpg
+waves-Waves Light 6016x6016.jpg
+waves-cat-blue-eye.png
+waves-cat-waves.png
+waves-wavy_lines_v01_5120x2880.png
+waves-wavy_lines_v02_5120x2880.png
+waves-wavy_lines_v03_5120x2880.png
+clipboard-20260527-154748.png
+meow-atmosfera-pintada-3zzwoy.png
+meow-atmosfera-pintada-d5ek23.jpg
+meow-atmosfera-pintada-eod3pr.png
+meow-atmosfera-pintada-mp8l5m.jpg
+meow-atmosfera-silh-48o8z2.png
+meow-atmosfera-silh-4vywmp.jpg
+meow-atmosfera-silh-nrkzej.jpg
+meow-atmosfera-silh-o35zxl.jpg
+meow-gatos-arte-8x3ev2.png
+meow-pixel-pixel-2eykl6.png
+meow-atmosfera-pintada-yxl3gx.jpg
+meow-atmosfera-calma-4yv5qg.jpg
+meow-atmosfera-pintada-g8md2q.jpg
+meow-lofi-lofi-47z6j3.jpg
+meow-lofi-lofi-6dk77q.jpg
+meow-lofi-lofi-72exxe.png
+meow-lofi-lofi-85doxj.png
+meow-lofi-lofi-ey92y8.jpg
+meow-lofi-lofi-nrdpkq.jpg
+meow-atmosfera-calma-5wel85.png
+meow-lofi-lofi-9djwv8.png
+meow-lofi-lofi-kxkw1m.jpg
+drac-illustrations-cat-and-bats-dracula-cat-282a36.png
+drac-leaves-dracula-leaves-44475a.png
+drac-maps-portolans-dracula-portolans-ff79c6.png
+meow-atmosfera-calma-1ky673.png
+meow-atmosfera-calma-28zr39.jpg
+meow-atmosfera-calma-5d1yy9.jpg
+meow-atmosfera-calma-odk3x9.jpg
+drac-soft-waves-dracula-soft-waves-44475a.png
+drac-spooky-minimal-dracula-spooky-44475a.png
+drac-illustrations-cat-and-bats-dracula-cat-6272a4.png
+drac-leaves-dracula-leaves-6272a4-dark.png
+drac-soft-waves-dracula-soft-waves-6272a4.png
+drac-spooky-minimal-dracula-spooky-6272a4.png
+drac-waves-dracula-waves-44475a.png
+meow-atmosfera-pintada-0q6ee5.jpg
+meow-atmosfera-pintada-0w39z6.jpg
+meow-atmosfera-pintada-21gj1y.png
+meow-atmosfera-pintada-21klpm.png
+meow-atmosfera-silh-nz61qv.png
+meow-atmosfera-silh-ode73l.jpg
+drac-illustrations-cat-and-bats-dracula-cat-bd93f9.png
+drac-leaves-dracula-leaves-6272a4.png
+drac-waves-dracula-waves-6272a4.png
+meow-lofi-lofi-859z1j.png
+meow-gatos-arte-4op285.jpg
+meow-lofi-lofi-jxm66p.jpg
+meow-lofi-lofi-l3jvo2.jpg
+meow-lofi-lofi-r29w2m.jpg
+meow-lofi-lofi-4ymrzg.png
+landscapes-Clearnight.jpg
+landscapes-Cloudsday.jpg
+landscapes-evening-sky.png
+landscapes-forrest.png
+landscapes-shaded_landscape.png
+minimalistic-peach-cat.png
+landscapes-tropic_island_night.jpg
+drac-soft-waves-dracula-soft-waves-bd93f9.png
+misc-lonely-fish.png
+drac-illustrations-cat-and-bats-dracula-cat-ff79c6.png
+meow-gatos-gato-5wrox5.jpg
+meow-gatos-gato-g82xrl.jpg
+meow-gatos-gato-qr3eml.png
+meow-gatos-gato-zxqylo.png
+meow-lofi-lofi-72qokv.jpg
+meow-lofi-lofi-j38rp5.jpg
+meow-lofi-lofi-m31l2y.jpg
+wp4468304-desktop-aesthetic-wallpapers.jpg
+ornamento-folios.png
+wp6296486-purple-aesthetic-pc-wallpapers.jpg
+meow-pixel-pixel-x6ydjo.png
+meow-pixel-pixel-3z5lq9.jpg
+cemiterio-corvo.png
+meow-lofi-lofi-q69yz7.jpg
+drac-spooky-minimal-dracula-spooky-bd93f9.png
+drac-spooky-minimal-dracula-spooky-ff79c6.png
+drac-soft-waves-dracula-soft-waves-ff79c6.png
+drac-waves-dracula-waves-ff79c6.png
+drac-illustrations-trees-and-mountains-dracula-mnt-6272a4.png
+drac-illustrations-trees-and-mountains-dracula-mnt-ff79c6.png
+drac-leaves-dracula-leaves-bd93f9.png
+wp5882250-purple-aesthetic-anime-desktop-wallpapers.jpg
+wp6927395-computer-aesthetic-purple-wallpapers.png
+ornamento-filigrana.png
+catedral-rosacea.png
+ornamento-espinhos.png
+misc-feet-on-the-dashboard.png
+landscapes-Rainnight.jpg
+drac-illustrations-galaxy-dracula-galaxy-6272a4.png
+drac-illustrations-trees-and-mountains-dracula-mnt-282a36.png
+drac-waves-dracula-waves-bd93f9.png

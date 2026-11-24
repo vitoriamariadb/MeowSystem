@@ -1,0 +1,332 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+MEOW_RAIZ="${MEOW_RAIZ:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+# shellcheck source=lib/comum.sh
+. "$MEOW_RAIZ/scripts/lib/comum.sh"
+
+GB_COMPOSITOR="${GB_COMPOSITOR:-$MEOW_RAIZ/scripts/compositor_patches.sh}"
+GB_FILES="${GB_FILES:-$MEOW_RAIZ/scripts/files_menu.sh}"
+GB_EXTENSOES="${GB_EXTENSOES:-$MEOW_RAIZ/scripts/extensoes_build.sh}"
+GB_GRAFICOS="${GB_GRAFICOS:-$MEOW_RAIZ/scripts/graficos.sh}"
+GB_DOCK="${GB_DOCK:-$MEOW_RAIZ/scripts/dock.sh}"
+GB_CASA="${GB_CASA:-${CP_CASA:-$HOME/.local/libexec/meow/cosmic-comp}}"
+GB_FILES_GUARDA="${GB_FILES_GUARDA:-$MEOW_ESTADO/cosmic-files}"
+GB_MATRIZ="${GB_MATRIZ:-${CP_MATRIZ:-$MEOW_ESTADO/cosmic-comp/matriz.tsv}}"
+GB_REPO="${CP_REPO:-$MEOW_RAIZ/dados/patches}"
+GB_SERIE="${CP_SERIE:-$GB_REPO/series}"
+GB_TRAVA="${GB_TRAVA:-$MEOW_ESTADO/builds.lock}"
+GB_UNIDADE="meow-builds-login.service"
+GB_FILES_MARCA="MEOW-FILES-WALLPAPER-PATCH-2"
+
+GB_CARGO_BIN="${CARGO_HOME:-$HOME/.cargo}/bin"
+case ":$PATH:" in
+  *":$GB_CARGO_BIN:"*) ;;
+  *) [ -d "$GB_CARGO_BIN" ] && PATH="$GB_CARGO_BIN:$PATH" && export PATH ;;
+esac
+
+_gb_instalados() {
+  dpkg-query -W -f='${Package}\t${Version}\t${db:Status-Status}\n' cosmic-files cosmic-comp xdg-desktop-portal-cosmic cosmic-applets 2>/dev/null |
+    awk -F'\t' '($1=="cosmic-files" || $1=="cosmic-comp" || $1=="xdg-desktop-portal-cosmic" || $1=="cosmic-applets") && $3=="installed" && $2!="" {print $1"\t"$2}'
+}
+
+_gb_comp_valido() {
+  [ -x "$GB_CASA/$1/cosmic-comp" ] && grep -q '^req [^ ]* [^ ]* presente$' "$GB_CASA/$1/estado" 2>/dev/null \
+    && ! _gb_comp_velho "$1"
+}
+_gb_comp_digital_mudou() {
+  local gravada atual
+  gravada="$(sed -n 's/^bibliotecas=//p' "$GB_CASA/$1/estado" 2>/dev/null | head -1)"
+  [ -n "$gravada" ] || return 1
+  atual="$(ldd "$GB_CASA/$1/cosmic-comp" 2>/dev/null | awk '$2 == "=>" && $3 ~ /^\// {print $3}' \
+    | xargs -r readlink -f -- | sort | md5sum | cut -c1-32)"
+  [ "$gravada" != "$atual" ]
+}
+_gb_comp_espera() {
+  local f n quando s
+  f="$(awk -F'\t' -v v="$1" '$1 == v {print $4}' "$GB_MATRIZ" 2>/dev/null | tail -1)"
+  case "$f" in falhou=*@*) ;; *) return 1 ;; esac
+  f="${f#falhou=}"; n="${f%%@*}"; quando="${f#*@}"
+  case "$n$quando" in ''|*[!0-9]*) return 1 ;; esac
+  [ -z "$(find "$GB_REPO" "$GB_SERIE" -newer "$GB_MATRIZ" -print -quit 2>/dev/null)" ] || return 1
+  [ "$n" -gt 9 ] && n=9
+  s=$(( 3600 << (n - 1) )); [ "$s" -gt 604800 ] && s=604800
+  quando=$((quando + s))
+  [ "$(date +%s)" -lt "$quando" ] || return 1
+  printf '%s %s' "$quando" "$n"
+}
+_gb_comp_velho() {
+  local c a b m
+  while read -r c a b _; do
+    case "$c" in req|opt) ;; *) continue ;; esac
+    awk -v a="$a" '$3==a {x=1} END {exit !x}' "$GB_CASA/$1/estado" 2>/dev/null || return 0
+    m="$(sed -n "s/^+.*\"\($b-[0-9][0-9.]*\)\".*/\1/p" "$GB_REPO/$a" 2>/dev/null | head -1)"
+    [ -n "$m" ] || continue
+    awk -v m="$m" -v a="$a" '$3==a && $4=="presente" && $2!=m {x=1} END {exit !x}' \
+      "$GB_CASA/$1/estado" 2>/dev/null && return 0
+  done < "$GB_SERIE"
+  return 1
+}
+_gb_files_valido() {
+  local b
+  for b in cosmic-files cosmic-files-applet; do
+    grep -a -q -- "$GB_FILES_MARCA" "$GB_FILES_GUARDA/$1/$b" 2>/dev/null || return 1
+  done
+}
+_gb_comp_degrau4() {
+  awk -F'\t' -v v="$1" '$1==v && $3 ~ /:4( |$)/ {a=1} END {exit !a}' "$GB_MATRIZ" 2>/dev/null || return 1
+  [ -z "$(find "$GB_REPO" "$GB_SERIE" -newer "$GB_MATRIZ" -print -quit 2>/dev/null)" ]
+}
+
+_gb_files_quer() {
+  local q="${FILES_MENU:-}"
+  [ -n "$q" ] || q="$(meow_conf_valor FILES_MENU 2>/dev/null)" || q="sim"
+  [ "${q:-sim}" = "sim" ]
+}
+
+_gb_comp_quer() {
+  local q="${COMPOSITOR:-}"
+  [ -n "$q" ] || q="$(meow_conf_valor COMPOSITOR 2>/dev/null)" || q="sim"
+  [ "${q:-sim}" != "nao" ]
+}
+
+_gb_pendentes() {
+  local p v
+  while IFS=$'\t' read -r p v; do
+    case "$p" in
+      cosmic-files) _gb_files_quer && ! _gb_files_valido "$v" && printf '%s\t%s\n' "$p" "$v" ;;
+      xdg-desktop-portal-cosmic) [ -n "$("$GB_GRAFICOS" pendente 2>/dev/null)" ] && printf '%s\t%s\n' "$p" "$v" ;;
+      cosmic-applets) [ -n "$("$GB_DOCK" pendente 2>/dev/null)" ] && printf '%s\t%s\n' "$p" "$v" ;;
+      cosmic-comp)  _gb_comp_quer && [ ! -e "$GB_CASA/$v/ruim" ] \
+                      && { ! _gb_comp_valido "$v" || _gb_comp_digital_mudou "$v"; } \
+                      && ! _gb_comp_degrau4 "$v" && ! _gb_comp_espera "$v" >/dev/null \
+                      && printf '%s\t%s\n' "$p" "$v" ;;
+    esac
+  done < <(_gb_instalados)
+  return 0
+}
+
+gb_construindo() { [ -e "$GB_TRAVA" ] && ! flock -n "$GB_TRAVA" true 2>/dev/null; }
+
+_gb_compilar_files() {
+  meow_info "cosmic-files $1: sem o menu desta versão — compilando"
+  FILES_MENU=sim "$GB_FILES" build; local rc=$?
+  _gb_files_valido "$1" && return 0
+  [ "$rc" = "3" ] && { meow_pula "cosmic-files $1: falta ferramenta de compilação nesta máquina — o do pacote segue valendo"; return 0; }
+  meow_aviso "cosmic-files $1: o build falhou — o do pacote segue valendo, e o próximo gatilho tenta de novo"
+  return 2
+}
+
+_gb_graficos_valido() { "$GB_GRAFICOS" estado 2>/dev/null | grep -x 'build=sim' >/dev/null; }
+
+_gb_compilar_graficos() {
+  meow_info "portal $1: sem o build desta versão — compilando"
+  "$GB_GRAFICOS" compilar; local rc=$?
+  _gb_graficos_valido && return 0
+  [ "$rc" = "3" ] && { meow_pula "portal $1: falta ferramenta de compilação nesta máquina — o do pacote segue valendo"; return 0; }
+  if "$GB_GRAFICOS" estado 2>/dev/null | grep -x 'estado=nao-encaixa' >/dev/null; then
+    meow_pula "portal $1: o patch não entra nesta versão — o do pacote segue valendo até um rebase"
+    return 0
+  fi
+  meow_aviso "portal $1: o build não ficou pronto — o do pacote segue valendo, e o próximo gatilho tenta de novo"
+  return 2
+}
+
+_gb_graficos_ligar() {
+  local rc=0
+  meow_seco && return 0
+  [ -n "$(_gb_instalados | awk -F'\t' '$1=="xdg-desktop-portal-cosmic" {print $2}')" ] || return 0
+  GR_COMPILAR=nao "$GB_GRAFICOS" aplicar || rc=$?
+  [ "$rc" = "2" ] && return 2
+  return 0
+}
+
+_gb_dock_valido() { "$GB_DOCK" estado 2>/dev/null | grep -x 'build=sim' >/dev/null; }
+
+_gb_compilar_dock() {
+  meow_info "dock $1: sem o build desta versão — compilando"
+  "$GB_DOCK" compilar; local rc=$?
+  _gb_dock_valido && return 0
+  [ "$rc" = "3" ] && { meow_pula "dock $1: falta ferramenta de compilação nesta máquina — a do pacote segue valendo"; return 0; }
+  if "$GB_DOCK" estado 2>/dev/null | grep -x 'estado=nao-encaixa' >/dev/null; then
+    meow_pula "dock $1: o patch não entra nesta versão — a do pacote segue valendo até um rebase"
+    return 0
+  fi
+  meow_aviso "dock $1: o build não ficou pronto — a do pacote segue valendo, e o próximo gatilho tenta de novo"
+  return 2
+}
+
+_gb_dock_ligar() {
+  local rc=0
+  meow_seco && return 0
+  [ -n "$(_gb_instalados | awk -F'\t' '$1=="cosmic-applets" {print $2}')" ] || return 0
+  DK_COMPILAR=nao "$GB_DOCK" aplicar || rc=$?
+  [ "$rc" = "2" ] && return 2
+  return 0
+}
+
+_gb_compilar_comp() {
+  meow_info "cosmic-comp $1: sem build desta versão — compilando"
+  local t0; t0="$(date +%s)"
+  "$GB_COMPOSITOR" compilar; local rc=$?
+  _gb_comp_valido "$1" && return 0
+  [ "$rc" = "3" ] && { meow_pula "cosmic-comp $1: sem build nesta passagem (o motivo está acima) — a sessão segue no de fábrica"; return 0; }
+  if [ "$(stat -c %Y "$GB_MATRIZ" 2>/dev/null || echo 0)" -ge "$t0" ] && _gb_comp_degrau4 "$1"; then
+    meow_pula "cosmic-comp $1: o patch obrigatório não entra nesta versão (degrau 4) — a sessão segue no de fábrica"
+    return 0
+  fi
+  meow_aviso "cosmic-comp $1: o build falhou — a sessão segue no de fábrica, e o próximo gatilho tenta de novo"
+  return 2
+}
+
+cmd_rodar() {
+  local p v falhou=0
+  local -a pend=()
+  meow_tem dpkg-query || { meow_pula "sem dpkg nesta máquina"; return "$MEOW_SEM_DEPENDENCIA"; }
+  mapfile -t pend < <(_gb_pendentes)
+  if [ "${#pend[@]}" = "0" ]; then
+    local rg="$MEOW_OK"
+    _gb_graficos_ligar || rg="$MEOW_ERRO"
+    _gb_dock_ligar || rg="$MEOW_ERRO"
+    local vc; vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
+    if [ -n "$vc" ] && _gb_comp_degrau4 "$vc" && ! _gb_comp_valido "$vc"; then
+      meow_pula "cosmic-comp $vc: o patch obrigatório não entra nesta versão (degrau 4) — a sessão segue no de fábrica até a série mudar"
+      return "$rg"
+    fi
+    local espera
+    if [ -n "$vc" ] && _gb_comp_quer && [ ! -e "$GB_CASA/$vc/ruim" ] && espera="$(_gb_comp_espera "$vc")"; then
+      meow_pula "cosmic-comp $vc: a compilação falhou $( [ "${espera#* }" = 1 ] && echo "1 vez" || echo "${espera#* } vezes") nesta versão e série — a próxima tentativa é a partir de $(date -d "@${espera%% *}" '+%d/%m %H:%M')"
+      return "$rg"
+    fi
+    meow_ok "o compositor e o menu do cosmic-files têm build para a versão instalada"
+    return "$rg"
+  fi
+  if meow_seco; then
+    for p in "${pend[@]}"; do meow_muda "compilaria o ${p%%$'\t'*} ${p#*$'\t'}"; done
+    return "$MEOW_DIVERGENTE"
+  fi
+
+  mkdir -p "${GB_TRAVA%/*}" || return "$MEOW_ERRO"
+  exec 9>>"$GB_TRAVA" || return "$MEOW_ERRO"
+  gb_construindo && meow_info "outra passagem está compilando — espero ela acabar"
+  flock 9
+  renice -n 19 -p $$ >/dev/null 2>&1
+  ionice -c 3 -p $$ >/dev/null 2>&1
+
+  mapfile -t pend < <(_gb_pendentes)
+  for p in "${pend[@]}"; do
+    v="${p#*$'\t'}"
+    case "${p%%$'\t'*}" in
+      cosmic-files) _gb_compilar_files "$v" || falhou=1 ;;
+      cosmic-comp)  _gb_compilar_comp  "$v" || falhou=1 ;;
+      xdg-desktop-portal-cosmic) _gb_compilar_graficos "$v" || falhou=1 ;;
+      cosmic-applets) _gb_compilar_dock "$v" || falhou=1 ;;
+    esac
+  done
+  _gb_graficos_ligar || falhou=1
+  _gb_dock_ligar || falhou=1
+  meow_registrar "garantir_builds.sh falhou=$falhou"
+  [ "$falhou" = "1" ] && return "$MEOW_ERRO"
+  return "$MEOW_OK"
+}
+
+_gb_login_pula() {
+  local a e
+  [ -f "$HOME/.config/systemd/user/$GB_UNIDADE" ] || { printf 'sem a unidade %s' "$GB_UNIDADE"; return 0; }
+  [ -f "$MEOW_CONF_ARQUIVO" ] || { printf 'sem meow.conf'; return 0; }
+  a="$(meow_conf_valor AUTO_REPARO 2>/dev/null)"
+  e="$(meow_conf_valor BUILDS_AO_ENTRAR 2>/dev/null)"
+  [ "${a:-sim}" = "sim" ] || { printf 'AUTO_REPARO="%s"' "$a"; return 0; }
+  [ "${e:-sim}" != "nao" ] || { printf 'BUILDS_AO_ENTRAR="nao"'; return 0; }
+  return 1
+}
+
+_gb_esperar_trava() {
+  local i
+  for i in $(seq "${GB_ESPERA:-50}"); do gb_construindo && break; sleep 0.2; done
+}
+
+_gb_transitorio() {
+  local -a env_extra=()
+  local k
+  meow_tem systemd-run || return 1
+  [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] || [ -S "${XDG_RUNTIME_DIR:-/nao/existe}/bus" ] || return 1
+  for k in COMPOSITOR FILES_MENU GRAFICOS DOCK MEOW_CONF MEOW_ESTADO; do
+    [ -n "${!k:-}" ] && env_extra+=("--setenv=$k=${!k}")
+  done
+  mkdir -p "$MEOW_ESTADO" 2>/dev/null
+  systemd-run --user --no-block --collect --quiet --unit="meow-builds-fundo-$(date +%s)" \
+    -p Nice=19 -p IOSchedulingClass=idle -p CPUWeight=10 \
+    -p "StandardOutput=append:$MEOW_ESTADO/builds.log" -p StandardError=inherit \
+    --setenv=PATH="$PATH" --setenv=MEOW_RAIZ="$MEOW_RAIZ" "${env_extra[@]}" \
+    "$MEOW_RAIZ/scripts/garantir_builds.sh" rodar >/dev/null 2>&1
+}
+
+cmd_fundo() {
+  local -a pend=()
+  local o_que pula
+  mapfile -t pend < <(_gb_pendentes)
+  [ "${#pend[@]}" = "0" ] && { cmd_rodar; return $?; }
+  meow_seco && { cmd_rodar; return $?; }
+  o_que="${pend[*]//$'\t'/ }"
+  if gb_construindo; then
+    meow_info "o build de $o_que já corre em segundo plano — vale no próximo login"
+    return "$MEOW_DIVERGENTE"
+  fi
+  pula="$(_gb_login_pula)" || pula=""
+  if [ -z "$pula" ] \
+     && systemctl --user start --no-block "$GB_UNIDADE" >/dev/null 2>&1; then
+    _gb_esperar_trava
+    meow_muda "construindo em segundo plano: $o_que — vale no próximo login"
+    return "$MEOW_DIVERGENTE"
+  fi
+  if _gb_transitorio; then
+    _gb_esperar_trava
+    if [ -n "$pula" ]; then
+      meow_muda "construindo em segundo plano: $o_que — vale no próximo login; a entrada na sessão não refaz sozinha ($pula)"
+    else
+      meow_muda "construindo em segundo plano: $o_que — vale no próximo login"
+    fi
+    return "$MEOW_DIVERGENTE"
+  fi
+  if [ -n "$pula" ]; then
+    meow_pula "sem systemd --user nesta sessão, e a entrada na sessão não constrói ($pula): $o_que fica sem build, e a sessão segue no de fábrica"
+  else
+    meow_pula "sem systemd --user nesta sessão: $o_que fica para o próximo login, e a sessão segue no de fábrica até lá"
+  fi
+  return "$MEOW_SEM_DEPENDENCIA"
+}
+
+cmd_estado() {
+  local vc vf vg e_comp e_menu remendos
+  vc="$(_gb_instalados | awk -F'\t' '$1=="cosmic-comp" {print $2}')"
+  vg="$(_gb_instalados | awk -F'\t' '$1=="xdg-desktop-portal-cosmic" {print $2}')"
+  vf="$(_gb_instalados | awk -F'\t' '$1=="cosmic-files" {print $2}')"
+  if [ -z "$vc" ]; then e_comp=ausente
+  elif [ -e "$GB_CASA/$vc/ruim" ]; then e_comp=falhou
+  elif _gb_comp_valido "$vc"; then
+    e_comp=ok
+    [ "$("$GB_EXTENSOES" compositor --ativa 2>/dev/null)" = nao ] && e_comp=desligado
+  elif _gb_comp_degrau4 "$vc"; then e_comp=nao-encaixa
+  else e_comp=pendente; fi
+  if [ -z "$vf" ]; then e_menu=ausente
+  elif ! _gb_files_quer; then e_menu=desligado
+  elif _gb_files_valido "$vf"; then e_menu=ok
+  else e_menu=pendente; fi
+  remendos="$(awk '$1=="req" || $1=="opt" {n++} END {print n+0}' "$GB_SERIE" 2>/dev/null)"
+  printf 'compositor_versao=%s\ncompositor_estado=%s\nremendos=%s\nmenu_versao=%s\nmenu_estado=%s\ngraficos_versao=%s\ngraficos_estado=%s\ndock_versao=%s\ndock_estado=%s\nconstruindo=%s\n' \
+    "$vc" "$e_comp" "$remendos" "$vf" "$e_menu" "$vg" \
+    "$("$GB_GRAFICOS" estado 2>/dev/null | sed -n 's/^estado=//p' | head -1)" \
+    "$(_gb_instalados | awk -F'\t' '$1=="cosmic-applets" {print $2}')" \
+    "$("$GB_DOCK" estado 2>/dev/null | sed -n 's/^estado=//p' | head -1)" \
+    "$(gb_construindo && echo sim || echo nao)"
+  return "$MEOW_OK"
+}
+
+case "${1:-}" in
+  estado)   cmd_estado ;;
+  ""|rodar) cmd_rodar ;;
+  --seco)   MEOW_SECO=1; cmd_rodar ;;
+  --fundo)  cmd_fundo ;;
+  *) meow_erro "uso: garantir_builds.sh [estado|--seco|--fundo]"; exit "$MEOW_ERRO" ;;
+esac

@@ -1,0 +1,22 @@
+[Unit]
+Description=MeowSystem — o build do compositor e do menu do cosmic-files para a versão instalada
+Documentation=file:%h/.local/state/meowsystem/builds.log
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${AUTO_REPARO:-sim}" = "sim" ] && [ "${BUILDS_AO_ENTRAR:-sim}" != "nao" ]'
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStart=/bin/sh -c 'PATH="%h/.cargo/bin:$PATH"; export PATH; R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/garantir_builds.sh" ] || exit 3; exec "$R/scripts/garantir_builds.sh"'
+SuccessExitStatus=3
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=10
+TimeoutStartSec=2h
+StandardOutput=append:%h/.local/state/meowsystem/builds.log
+StandardError=inherit
+SyslogIdentifier=meow-builds
+
+[Install]
+WantedBy=graphical-session.target

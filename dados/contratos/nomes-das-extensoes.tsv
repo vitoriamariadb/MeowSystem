@@ -1,0 +1,76 @@
+soneca-desperto-symbolic	status	soneca	Desperto	soneca
+soneca-ronronar-symbolic	status	soneca	Ronronar	soneca
+notification-symbolic	status	barra	Notificações	quick-settings
+notification-new-symbolic	status	barra	Notificação nova	quick-settings
+notification-disabled-symbolic	status	barra	Notificações desligadas	quick-settings
+notifications-disabled-symbolic	status	barra	Notificações em silêncio	quick-settings
+preferences-system-notifications-symbolic	status	configuracoes	Ajustes de notificações	quick-settings
+battery-full-charged-symbolic	status	barra	Bateria carregada	quick-settings
+battery-full-symbolic	status	barra	Bateria cheia	quick-settings
+battery-full-charging-symbolic	status	barra	Bateria cheia, carregando	quick-settings
+battery-good-symbolic	status	barra	Bateria boa	quick-settings
+battery-good-charging-symbolic	status	barra	Bateria boa, carregando	quick-settings
+battery-low-symbolic	status	barra	Bateria baixa	quick-settings
+battery-low-charging-symbolic	status	barra	Bateria baixa, carregando	quick-settings
+battery-caution-symbolic	status	barra	Bateria crítica	quick-settings
+battery-caution-charging-symbolic	status	barra	Bateria crítica, carregando	quick-settings
+battery-empty-symbolic	status	barra	Bateria vazia	quick-settings
+battery-empty-charging-symbolic	status	barra	Bateria vazia, carregando	quick-settings
+battery-missing-symbolic	status	barra	Bateria ausente	quick-settings
+battery-level-0-symbolic	status	barra	Bateria de periférico, 0%	quick-settings
+battery-level-10-symbolic	status	barra	Bateria de periférico, 10%	quick-settings
+battery-level-20-symbolic	status	barra	Bateria de periférico, 20%	quick-settings
+battery-level-30-symbolic	status	barra	Bateria de periférico, 30%	quick-settings
+battery-level-40-symbolic	status	barra	Bateria de periférico, 40%	quick-settings
+battery-level-50-symbolic	status	barra	Bateria de periférico, 50%	quick-settings
+battery-level-60-symbolic	status	barra	Bateria de periférico, 60%	quick-settings
+battery-level-70-symbolic	status	barra	Bateria de periférico, 70%	quick-settings
+battery-level-80-symbolic	status	barra	Bateria de periférico, 80%	quick-settings
+battery-level-90-symbolic	status	barra	Bateria de periférico, 90%	quick-settings
+battery-level-100-symbolic	status	barra	Bateria de periférico, 100%	quick-settings
+bluetooth-active-symbolic	devices	configuracoes	Bluetooth ligado	quick-settings
+bluetooth-disabled-symbolic	devices	configuracoes	Bluetooth desligado	quick-settings
+network-wireless-disabled-symbolic	status	barra	Wi-Fi desligado	quick-settings
+network-wireless-offline-symbolic	status	barra	Wi-Fi sem conexão	quick-settings
+network-wireless-encrypted-symbolic	status	barra	Wi-Fi protegido	quick-settings
+network-vpn-disabled-symbolic	status	barra	VPN desligada	quick-settings
+power-profile-balanced-symbolic	status	barra	Perfil equilibrado	quick-settings
+power-profile-performance-symbolic	status	barra	Perfil de desempenho	quick-settings
+power-profile-power-saver-symbolic	status	barra	Perfil econômico	quick-settings
+weather-clear-night-symbolic	status	barra	Noite limpa	quick-settings
+camera-web-symbolic	devices	configuracoes	Câmera web	quick-settings
+computer-symbolic	devices	configuracoes	Computador	quick-settings
+phone-symbolic	devices	configuracoes	Telefone	quick-settings
+disks-symbolic	devices	configuracoes	Discos	drives
+drive-harddisk-usb-symbolic	devices	configuracoes	Disco USB	drives
+network-workgroup-symbolic	devices	configuracoes	Rede local	drives
+media-eject-symbolic	actions	botoes	Ejetar	drives
+color-select-symbolic	actions	botoes	Seletor de cor	quick-settings
+preferences-color-symbolic	status	configuracoes	Cores	quick-settings
+accessories-screenshot-symbolic	actions	botoes	Captura de tela	quick-settings
+application-x-executable-symbolic	status	botoes	Programa	quick-settings
+document-edit-symbolic	actions	botoes	Editar documento	quick-settings
+edit-clear-all-symbolic	actions	botoes	Limpar tudo	quick-settings
+edit-undo-symbolic	actions	botoes	Desfazer	quick-settings
+emblem-system-symbolic	status	configuracoes	Sistema	quick-settings
+preferences-system-symbolic	status	configuracoes	Configurações	now-playing,status-hub
+view-app-grid-symbolic	actions	botoes	Grade de aplicativos	quick-settings,status-hub
+view-fullscreen-symbolic	actions	botoes	Tela cheia	quick-settings
+view-restore-symbolic	actions	botoes	Sair da tela cheia	quick-settings
+view-reveal-symbolic	actions	botoes	Manter acordado	quick-settings
+view-list-symbolic	actions	botoes	Lista	now-playing
+zoom-in-symbolic	actions	botoes	Ampliar	quick-settings
+minus-symbolic	status	botoes	Marca indeterminada	status-hub
+performance-desempenho-symbolic	status	barra	Desempenho	performance
+performance-equilibrado-symbolic	status	barra	Equilibrado	performance
+performance-economia-symbolic	status	barra	Economia	performance
+performance-gpu-symbolic	status	barra	Placa de vídeo	performance
+performance-grafico-symbolic	status	barra	Modo gráfico	performance
+performance-reiniciar-symbolic	status	barra	Reiniciar	performance
+leitura-lua-symbolic	status	barra	Leitura à noite	leitura
+leitura-sol-symbolic	status	barra	Leitura de dia	leitura
+leitura-livro-symbolic	status	barra	Livro	leitura
+leitura-halo-symbolic	status	barra	Brilho da leitura	leitura
+io.github.meowsystem.Clipboard-symbolic	status	barra	Área de transferência	clipboard
+io.github.meowsystem.Eyedropper-symbolic	status	barra	Conta-gotas	eyedropper
+io.github.meowsystem.Bandeja-symbolic	status	barra	Bandeja	status-hub

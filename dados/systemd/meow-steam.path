@@ -1,0 +1,11 @@
+[Unit]
+Description=MeowSystem — vigia a biblioteca da Steam e tira do lançador o jogo desinstalado
+Documentation=file:%h/.local/state/meowsystem/steam.log
+
+[Path]
+PathChanged=%h/.steam/steam/steamapps
+PathChanged=%h/.steam/debian-installation/steamapps
+Unit=meow-steam.service
+
+[Install]
+WantedBy=default.target

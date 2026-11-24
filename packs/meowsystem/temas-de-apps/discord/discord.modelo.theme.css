@@ -1,0 +1,116 @@
+/**
+ * @name {{nome}} (MeowSystem) | based on midnight by refact0r
+ * @description A dark Dracula Theme for Discord
+ * @author Dracula
+ * @version 3.4
+ * @invite nz87hXyvcy
+ * @website https://draculatheme.com/
+ * @source https://github.com/refact0r/midnight-discord/blob/master/themes/midnight.theme.css
+*/
+
+/*
+ * meowsystem-tema: {{pack}}/{{flavor}}
+ * {{nome}} no Discord (BetterDiscord, Vencord ou Vesktop), montado pelo
+ * MeowSystem com a paleta do pack. Este arquivo é GERADO: a cor de cada
+ * variável sai do papel escrito no modelo
+ * (packs/<pack>/apps/discord.modelo.theme.css), e mexer aqui dura até a
+ * próxima passagem do MeowSystem. O desenho é o do tema Dracula do CtorW
+ * (MIT), sobre o midnight do refact0r, que ele importa da rede.
+ */
+
+/*
+████████▄     ▄████████    ▄████████  ▄████████ ███    █▄   ▄█          ▄████████
+███   ▀███   ███    ███   ███    ███ ███    ███ ███    ███ ███         ███    ███
+███    ███   ███    ███   ███    ███ ███    █▀  ███    ███ ███         ███    ███
+███    ███  ▄███▄▄▄▄██▀   ███    ███ ███        ███    ███ ███         ███    ███
+███    ███ ▀▀███▀▀▀▀▀   ▀███████████ ███        ███    ███ ███       ▀███████████
+███    ███ ▀███████████   ███    ███ ███    █▄  ███    ███ ███         ███    ███
+███   ▄███   ███    ███   ███    ███ ███    ███ ███    ███ ███▌    ▄   ███    ███
+████████▀    ███    ███   ███    █▀  ████████▀  ████████▀  █████▄▄██   ███    █▀
+             ███    ███                                    ▀
+*/
+
+@import url('https://refact0r.github.io/midnight-discord/build/midnight.css');
+
+body {
+    --font: 'figtree';
+    --code-font: '';
+    font-weight: 400;
+    --gap: 12px;
+    --divider-thickness: 4px;
+    --border-thickness: 2px;
+    --animations: on;
+    --list-item-transition: 0.2s ease;
+    --dms-icon-svg-transition: 0.4s ease;
+    --border-hover-transition: 0.2s ease;
+    --top-bar-height: var(--gap);
+    --top-bar-button-position: titlebar;
+    --top-bar-title-position: off;
+    --subtle-top-bar-title: off;
+    --custom-window-controls: on;
+    --window-control-size: 14px;
+    --custom-dms-icon: custom;
+    --dms-icon-svg-url: url('https://raw.githubusercontent.com/CtorW/Vesktop-Discord/refs/heads/main/data/DracIcon.svg');
+    --dms-icon-svg-size: 90%;
+    --dms-icon-color-before: var(--icon-secondary);
+    --dms-icon-color-after: var(--white);
+    --custom-dms-background: off;
+    --dms-background-image-url: url('');
+    --dms-background-image-size: cover;
+    --dms-background-color: linear-gradient(70deg, var(--blue-2), var(--purple-2), var(--red-2));
+    --background-image: off;
+    --background-image-url: url('');
+    --transparency-tweaks: off;
+    --remove-bg-layer: off;
+    --panel-blur: off;
+    --blur-amount: 12px;
+    --bg-floating: var(--bg-3);
+    --custom-chatbar: aligned;
+    --chatbar-height: 47px;
+    --chatbar-padding: 8px;
+    --small-user-panel: on;
+}
+
+:root {
+    --colors: on;
+    --text-0: {{base}};
+    --text-1: {{text}};
+    --text-2: {{sky}};
+    --text-3: {{text}};
+    --text-4: {{overlay0}};
+    --text-5: {{overlay0}};
+    --bg-1: {{base}};
+    --bg-2: {{base}};
+    --bg-3: {{base}};
+    --bg-4: {{base}};
+    --hover: {{surface1}};
+    --active: {{surface1}};
+    --active-2: {{surface1}};
+    --message-hover: {{surface1}};
+    --accent-1: {{mauve}};
+    --accent-2: {{mauve}};
+    --accent-3: {{mauve}};
+    --accent-4: {{mauve}};
+    --accent-5: {{mauve}};
+    --accent-new: {{red}};
+    --mention: linear-gradient(to right, color-mix(in hsl, {{mauve}}, transparent 90%) 40%, transparent);
+    --mention-hover: linear-gradient(to right, color-mix(in hsl, {{mauve}}, transparent 95%) 40%, transparent);
+    --reply: linear-gradient(to right, color-mix(in hsl, {{text}}, transparent 90%) 40%, transparent);
+    --reply-hover: linear-gradient(to right, color-mix(in hsl, {{text}}, transparent 95%) 40%, transparent);
+    --online: {{green}};
+    --dnd: {{red}};
+    --idle: {{yellow}};
+    --streaming: {{mauve}};
+    --offline: {{overlay0}};
+    --border-light: {{surface1}};
+    --border: {{surface1}};
+    --border-hover: {{mauve}};
+    --button-border: {{surface1}};
+    --red: {{red}};
+    --orange: {{peach}};
+    --yellow: {{yellow}};
+    --green: {{green}};
+    --cyan: {{sky}};
+    --purple: {{mauve}};
+    --pink: {{pink}};
+}

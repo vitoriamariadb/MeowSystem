@@ -1,0 +1,19 @@
+[Unit]
+Description=MeowSystem — repõe o cosmic-panel quando o supervisor do COSMIC desiste
+Documentation=file:///usr/share/doc/meowsystem/painel.md
+PartOf=cosmic-session.target
+After=cosmic-session.target
+StartLimitIntervalSec=900
+StartLimitBurst=3
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/meow painel laco
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=15s
+KillMode=control-group
+SyslogIdentifier=meow-painel
+
+[Install]
+WantedBy=cosmic-session.target

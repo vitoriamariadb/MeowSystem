@@ -1,0 +1,288 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/comum.sh
+. "$RAIZ/scripts/lib/comum.sh"
+
+ORIGEM=""
+MAPA=""
+LEVADAS=""
+COR=""
+TEMA="${ICONES_TEMA:-MeowSystem-Icons}"
+BASE="$HOME/.local/share/icons/$TEMA"
+
+TAMANHOS=(22x22 scalable)
+declare -A TRACO=()
+declare -A TRACO_PROPRIO=()
+CONTEXTOS=(status actions devices)
+CONTRATOS=("$RAIZ/dados/contratos/nomes-de-sistema.tsv" "$RAIZ/dados/contratos/nomes-das-extensoes.tsv")
+declare -A CONTEXTO=()
+
+_pack_no_ar() {
+  local nome
+  nome="$(python3 "$RAIZ/scripts/pack.py" adocao "${PACK:-}" "${FLAVOR:-}" 2>/dev/null | sed -n 's/^nome=//p')" || nome=""
+  printf '%s' "${nome:-no ar}"
+}
+
+declare -A MAPA_LIDO=()
+declare -A ALIAS_OK=()
+
+_ler_mapa() {
+  local linha nome glifo marca
+  while IFS= read -r linha || [ -n "$linha" ]; do
+    case "$linha" in ''|'#'*) continue ;; esac
+    IFS=':' read -r nome glifo marca <<<"$linha"
+    [ -n "$nome" ] && [ -n "$glifo" ] || continue
+    MAPA_LIDO["$nome"]="$glifo"
+    if [ "${marca:-}" = "alias" ]; then ALIAS_OK["$glifo"]=1; fi
+  done < "$MAPA"
+  _ler_contexto
+  return 0
+}
+
+_ler_contexto() {
+  local nome contexto _resto contrato
+  for contrato in "${CONTRATOS[@]}"; do
+    [ -f "$contrato" ] || continue
+    while IFS=$'\t' read -r nome contexto _resto || [ -n "$nome" ]; do
+      case "$nome" in ''|'#'*) continue ;; esac
+      [ -n "${CONTEXTO[$nome]:-}" ] && continue
+      case "$contexto" in status|actions|devices) CONTEXTO["$nome"]="$contexto" ;; esac
+    done < "$contrato"
+  done
+  return 0
+}
+
+_dir_de() {
+  printf '%s/%s' "$1" "${CONTEXTO[$2]:-status}"
+}
+
+_dirs_no_tema() {
+  local tam ctx
+  for tam in "${TAMANHOS[@]}"; do
+    for ctx in "${CONTEXTOS[@]}"; do
+      [ -d "$BASE/$tam/$ctx" ] && printf '%s\t%s\n' "$tam" "$ctx"
+    done
+  done
+  return 0
+}
+
+_fora_do_mapa() {
+  local tam="$1" ctx="$2" nome="$3"
+  [ -z "${MAPA_LIDO[$nome]:-}" ] || [ "$(_dir_de "$tam" "$nome")" != "$tam/$ctx" ]
+}
+
+_conferir_gemeos() {
+  local nome glifo erro=0
+  declare -A visto=()
+  for nome in "${!MAPA_LIDO[@]}"; do
+    glifo="${MAPA_LIDO[$nome]}"
+    if [ -n "${visto[$glifo]:-}" ] && [ -z "${ALIAS_OK[$glifo]:-}" ]; then
+      meow_erro "dois ícones receberiam o mesmo desenho '$glifo': '$nome' e '${visto[$glifo]}'"
+      meow_erro "  decida: troque um dos dois, ou marque a repetição com ':alias' no mapa"
+      erro=1
+    fi
+    visto["$glifo"]="$nome"
+  done
+  [ "$erro" = 0 ] || return "$MEOW_ERRO"
+  return "$MEOW_OK"
+}
+
+_restos() {
+  local tam ctx arq
+  while IFS=$'\t' read -r tam ctx; do
+    for arq in "$BASE/$tam/$ctx"/*.svg; do
+      [ -e "$arq" ] && printf '%s\n' "$arq"
+    done
+  done < <(_dirs_no_tema)
+  return 0
+}
+
+_sem_acervo() {
+  local modo="$1" arq n=0
+  while IFS= read -r arq; do
+    n=$((n + 1))
+    [ "$modo" = --conferir ] && continue
+    if meow_seco; then
+      meow_muda "removeria $arq (o pack no ar não traz ícones do sistema)"
+    else
+      meow_destino_permitido "$arq" || return "$MEOW_ERRO"
+      rm -f "$arq"
+    fi
+  done < <(_restos)
+  if [ "$n" = 0 ]; then
+    meow_pula "o pack no ar não declara icones.sistema — nada a aplicar"
+    return "$MEOW_SEM_DEPENDENCIA"
+  fi
+  meow_muda "ícones do sistema de outro pack: $n a remover"
+  return "$MEOW_DIVERGENTE"
+}
+
+_pronto() {
+  local achado
+  if ! achado="$(meow_icones_de_status sistema)"; then
+    return 1
+  fi
+  IFS=$'\t' read -r ORIGEM MAPA COR <<<"$achado"
+  if [ ! -d "$ORIGEM" ] || [ ! -f "$MAPA" ]; then
+    return 1
+  fi
+  LEVADAS="$(_levadas sistema)"
+  _ler_traco
+  return "$MEOW_OK"
+}
+
+_ler_traco() {
+  local ref tam largura
+  TRACO=()
+  TRACO_PROPRIO=()
+  ref="$(meow_pack_dir)"
+  [ -n "$ref" ] || ref="$(meow_pack_padrao_dir || true)"
+  while IFS='=' read -r tam largura; do
+    [ -n "$tam" ] && [ -n "$largura" ] && TRACO["$tam"]="$largura"
+  done < <(python3 "$RAIZ/scripts/pack.py" traco-do-sistema "$ref" 2>/dev/null || true)
+  while IFS='=' read -r tam largura; do
+    [ -n "$tam" ] && [ -n "$largura" ] && TRACO_PROPRIO["$tam"]="$largura"
+  done < <(python3 "$RAIZ/scripts/pack.py" traco-do-sistema "$ref" proprio 2>/dev/null || true)
+  return 0
+}
+
+_traco_de() {
+  local arte="$1" tam="$2"
+  if [ -n "$LEVADAS" ] && [ "${arte#"$LEVADAS"/}" != "$arte" ]; then
+    printf '%s' "${TRACO_PROPRIO[$tam]:-}"
+  else
+    printf '%s' "${TRACO[$tam]:-}"
+  fi
+}
+
+_levadas() {
+  local ref
+  ref="$(meow_pack_dir)"
+  [ -n "$ref" ] || ref="$(meow_pack_padrao_dir || true)"
+  [ -n "$ref" ] || return 0
+  python3 "$RAIZ/scripts/pack.py" levadas "$ref" "$1" 2>/dev/null || true
+}
+
+_arte() {
+  local nome="$1" glifo="$2"
+  if [ -n "$LEVADAS" ] && [ -f "$LEVADAS/$nome.svg" ] && [ ! -L "$LEVADAS/$nome.svg" ]; then
+    printf '%s/%s.svg' "$LEVADAS" "$nome"
+  elif [ -f "$ORIGEM/$glifo.svg" ]; then
+    printf '%s/%s.svg' "$ORIGEM" "$glifo"
+  else
+    return 1
+  fi
+}
+
+_com_traco() {
+  local arq="$1" largura="$2"
+  if [ -z "$largura" ] || ! grep -q 'stroke="currentColor"' "$arq"; then
+    _com_cor < "$arq"
+    return 0
+  fi
+  if grep -q 'stroke-width' "$arq"; then
+    sed -E 's/stroke-width="[^"]*"/stroke-width="'"$largura"'"/g' "$arq"
+  else
+    sed -E 's/<(circle|rect|line|polyline|polygon|path|ellipse) /<\1 stroke-width="'"$largura"'" /g' "$arq"
+  fi | _com_cor
+}
+
+_com_cor() {
+  if [ -n "$COR" ]; then sed -E 's/currentColor/'"$COR"'/g'; else cat; fi
+}
+
+_desejado() {
+  local nome arte tam
+  for tam in "${TAMANHOS[@]}"; do
+    for nome in "${!MAPA_LIDO[@]}"; do
+      arte="$(_arte "$nome" "${MAPA_LIDO[$nome]}")" && printf '%s\t%s\t%s\n' "$(_dir_de "$tam" "$nome")" "$nome" "$arte"
+    done
+  done
+}
+
+_conferir() {
+  local dir nome arte divergentes=0 ausentes=0 orfaos=0 total=0 arq alvo tam ctx
+  while IFS=$'\t' read -r dir nome arte; do
+    total=$((total + 1))
+    alvo="$BASE/$dir/$nome.svg"
+    if [ ! -f "$alvo" ]; then
+      ausentes=$((ausentes + 1))
+    elif [ "$(_com_traco "$arte" "$(_traco_de "$arte" "${dir%%/*}")")" != "$(cat "$alvo")" ]; then
+      divergentes=$((divergentes + 1))
+    fi
+  done < <(_desejado)
+
+  while IFS=$'\t' read -r tam ctx; do
+    for arq in "$BASE/$tam/$ctx"/*.svg; do
+      [ -e "$arq" ] || continue
+      nome="$(basename "$arq" .svg)"
+      if _fora_do_mapa "$tam" "$ctx" "$nome"; then orfaos=$((orfaos + 1)); fi
+    done
+  done < <(_dirs_no_tema)
+
+  if [ "$ausentes" = 0 ] && [ "$divergentes" = 0 ] && [ "$orfaos" = 0 ]; then
+    meow_ok "$total ícone(s) do sistema já com os desenhos do pack $(_pack_no_ar)"
+    return "$MEOW_OK"
+  fi
+  meow_muda "ícones do sistema: $ausentes a instalar, $divergentes a atualizar, $orfaos a remover (de $total)"
+  return "$MEOW_DIVERGENTE"
+}
+
+_aplicar() {
+  local dir nome arte arq mudou=0 postos=0 removidos=0 rc tam ctx
+
+  while IFS=$'\t' read -r dir nome arte; do
+    set +e
+    meow_escrever "$BASE/$dir/$nome.svg" "$(_com_traco "$arte" "$(_traco_de "$arte" "${dir%%/*}")")" 644
+    rc=$?
+    set -e
+    case "$rc" in
+      "$MEOW_OK") ;;
+      "$MEOW_DIVERGENTE") mudou=1; postos=$((postos + 1)) ;;
+      *) meow_erro "não consegui escrever $BASE/$dir/$nome.svg"; return "$MEOW_ERRO" ;;
+    esac
+  done < <(_desejado)
+
+  while IFS=$'\t' read -r tam ctx; do
+    for arq in "$BASE/$tam/$ctx"/*.svg; do
+      [ -e "$arq" ] || continue
+      nome="$(basename "$arq" .svg)"
+      if _fora_do_mapa "$tam" "$ctx" "$nome"; then
+        if meow_seco; then
+          meow_muda "removeria $arq (saiu do mapa)"
+        else
+          meow_destino_permitido "$arq" || return "$MEOW_ERRO"
+          rm -f "$arq"
+        fi
+        mudou=1; removidos=$((removidos + 1))
+      fi
+    done
+  done < <(_dirs_no_tema)
+
+  if [ "$mudou" = 0 ]; then
+    meow_ok "ícones do sistema já com os desenhos do pack $(_pack_no_ar)"
+    return "$MEOW_OK"
+  fi
+  meow_info "ícones do sistema: $postos posto(s), $removidos removido(s)"
+  meow_info "os ícones novos aparecem no próximo login (o painel não relê o tema)"
+  return "$MEOW_DIVERGENTE"
+}
+
+main() {
+  case "${1:-}" in
+    --conferir|''|--aplicar) ;;
+    *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; return "$MEOW_ERRO" ;;
+  esac
+  _pronto || { _sem_acervo "${1:-}"; return $?; }
+  _ler_mapa
+  _conferir_gemeos || return $?
+  case "${1:-}" in
+    --conferir) _conferir ;;
+    ''|--aplicar) _aplicar ;;
+    *) meow_erro "uso: $(basename "$0") [--conferir|--aplicar]"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+main "$@"

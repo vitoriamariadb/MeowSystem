@@ -1,0 +1,9 @@
+[Unit]
+Description=MeowSystem — relê a fila do COSMIC depois de um apt
+
+[Path]
+PathChanged=/var/lib/meowsystem/apt-mudou
+Unit=meow-sentinela.service
+
+[Install]
+WantedBy=default.target

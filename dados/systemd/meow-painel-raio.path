@@ -1,0 +1,13 @@
+[Unit]
+Description=MeowSystem — vigia a geometria das barras e clampa o raio que não couber
+PartOf=cosmic-session.target
+
+[Path]
+PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Panel
+PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Panel/@V_PANEL@
+PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Dock
+PathChanged=%h/.config/cosmic/com.system76.CosmicPanel.Dock/@V_DOCK@
+Unit=meow-painel-raio.service
+
+[Install]
+WantedBy=cosmic-session.target

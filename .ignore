@@ -1,0 +1,7 @@
+packs/*/temas-de-apps/*/upstream/
+packs/*/temas-de-apps/*/vendor/
+catalog.json
+PROCEDENCIA.md
+packs/*/temas/capturados/
+packs/CAMINHOS-DE-ANTES.tsv
+tests/auxiliares/conf-de-antes/

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="VOID | QRcode">
+  <title>qrcode-void-generator — resgatado do PNG</title>
+  <defs>
+    <radialGradient id="qrcode-void-sphere" gradientUnits="userSpaceOnUse" cx="23.95" cy="25.05" r="21.04" gradientTransform="matrix(1.7 0 0 1 -16.77 0)">
+      <stop offset="0" stop-color="#674281"/>
+      <stop offset="0.29" stop-color="#65417f"/>
+      <stop offset="0.36" stop-color="#5f4177"/>
+      <stop offset="0.46" stop-color="#593f6c"/>
+      <stop offset="0.62" stop-color="#48315b"/>
+      <stop offset="0.74" stop-color="#3e2f50"/>
+      <stop offset="0.86" stop-color="#372845"/>
+      <stop offset="0.98" stop-color="#2f203a"/>
+      <stop offset="1" stop-color="#2d1f38"/>
+    </radialGradient>
+    <linearGradient id="qrcode-void-rim" gradientUnits="userSpaceOnUse" x1="7.5" y1="7.5" x2="40" y2="40">
+      <stop offset="0" stop-color="#3b3349"/>
+      <stop offset="0.55" stop-color="#2a2534"/>
+      <stop offset="1" stop-color="#0d0b12"/>
+    </linearGradient>
+    <clipPath id="qrcode-void-ball">
+      <ellipse cx="24" cy="24.05" rx="20.18" ry="20.09"/>
+    </clipPath>
+  </defs>
+
+  <!-- disco de fundo, com aro claro no contorno -->
+  <ellipse cx="23.99" cy="23.89" rx="23.4" ry="23.3" fill="url(#qrcode-void-rim)"/>
+  <ellipse cx="23.99" cy="23.89" rx="23.14" ry="23.04" fill="#000000"/>
+
+  <!-- esfera com o brilho roxo vindo do centro -->
+  <ellipse cx="24" cy="24.05" rx="20.18" ry="20.09" fill="url(#qrcode-void-sphere)"/>
+
+  <!-- faixas do funil, abaixo do disco -->
+  <g clip-path="url(#qrcode-void-ball)">
+    <path d="M0 26.36 L4.73 26.36 A19.27 4.84 0 0 0 43.27 26.36 L48 26.36 L48 48 L0 48 Z" fill="#554c68"/>
+    <path d="M0 31.57 L4.73 31.57 A19.27 4.01 0 0 0 43.27 31.57 L48 31.57 L48 48 L0 48 Z" fill="#372f45"/>
+    <path d="M0 36.33 L4.73 36.33 A19.27 3.71 0 0 0 43.27 36.33 L48 36.33 L48 48 L0 48 Z" fill="#272130"/>
+  </g>
+
+  <!-- arco do disco lenteado, passando por cima do buraco -->
+  <ellipse cx="24.05" cy="23.82" rx="3.75" ry="3.3" fill="none" stroke="#d3cfe6" stroke-width="0.85"/>
+
+  <!-- disco de acreção -->
+  <ellipse cx="24" cy="26.36" rx="19.27" ry="4.84" fill="#d5cde5"/>
+  <ellipse cx="24" cy="26.81" rx="10.82" ry="2.72" fill="#564c68"/>
+  <ellipse cx="24" cy="26.25" rx="6.94" ry="1.5" fill="#000000"/>
+
+  <!-- anel de fótons -->
+  <circle cx="24.05" cy="24.85" r="4.19" fill="none" stroke="#d9d0ec" stroke-width="0.83"/>
+
+  <!-- lado de cá do disco, cobrindo a base do anel -->
+  <path d="M17.06 26.25 A6.94 1.5 0 0 0 30.94 26.25 L34.82 26.81 A10.82 2.72 0 0 1 13.18 26.81 Z" fill="#564c68"/>
+
+  <!-- o vazio -->
+  <circle cx="24.05" cy="24.65" r="2.16" fill="#000000"/>
+</svg>

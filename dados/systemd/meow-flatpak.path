@@ -1,0 +1,11 @@
+[Unit]
+Description=MeowSystem — vigia o flatpak e repõe o ícone da bandeja que o update desfez
+Documentation=file:%h/.local/state/meowsystem/flatpak.log
+
+[Path]
+PathModified=%h/.local/share/flatpak/.changed
+PathModified=/var/lib/flatpak/.changed
+Unit=meow-flatpak.service
+
+[Install]
+WantedBy=default.target

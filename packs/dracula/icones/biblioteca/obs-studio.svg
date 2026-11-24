@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- OBS Studio: disco salmão com aro branco e vinho, e um olho de íris em diafragma. -->
+  <g transform="scale(.125)" fill="none" stroke="#FFFFFF" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="512" cy="512" r="428" fill="#521D25" stroke="none"/>
+    <circle cx="512" cy="512" r="402" fill="#FFFFFF" stroke="none"/>
+    <circle cx="512" cy="512" r="360" fill="#EB735C" stroke="none"/>
+    <!-- o olho -->
+    <path d="M278 512C340 430 430 369 510 369C590 369 680 430 744 512C680 595 590 655 510 655C430 655 340 595 278 512Z" stroke-width="18"/>
+    <!-- lâminas do diafragma -->
+    <path d="M412 397C385 420 365 455 361 495C359 530 370 565 400 615L415 625"/>
+    <path d="M372 490C390 475 410 465 427 459"/>
+    <path d="M435 392C455 398 475 408 490 420"/>
+    <path d="M540 372C550 385 560 410 567 432"/>
+    <path d="M612 397C645 430 665 480 665 530C655 575 635 600 582 633"/>
+    <path d="M635 442C628 460 615 475 602 482"/>
+    <path d="M417 520C400 540 390 560 387 577"/>
+    <path d="M462 595C463 615 464 630 465 645"/>
+    <path d="M520 602C535 615 545 622 582 633"/>
+    <path d="M580 577C610 573 640 565 665 545"/>
+    <path d="M325 485C340 475 350 472 362 472M325 535C340 545 350 545 362 545"/>
+    <path d="M700 485C688 475 675 472 662 472M700 535C688 545 675 545 662 545"/>
+    <!-- íris, pupila em fenda e brilho -->
+    <circle cx="512" cy="512" r="90" fill="#EB735C" stroke-width="12"/>
+    <circle cx="512" cy="512" r="70" stroke-width="12"/>
+    <path d="M510 452C505 480 497 500 498 525C499 545 505 552 510 552C516 552 522 545 523 525C523 500 515 480 510 452Z" stroke-width="12"/>
+    <circle cx="547" cy="485" r="11" fill="#FFFFFF" stroke="none"/>
+  </g>
+</svg>

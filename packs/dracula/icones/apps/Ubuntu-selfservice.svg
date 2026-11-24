@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Área de trabalho remota">
+  <title>Ubuntu-selfservice — a tela de outra máquina, à distância</title>
+
+  <!-- máquina local: monitor, pé e base -->
+  <rect x="20.00" y="32.50" width="8.00" height="6.00" fill="#565a72"/>
+  <rect x="12.00" y="38.00" width="24.00" height="4.00" rx="2.00" fill="#565a72"/>
+  <rect x="2.50" y="5.00" width="43.00" height="29.50" rx="3.50" fill="#565a72"/>
+  <rect x="5.50" y="8.00" width="37.00" height="23.50" rx="1.50" fill="#191a21"/>
+
+  <!-- o enlace: o sinal que atravessa a distância -->
+  <g fill="none" stroke="#62d6e8" stroke-width="1.90" stroke-linecap="round">
+    <path d="M11.69,16.17 A4.00,4.00 0 0 1 11.69,23.43"/>
+    <path d="M13.47,12.37 A8.20,8.20 0 0 1 13.47,27.23"/>
+  </g>
+  <circle cx="10.00" cy="19.80" r="1.45" fill="#62d6e8"/>
+
+  <!-- máquina remota: a tela de lá, dentro da tela de cá -->
+  <g fill="#bd93f9">
+    <rect x="21.50" y="12.50" width="18.00" height="10.50" rx="1.80"/>
+    <rect x="28.50" y="23.00" width="4.00" height="2.00"/>
+    <rect x="24.50" y="25.00" width="12.00" height="2.20" rx="1.10"/>
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+[Unit]
+Description=MeowSystem — refaz em escopo de usuário o que um apt do COSMIC desfez
+Documentation=file:%h/.local/state/meowsystem/pos-apt.log
+
+[Path]
+PathChanged=/var/lib/meowsystem/apt-mudou
+Unit=meow-pos-apt.service
+
+[Install]
+WantedBy=default.target

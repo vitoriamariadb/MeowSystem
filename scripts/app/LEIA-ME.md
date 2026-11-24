@@ -1,0 +1,103 @@
+# `scripts/app/`: o painel
+
+Uma página local que faz pela tela tudo o que se faz editando o `~/.config/meow/meow.conf` ou
+digitando `meow`. As 132 chaves, com o valor escolhido, o de fábrica e o porquê atrás do **?**; e
+68 ações, com a saída aparecendo ao vivo enquanto rodam.
+
+```bash
+./scripts/app/run.sh        # ou: meow abrir, ou o ícone MeowSystem no lançador
+```
+
+`scripts/app/` e não `painel/` porque «painel» já é a barra de cima do COSMIC (`scripts/painel.sh`,
+`meow-painel.service`). `apps`, no plural, são os programas que o projeto tematiza; `app` é este.
+
+## O que tem dentro
+
+```
+scripts/app/
+  run.sh          sobe o servidor, abre o navegador e derruba tudo ao sair
+  servidor.py     lê o conf, escreve pelo meow_conf_definir, roda as ações
+  pagina/
+    index.html    o esqueleto (nenhum nome de chave nele)
+    lugares.js    as seis portas e o que cada uma mostra
+    app.js        monta a tela a partir do que o servidor derivou
+    paginas.js    Tema, Personalizar e Manter
+    oficina.js    o seletor e a oficina de ícones
+    extensoes.js  a porta Extensões: applets, builds e Adicionar repositório
+    mesa.js       a prévia da área de trabalho no cartão do pack e em Personalizar
+    estilo.css    o visual (nenhum hex nele)
+```
+
+## As portas
+
+| porta | o que tem |
+|---|---|
+| **Tema** | um cartão por pack instalado: logo, paleta, o que é próprio e o que herda. **Aplicar tema**, **Remover**, **Abrir um tema** (`.meowpack` ou `.csv` de cores) |
+| **Personalizar** | os passos Cores, Ícones, Papel de parede, Sons e Usar e compartilhar (**Baixar o tema**) |
+| **Ajustes** | barra e dock, janelas, papel de parede, mascote, dia e noite, terminal, programas |
+| **Manutenção** | o doctor e o **Consertar**, as pendências, **Exportar ajustes** e **Importar ajustes** |
+| **Extensões** | as abas **Applets** (um cartão por applet: Instalar, Adicionar à barra, Remover) e **Builds** (compositor, menu do Arquivos e cada applet, com **Recompilar**), e **Adicionar repositório** |
+| **Modificações** | um cartão por programa que recebe o tema: ligar, desligar, aplicar, e as correções de cada um |
+
+Cada controle grava ao soltar e aplica só o que a chave governa. A barra de cima tem
+**Desfazer**, **Buscar** e **Reiniciar a barra**.
+
+## O catálogo é derivado
+
+Não existe lista de chaves aqui. O `servidor.py` lê o `meow.conf.exemplo` e tira de lá, para cada
+chave, a ordem, a seção, o comentário que a explica, as opções, a faixa, se é lista, horário ou
+vazio, e se é essencial. São as mesmas regras do `wiz_ler_esquema` do `scripts/meow`: uma chave nova
+no exemplo aparece na página sozinha. O `tests/app.sh` compara as duas leituras.
+
+## Quem escreve
+
+- **No `meow.conf`, só o `meow_conf_definir`** do `scripts/lib/comum.sh`, numa escrita só por lote:
+  o disco cheio não deixa metade do lote gravada. Uma segunda rotina de escrita na mesma chave
+  é defeito.
+- **Gravar** é `/api/definir` (uma chave) ou `/api/salvar` (um lote): confere, grava e entrega à fila
+  de aplicação, que roda `./install.sh --etapa` só com as etapas que a tabela
+  `dados/contratos/chave-etapa.tsv` liga à chave. Uma escolha recusada barra o lote inteiro, antes
+  de qualquer escrita. Se a aplicação falha, vira pendência.
+- **Toda ação** mostra uma linha de progresso logo abaixo da barra de cima, com **Parar**; fim bom some,
+  erro vira aviso (decisão 18). Não há janela de resultado nem interruptor de ensaio; um `MEOW_DRY_RUN`
+  herdado do terminal sai do ambiente de tudo que o painel roda.
+- **Restaurar** grava o valor de fábrica e só aparece quando o valor difere (decisão 10).
+- **Importar ajustes** grava o lote na hora e entra na barra para desfazer.
+- **Um trabalho por vez.** O `install.sh` e o `meow doctor --consertar` pegam o `flock` de
+  `~/.local/state/meowsystem/lock`; o servidor recusa o segundo e diz qual está correndo. A saída
+  fica no servidor: a página pode recarregar e voltar ao mesmo trabalho.
+- **A interface nunca pede senha** (decisão 11). O que precisa de root passa pela ponte
+  ([`docs/FRONTEIRA.md`](../../docs/FRONTEIRA.md#a-ponte-root)).
+- **O painel mostra a máquina.** As chaves vazias («não tocar») mostram o que o COSMIC guarda
+  agora (`NA_MAQUINA` no `servidor.py`), e a página relê quando um trabalho termina.
+
+## Como ele é servido
+
+`python3` da biblioteca padrão (`http.server`), sem dependência nova.
+
+- `127.0.0.1` em porta efêmera; nenhum bind em `0.0.0.0`.
+- Token de sessão sorteado a cada execução, comparado com `hmac.compare_digest`; o `app.js` o tira
+  da barra de endereço no primeiro instante e ele não vai para disco.
+- `Host` conferido contra `(127.0.0.1|localhost):<porta>` (fecha o DNS rebinding); `Origin`,
+  quando vem, tem de bater.
+- Nenhum comando vem da página como texto: ela manda o `id` de uma ação de um dicionário fechado, e
+  o argumento é conferido contra uma lista montada do disco. Não há `shell=True`.
+- O `run.sh --sem-abrir` recusa o HOME da conta sem `MEOW_QA_HOME_REAL=1` (decisão 8).
+
+## A cor não mora no CSS
+
+O `estilo.css` não tem hex. Quem define `var(--base)`, `var(--accent)` e as outras é o
+`/paleta.css`, que o servidor gera da paleta do pack no ar, no flavor e no modo do `meow.conf`. O
+acento aparece só no que está ligado, selecionado ou é a ação principal.
+
+## Instalação e conferência
+
+| onde | o quê |
+|---|---|
+| `install.sh` | a etapa `atalho` (`scripts/atalho.sh`) |
+| `meow doctor` | a linha `atalho`: o `.desktop`, o lançador e o bit de execução |
+| `meow doctor --consertar` | o mesmo `scripts/atalho.sh` |
+| `install.sh --uninstall` | `atalho.sh --reverter` |
+
+O `.desktop` aponta para `~/.local/bin/meow-painel`, não para o clone: o lançador resolve a raiz
+pelo ponteiro `~/.local/state/meowsystem/raiz` e, quando não a acha, avisa por notificação.

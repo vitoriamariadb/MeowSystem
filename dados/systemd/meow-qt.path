@@ -1,0 +1,11 @@
+[Unit]
+Description=MeowSystem — vigia o qt5ct/qt6ct e repõe o tema de ícones que o COSMIC devolve ao padrão no login
+Documentation=file:%h/.local/state/meowsystem/qt.log
+
+[Path]
+PathChanged=%h/.config/qt5ct
+PathChanged=%h/.config/qt6ct
+Unit=meow-qt.service
+
+[Install]
+WantedBy=default.target

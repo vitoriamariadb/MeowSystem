@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>notification-symbolic — notificações: um sino de campanário com um morcego de asas abertas no lugar do badalo</title>
+  <path fill="currentColor" fill-rule="evenodd" transform="translate(8 0.5) scale(0.86) translate(-8 -0.5)" d="M8,2 C10.3,2 11.3,3.3 11.5,5.2 C11.7,7.3 12.1,9 13.9,10 Q14.7,10.5 14.5,11.2 L14.3,11.7 H1.7 L1.5,11.2 Q1.3,10.5 2.1,10 C3.9,9 4.3,7.3 4.5,5.2 C4.7,3.3 5.7,2 8,2 Z M6.9,2.4 V1.2 Q6.9,0.5 7.6,0.5 H8.4 Q9.1,0.5 9.1,1.2 V2.4 Z M4,8.2 H12 L12.3,8.9 H3.7 Z"/>
+  <path fill="currentColor" d="M 8,12.36 L 8.68,11.28 L 8.95,12.36 Q 9.53,12.63 9.98,12.36 Q 10.79,11.91 11.51,11.1 Q 11.2,12.27 11.29,13.53 Q 10.57,12.99 10.07,14.02 Q 9.44,13.44 8.95,14.43 Q 8.72,15.24 8,15.6 Q 7.28,15.24 7.05,14.43 Q 6.56,13.44 5.93,14.02 Q 5.44,12.99 4.71,13.53 Q 4.8,12.27 4.49,11.1 Q 5.21,11.91 6.02,12.36 Q 6.47,12.63 7.05,12.36 L 7.33,11.28 L 8,12.36 Z"/>
+</svg>

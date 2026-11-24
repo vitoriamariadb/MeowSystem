@@ -1,0 +1,179 @@
+{
+ "eventos": [
+  {
+   "evento": "message-new-instant",
+   "nome": "Mensagem nova",
+   "quando": "Um app manda notificação",
+   "grupo": "cosmic",
+   "ponte": false
+  },
+  {
+   "evento": "power-plug",
+   "nome": "Na tomada",
+   "quando": "O carregador entra",
+   "grupo": "cosmic",
+   "ponte": true
+  },
+  {
+   "evento": "power-unplug",
+   "nome": "Fora da tomada",
+   "quando": "O carregador sai",
+   "grupo": "cosmic",
+   "ponte": true
+  },
+  {
+   "evento": "power-unplug-battery-low",
+   "nome": "Bateria acabando",
+   "quando": "O carregador sai com a bateria fraca",
+   "grupo": "cosmic",
+   "ponte": true
+  },
+  {
+   "evento": "battery-caution",
+   "nome": "Bateria baixa",
+   "quando": "Primeiro aviso da bateria",
+   "grupo": "cosmic",
+   "ponte": true
+  },
+  {
+   "evento": "battery-low",
+   "nome": "Bateria fraca",
+   "quando": "Último aviso da bateria",
+   "grupo": "cosmic",
+   "ponte": true
+  },
+  {
+   "evento": "dialog-warning",
+   "nome": "Aviso",
+   "quando": "Uma janela de aviso do sistema abre",
+   "grupo": "cosmic",
+   "ponte": true
+  },
+  {
+   "evento": "complete",
+   "nome": "Tarefa pronta",
+   "quando": "Uma cópia ou um download termina",
+   "grupo": "cosmic",
+   "ponte": true
+  },
+  {
+   "evento": "message-new-email",
+   "nome": "E-mail novo",
+   "quando": "Chega um e-mail",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "message",
+   "nome": "Mensagem",
+   "quando": "Um app chama",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "device-added",
+   "nome": "Pendrive entrou",
+   "quando": "Um pendrive é ligado",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "device-removed",
+   "nome": "Pendrive saiu",
+   "quando": "Um pendrive é tirado",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "screen-capture",
+   "nome": "Captura de tela",
+   "quando": "Um print é tirado",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "desktop-screen-lock",
+   "nome": "Tela bloqueada",
+   "quando": "A tela é bloqueada",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "battery-full",
+   "nome": "Bateria cheia",
+   "quando": "A carga completa",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "alarm-clock-elapsed",
+   "nome": "Despertador",
+   "quando": "Um alarme toca",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "software-update-urgent",
+   "nome": "Atualização urgente",
+   "quando": "Uma atualização importante chega",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "system-ready",
+   "nome": "Sistema pronto",
+   "quando": "A sessão começa",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "system-shutdown",
+   "nome": "Desligando",
+   "quando": "O computador desliga",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "window-attention-inactive",
+   "nome": "Janela pedindo atenção",
+   "quando": "Uma janela no fundo chama",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "bell",
+   "nome": "Sino",
+   "quando": "O terminal apita",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "camera-shutter",
+   "nome": "Foto tirada",
+   "quando": "A câmera tira foto",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "camera-focus",
+   "nome": "Foco da câmera",
+   "quando": "A câmera foca",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "count-down",
+   "nome": "Contagem",
+   "quando": "Uma contagem regressiva",
+   "grupo": "apps",
+   "ponte": false
+  },
+  {
+   "evento": "theme-demo",
+   "nome": "Amostra do tema",
+   "quando": "Ao conhecer o pacote de sons",
+   "grupo": "apps",
+   "ponte": false
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Espelho de mesa oval com um gato refletido; grade 512 reduzida por 0,25 -->
+  <g transform="scale(0.25)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="226" fill="#A5ABB4" stroke="#393A3C" stroke-width="12"/>
+    <!-- hastes em U e pé, escuras com contorno claro -->
+    <path d="M177 222 V262 Q177 334 256 342 Q335 334 335 262 V222" stroke="#F1F2F3" stroke-width="19"/>
+    <path d="M177 222 V262 Q177 334 256 342 Q335 334 335 262 V222" stroke="#393A3C" stroke-width="12"/>
+    <path d="M218 380 Q218 362 248 359 V340 H264 V359 Q294 362 294 380 Z" fill="#393A3C" stroke="#F1F2F3" stroke-width="4"/>
+    <!-- moldura: faixa escura entre dois filetes claros -->
+    <ellipse cx="256" cy="234" rx="60" ry="90" fill="#A5ABB4" stroke="#F1F2F3" stroke-width="22"/>
+    <ellipse cx="256" cy="234" rx="60" ry="90" stroke="#393A3C" stroke-width="16"/>
+    <path d="M258 168 L221 205 M273 173 L226 220" stroke="#F1F2F3" stroke-width="3.5"/>
+    <!-- gato refletido, em traço -->
+    <path d="M243 212 L248 228 Q236 230 224 238 Q224 245 238 243 Q246 250 248 262 Q250 282 254 296 Q258 282 262 268 Q272 260 278 250 Q284 240 280 226 L281 210 L270 219 Q258 215 243 212 Z" stroke="#F1F2F3" stroke-width="4"/>
+    <path d="M252 238 l4 2 M259 242 l5 0 M266 238 l4 -2" stroke="#F1F2F3" stroke-width="3"/>
+  </g>
+</svg>

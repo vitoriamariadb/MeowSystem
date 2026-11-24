@@ -1,0 +1,18 @@
+[Unit]
+Description=MeowSystem — repõe o tema de ícones do Qt (qt5ct/qt6ct) desfeito pelo cosmic-settings-daemon
+Documentation=file:%h/.local/state/meowsystem/qt.log
+ConditionPathExists=%h/.local/state/meowsystem/raiz
+StartLimitIntervalSec=300s
+StartLimitBurst=20
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c 'C=%h/.config/meow/meow.conf; [ -f "$C" ] || exit 1; . "$C"; [ "${AUTO_REPARO:-sim}" = "sim" ] || exit 1; A=",$(printf %%s "${APPS_ATIVOS:-}" | tr -d " "),"; case "$A" in *,qt5ct,*|*,qt,*|*,gtk,*) exit 0 ;; esac; exit 1'
+ExecStartPre=-/bin/mkdir -p %h/.local/state/meowsystem
+ExecStartPre=-/usr/bin/sleep 2
+ExecStart=/usr/bin/flock -w 60 -E 0 %h/.local/state/meowsystem/lock /bin/sh -c 'R=$(cat %h/.local/state/meowsystem/raiz); [ -x "$R/scripts/aplicar_apps.sh" ] || exit 3; . %h/.config/meow/meow.conf; export FLAVOR ACCENT NOME_TEMA_ICONES ICONES_COR_MARCA; APPS_ATIVOS=qt5ct; export APPS_ATIVOS; exec "$R/scripts/aplicar_apps.sh" aplicar'
+SuccessExitStatus=1 3
+TimeoutStartSec=3min
+StandardOutput=append:%h/.local/state/meowsystem/qt.log
+StandardError=inherit
+SyslogIdentifier=meow-qt

@@ -1,0 +1,14 @@
+[Unit]
+Description=MeowSystem — o relógio do modo de leitura (vira o degrau na hora)
+Documentation=man:systemd.timer(5)
+PartOf=cosmic-session.target
+After=cosmic-session.target
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=20s
+Persistent=false
+Unit=meow-leitura.service
+
+[Install]
+WantedBy=cosmic-session.target

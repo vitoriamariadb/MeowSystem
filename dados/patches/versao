@@ -1,0 +1,18 @@
+# versao — a versão do pacote cosmic-comp contra a qual a série vale.
+#
+# Uma versão por linha, exatamente como o `dpkg-query -W cosmic-comp` a escreve.
+#
+# O `aplicar` já roda o dry-run de todos com `-F0`, e isso pega o hunk cujo
+# contexto mudou.
+#
+# `meow compositor validar` baixa o fonte da versão INSTALADA e roda o dry-run
+# da série nele, sem escrever na árvore.
+#
+#   Ela não está aqui porque não foi validada, e hoje NÃO PODE ser: o
+#   repositório do Pop já não serve o fonte dela (`apt-get source` devolve 404
+#   no `.tar.xz`). O caminho é atualizar o cosmic-comp — o apt traz binário e
+#   fonte da mesma versão — e validar a série nessa.
+# 0.1~1788962084~24.04~a557859
+
+# O `dados/patches/` não guarda variante por versão: há UM arquivo por patch.
+0.1~1795099112~24.04~abb6ebc

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Krita: disco verde com aro escuro, um pincel e quatro runas brilhando embaixo. -->
+  <!-- o desenho original é um quadro de 744 x 700; ele vai centrado num quadrado de 744 -->
+  <g transform="scale(.17204)">
+    <circle cx="372" cy="372" r="346" fill="#3B5C33"/>
+    <circle cx="372" cy="372" r="275" fill="#98C388"/>
+    <!-- pincel: cabo, virola e cerdas -->
+    <path d="M512 211C524 208 532 214 529 228C520 262 492 296 467 320C447 340 430 355 415 367L392 352C410 330 420 313 436 290C460 255 485 225 512 211Z" fill="#FDFDFD"/>
+    <circle cx="507" cy="238" r="7" fill="#98C388"/>
+    <path d="M380 363L391 354L414 369L402 383Z" fill="#FDFDFD"/>
+    <path d="M377 368C390 372 400 378 402 383C402 395 397 408 390 420C380 432 365 440 347 441C330 441 318 436 313 429C322 422 330 415 337 403C342 392 343 380 357 372C364 369 370 368 377 368Z" fill="#FDFDFD"/>
+    <path d="M349 402C346 388 360 376 378 371" fill="none" stroke="#98C388" stroke-width="3" stroke-linecap="round"/>
+    <path d="M322 424C330 424 336 421 340 418" fill="none" stroke="#98C388" stroke-width="3" stroke-linecap="round"/>
+    <!-- runas -->
+    <g fill="none" stroke="#FDFDFD" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M222 438V523M222 501L209 511L222 523"/>
+      <path d="M243 438V523M246 456L262 445M246 466L257 481L246 497M246 502L266 514"/>
+      <path d="M278 438V523M278 438L294 449L280 457M280 462L257 481L278 503M280 503L294 511L280 521"/>
+      <path d="M308 437L337 470L309 476M308 437V505L328 524M328 497V524"/>
+    </g>
+  </g>
+</svg>

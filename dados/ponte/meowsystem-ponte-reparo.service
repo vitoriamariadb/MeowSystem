@@ -1,0 +1,12 @@
+[Unit]
+Description=MeowSystem: repor a ponte root a partir da reserva
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/meowsystem/reparar_ponte.sh
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/sudoers.d -/usr/local/lib/meowsystem

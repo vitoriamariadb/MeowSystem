@@ -1,0 +1,15 @@
+[Unit]
+Description=MeowSystem — o relógio do mascote (troca no nascer e no pôr da noite)
+Documentation=man:systemd.timer(5)
+PartOf=cosmic-session.target
+After=cosmic-session.target
+
+[Timer]
+OnActiveSec=30s
+OnCalendar=*-*-* *:00/5:00
+AccuracySec=60s
+Persistent=false
+Unit=meow-gato.service
+
+[Install]
+WantedBy=cosmic-session.target

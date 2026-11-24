@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Três lajes com runas sobre disco claro; grade 512 reduzida por 0,25 -->
+  <g transform="scale(0.25)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="242" fill="#24503F"/>
+    <circle cx="256" cy="256" r="216" fill="#B3CBBC"/>
+    <g stroke="#F8F8F2" stroke-width="3.5">
+      <rect x="150" y="143" width="40" height="222"/>
+      <path d="M232 142 H270 V232 L262 242 L270 252 V344 H232 Z"/>
+      <rect x="314" y="143" width="40" height="222"/>
+    </g>
+    <g stroke="#F8F8F2" stroke-width="3.5">
+      <!-- laje 1: runas cortadas pela fenda -->
+      <path d="M164 200 V162 H178 M164 162 L178 176"/>
+      <path d="M166 280 V246 H174 L178 252 L174 258 H166 L178 276 M168 218 V228"/>
+      <path d="M164 348 V318 H178 M164 318 L178 332"/>
+      <!-- laje 2 -->
+      <path d="M246 200 V162 H254 L260 168 L254 176 H246 M246 238 V260 M246 238 H254 L258 244 L254 250 H246 L258 260 M248 345 L254 318 L260 345 M246 334 H262"/>
+      <!-- laje 3 -->
+      <path d="M328 200 V160 H336 L342 168 L336 178 H328 L344 200"/>
+      <path d="M328 264 V232 H336 L342 240 L336 250 H328 L344 264 M328 346 V316 H336 L342 324 L336 334 H328 L344 346"/>
+    </g>
+  </g>
+</svg>

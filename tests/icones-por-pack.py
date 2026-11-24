@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+import importlib.util
+import os
+import shutil
+import sys
+import urllib.parse
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+_spec = importlib.util.spec_from_file_location("app_completo", os.path.join(AQUI, "app-completo.py"))
+casa = importlib.util.module_from_spec(_spec)
+_argv, sys.argv = sys.argv, [os.path.join(AQUI, "app-completo.py")]
+_spec.loader.exec_module(casa)
+sys.argv = _argv
+
+from playwright.sync_api import sync_playwright  # noqa: E402
+
+FOTOS = casa._arg("--fotos")
+LARGURAS = ((1920, 1080), (1550, 860), (1500, 900), (1280, 800))
+falhas = []
+
+
+def confere(cond, frase):
+    print(("ok: " if cond else "FALHOU: ") + frase)
+    if not cond:
+        falhas.append(frase)
+
+
+def esperar(pag, ms=600):
+    pag.wait_for_function("() => typeof ESQUEMA !== 'undefined' && ESQUEMA"
+                          " && !document.getElementById('conteudo').hasAttribute('aria-busy')", timeout=60000)
+    pag.wait_for_timeout(ms)
+
+
+def ir(pag, rota):
+    pag.evaluate(f"() => {{ location.hash = '#{rota}'; }}")
+    esperar(pag)
+
+
+def partir_de(pag, pack):
+    pag.evaluate("(p) => { const r = rascunho(); const f = (PACKS.find((x) => x.id === p).flavors || [])[0];"
+                 " r.base = { pack: p, flavor: f.id }; r.cores = {}; r.pack = ''; guardarRascunho(); render(); }", pack)
+    pag.wait_for_timeout(500)
+
+
+def aba(pag, nome):
+    pag.locator(f'[data-controle="icones:aba={nome}"]').click()
+    pag.wait_for_function("() => !document.querySelector('[aria-busy=\"true\"]')", timeout=30000)
+    pag.wait_for_timeout(500)
+
+
+def fontes_do_acervo(pag, pasta):
+    return pag.evaluate("(p) => [...document.querySelectorAll(`.grade-apps.pastas[data-acervo='${p}'] .app`)]"
+                        ".map((a) => ({ nome: a.querySelector('.nome').textContent, src: a.querySelector('img').src }))", pasta)
+
+
+GRUPOS = {"barra": "Barra e bandeja", "configuracoes": "Configurações", "janela": "Botões da janela",
+          "botoes": "Botões e janelas", "pastas": "Pastas", "tipos": "Tipos de arquivo"}
+GRUPOS_COM_ARTE_DE_EXTENSAO = {"soneca": "Soneca"}
+NOMES_DA_BARRA = {"system-shutdown-symbolic", "network-wireless-signal-excellent-symbolic"}
+
+
+def grupos_do_sistema(pag):
+    return pag.evaluate("""() => Object.fromEntries([...document.querySelectorAll(".grade-apps.pastas[data-acervo='sistema'][data-grupo]")]
+        .map((g) => [g.dataset.grupo, { titulo: g.closest("section.bloco").querySelector("h2").textContent,
+          nomes: [...g.querySelectorAll(".app")].map((a) => a.dataset.nome),
+          srcs: [...g.querySelectorAll(".app img")].map((i) => i.src) }]))""")
+
+
+def fotografar(pag, nome):
+    if not FOTOS:
+        return
+    os.makedirs(FOTOS, exist_ok=True)
+    pag.evaluate("() => Promise.all([...document.images].map((i) => { i.loading = 'eager';"
+                 " return i.complete ? null : new Promise((ok) => { i.onload = i.onerror = ok; }); }))")
+    pag.wait_for_timeout(300)
+    pag.screenshot(path=os.path.join(FOTOS, nome), full_page=True)
+
+
+def confere_sistema(pag, pack):
+    g = grupos_do_sistema(pag)
+    confere(set(g) - set(GRUPOS_COM_ARTE_DE_EXTENSAO) == set(GRUPOS)
+            and all(g[k]["titulo"] == v for k, v in {**GRUPOS, **GRUPOS_COM_ARTE_DE_EXTENSAO}.items() if k in g),
+            f"Sistema ({pack}): os grupos {', '.join(GRUPOS.values())} ({ {k: len(v['nomes']) for k, v in g.items()} })")
+    todos = {n for v in g.values() for n in v["nomes"]}
+    confere(NOMES_DA_BARRA <= set(g.get("barra", {}).get("nomes", [])),
+            f"Sistema ({pack}): {', '.join(sorted(NOMES_DA_BARRA))} na Barra e bandeja")
+    confere(len(todos) >= 168 + 7, f"Sistema ({pack}): tudo o que o tema instala, herdado incluído ({len(todos)})")
+    fotografar(pag, f"p131-sistema-{pack}.png")
+    return g
+
+
+def decodificado(src):
+    if src.startswith("data:"):
+        return urllib.parse.unquote(src.split(",", 1)[1])
+    return src
+
+
+def abrir_um_app(pag):
+    aba(pag, "apps")
+    if pag.locator(".desenho").count():
+        pag.locator('[data-controle="desenho:volta"]').click()
+        pag.wait_for_timeout(400)
+    botao = pag.locator("button.app[data-app]").first
+    app = botao.get_attribute("data-app")
+    botao.click()
+    pag.wait_for_selector(".desenho .oficina-cartao", timeout=60000)
+    pag.wait_for_function("() => !document.querySelector('.desenho-olho .bt[data-estado=\"carregando\"]')", timeout=60000)
+    pag.wait_for_timeout(800)
+    confere(pag.locator(".grade-apps").count() == 0, "a ficha do ícone abre no lugar da grade")
+    return app
+
+
+def main():
+    ambiente = casa.montar_casa()
+    proc, url = casa.sobe_servidor(ambiente)
+    if not url:
+        print("ERRO: o scripts/app/run.sh não imprimiu a URL")
+        return 2
+    try:
+        with sync_playwright() as p:
+            nav = p.chromium.launch()
+            pag = nav.new_page(viewport={"width": 1920, "height": 1080})
+            erros = []
+            pag.on("pageerror", lambda e: erros.append(str(e)))
+            pag.goto(url, wait_until="commit")
+            esperar(pag, 800)
+            ir(pag, "novo/icones")
+
+            partir_de(pag, "meowsystem")
+            aba(pag, "sistema")
+            sis = fontes_do_acervo(pag, "sistema")
+            nomes = {a["nome"] for a in sis}
+            confere({"Documentos", "Downloads"} <= nomes, f"Sistema (MeowSystem): pastas com nome legível ({sorted(nomes)[:6]})")
+            pastas_mew = [a for a in sis if a["nome"] == "Documentos"]
+            confere(bool(pastas_mew) and pastas_mew[0]["src"].startswith("data:"), "Sistema (MeowSystem): a pasta vem pintada na cor do tema")
+            g_mew = confere_sistema(pag, "meowsystem")
+            barra_mew = [decodificado(s) for s in g_mew.get("barra", {}).get("srcs", [])]
+            confere(bool(barra_mew) and all("stroke-width" in s and "currentColor" not in s for s in barra_mew),
+                    "Sistema (MeowSystem): a barra vem no traço, pintada na cor do texto")
+            aba(pag, "biblioteca")
+            bib_mew = fontes_do_acervo(pag, "biblioteca")
+            confere(len(bib_mew) > 36, f"Biblioteca (MeowSystem): a biblioteca inteira, não só os 36 de antes ({len(bib_mew)})")
+            fotografar(pag, "p131-biblioteca-meowsystem.png")
+            confere(len(bib_mew) > 0 and all("dracula" not in a["src"] for a in bib_mew), f"Biblioteca (MeowSystem): só o acervo do pack ({len(bib_mew)})")
+            confere(pag.locator('[data-controle^="levar:"]').count() == 0, "as abas Sistema e Biblioteca trocam pelo próprio cartão: sem botão de levar")
+
+            partir_de(pag, "dracula")
+            aba(pag, "sistema")
+            g_dra = confere_sistema(pag, "dracula")
+            pastas_dra = g_dra.get("pastas", {}).get("srcs", [])
+            confere(bool(pastas_dra) and all("%2Fdracula%2F" in s or "/dracula/" in decodificado(s) for s in pastas_dra),
+                    f"Sistema (Dracula): só as pastas do pack Dracula ({len(pastas_dra)})")
+            barra_dra = [decodificado(s) for s in g_dra.get("barra", {}).get("srcs", [])]
+            barra_mew_set = set(barra_mew)
+            confere(bool(barra_dra) and all("stroke-width=\"2.5\"" not in s for s in barra_dra) and barra_mew_set.isdisjoint(barra_dra),
+                    "Sistema (Dracula): a barra é o preenchido do Dracula, sem o traço do MeowSystem")
+            aba(pag, "biblioteca")
+            bib_dra = fontes_do_acervo(pag, "biblioteca")
+            fotografar(pag, "p131-biblioteca-dracula.png")
+            confere(len(bib_dra) > 0 and all("dracula" in decodificado(a["src"]) or a["src"].startswith("data:image/svg+xml") for a in bib_dra),
+                    f"Biblioteca (Dracula): só o acervo do pack Dracula ({len(bib_dra)})")
+            confere({a["src"] for a in bib_dra}.isdisjoint({a["src"] for a in bib_mew}), "a Biblioteca do Dracula não mistura a do MeowSystem")
+
+            partir_de(pag, "dracula")
+            app = abrir_um_app(pag)
+            confere(pag.locator('.desenho [data-gerador="circle"] .oficina-cartao').count() >= 3, "Dracula: o gerador mostra cartões de disco e glifo")
+            srcs = pag.evaluate("() => [...document.querySelectorAll('.desenho [data-gerador=\"circle\"] .oficina-cartao img')].map((i) => i.src)")
+            svgs = [decodificado(s) for s in srcs]
+            confere(bool(svgs) and all("<circle" in s or "solto" in s or "<path" in s for s in svgs) and all("stroke" not in s for s in svgs),
+                    "Dracula: os cartões são círculo com glifo cheio, sem traço")
+            confere(any("<circle" in s for s in svgs), "Dracula: há cartão com disco (circle)")
+            confere(pag.locator('.desenho .so-meowsystem [data-controle="oficina:detalhe"]').count() == 0, "Dracula: o ajuste do traço não aparece")
+            confere(pag.locator("#r-glifo").count() == 1, "Dracula: o ajuste do tamanho do glifo aparece")
+            confere(pag.evaluate("() => { const r = document.getElementById('r-glifo');"
+                                 " return Math.abs(parseFloat(r.style.getPropertyValue('--p')) - (r.value - r.min) / (r.max - r.min) * 100) < 0.01; }"),
+                    "Dracula: o trilho do glifo vai até o valor")
+
+            if FOTOS:
+                os.makedirs(FOTOS, exist_ok=True)
+                for larg, alt in LARGURAS:
+                    pag.set_viewport_size({"width": larg, "height": alt})
+                    pag.wait_for_timeout(400)
+                    pag.screenshot(path=os.path.join(FOTOS, f"painel-dracula-{larg}x{alt}.png"))
+
+            pag.set_viewport_size({"width": 1920, "height": 1080})
+            partir_de(pag, "meowsystem")
+            abrir_um_app(pag)
+            confere(pag.locator('.desenho [data-gerador="traco"] .oficina-cartao svg').count() >= 2, "MeowSystem: o gerador mostra cartões de traço")
+            traco = pag.evaluate("() => [...document.querySelectorAll('.desenho [data-gerador=\"traco\"] .oficina-cartao svg')]"
+                                 ".every((s) => s.outerHTML.includes('stroke'))")
+            confere(traco, "MeowSystem: os cartões são o traço do Arcticons (stroke)")
+            confere(pag.locator('.desenho [data-controle="oficina:detalhe"]').count() == 1, "MeowSystem: o ajuste de detalhe aparece")
+
+            if FOTOS:
+                for larg, alt in LARGURAS:
+                    pag.set_viewport_size({"width": larg, "height": alt})
+                    pag.wait_for_timeout(400)
+                    pag.screenshot(path=os.path.join(FOTOS, f"painel-meowsystem-{larg}x{alt}.png"))
+                pag.set_viewport_size({"width": 1920, "height": 1080})
+
+            partir_de(pag, "dracula")
+            app = abrir_um_app(pag)
+            pag.locator('.desenho section[data-gerador] .oficina-cartao[data-src]').first.click()
+            pag.locator('[data-controle="oficina:usar"]').click()
+            pag.wait_for_selector("#d-salvo:not([hidden])", timeout=60000)
+            guardado = pag.evaluate("() => rascunho().pack")
+            confere(bool(guardado), f"«Usar» guardou o tema sozinho ({guardado})")
+            pasta = os.path.join(casa.CASA, ".local", "share", "meowsystem", "packs", guardado or "?", "icones", "apps")
+            arqs = sorted(os.listdir(pasta)) if os.path.isdir(pasta) else []
+            confere(f"{app}.svg" in arqs, f"«Usar» gravou o desenho em icones/apps/ do pack ({app}.svg)")
+            confere(pag.locator("#d-salvo").is_visible(), "a tela diz «Guardado no pack»")
+            pag.locator("#d-desfazer").click()
+            pag.wait_for_function("() => document.getElementById('d-salvo').hidden", timeout=30000)
+            arqs2 = sorted(os.listdir(pasta)) if os.path.isdir(pasta) else []
+            confere(f"{app}.svg" not in arqs2, "«Desfazer» tira o desenho do pack")
+            confere(not erros, f"sem erro de script na página ({erros[:1]})")
+            nav.close()
+    finally:
+        proc.terminate()
+        if os.path.isdir(casa.CASA):
+            casa.encerrar_a_casa()
+        shutil.rmtree(casa.BRINQUEDO, ignore_errors=True)
+    if falhas:
+        print(f"FALHOU: {len(falhas)} conferência(s)")
+        return 1
+    print("ok: ícones por pack: abas, gerador de cada pack e «Usar» dentro do pack")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

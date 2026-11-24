@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>leitura-sol-symbolic — leitura de dia: o sol nascendo com os raios em ponta sobre as linhas da página</title>
+  <path fill="currentColor" d="M4.2,10 A3.8,3.8 0 0 1 11.8,10 Z"/>
+  <path fill="currentColor" d="M3.3,9.25 L1.1,10 L3.3,10.75 Z M5.21,6.15 L3.12,5.12 L4.15,7.21 Z M8.75,5.3 L8,3.1 L7.25,5.3 Z M11.85,7.21 L12.88,5.12 L10.79,6.15 Z M12.7,10.75 L14.9,10 L12.7,9.25 Z"/>
+  <path fill="currentColor" d="M0.6,11 H15.4 V12.3 H0.6 Z M2.5,14.4 H13.5 V15.7 H2.5 Z"/>
+</svg>

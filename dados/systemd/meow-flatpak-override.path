@@ -1,0 +1,10 @@
+[Unit]
+Description=MeowSystem — vigia o override global do Flatpak e tira dele o que o COSMIC devolve e quebra o app libadwaita
+Documentation=file:%h/.local/state/meowsystem/flatpak-override.log
+
+[Path]
+PathChanged=%h/.local/share/flatpak/overrides/global
+Unit=meow-flatpak-override.service
+
+[Install]
+WantedBy=default.target

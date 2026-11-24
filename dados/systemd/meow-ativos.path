@@ -1,0 +1,13 @@
+[Unit]
+Description=MeowSystem — vigia as pastas de papel de parede que giram e faz "apagar um papel de parede" valer
+Documentation=file:%h/.local/state/meowsystem/raiz
+PartOf=cosmic-session.target
+After=cosmic-session.target
+
+[Path]
+PathModified=@PACK@
+PathModified=@MINHAS@
+Unit=meow-wallpaper.service
+
+[Install]
+WantedBy=cosmic-session.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=MeowSystem — mede o COSMIC da fila do apt antes de atualizar
+Documentation=file:%h/.local/state/meowsystem/sentinela.tsv
+
+[Timer]
+OnCalendar=*-*-* 12:00:00
+Persistent=true
+RandomizedDelaySec=30min
+AccuracySec=1min
+Unit=meow-sentinela.service
+
+[Install]
+WantedBy=timers.target

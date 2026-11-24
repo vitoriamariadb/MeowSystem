@@ -1,0 +1,14 @@
+[Unit]
+Description=MeowSystem — dispara o auto-reparo diário do tema
+Documentation=man:systemd.timer(5)
+PartOf=graphical-session.target
+
+[Timer]
+OnCalendar=*-*-* 05:00:00
+Persistent=true
+RandomizedDelaySec=20min
+AccuracySec=1min
+Unit=meow-doctor.service
+
+[Install]
+WantedBy=graphical-session.target

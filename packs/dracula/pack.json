@@ -1,0 +1,196 @@
+{
+  "formato": 2,
+  "id": "dracula",
+  "nome": "Dracula",
+  "versao": "1.0.0",
+  "autor": "AndreBFarias",
+  "licenca": "GPL-3.0-or-later",
+  "creditos": "CREDITOS.md",
+  "vitrine": {
+    "capa": "logo.svg",
+    "descricao_curta": "O roxo do Dracula, com os morcegos de mascote.",
+    "descricao": "LEIA-ME.md",
+    "tags": [
+      "escuro",
+      "claro",
+      "roxo",
+      "alto contraste"
+    ],
+    "site": "https://draculatheme.com"
+  },
+  "mascote": {
+    "desenhos": "mascote/",
+    "dia": "morcego-dia",
+    "noite": "morcego-noite"
+  },
+  "heranca": "meowsystem",
+  "paleta": {
+    "arquivo": "paleta.json",
+    "flavor_padrao": "dracula",
+    "acentos": [
+      "mauve",
+      "pink",
+      "green",
+      "sky",
+      "peach",
+      "red",
+      "yellow"
+    ]
+  },
+  "cosmic": {
+    "mapa": null,
+    "nome_da_paleta": "dracula-<flavor>"
+  },
+  "icones": {
+    "gerador": "circle",
+    "apps": {
+      "mapa": "icones/apps.map",
+      "desenhos": "icones/apps/",
+      "camada": "scalable/apps",
+      "recolorir": false
+    },
+    "resgatados": {
+      "mapa": "icones/apps-resgatados.map",
+      "desenhos": "icones/apps/"
+    },
+    "pastas": {
+      "desenhos": "icones/sistema/",
+      "mapa": "icones/pastas.map",
+      "recolorir": false
+    },
+    "sistema": {
+      "desenhos": "icones/sistema/",
+      "mapa": "icones/sistema.map",
+      "pintar": "text"
+    },
+    "mimetypes": {
+      "herda": "meowsystem"
+    },
+    "autorais": {
+      "gerar": true,
+      "desenhos": "icones/apps/"
+    },
+    "base": {
+      "origem": {
+        "url": "https://github.com/m4thewz/dracula-icons/archive/00a230a277d5e6ad913b90182977738335afee89.tar.gz",
+        "sha256": "563580916e426ccccb5da5b1a43f2cc0f7ab5d118c24b87776640da45b50acea",
+        "pasta": "dracula-icons-00a230a277d5e6ad913b90182977738335afee89"
+      },
+      "por_tras": [
+        {
+          "origem": {
+            "url": "https://github.com/m4thewz/dracula-icons/archive/de2a8edd94608ba0ac4dcf5a187af0ffaa511ebc.tar.gz",
+            "sha256": "51db7832983249a6d296154fdb7afab7c51c32ac8813bc5bf73ee89a3e1ebb36",
+            "pasta": "dracula-icons-de2a8edd94608ba0ac4dcf5a187af0ffaa511ebc"
+          }
+        }
+      ]
+    }
+  },
+  "origens": {
+    "cursores": {
+      "origem": {
+        "nome": "Dracula-Cursor",
+        "url": "https://github.com/dracula/gtk/releases/download/v4.0.0/Dracula-cursors.tar.xz",
+        "sha256": "81780e218fdda616016aedf42e731c86ed16290b9753a21616642023821b85f5",
+        "pasta": "Dracula-cursors"
+      }
+    },
+    "wallpapers": {
+      "tipo": "github-arvore",
+      "repo": "AndreBFarias/tulip-orchid-wallpapers",
+      "commit": "98770f8a4092b0376d43187dc29fd8110de4e567",
+      "ignorar": [
+        "svg"
+      ],
+      "desenhos": "wallpapers/",
+      "prefixo": "tulip",
+      "se_vazio": "herdar"
+    }
+  },
+  "apps": {
+    "spotify": {
+      "spicetify_tema": "Sleek",
+      "esquema": "Dracula",
+      "arquivo": "temas-de-apps/spotify/Sleek/color.ini",
+      "sha256": "4f5a883afd9e71ddf515e8c7ecf44ca55688f4824b12294f4fdcc0f90745ed68"
+    },
+    "qbittorrent": {
+      "arquivo": "temas-de-apps/qbittorrent/dracula.qbtheme",
+      "sha256": "b4485f9f4ee6139b7c77bbfb72206b608bcfa748f34d49205c4c4b65e7976d37"
+    },
+    "kitty": {},
+    "gnome-terminal": {},
+    "telegram": {},
+    "discord": {},
+    "onlyoffice": {},
+    "obsidian": {
+      "esquema": "Dracula Official",
+      "origem": {
+        "url": "https://github.com/dracula/obsidian/archive/ddb95ec25babe3ef21907b8b612bbdb9fc2904c9.tar.gz",
+        "sha256": "20fa7f83ebba437b80f09c33297441ba223e2138994c16853965a75cb3ef8462",
+        "pasta": "obsidian-ddb95ec25babe3ef21907b8b612bbdb9fc2904c9"
+      }
+    },
+    "vscode": {
+      "esquema": "Dracula Theme",
+      "origem": {
+        "extensao": "dracula-theme.theme-dracula",
+        "url": "https://open-vsx.org/api/dracula-theme/theme-dracula/2.25.1/file/dracula-theme.theme-dracula-2.25.1.vsix",
+        "sha256": "f4d8c28fc64874b1b959cc90dbd39c84d5d35c9cf203e32b7a758dc9abf5b1cb"
+      }
+    },
+    "heroic": {
+      "esquema": "dracula"
+    },
+    "zapzap": {},
+    "libadwaita": {},
+    "krita": {},
+    "obs": {},
+    "firefox": {}
+  },
+  "lancador": {
+    "ocultar": [
+      "com.system76.CosmicMonitor",
+      "com.system76.CosmicScreenshot",
+      "gnome-online-accounts-gtk",
+      "gparted",
+      "LinuxToys",
+      "mpv",
+      "nm-connection-editor",
+      "nvidia-settings",
+      "onboard",
+      "onboard-settings",
+      "org.freedesktop.IBus.Setup",
+      "org.gnome.baobab",
+      "org.gnome.DiskUtility",
+      "org.gnome.FileRoller",
+      "org.gnome.font-viewer",
+      "org.gnome.gThumb",
+      "org.gnome.gThumb.Import",
+      "org.gnome.seahorse.Application",
+      "org.keepassxc.KeePassXC",
+      "qt5ct",
+      "qt6ct",
+      "setup-mozc",
+      "syncthing-start",
+      "system-config-printer"
+    ]
+  },
+  "som": {
+    "fundamental": 784.0,
+    "harmonico": 932.3,
+    "peso_fundamental": 0.58,
+    "peso_harmonico": 0.32,
+    "decaimento": 38.0,
+    "tema": "sons/"
+  },
+  "extensoes": {
+    "soneca": {
+      "textos": {
+        "desperto": "Desperto",
+        "ronronar": "Descansando"
+      }
+    }
+  }
+}

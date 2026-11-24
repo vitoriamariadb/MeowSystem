@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+import importlib.util
+import json
+import os
+import shutil
+import sys
+
+try:
+    import playwright  # noqa: F401
+except ImportError:
+    print("pulado: playwright nao esta instalado neste interpretador.")
+    sys.exit(3)
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+_spec = importlib.util.spec_from_file_location("app_completo", os.path.join(AQUI, "app-completo.py"))
+casa = importlib.util.module_from_spec(_spec)
+_argv, sys.argv = sys.argv, [os.path.join(AQUI, "app-completo.py")]
+_spec.loader.exec_module(casa)
+sys.argv = _argv
+
+from playwright.sync_api import sync_playwright  # noqa: E402
+
+FOTOS = casa._arg("--fotos")
+falhas = []
+conferidas = [0]
+
+
+def checa(cond, frase):
+    conferidas[0] += 1
+    print(("  ok  " if cond else "  XX  ") + frase)
+    if not cond:
+        falhas.append(frase)
+    return cond
+
+
+GALERIA = """
+() => ({
+  abas: [...document.querySelectorAll('[data-controle^="galeria:"]')].filter((b) => b.dataset.controle !== 'galeria:mais').map((b) => b.textContent.trim()),
+  figuras: document.querySelectorAll('.galeria figure').length,
+  levar: document.querySelectorAll('[data-controle="levar:foto"]').length,
+  estrela: document.querySelectorAll('.galeria .estrela, [data-controle="papel:wallpaper_favoritar"], [data-controle="papel:wallpaper_desfavoritar"]').length,
+  lixos: document.querySelectorAll('.galeria [data-controle="papel:wallpaper_banir"]').length,
+})
+"""
+
+
+def main():
+    ambiente = casa.montar_casa()
+    proc, url = casa.sobe_servidor(ambiente)
+    if not url:
+        print("ERRO: o painel não subiu")
+        return 2
+    ativos = os.path.join(casa.valor_de("WALLPAPER_BASE").replace("$HOME", casa.CASA), "Minhas")
+    lista = os.path.join(casa.ESTADO, "papeis-de-parede", "BANIDOS.txt")
+    try:
+        with sync_playwright() as p:
+            nav = p.chromium.launch()
+            erros = []
+            pag = nav.new_context(viewport={"width": 1550, "height": 900}).new_page()
+            pag.on("pageerror", lambda e: erros.append(str(e)))
+            pag.goto(url)
+            pag.wait_for_function("() => typeof ESQUEMA !== 'undefined' && ESQUEMA"
+                                  " && !document.getElementById('conteudo').hasAttribute('aria-busy')", timeout=60000)
+            pag.evaluate("() => { location.hash = '#criar/papel'; }")
+            pag.wait_for_function("() => document.querySelectorAll('.galeria figure img').length > 0", timeout=60000)
+            pag.wait_for_timeout(500)
+            g = pag.evaluate(GALERIA)
+            checa(g["abas"] == ["No carrossel", "Noite", "Dia"], f"só três abas: {g['abas']}")
+            checa(g["levar"] == 0, f"nenhum «Levar para o tema» na galeria ({g['levar']})")
+            checa(g["estrela"] == 0, f"nenhuma estrela de favorita ({g['estrela']})")
+            checa(g["figuras"] == casa.PAREDES and g["lixos"] == casa.PAREDES, f"um lixo por imagem ({g})")
+            if FOTOS:
+                os.makedirs(FOTOS, exist_ok=True)
+                pag.screenshot(path=os.path.join(FOTOS, "galeria-do-papel.png"), full_page=True)
+            alvo = pag.evaluate("() => document.querySelector('.galeria figure').dataset.papel")
+            pag.locator('.galeria figure').first.locator('[data-controle="papel:wallpaper_banir"]').click()
+            pag.wait_for_selector("#pergunta[open]", timeout=10000)
+            titulo = pag.evaluate("() => document.getElementById('pergunta-titulo').textContent")
+            checa(titulo == f"Apagar {alvo}?", f"o lixo pergunta uma vez: {titulo!r}")
+            if FOTOS:
+                pag.screenshot(path=os.path.join(FOTOS, "galeria-do-papel-pergunta.png"))
+            pag.click('[data-controle="pergunta:nao"]')
+            pag.wait_for_timeout(600)
+            checa(os.path.isfile(os.path.join(ativos, alvo)), "o «não» deixa a imagem no disco")
+            pag.locator('.galeria figure').first.locator('[data-controle="papel:wallpaper_banir"]').click()
+            pag.wait_for_selector("#pergunta[open]", timeout=10000)
+            pag.click('[data-controle="pergunta:sim"]')
+            casa.fim_do_trabalho(pag, teto=120000)
+            pag.wait_for_timeout(500)
+            try:
+                with open(lista, encoding="utf-8") as fh:
+                    anotada = alvo in [l.strip() for l in fh]
+            except OSError:
+                anotada = False
+            base = os.path.dirname(ativos)
+            checa(not os.path.exists(os.path.join(ativos, alvo)) and anotada and not os.path.isdir(os.path.join(base, "banidos")),
+                  f"o «Apagar» tira {alvo} do disco, sem banidos/, e o nome vai para o BANIDOS.txt")
+            sem_previa = []
+            velhos = set(os.listdir(ativos))
+            itens_da_lista = "() => ((previasDe('parede', 'ativos') || { itens: [] }).itens).map((i) => decodeURIComponent(i.url.split('id=ativos%2F')[1] || ''))"
+
+            def da_pasta_velha():
+                return [n for n in pag.evaluate(itens_da_lista) if n in velhos]
+
+            def fora_da_pasta_nova():
+                no_disco = set()
+                for sub in ("Minhas", "meowsystem"):
+                    pasta = os.path.join(outra, sub)
+                    no_disco |= set(os.listdir(pasta)) if os.path.isdir(pasta) else set()
+                return [n for n in pag.evaluate(itens_da_lista) if n not in no_disco]
+            pag.on("response", lambda r: sem_previa.append(r.url) if r.status == 404 and "/previa" in r.url else None)
+            outra = os.path.join(casa.BRINQUEDO, "sem-papel")
+            pag.evaluate("(base) => gravarAgora({ WALLPAPER_BASE: base })", outra)
+            pag.wait_for_function("() => !EM_VOO", timeout=60000)
+            for _vez in range(3):
+                pag.evaluate("() => render()")
+                pag.wait_for_timeout(400)
+            na_tela = pag.evaluate("() => [...document.querySelectorAll('.galeria figure')].map((f) => f.dataset.papel)")
+            checa(not [n for n in na_tela if n in velhos],
+                  f"mudar a pasta dos papéis refaz a galeria, e a pasta nova não deixa imagem velha ({na_tela})")
+            velhas = pag.evaluate("""async () => { const l = previasDe('parede', 'ativos');
+                const urls = ((l && l.itens) || []).map((i) => i.url);
+                return Promise.all(urls.map((u) => fetch(u).then((r) => r.status))); }""")
+            checa(404 not in velhas and not sem_previa,
+                  f"nenhuma prévia da pasta antiga fica pedindo 404 (lista: {velhas}; respostas: {len(sem_previa)})")
+            pag.evaluate("() => desfazerTudo()")
+            pag.wait_for_function("(n) => document.querySelectorAll('.galeria figure img').length === n",
+                                  arg=casa.PAREDES - 1, timeout=60000)
+            pag.wait_for_timeout(600)
+            checa(not sem_previa, f"o Desfazer traz a pasta de volta sem 404 ({len(sem_previa)} respostas)")
+            pag.evaluate("""() => { const f = window.fetch; window.fetchDeVerdade = f;
+                window.fetch = async (u, o) => { const r = await f(u, o);
+                    if (String(u).includes('/api/previas')) await window.previasSoltas;
+                    return r; };
+                window.previasSoltas = new Promise((s) => { window.soltarPrevias = s; });
+                PREVIAS.delete('parede/ativos'); carregarPrevias('parede', 'ativos'); }""")
+            pag.wait_for_timeout(600)
+            pag.evaluate("(base) => gravarAgora({ WALLPAPER_BASE: base })", outra)
+            pag.wait_for_function("() => !EM_VOO", timeout=60000)
+            pag.evaluate("() => { window.fetch = window.fetchDeVerdade; window.soltarPrevias(); }")
+            pag.wait_for_timeout(1500)
+            pag.evaluate("() => render()")
+            pag.wait_for_timeout(600)
+            lista_atrasada = da_pasta_velha() + fora_da_pasta_nova()
+            checa(not lista_atrasada and not sem_previa,
+                  f"a lista que chega depois da troca da pasta não entra (da pasta velha ou fora da nova: {lista_atrasada}; {len(sem_previa)} respostas 404)")
+            pag.evaluate("() => desfazerTudo()")
+            pag.wait_for_function("(n) => document.querySelectorAll('.galeria figure img').length === n",
+                                  arg=casa.PAREDES - 1, timeout=60000)
+            pag.wait_for_timeout(600)
+            def falha_parcial(rota):
+                resposta = rota.fetch()
+                rota.fulfill(status=500, content_type="application/json", body=json.dumps(
+                    {"gravadas": ["WALLPAPER_BASE"], "iguais": [], "erro": "nem tudo foi gravado",
+                     "falhas": [{"chave": "WALLPAPER_INTERVALO", "erro": "não consegui gravar"}], "real": resposta.status}))
+            pag.route("**/api/salvar", falha_parcial)
+            pag.evaluate("(base) => gravarAgora({ WALLPAPER_BASE: base, WALLPAPER_INTERVALO: '7m' })", outra)
+            pag.wait_for_function("() => !EM_VOO", timeout=60000)
+            pag.unroute("**/api/salvar")
+            for _vez in range(3):
+                pag.evaluate("() => render()")
+                pag.wait_for_timeout(400)
+            parcial = da_pasta_velha() + fora_da_pasta_nova()
+            checa(not parcial and not sem_previa,
+                  f"com a outra chave em falha, a pasta nova já vale na galeria (da pasta velha ou fora da nova: {parcial}; {len(sem_previa)} respostas 404)")
+            checa(not erros, f"nenhum erro de JavaScript ({erros[:2]})")
+            nav.close()
+    finally:
+        proc.terminate()
+        if os.path.isdir(casa.CASA):
+            casa.encerrar_a_casa()
+        shutil.rmtree(casa.BRINQUEDO, ignore_errors=True)
+    if falhas:
+        print(f"FALHOU: {len(falhas)} de {conferidas[0]}")
+        return 1
+    print(f"ok: {conferidas[0]} conferências da galeria do papel de parede")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

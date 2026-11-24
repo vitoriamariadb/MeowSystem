@@ -1,0 +1,42 @@
+/* meowsystem-tema: {{pack}}/{{flavor}} */
+
+:root {
+  --toolbar-bgcolor: {{base}} !important;
+  --toolbar-color: {{text}} !important;
+  --toolbar-field-background-color: {{surface0}} !important;
+  --toolbar-field-color: {{text}} !important;
+  --toolbar-field-focus-background-color: {{surface0}} !important;
+  --toolbar-field-focus-color: {{text}} !important;
+  --toolbar-field-border-color: {{surface1}} !important;
+  --toolbar-field-focus-border-color: {{mauve}} !important;
+  --lwt-accent-color: {{mantle}} !important;
+  --lwt-text-color: {{text}} !important;
+  --tab-selected-bgcolor: {{base}} !important;
+  --tab-selected-textcolor: {{text}} !important;
+  --tab-loading-fill: {{mauve}} !important;
+  --arrowpanel-background: {{surface0}} !important;
+  --arrowpanel-color: {{text}} !important;
+  --arrowpanel-border-color: {{surface1}} !important;
+  --autocomplete-popup-background: {{surface0}} !important;
+  --autocomplete-popup-color: {{text}} !important;
+  --autocomplete-popup-highlight-background: {{mauve}} !important;
+  --autocomplete-popup-highlight-color: {{base}} !important;
+  --sidebar-background-color: {{mantle}} !important;
+  --sidebar-text-color: {{text}} !important;
+  --button-primary-bgcolor: {{mauve}} !important;
+  --button-primary-color: {{base}} !important;
+  --focus-outline-color: {{mauve}} !important;
+}
+
+#navigator-toolbox,
+#TabsToolbar,
+#nav-bar,
+#PersonalToolbar {
+  background-color: {{mantle}} !important;
+  color: {{text}} !important;
+}
+
+.tabbrowser-tab[selected] .tab-background {
+  background-color: {{base}} !important;
+  border-top: 2px solid {{mauve}} !important;
+}

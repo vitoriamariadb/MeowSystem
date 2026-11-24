@@ -1,0 +1,13 @@
+[package]
+name = "meow-oraculo-tema"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+cosmic-theme = { git = "https://github.com/pop-os/libcosmic", rev = "@REV@" }
+cosmic-config = { git = "https://github.com/pop-os/libcosmic", rev = "@REV@", default-features = false, features = ["macro"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 1
