@@ -392,6 +392,17 @@ else
 fi
 
 semear godot
+mod godot aplicar meowsystem mocha >/dev/null
+mod godot reverter meowsystem latte >/dev/null
+if ! grep -q 'preset\|color_theme\|base_color\|accent_color' "$GD/editor_settings-4.4.tres" "$GD/editor_settings-4.7.tres" \
+   && grep -qx 'interface/editor/display_scale = 3' "$GD/editor_settings-4.4.tres" \
+   && [ ! -e "$GD/text_editor_themes/MeowSystem.tet" ]; then
+  ok "godot: o reverter com outro flavor no ar tira as cores que o módulo escreveu, lidas do .tet que ficou"
+else
+  falha "godot: o reverter com o flavor trocado deixou o Custom com as cores do flavor antigo" "$(grep -h 'preset\|_color =\|color_theme' "$GD"/editor_settings-4.*.tres)"
+fi
+
+semear godot
 sed -i 's/^interface\/theme\/color_preset = .*/interface\/theme\/color_preset = "Light"/' "$GD/editor_settings-4.7.tres"
 saida="$(mod godot aplicar meowsystem mocha)"; rc=$?
 if [ "$rc" = 1 ] && grep -qx 'interface/theme/color_preset = "Light"' "$GD/editor_settings-4.7.tres" \

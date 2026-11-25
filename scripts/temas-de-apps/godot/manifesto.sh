@@ -170,8 +170,8 @@ meow_app_detectar() {
 }
 
 _godot_arquivo() {
-  local acao="$1" arq="$2" nosso="$3" saida veredito texto rc
-  saida="$(printf '%s' "$TARQ_BASE" | _godot_tres "${acao/conferir/estado}" "$arq" "$nosso" "$_GODOT_NOME")" \
+  local acao="$1" arq="$2" nosso="$3" base="${4:-$TARQ_BASE}" saida veredito texto rc
+  saida="$(printf '%s' "$base" | _godot_tres "${acao/conferir/estado}" "$arq" "$nosso" "$_GODOT_NOME")" \
     || { meow_erro "godot: não consegui ler $arq"; return "$MEOW_ERRO"; }
   veredito="${saida%%$'\n'*}"
   texto="${saida#*$'\n'}"
@@ -233,7 +233,7 @@ meow_app_reverter() {
     tet="$pasta/text_editor_themes/$_GODOT_NOME.tet"
     if meow_tarq_nosso "$tet"; then
       for arq in "$pasta"/editor_settings-4*.tres; do
-        _godot_arquivo reverter "$arq" 1; rcs+=($?)
+        _godot_arquivo reverter "$arq" 1 "$(cat -- "$tet")"; rcs+=($?)
       done
     fi
     meow_tarq_reverter_um godot "$tet"; rcs+=($?)
