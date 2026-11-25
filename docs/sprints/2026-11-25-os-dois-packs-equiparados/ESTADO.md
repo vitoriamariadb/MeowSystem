@@ -16,7 +16,7 @@ Pedido: «concluir os dois temas, equiparar eles de fato». Parte da folha
 | bloco | o quê | estado |
 |---|---|---|
 | 1 · código | P299, o btop sem o mauve do Mocha cravado | feito, commit `b02bd98` |
-| 2 · desenhos do Catppuccin | 10 apps sem desenho; folha em `~/.cache/meow-leva/folha-desenhos-2026-11-25.png` | espera a escolha dela |
+| 2 · desenhos do Catppuccin | 10 apps sem desenho; folha em `~/.cache/meow-leva/folha-desenhos-2026-11-25.png` e na página privada «Desenhos do Catppuccin» (coleção `escolhas`: código, cor e comentário por app) | espera a escolha dela |
 | 3 · módulos de app | Godot, GIMP, ghostwriter (`BLOCO-APPS-SEM-MODULO.md`) | voando na worktree `.worktrees/meow-apps-2511`, branch `bloco/apps-sem-modulo` |
 | 4 · desenhos do Dracula | Dédalo, FogStripper, Pipeline EducaDados no nitro-5 | na fila do André (`b6b2791a`) |
 
