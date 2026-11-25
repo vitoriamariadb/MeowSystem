@@ -34,3 +34,19 @@ congelado no grupo do dia da cópia; quando a pasta desse grupo saiu, o fundo fi
   `cosmic-bg` com caminho que existe.
 - A suíte de papel de parede (`wallpaper-base`, `papel-em-par`, `papeis-por-pack`, `semente-dos-papeis`,
   `apagar-papel`, `casa-real`) e `tests/decisoes.sh`.
+
+## Feito (24/11/2026)
+- `tests/contrato-cosmic.sh`: 8 falhas antes da cura, verde depois. O bloco novo confere também o `all` de cada casa,
+  que é o que vale para a saída fora da lista `backgrounds` (a TV, no MeowSystem).
+- No MeowSystem, 23h08: `wallpaper.sh aplicar` pelo serviço escreveu nas três casas; um segundo depois o `cosmic-bg`
+  gravou `HDMI-A-1 → meowsystem/janela-noite.png` no estado dele e o processo foi de 5 MB para 39 MB. O doctor, que
+  dizia «ok» com a tela cinza, acusou `wallpaper` e `fundo` antes e fechou em «ok» depois. Vencida a fixação, o
+  relógio devolveu `.girando` às três casas sem ninguém pedir.
+- A suíte inteira: 181 verdes e 2 pulados (`graficos-fonte-real.sh` e `dock-fonte-real.sh`, que pedem a fonte
+  baixada). Os 24 testes de navegador ficaram vermelhos na primeira rodada por falta do Chromium de teste
+  (`~/.cache/ms-playwright` tinha saído do disco numa limpeza de cache) e verdes com ele de volta.
+
+## O que ficou sem prova
+- O print da tela: a TV saiu do ar (HDMI `disconnected`) 13 s depois da cura e não voltou até o fim da sessão.
+- Com a pasta `.girando` como fonte, falta ver o `cosmic-bg` 1.11 trocar de imagem; a medida foi com uma imagem fixada.
+- O nitro-5 recebe pelo `atualiza.sh`; lá o defeito foi medido, a cura ainda não.
