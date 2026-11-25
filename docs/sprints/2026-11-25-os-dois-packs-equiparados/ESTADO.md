@@ -16,9 +16,20 @@ Pedido: «concluir os dois temas, equiparar eles de fato». Parte da folha
 | bloco | o quê | estado |
 |---|---|---|
 | 1 · código | P299, o btop sem o mauve do Mocha cravado | feito, commit `b02bd98` |
-| 2 · desenhos do Catppuccin | 10 apps sem desenho; folha em `~/.cache/meow-leva/folha-desenhos-2026-11-25.png` e na página privada «Desenhos do Catppuccin» (coleção `escolhas`: código, cor e comentário por app) | espera a escolha dela |
+| 2 · desenhos do Catppuccin | seis escolhidos e instalados (P300, decisão 69, commit `19018bc`): Câmera, VLC, Steam Link, Azahar, Super ZSNES e Godot; instalador passado no MeowSystem e no Meow-portatil | feito; faltam 1 e 8 |
 | 3 · módulos de app | Godot, GIMP, ghostwriter (`BLOCO-APPS-SEM-MODULO.md`) | voando na worktree `.worktrees/meow-apps-2511`, branch `bloco/apps-sem-modulo` |
 | 4 · desenhos do Dracula | Dédalo, FogStripper, Pipeline EducaDados no nitro-5 | na fila do André (`b6b2791a`) |
+
+## O que falta do bloco 2
+- COSMIC Viewer (1) e FogStripper (8): ela pediu «melhorar o original». As opções novas (conversor afinado e
+  redesenho à mão, marcadas «Nova») estão na página privada «Desenhos do Catppuccin», coleção `escolhas`.
+- A Forja (9A, mauve), Pipeline EducaDados (10A, green) e o FogStripper são projetos dela: `tests/pack-dracula-completo.sh`
+  recusa arte pessoal em `packs/`. Vão no mapa de quem usa (`~/.config/meow/icones-convertidos.map`), por PC. A Forja
+  e o Pipeline têm `Icon=` de caminho absoluto no atalho (`forja.desktop`, `pipelines-educadados.desktop`), que
+  nenhum tema alcança: o atalho muda no projeto de cada um. O FogStripper é intocável até entrar em
+  `~/.config/meow/icones-destravados.list`.
+- O Godot da Steam (`steam_icon_404790`) também é intocável por regra: foi destravado no MeowSystem, pela escolha
+  dela. No portátil não há atalho do Godot.
 
 ## O bloco 3
 Dois agentes, um de cada vez: `implementa-apps` (agente, alto), depois o conferente (agente, alto), que confere e
