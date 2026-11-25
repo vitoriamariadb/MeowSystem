@@ -16,14 +16,16 @@ Pedido: «concluir os dois temas, equiparar eles de fato». Parte da folha
 | bloco | o quê | estado |
 |---|---|---|
 | 1 · código | P299, o btop sem o mauve do Mocha cravado | feito, commit `b02bd98` |
-| 2 · desenhos do Catppuccin | sete escolhidos e instalados no MeowSystem e no Meow-portatil: os seis do Arcticons (P300, decisão 69, `19018bc`) e o COSMIC Viewer 1G (decisão 70, `8dc79c7`); P301 curou o `git-limpo.sh` que apagava o mapa em edição (`9956e3c`) | falta o 8 |
+| 2 · desenhos do Catppuccin | oito escolhidos e instalados: os seis do Arcticons (decisão 69), o COSMIC Viewer 1G (decisão 70) e o FogStripper 8G, desenho à mão, no estado de quem usa do MeowSystem (não há FogStripper no portátil) | feito; A Forja e o Pipeline esperam o atalho |
 | 3 · módulos de app | Godot, GIMP, ghostwriter (`BLOCO-APPS-SEM-MODULO.md`) | voando na worktree `.worktrees/meow-apps-2511`, branch `bloco/apps-sem-modulo` |
 | 4 · desenhos do Dracula | Dédalo, FogStripper, Pipeline EducaDados no nitro-5 | na fila do André (`b6b2791a`) |
 
 ## O que falta do bloco 2
-- FogStripper (8): ela pediu o 8D melhorado, «na mão mesmo, você escrevendo o SVG». As duas versões novas (8E, seis
-  fios; 8F, oito fios) estão na página privada «Desenhos do Catppuccin», coleção `escolhas`; os SVG em
-  `~/.cache/meow-leva/fogstripper-8E.svg` e `-8F.svg`.
+- FogStripper: ela pediu o logo repensado como «a pata de um gato tocando um espelho quebrado» e aprovou o 8G («é
+  incrível»): SVG escrito à mão, pata na diagonal com dedos recortados e almofada, cinco trincas. Entrou pelo mesmo
+  caminho da oficina do painel (`_api_app_desenho`, ação `salvar`): linha `fogstripper:mao:sky` em
+  `~/.config/meow/icones-convertidos.map`, retoque em `~/.local/share/meowsystem/retoques/`, e `fogstripper` em
+  `icones-destravados.list`. Cópia do SVG em `~/.cache/meow-leva/fogstripper-8G.svg`.
 - A Forja (9A, mauve), Pipeline EducaDados (10A, green) e o FogStripper são projetos dela: `tests/pack-dracula-completo.sh`
   recusa arte pessoal em `packs/`. Vão no mapa de quem usa (`~/.config/meow/icones-convertidos.map`), por PC. A Forja
   e o Pipeline têm `Icon=` de caminho absoluto no atalho (`forja.desktop`, `pipelines-educadados.desktop`), que
