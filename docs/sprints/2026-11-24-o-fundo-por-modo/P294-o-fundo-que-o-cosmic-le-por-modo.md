@@ -52,6 +52,6 @@ o `cosmic-bg` gravou no estado dele uma imagem de dentro de `.girando` para `HDM
 4 MB para 28 MB). A pasta `.girando` como fonte funciona no `cosmic-bg` 1.11. O `meow-fundo.path` de lá ainda vigia só
 a casa de antes, até o doctor das 5h reinstalar a unidade.
 
-## O que ficou sem prova
-- No MeowSystem, o print da tela: a TV saiu do ar (HDMI `disconnected`) 13 s depois da cura.
-- A troca de imagem ao fim do intervalo, nos dois PCs.
+## A tela (25/11/2026, 1h38)
+A TV do MeowSystem voltou e o print mostra a imagem atrás das janelas, no lugar do cinza. O estado do `cosmic-bg`,
+gravado à 1h35, cita `.girando/meow-atmosfera-pintada-0w39z6.jpg`: o carrossel saiu da imagem fixada e trocou sozinho.
