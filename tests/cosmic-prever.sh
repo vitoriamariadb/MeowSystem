@@ -137,6 +137,28 @@ else
   falha "o completar não pôs no tema o ícone do app do COSMIC sem desenho"
 fi
 
+SO_DRACULA="$(sed -n 's/^\([A-Za-z0-9._+-]*\)[ :].*/\1/p' "$RAIZ/packs/dracula/icones/apps.map" | while read -r n; do
+  grep -qE "^${n//./\\.}([: 	]|$)" "$RAIZ"/packs/meowsystem/icones/*.map || { printf '%s\n' "$n"; break; }
+done)"
+FV="$T/falso-so-dracula"; CV="$T/casa-so-dracula"; mkdir -p "$FV" "$CV"
+printf '[Desktop Entry]\nName=Só no Dracula\nExec=true\nIcon=%s\nType=Application\n' "$SO_DRACULA" \
+  > "$RA/usr/share/applications/so-dracula.desktop"
+printf '#!/bin/sh\necho cosmic-so-dracula\n' > "$FV/dpkg-query"
+printf '#!/bin/sh\n[ "$1" = -L ] && echo /usr/share/applications/so-dracula.desktop\n' > "$FV/dpkg"
+chmod 755 "$FV"/*
+sem_desenho() {
+  env -i PATH="$FV:$PATH" HOME="$CV" MEOW_RAIZ="$RAIZ" NO_COLOR=1 CV_RAIZ_APPS="$RA" ${1:+PACK="$1"} ${2:+FLAVOR="$2"} \
+    "$RAIZ/scripts/cosmic_prever.sh" icones-lista 2>/dev/null
+}
+mkdir -p "$CV/.config/meow"
+[ -n "$SO_DRACULA" ] && [ -z "$(sem_desenho dracula dracula)" ] && [ "$(sem_desenho meowsystem mocha)" = "$SO_DRACULA" ] \
+  && ok "o desenho que só o Dracula tem ($SO_DRACULA) vale com o Dracula no ar e falta com o pack padrão no ar" \
+  || falha "o conferidor de ícones não olhou só os mapas do pack no ar: dracula=[$(sem_desenho dracula dracula)] padrão=[$(sem_desenho meowsystem mocha)]"
+printf 'PACK="dracula"\nFLAVOR="dracula"\n' > "$CV/.config/meow/meow.conf"
+[ -n "$SO_DRACULA" ] && [ -z "$(sem_desenho)" ] \
+  && ok "sem PACK no ambiente (timer), o pack no ar vem do meow.conf" \
+  || falha "sem PACK no ambiente o conferidor não leu o pack do meow.conf: [$(sem_desenho)]"
+
 echo
 if [ "$falhas" = 0 ]; then echo "cosmic-prever: tudo certo"; exit 0; fi
 echo "cosmic-prever: $falhas falha(s)"; exit 1

@@ -239,7 +239,17 @@ _cv_revisao() {
   done < <(grep -v '^#' "$CV_CONTRATO")
 }
 
-CV_MAPAS=("$MEOW_RAIZ"/packs/*/icones/*.map "$MEOW_RAIZ"/assets/icones/*.map)
+_cv_mapas_no_ar() {
+  local ref categoria mapa
+  printf '%s\n' "$MEOW_RAIZ"/packs/meowsystem/icones/*.map
+  ref="$(PACK="${PACK:-$(meow_conf_valor PACK)}" FLAVOR="${FLAVOR:-$(meow_conf_valor FLAVOR)}" meow_pack_dir)"
+  for categoria in icones.apps.mapa icones.resgatados.mapa; do
+    mapa="$(python3 "$MEOW_RAIZ/scripts/pack.py" acervo "$ref" "$categoria" 2>/dev/null)"
+    [ -f "$mapa" ] && printf '%s\n' "$mapa"
+  done
+  return 0
+}
+mapfile -t CV_MAPAS < <(_cv_mapas_no_ar | sort -u)
 
 _cv_tem_arte() {
   local nome="$1"
