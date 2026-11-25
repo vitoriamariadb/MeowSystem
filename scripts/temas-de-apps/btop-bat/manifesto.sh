@@ -86,12 +86,8 @@ _bb_bat_tema_nome() {
 _bb_bat_tema_arquivo() { printf '%s/bat/%s.tmTheme' "$(_bb_up)" "$(_bb_bat_tema_nome)"; }
 
 _bb_btop_tema_stem() {
-  if [ "${MEOW_BTOP_ACENTO:-}" = "mauve" ]; then
-    printf 'meowsystem_%s' "$(_bb_flavor)"
-  else
-    if [ "$(_bb_flavor)" = "$(_bb_familia)" ]; then printf '%s' "$(_bb_flavor)"
-    else printf '%s_%s' "$(_bb_familia)" "$(_bb_flavor)"; fi
-  fi
+  if [ "$(_bb_flavor)" = "$(_bb_familia)" ]; then printf '%s' "$(_bb_flavor)"
+  else printf '%s_%s' "$(_bb_familia)" "$(_bb_flavor)"; fi
 }
 _bb_btop_upstream() {
   if [ "$(_bb_flavor)" = "$(_bb_familia)" ]; then
@@ -104,11 +100,7 @@ _bb_btop_upstream() {
 _bb_btop_conteudo() {
   local orig; orig="$(_bb_btop_upstream)"
   [ -f "$orig" ] || return 1
-  if [ "${MEOW_BTOP_ACENTO:-}" = "mauve" ]; then
-    sed -E 's/^(theme\[(hi_fg|selected_fg)\]=")#[0-9A-Fa-f]{6}(")/\1#cba6f7\3/' "$orig"
-  else
-    cat "$orig"
-  fi
+  cat "$orig"
 }
 
 _bb_carimbo() {

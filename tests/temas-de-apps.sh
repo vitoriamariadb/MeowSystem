@@ -1752,6 +1752,13 @@ else
   falha "o pack de fora escolheu o nome e o Heroic escreveu por cima do CSS dela" "$(cat "$HRT/meu-tema.css") / $isca_saida"
 fi
 
+cravadas="$(grep -nEi '#[0-9a-f]{6}\b' "$RAIZ"/scripts/temas-de-apps/*/manifesto.sh "$RAIZ"/scripts/temas-de-apps/modelo.py 2>/dev/null)"
+if [ -z "$cravadas" ]; then
+  ok "nenhum módulo de app crava cor no código: a cor de todo app vem do pack no ar"
+else
+  falha "um módulo de app crava cor no código, e ela aparece com qualquer pack no ar" "$cravadas"
+fi
+
 printf '\n'
 if [ "$falhas" -gt 0 ]; then
   printf '%s achado(s).\n' "$falhas" >&2
