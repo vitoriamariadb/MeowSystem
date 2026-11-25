@@ -140,6 +140,60 @@ PY
 "$RAIZ/scripts/wallpaper.sh" aplicar >/dev/null 2>&1
 [ -n "$(ls -A "$C/com.system76.CosmicBackground/v2" 2>/dev/null)" ] && ok "wallpaper.sh: a configuração do cosmic-bg no v2" \
   || falha "wallpaper.sh não gravou no v2"
+
+echo "== o fundo por modo do tema"
+FUNDO=com.system76.CosmicBackground
+GIRANDO="$HOME/.local/share/backgrounds/meowsystem/.girando"
+fonte_de() { grep -oP 'source: Path\("\K[^"]+' "$1" 2>/dev/null; }
+[ ! -e "$C/$FUNDO.Dark" ] && [ ! -e "$C/$FUNDO.Light" ] \
+  && ok "COSMIC sem a casa por modo: nenhuma pasta .Dark ou .Light nasce" \
+  || falha "o wallpaper.sh criou a casa por modo num COSMIC que não a conhece" "$(ls "$C")"
+mkdir -p "$T/sistema/$FUNDO.Dark/v1" "$T/sistema/$FUNDO.Light/v1" "$C/$FUNDO.Dark/v1"
+printf '(\n    output: "all",\n    source: Path("/usr/share/backgrounds/de-fabrica.png"),\n    rotation_frequency: 3600,\n    transition_duration: 500,\n)' \
+  > "$T/sistema/$FUNDO.Light/v1/all"
+for alvo in all output.DP-1; do
+  printf '(\n    output: "%s",\n    source: Path("%s/ativos-noite"),\n    filter_by_theme: false,\n    rotation_frequency: 300,\n    transition_duration: 750,\n    filter_method: Lanczos,\n    scaling_mode: Zoom,\n    sampling_method: Random,\n)' \
+    "${alvo#output.}" "${GIRANDO%/*}" > "$C/$FUNDO.Dark/v1/$alvo"
+done
+printf '[\n    "DP-1",\n]' > "$C/$FUNDO.Dark/v1/backgrounds"
+saida="$("$RAIZ/scripts/wallpaper.sh" estado 2>&1)"
+grep -F 'Dark/all aponta para outro lugar' <<< "$saida" >/dev/null \
+  && ok "estado: a casa do modo escuro que aponta para a pasta de antes é acusada" \
+  || falha "o estado não acusou a casa .Dark fora do carrossel" "$saida"
+"$RAIZ/scripts/wallpaper.sh" aplicar >/dev/null 2>&1
+certos=0
+for arq in "$C/$FUNDO.Dark/v1/all" "$C/$FUNDO.Dark/v1/output.DP-1" "$C/$FUNDO.Light/v1/all"; do
+  [ "$(fonte_de "$arq")" = "$GIRANDO" ] && certos=$((certos + 1))
+done
+[ "$certos" = 3 ] && ok "aplicar: as casas .Dark e .Light apontam para o carrossel, saída por saída" \
+  || falha "só $certos de 3 arquivos das casas por modo apontam para $GIRANDO" \
+       "$(for m in Dark Light; do grep -H source "$C/$FUNDO.$m"/v1/* 2>&1; done)"
+grep -F 'output: "DP-1"' "$C/$FUNDO.Dark/v1/output.DP-1" >/dev/null 2>&1 \
+  && ok "a config de uma saída continua com o nome da saída" || falha "output.DP-1 perdeu o nome da saída"
+grep -F 'transition_duration: 750,' "$C/$FUNDO.Dark/v1/all" >/dev/null 2>&1 \
+  && ok "o transition_duration que a casa já tinha fica como estava" \
+  || falha "a casa .Dark perdeu o transition_duration dela" "$(cat "$C/$FUNDO.Dark/v1/all" 2>&1)"
+grep -F 'transition_duration: 500,' "$C/$FUNDO.Light/v1/all" >/dev/null 2>&1 \
+  && ok "casa nova: o transition_duration vem do que o sistema traz" \
+  || falha "a casa .Light não trouxe o transition_duration do sistema" "$(cat "$C/$FUNDO.Light/v1/all" 2>&1)"
+! grep -F 'transition_duration' "$C/$FUNDO/v2/all" >/dev/null 2>&1 \
+  && ok "casa cujo esquema não tem transition_duration não ganha o campo" \
+  || falha "a casa de antes ganhou um campo que o esquema dela não tem"
+antes="$(cat "$C/$FUNDO"*/v*/all "$C/$FUNDO.Dark/v1/output.DP-1" | md5sum; stat -c %Y "$C/$FUNDO"*/v*/all)"
+"$RAIZ/scripts/wallpaper.sh" aplicar >/dev/null 2>&1; rc=$?
+[ "$rc" = 0 ] && [ "$antes" = "$(cat "$C/$FUNDO"*/v*/all "$C/$FUNDO.Dark/v1/output.DP-1" | md5sum; stat -c %Y "$C/$FUNDO"*/v*/all)" ] \
+  && ok "a segunda passada não escreve em casa nenhuma" || falha "a segunda passada escreveu (rc=$rc)"
+saida="$("$RAIZ/scripts/wallpaper.sh" estado 2>&1)"
+grep -F 'carrossel ATIVO' <<< "$saida" >/dev/null && ! grep -F 'aponta para outro lugar' <<< "$saida" >/dev/null \
+  && ok "estado: com as três casas no carrossel, ATIVO" || falha "o estado não fechou depois do aplicar" "$saida"
+for m in Dark Light; do
+  grep -Fx "PathChanged=%h/.config/cosmic/$FUNDO.$m/v1" "$RAIZ/dados/systemd/meow-fundo.path" >/dev/null \
+    && ok "meow-fundo.path vigia a casa .$m" || falha "meow-fundo.path não vigia a casa .$m"
+  grep -P "^esquema\t\Q$FUNDO.$m\E\tv1\tcosmic-bg\tscripts/wallpaper\.sh$" "$RAIZ/dados/contratos/cosmic.tsv" >/dev/null \
+    && ok "o contrato registra o esquema $FUNDO.$m" || falha "o contrato não registra $FUNDO.$m"
+  rm -rf "$C/$FUNDO.$m" "$T/sistema/$FUNDO.$m"
+done
+
 eval "$(sed -n '/^e_produto() {/,/^}/p' "$RAIZ/scripts/aplicar_tema.sh")"
 if e_produto com.system76.CosmicTheme.Dark/v2/accent && ! e_produto com.system76.CosmicTheme.Dark/v1/accent; then
   ok "aplicar_tema.sh: a árvore de produto é a do esquema novo, e a v1 legada fica de fora"

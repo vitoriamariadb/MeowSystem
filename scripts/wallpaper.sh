@@ -13,6 +13,28 @@ PASTA_PACK=""
 PASTAS_QUE_GIRAM=("$MINHAS")
 PASTAS_DE_ANTES=(ativos ativos-dia ativos-noite ativos-pack)
 BG="$(meow_cosmic_dir)/com.system76.CosmicBackground/$(meow_cosmic_v com.system76.CosmicBackground)"
+CASAS_DO_FUNDO=("$BG")
+for _modo in Dark Light; do
+  _casa="com.system76.CosmicBackground.$_modo"
+  [ -d "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/$_casa" ] || [ -d "$(meow_cosmic_dir)/$_casa" ] || continue
+  CASAS_DO_FUNDO+=("$(meow_cosmic_dir)/$_casa/$(meow_cosmic_v "$_casa")")
+done
+unset _modo _casa
+
+rotulo_da_casa() {
+  local nome="${1%/*}"
+  nome="${nome##*/com.system76.CosmicBackground}"
+  printf '%s' "${nome:+${nome#.}/}"
+}
+
+transicao_de() {
+  local casa="$1" arq valor
+  for arq in "$casa/$2" "$casa/all" "${MEOW_COSMIC_SISTEMA:-/usr/share/cosmic}/${casa#"$(meow_cosmic_dir)/"}/all"; do
+    valor="$(grep -m1 -oP '^\s*transition_duration:\s*\K[0-9]+' "$arq" 2>/dev/null)"
+    [ -n "$valor" ] && { printf '%s' "$valor"; return 0; }
+  done
+  return 1
+}
 ORDEM="${WALLPAPER_ORDEM:-aleatoria}"
 INTERVALO="${WALLPAPER_INTERVALO:-5m}"
 
@@ -130,8 +152,12 @@ FIM
 }
 
 forcar_releitura() {
-  local alvos=() alvo conteudo
-  mapfile -t alvos < <(ls -1 "$BG" 2>/dev/null | grep -E '^(all|output\.)' )
+  local alvos=() alvo conteudo casa
+  for casa in "${CASAS_DO_FUNDO[@]}"; do
+    for alvo in "$casa"/all "$casa"/output.*; do
+      [ -f "$alvo" ] && alvos+=("$alvo")
+    done
+  done
   [ "${#alvos[@]}" -gt 0 ] || return 0
 
   if meow_seco; then
@@ -140,10 +166,9 @@ forcar_releitura() {
   fi
 
   for alvo in "${alvos[@]}"; do
-    [ -f "$BG/$alvo" ] || continue
-    conteudo="$(cat "$BG/$alvo")"
-    printf '%s' "${conteudo/rotation_frequency: /rotation_frequency: 1, x_meow_reler: }" > "$BG/$alvo"
-    printf '%s' "$conteudo" > "$BG/$alvo"
+    conteudo="$(cat "$alvo")"
+    printf '%s' "${conteudo/rotation_frequency: /rotation_frequency: 1, x_meow_reler: }" > "$alvo"
+    printf '%s' "$conteudo" > "$alvo"
   done
   meow_info "cosmic-bg avisado — a rotação recomeça pela primeira imagem"
   return 0
@@ -885,46 +910,53 @@ cmd_aplicar() {
 
   local desejada; desejada="$(config_desejada)"
 
-  local -a alvos=(all)
-  local f
-  for f in "$BG"/output.*; do
-    [ -f "$f" ] || continue
-    alvos+=("$(basename "$f")")
-  done
-  if [ -f "$BG/backgrounds" ]; then
-    while IFS= read -r saida; do
-      [ -n "$saida" ] || continue
-      case " ${alvos[*]} " in *" output.$saida "*) continue ;; esac
-      alvos+=("output.$saida")
-    done < <(grep -oP '^\s*"\K[^"]+' "$BG/backgrounds" 2>/dev/null)
-  fi
-
   local FABRICA="/usr/share/backgrounds"
-  local alvo escolha_dela=0 fonte_atual
-  for alvo in "${alvos[@]}"; do
-    local conteudo="$desejada"
-    [ "$alvo" = "all" ] || conteudo="${desejada/output: \"all\"/output: \"${alvo#output.}\"}"
-
-    if [ -f "$BG/$alvo" ]; then
-      fonte_atual="$(grep -oP 'source: Path\("\K[^"]+' "$BG/$alvo" 2>/dev/null)"
-      case "$fonte_atual" in
-        "$BASE"|"$BASE"/*|"") ;;
-        "$FABRICA"|"$FABRICA"/*) ;;
-        *)
-          if fonte_autorizada "$fonte_atual"; then
-            meow_pula "$alvo aponta para $fonte_atual — está na WALLPAPER_FONTES_PERMITIDAS, não mexo"
-            escolha_dela=1
-            continue
-          fi
-          meow_pendencia_acionavel wallpaper-fonte-revertida \
-            "$alvo apontava para $fonte_atual — isso não é o carrossel; devolvendo" \
-            "meow wallpaper permitir $fonte_atual"
-          ;;
-      esac
+  local -a alvos
+  local BG f alvo conteudo transicao rotulo escolha_dela=0 fonte_atual
+  for BG in "${CASAS_DO_FUNDO[@]}"; do
+    rotulo="$(rotulo_da_casa "$BG")"
+    alvos=(all)
+    for f in "$BG"/output.*; do
+      [ -f "$f" ] || continue
+      alvos+=("$(basename "$f")")
+    done
+    if [ -f "$BG/backgrounds" ]; then
+      while IFS= read -r saida; do
+        [ -n "$saida" ] || continue
+        case " ${alvos[*]} " in *" output.$saida "*) continue ;; esac
+        alvos+=("output.$saida")
+      done < <(grep -oP '^\s*"\K[^"]+' "$BG/backgrounds" 2>/dev/null)
     fi
 
-    meow_escrever "$BG/$alvo" "$conteudo" 644
-    case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao escrever $alvo"; return "$MEOW_ERRO" ;; esac
+    for alvo in "${alvos[@]}"; do
+      conteudo="$desejada"
+      [ "$alvo" = "all" ] || conteudo="${desejada/output: \"all\"/output: \"${alvo#output.}\"}"
+      if transicao="$(transicao_de "$BG" "$alvo")"; then
+        conteudo="${conteudo/    filter_method:/    transition_duration: $transicao,
+    filter_method:}"
+      fi
+
+      if [ -f "$BG/$alvo" ]; then
+        fonte_atual="$(grep -oP 'source: Path\("\K[^"]+' "$BG/$alvo" 2>/dev/null)"
+        case "$fonte_atual" in
+          "$BASE"|"$BASE"/*|"") ;;
+          "$FABRICA"|"$FABRICA"/*) ;;
+          *)
+            if fonte_autorizada "$fonte_atual"; then
+              meow_pula "$rotulo$alvo aponta para $fonte_atual — está na WALLPAPER_FONTES_PERMITIDAS, não mexo"
+              escolha_dela=1
+              continue
+            fi
+            meow_pendencia_acionavel wallpaper-fonte-revertida \
+              "$rotulo$alvo apontava para $fonte_atual — isso não é o carrossel; devolvendo" \
+              "meow wallpaper permitir $fonte_atual"
+            ;;
+        esac
+      fi
+
+      meow_escrever "$BG/$alvo" "$conteudo" 644
+      case $? in 1) mudou=1 ;; 2) meow_erro "falhou ao escrever $rotulo$alvo"; return "$MEOW_ERRO" ;; esac
+    done
   done
 
   if [ "$GIRANDO_MUDOU" = 1 ]; then mudou=1; forcar_releitura; fi
@@ -1007,21 +1039,22 @@ cmd_estado() {
       meow_frase "O carrossel não separa dia e noite: usa todas as imagens o tempo todo."
       echo "noite:     desligada (WALLPAPER_NOITE=\"$NOITE\") — a rotação é o acervo inteiro" ;;
   esac
-  local mesma; mesma="$(cat "$BG/same-on-all" 2>/dev/null)"
-  local -a mandam=()
-  if [ "$mesma" = "false" ]; then
-    local f
-    for f in "$BG"/output.*; do [ -f "$f" ] && mandam+=("$f"); done
-  fi
-  [ "${#mandam[@]}" -gt 0 ] || mandam=("$BG/all")
+  local -a mandam
+  local BG f fora=0 fonte arq
+  for BG in "${CASAS_DO_FUNDO[@]}"; do
+    mandam=()
+    if [ "$(cat "$BG/same-on-all" 2>/dev/null)" = "false" ]; then
+      for f in "$BG"/output.*; do [ -f "$f" ] && mandam+=("$f"); done
+    fi
+    mandam+=("$BG/all")
 
-  local fora=0 fonte arq
-  for arq in "${mandam[@]}"; do
-    [ -f "$arq" ] || continue
-    fonte="$(grep -oP 'source: Path\("\K[^"]+' "$arq" 2>/dev/null)"
-    [ "$fonte" = "$alvo" ] && continue
-    echo "estado:    $(basename "$arq") aponta para outro lugar ($fonte)"
-    fora=1
+    for arq in "${mandam[@]}"; do
+      [ -f "$arq" ] || continue
+      fonte="$(grep -oP 'source: Path\("\K[^"]+' "$arq" 2>/dev/null)"
+      [ "$fonte" = "$alvo" ] && continue
+      echo "estado:    $(rotulo_da_casa "$BG")$(basename "$arq") aponta para outro lugar ($fonte)"
+      fora=1
+    done
   done
   if [ "$fora" = "0" ]; then
     meow_frase "O carrossel está ativo."
@@ -1785,17 +1818,19 @@ primeiro_que_nao_chegou() {
 
 apontar_fundo_para() {
   local novo="$1"; shift
-  local arq texto antes o
-  for arq in "$BG"/all "$BG"/output.*; do
-    [ -f "$arq" ] || continue
-    texto="$(cat "$arq")"; antes="$texto"
-    for o in "$@"; do
-      texto="${texto//"Path(\"$o\")"/"Path(\"$novo\")"}"
-      texto="${texto//"Path(\"$o/"/"Path(\"$novo/"}"
+  local arq texto antes o casa
+  for casa in "${CASAS_DO_FUNDO[@]}"; do
+    for arq in "$casa"/all "$casa"/output.*; do
+      [ -f "$arq" ] || continue
+      texto="$(cat "$arq")"; antes="$texto"
+      for o in "$@"; do
+        texto="${texto//"Path(\"$o\")"/"Path(\"$novo\")"}"
+        texto="${texto//"Path(\"$o/"/"Path(\"$novo/"}"
+      done
+      [ "$texto" = "$antes" ] && continue
+      meow_escrever "$arq" "$texto" 644
+      case $? in 2) meow_erro "falhou ao reescrever $(rotulo_da_casa "$casa")$(basename "$arq")"; return "$MEOW_ERRO" ;; esac
     done
-    [ "$texto" = "$antes" ] && continue
-    meow_escrever "$arq" "$texto" 644
-    case $? in 2) meow_erro "falhou ao reescrever $(basename "$arq")"; return "$MEOW_ERRO" ;; esac
   done
   return 0
 }

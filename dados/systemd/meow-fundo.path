@@ -4,6 +4,8 @@ Documentation=file:%h/.local/state/meowsystem/wallpaper.log
 
 [Path]
 PathChanged=%h/.config/cosmic/com.system76.CosmicBackground/v1
+PathChanged=%h/.config/cosmic/com.system76.CosmicBackground.Dark/v1
+PathChanged=%h/.config/cosmic/com.system76.CosmicBackground.Light/v1
 Unit=meow-wallpaper.service
 
 [Install]
