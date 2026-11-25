@@ -130,6 +130,13 @@ s="$(spot aplicar)"
 s="$(spot conferir)"
 [ "$(rc_de "$s")" = 0 ] && ok "1. depois de aplicado, a conferência fecha em 0" || falha "1. conferir não fechou em 0" "$s"
 antes="$(retrato)"
+s="$(env -i PATH="$BIN:$PATH" HOME="$CASA" XDG_CONFIG_HOME="$CASA/.config" XDG_DATA_HOME="$CASA/.local/share" \
+      XDG_STATE_HOME="$CASA/.local/state" MEOW_RAIZ="$RAIZ" MEOW_ESTADO="$ESTADO" TMPDIR="$T" \
+      MEOW_CONF="$CASA/meow.conf" PACK=meowsystem FLAVOR=mocha ACCENT=mauve SPOTIFY_MARKETPLACE=nao NO_COLOR=1 \
+      APPS_ATIVOS=spotify "$RAIZ/scripts/aplicar_apps.sh" tabela </dev/null 2>/dev/null | cut -f1,3,4)"
+[ "$s" = "$(printf 'spotify\t0\t0')" ] && [ "$antes" = "$(retrato)" ] \
+  && ok "1. a tabela do meow apps diz «aplicado» para o que a conferência fechou em 0, sem escrever" \
+  || falha "1. a tabela do meow apps não repetiu a conferência" "$s"
 s="$(spot aplicar)"
 [ "$(rc_de "$s")" = 0 ] && [ "$antes" = "$(retrato)" ] \
   && ok "1. a segunda passada não escreve nada" \
