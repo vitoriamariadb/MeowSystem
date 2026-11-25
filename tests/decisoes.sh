@@ -583,6 +583,7 @@ cobre 67 pack-malicioso.sh 'nenhum executável de pack importado chega ao Spotif
 cobre 67 pack-malicioso.sh 'o starship.toml de pack importado não é lido' scripts/pack.py 'if achado and not do_repositorio\(achado\)'
 cobre 67 pack-malicioso.sh 'molde de tema de pack de fora que difere do pack-base não é lido' scripts/pack.py 'vale = molde_que_vale\(app, achado\)'
 cobre 68 arvore.sh 'entrada versionada nova na raiz'
+cobre 69 pack-dracula-completo.sh 'os seis desenhos escolhidos em 25/11' packs/meowsystem/icones/apps-arcticons.map '^azahar:lime3ds:yellow$'
 
 sem_linha=""; total=0
 while read -r n; do

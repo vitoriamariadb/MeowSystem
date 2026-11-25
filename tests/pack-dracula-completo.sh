@@ -428,6 +428,16 @@ fi
 grep -qx 'firefox:firefox:peach' "$RAIZ/packs/meowsystem/icones/apps-arcticons.map" \
   && ok "o traço do Firefox é peach" \
   || falha "o traço do Firefox não é peach" "$(grep '^firefox:' "$RAIZ/packs/meowsystem/icones/apps-arcticons.map")"
+faltam=""
+for linha in io.github.cosmic_utils.camera:opencamera:teal vlc:vlc:peach com.valvesoftware.SteamLink:steamlink:sapphire \
+             azahar:lime3ds:yellow super-zsnes:snes9x:red steam_icon_404790:godot:blue; do
+  glifo="${linha#*:}"; glifo="${glifo%%:*}"
+  grep -qx "$linha" "$RAIZ/packs/meowsystem/icones/apps-arcticons.map" \
+    && { [ -s "$RAIZ/packs/meowsystem/icones/apps/$glifo.svg" ] || [ -s "$RAIZ/packs/meowsystem/icones/biblioteca/$glifo.svg" ]; } \
+    && grep -qx "$glifo.svg" "$RAIZ/packs/meowsystem/icones/arcticons.lista" || faltam="$faltam $linha"
+done
+[ -z "$faltam" ] && ok "os seis desenhos escolhidos em 25/11 estão no mapa do traço, com o glifo no acervo" \
+  || falha "desenho escolhido em 25/11 fora do mapa do traço ou sem glifo no acervo" "$faltam"
 v="$(amb python3 "$RAIZ/scripts/pack.py" fonte dev.vencord.Vesktop 2>&1 | head -3)"
 alvo_discord="$(sed -n 's/^com\.discordapp\.Discord[[:space:]]*:[[:space:]]*\([^[:space:]#]*\).*/\1/p' "$RAIZ/packs/dracula/icones/apps.map" | head -1)"
 [ -n "$alvo_discord" ] && grep -qE "^dev\.vencord\.Vesktop[[:space:]]*:[[:space:]]*${alvo_discord//./\\.}([[:space:]]|$)" "$RAIZ/packs/dracula/icones/apps.map" \

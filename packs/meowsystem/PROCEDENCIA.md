@@ -22,7 +22,7 @@ lado da regra.
 | `catppuccin/vscode-icons` | `packs/meowsystem/icones/sistema/` — os **75** moldes que o `mimetypes.map` usa, pintados na instalação; os outros **581** em `biblioteca/` | MIT | sim | sim, com o aviso de copyright |
 | `Daveedmee/catppuccin-icons` | `assets/icones/catppuccin-apps/<flavor>/` | **não declarada** | indefinido | **não** — uso local apenas |
 | Arcticons (sistema) | `packs/meowsystem/icones/sistema/` e `biblioteca/` (a lista em `icones/arcticons.lista`) — **39** glifos | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
-| Arcticons (aplicativo) | `packs/meowsystem/icones/apps/` e `biblioteca/` — **39** glifos, **16 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
+| Arcticons (aplicativo) | `packs/meowsystem/icones/apps/` e `biblioteca/` — **44** glifos, **22 em uso**, **recoloridos** | **CC BY-SA 4.0** | **sim** | sim, **com atribuição e sob a mesma licença** |
 | **convertido do Papirus** | `packs/meowsystem/icones/apps/` (o mapa em `icones/apps-convertidos.map`) — **22** SVGs **gerados** | **GPL-3.0** (obra derivada) | sim | sim, **sob GPL** |
 | **desenho à mão do traço** | `packs/meowsystem/icones/apps/` e `biblioteca/` — **3** desenhos + **2** variantes do GIMP | deste projeto (a do GIMP é derivada, GPL-3.0) | — | — |
 | Papirus / Papirus-Dark | pacote `papirus-icon-theme` do sistema | GPL-3.0 | sim | sim, sob GPL |
