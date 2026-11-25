@@ -105,6 +105,27 @@ else
   falha "no seco: rc=$rc, arquivo mudou? $([ "$seco_antes" = "$seco_depois" ] && echo não || echo SIM)"
 fi
 
+printf '\n--- o menu do meow usa as cores geradas ---\n'
+if grep -nE -- '--color=.*#[0-9A-Fa-f]{6}' "$RAIZ/scripts/meow" >/dev/null; then
+  falha "scripts/meow passa ao fzf uma cor cravada, por cima da paleta do pack no ar:"
+  grep -nE -- '--color=.*#[0-9A-Fa-f]{6}' "$RAIZ/scripts/meow" | cut -c1-120 | sed 's/^/       /' >&2
+else
+  ok "scripts/meow não passa cor cravada ao fzf"
+fi
+casa_menu="$TMP/casa-menu"; mkdir -p "$casa_menu/bin"
+correr "$casa_menu" aplicar PACK=dracula FLAVOR=dracula ACCENT=mauve >/dev/null
+printf '#!/bin/sh\nprintf "%%s\\n" "$FZF_DEFAULT_OPTS" > "$HOME/fzf-visto"\nexit 130\n' > "$casa_menu/bin/fzf"
+chmod 755 "$casa_menu/bin/fzf"
+mkdir -p "$casa_menu/.config/meow"
+printf 'PACK="dracula"\nFLAVOR="dracula"\nACCENT="mauve"\n' > "$casa_menu/.config/meow/meow.conf"
+env -i PATH="$casa_menu/bin:$PATH" HOME="$casa_menu" NO_COLOR=1 MEOW_RAIZ="$RAIZ" \
+  script -qec "'$RAIZ/scripts/meow'" /dev/null >/dev/null 2>&1 </dev/null
+if [ -s "$casa_menu/fzf-visto" ] && [ "$(cat "$casa_menu/fzf-visto")" = "$(opcoes_de "$(arquivo "$casa_menu")")" ]; then
+  ok "o menu abre o fzf com as cores do pack no ar (Dracula), lidas do arquivo gerado"
+else
+  falha "o menu não entregou ao fzf as cores geradas: visto=[$(cat "$casa_menu/fzf-visto" 2>/dev/null)]"
+fi
+
 printf '\n'
 if [ "$ACHADOS" -gt 0 ]; then
   printf 'FALHOU: %s achado(s)\n' "$ACHADOS" >&2

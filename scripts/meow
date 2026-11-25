@@ -2970,14 +2970,15 @@ cmd_menu() {
     return $?
   fi
 
-  local selecao rc itens
+  local selecao rc itens cores_do_fzf="${XDG_CONFIG_HOME:-$HOME/.config}/meowsystem/fzf.sh"
+  # shellcheck disable=SC1090
+  [ -r "$cores_do_fzf" ] && . "$cores_do_fzf"
   itens="$(menu_itens)"
   selecao="$(fzf \
       --height=60% --layout=reverse --border=rounded \
       --margin=1 --padding=1 \
       --prompt="  Meow > " \
       --header="  ENTER executar | ESC sair" \
-      --color="bg+:#313244,fg+:#cdd6f4,hl:#cba6f7,hl+:#f5c2e7,pointer:#a6e3a1,marker:#a6e3a1,prompt:#cba6f7,header:#6c7086,border:#6c7086" \
       --preview-window="right:50%:wrap" \
       --delimiter=$'\t' --with-nth=1 \
       --preview='printf "%s\n" {2}' <<< "$itens")"
