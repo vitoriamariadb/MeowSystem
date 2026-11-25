@@ -438,6 +438,11 @@ for linha in io.github.cosmic_utils.camera:opencamera:teal vlc:vlc:peach com.val
 done
 [ -z "$faltam" ] && ok "os seis desenhos escolhidos em 25/11 estão no mapa do traço, com o glifo no acervo" \
   || falha "desenho escolhido em 25/11 fora do mapa do traço ou sem glifo no acervo" "$faltam"
+grep -qx 'com.system76.CosmicViewer:/usr/share/icons/hicolor/256x256/apps/com.system76.CosmicViewer.svg:lavender:--k 4 --funde 60' \
+     "$RAIZ/packs/meowsystem/icones/apps-convertidos.map" \
+  && grep -q 'stroke="currentColor"' "$RAIZ/packs/meowsystem/icones/apps/com.system76.CosmicViewer.svg" 2>/dev/null \
+  && ok "o COSMIC Viewer veste o original convertido que ela escolheu em 25/11, em lavender" \
+  || falha "o COSMIC Viewer perdeu a receita ou o desenho escolhido em 25/11" "$(grep '^com.system76.CosmicViewer:' "$RAIZ/packs/meowsystem/icones/apps-convertidos.map")"
 v="$(amb python3 "$RAIZ/scripts/pack.py" fonte dev.vencord.Vesktop 2>&1 | head -3)"
 alvo_discord="$(sed -n 's/^com\.discordapp\.Discord[[:space:]]*:[[:space:]]*\([^[:space:]#]*\).*/\1/p' "$RAIZ/packs/dracula/icones/apps.map" | head -1)"
 [ -n "$alvo_discord" ] && grep -qE "^dev\.vencord\.Vesktop[[:space:]]*:[[:space:]]*${alvo_discord//./\\.}([[:space:]]|$)" "$RAIZ/packs/dracula/icones/apps.map" \

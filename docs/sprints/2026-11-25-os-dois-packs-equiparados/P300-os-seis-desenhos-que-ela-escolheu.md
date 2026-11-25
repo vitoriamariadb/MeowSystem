@@ -13,8 +13,14 @@ seis glifos do Arcticons: Câmera `opencamera` (teal), VLC `vlc` (peach), Steam 
 
 Isto é o gerador. Pôr os seis ícones na tela é rodar o instalador, com o sim dela.
 
+## O sétimo: o COSMIC Viewer (decisão 70)
+Ela pediu «Pode melhorar o original?» e, entre o conversor afinado e o redesenho à mão, escolheu o 1G: o ícone do
+próprio COSMIC convertido com `--k 4 --funde 60`, em lavender. A linha está em `apps-convertidos.map` e o
+`construir_convertidos.sh --aplicar` gerou só ele (1 gerado, 0 desatualizados, de 31). `meow cosmic icones` deixou
+de acusar o Viewer.
+
 ## O que ficou de fora
-- COSMIC Viewer e FogStripper: ela pediu o original melhorado; as opções novas estão na página.
+- FogStripper: ela pediu o logo redesenhado à mão; as duas versões novas (8E, 8F) estão na página.
 - A Forja, Pipeline EducaDados e FogStripper são projetos de quem usa: `tests/pack-dracula-completo.sh` recusa arte
   pessoal dentro de `packs/`. O desenho deles vai no mapa de quem usa (`~/.config/meow/icones-convertidos.map`), em
   cada PC. A Forja e o Pipeline têm ainda o `Icon=` de caminho absoluto no atalho, que nenhum tema alcança.

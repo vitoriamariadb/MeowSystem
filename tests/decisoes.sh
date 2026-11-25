@@ -584,6 +584,7 @@ cobre 67 pack-malicioso.sh 'o starship.toml de pack importado não é lido' scri
 cobre 67 pack-malicioso.sh 'molde de tema de pack de fora que difere do pack-base não é lido' scripts/pack.py 'vale = molde_que_vale\(app, achado\)'
 cobre 68 arvore.sh 'entrada versionada nova na raiz'
 cobre 69 pack-dracula-completo.sh 'os seis desenhos escolhidos em 25/11' packs/meowsystem/icones/apps-arcticons.map '^azahar:lime3ds:yellow$'
+cobre 70 pack-dracula-completo.sh 'o COSMIC Viewer veste o original convertido' packs/meowsystem/icones/apps-convertidos.map '^com\.system76\.CosmicViewer:.*:lavender:--k 4 --funde 60$'
 
 sem_linha=""; total=0
 while read -r n; do

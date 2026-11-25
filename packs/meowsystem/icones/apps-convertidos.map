@@ -20,6 +20,8 @@ com.obsproject.Studio:/usr/share/icons/Papirus/64x64/apps/com.obsproject.Studio.
 com.system76.CosmicEdit:mao:pink
 # app: Player do COSMIC
 com.system76.CosmicPlayer:mao:green
+# app: COSMIC Viewer
+com.system76.CosmicViewer:/usr/share/icons/hicolor/256x256/apps/com.system76.CosmicViewer.svg:lavender:--k 4 --funde 60
 # app: Spotify
 com.spotify.Client:/usr/share/icons/Papirus/64x64/apps/com.spotify.Client.svg:green:retoque
 # app: Câmera (Snapshot)
