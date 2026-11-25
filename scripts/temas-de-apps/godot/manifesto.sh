@@ -52,7 +52,7 @@ if "\ninterface/theme/color_preset " in texto:
 elif "\ninterface/theme/preset " in texto:
     chave_preset = "interface/theme/preset"
 else:
-    chave_preset = "interface/theme/color_preset" if minor and int(minor.group(1)) >= 7 else "interface/theme/preset"
+    chave_preset = "interface/theme/color_preset" if minor and int(minor.group(1)) >= 6 else "interface/theme/preset"
 K_BASE, K_ACENTO, K_CONTRASTE = "interface/theme/base_color", "interface/theme/accent_color", "interface/theme/contrast"
 K_TEXTO = "text_editor/theme/color_theme"
 NOME = sys.argv[4]

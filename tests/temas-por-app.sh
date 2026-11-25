@@ -337,7 +337,7 @@ if grep -qx 'interface/theme/preset = "Custom"' "$GD/editor_settings-4.4.tres" \
    && grep -qx 'interface/theme/color_preset = "Custom"' "$GD/editor_settings-4.7.tres" \
    && ! grep -q '^interface/theme/preset' "$GD/editor_settings-4.7.tres" \
    && ! grep -q 'color_preset' "$GD/editor_settings-4.4.tres"; then
-  ok "godot: a chave do preset segue a versão do arquivo (preset até o 4.6, color_preset desde o 4.7)"
+  ok "godot: a chave do preset segue a versão do arquivo (preset até o 4.5, color_preset desde o 4.6)"
 else
   falha "godot: a chave do preset não seguiu a versão do arquivo" "$(cat "$GD"/editor_settings-4.*.tres)"
 fi
@@ -446,6 +446,20 @@ if grep -qx 'text_editor/theme/color_theme = "MeowSystem"' "$CASA/.var/app/org.g
   ok "godot: o Godot em flatpak também recebe o tema, na pasta de configuração dele"
 else
   falha "godot: a instalação em flatpak não foi vestida"
+fi
+
+semear godot
+rm -f "$GD/editor_settings-4.4.tres" "$GD/editor_settings-4.7.tres"
+printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\ninterface/editor/display_scale = 3\n' > "$GD/editor_settings-4.5.tres"
+printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\ninterface/editor/display_scale = 3\n' > "$GD/editor_settings-4.6.tres"
+mod godot aplicar meowsystem mocha >/dev/null
+if grep -qx 'interface/theme/color_preset = "Custom"' "$GD/editor_settings-4.6.tres" \
+   && ! grep -q '^interface/theme/preset' "$GD/editor_settings-4.6.tres" \
+   && grep -qx 'interface/theme/preset = "Custom"' "$GD/editor_settings-4.5.tres" \
+   && ! grep -q 'color_preset' "$GD/editor_settings-4.5.tres"; then
+  ok "godot: sem chave de preset no arquivo, o 4.5 ganha preset e o 4.6 já ganha color_preset (o 4.6 apaga o preset ao abrir)"
+else
+  falha "godot: a chave do preset não seguiu a versão nos arquivos 4.5 e 4.6" "$(cat "$GD"/editor_settings-4.[56].tres)"
 fi
 
 semear gimp
