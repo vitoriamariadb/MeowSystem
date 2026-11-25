@@ -1,0 +1,14 @@
+{
+  "origem": "meowsystem-tema: {{pack}}/{{flavor}}",
+  "foreground": "{{text}}",
+  "background": "{{base}}",
+  "selection": "{{surface2}}",
+  "cursor": "{{rosewater}}",
+  "markup": "{{overlay1}}",
+  "accent": "{{peach}}",
+  "heading": "{{mauve}}",
+  "emphasis": "{{pink}}",
+  "block": "{{teal}}",
+  "link": "{{sky}}",
+  "error": "{{red}}"
+}

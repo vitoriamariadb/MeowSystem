@@ -7,7 +7,7 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 
 command -v python3 >/dev/null 2>&1 || { printf 'FALHOU: sem python3\n' >&2; exit 1; }
 
-APPS=(libadwaita krita obs firefox godot gimp)
+APPS=(libadwaita krita obs firefox godot gimp ghostwriter)
 PACKS=(meowsystem:mocha dracula:dracula)
 
 T="$(mktemp -d)" || exit 2
@@ -53,7 +53,7 @@ no_disco() {
 }
 semear() {
   rm -rf "$CASA" "$FAKE" "$T/estado"; mkdir -p "$CASA/.config" "$FAKE/apps"
-  rm -f "$BIN/obs" "$BIN/krita" "$BIN/firefox"
+  rm -f "$BIN/obs" "$BIN/krita" "$BIN/firefox" "$BIN/ghostwriter"
   case "$1" in
     libadwaita)
       app_flatpak com.github.rafostar.Clapper sim
@@ -67,6 +67,11 @@ semear() {
       no_disco com.obsproject.Studio
       mkdir -p "$CASA/.var/app/com.obsproject.Studio/config/obs-studio"
       printf '[General]\nLanguage=pt-BR\n' > "$CASA/.var/app/com.obsproject.Studio/config/obs-studio/user.ini" ;;
+    ghostwriter)
+      no_disco org.kde.ghostwriter
+      mkdir -p "$CASA/.var/app/org.kde.ghostwriter/config/kde.org"
+      printf '[General]\nlocale=pt_BR\n\n[Style]\ndarkModeEnabled=true\ntheme=Classic Light\n' \
+        > "$CASA/.var/app/org.kde.ghostwriter/config/kde.org/ghostwriter.conf" ;;
     gimp)
       no_disco org.gimp.GIMP
       mkdir -p "$CASA/.config/GIMP/3.2/themes" "$CASA/.config/GIMP/3.0"
@@ -526,6 +531,107 @@ if [ -f "$CASA/.var/app/org.gimp.GIMP/config/GIMP/3.2/themes/MeowSystem/gimp-dar
 else
   falha "gimp: a pasta de ~/.var/app/org.gimp.GIMP não foi vestida"
 fi
+
+semear ghostwriter
+GW="$CASA/.var/app/org.kde.ghostwriter"
+mod ghostwriter aplicar meowsystem mocha >/dev/null
+if grep -qx 'theme=MeowSystem' "$GW/config/kde.org/ghostwriter.conf" \
+   && grep -qx 'darkModeEnabled=true' "$GW/config/kde.org/ghostwriter.conf" \
+   && grep -qx 'locale=pt_BR' "$GW/config/kde.org/ghostwriter.conf" \
+   && ! grep -q 'Classic Light' "$GW/config/kde.org/ghostwriter.conf" \
+   && [ -f "$GW/data/ghostwriter/themes/MeowSystem.json" ]; then
+  ok "ghostwriter: o Style/theme troca o padrão de fábrica pelo MeowSystem e o conf guarda o resto"
+else
+  falha "ghostwriter: o conf ou o tema não ficaram como o esperado" "$(cat "$GW/config/kde.org/ghostwriter.conf")"
+fi
+if python3 -I - "$GW/data/ghostwriter/themes/MeowSystem.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+chaves = {"foreground", "background", "selection", "cursor", "markup", "accent", "heading", "emphasis", "block", "link", "error"}
+cores = {k: d.get(k) for k in chaves}
+ok = all(isinstance(v, str) and len(v) == 7 and v[0] == "#" for v in cores.values())
+sys.exit(0 if ok and d["background"] == "#1E1E2E" and d["foreground"] == "#CDD6F4" and "meowsystem-tema:" in d.get("origem", "") else 1)
+PY
+then
+  ok "ghostwriter: o tema é um JSON plano com as 11 cores do ghostwriter, tiradas da paleta, e a marca do módulo"
+else
+  falha "ghostwriter: o MeowSystem.json não é o JSON esperado" "$(cat "$GW/data/ghostwriter/themes/MeowSystem.json")"
+fi
+mod ghostwriter aplicar dracula alucard >/dev/null
+if grep -q '"background": "#F0F0F6"' "$GW/data/ghostwriter/themes/MeowSystem.json" && grep -qx 'theme=MeowSystem' "$GW/config/kde.org/ghostwriter.conf"; then
+  ok "ghostwriter: a troca para o flavor claro reescreve o tema e mantém a escolha"
+else
+  falha "ghostwriter: a troca para o alucard não saiu como o esperado" "$(cat "$GW/data/ghostwriter/themes/MeowSystem.json")"
+fi
+mod ghostwriter reverter dracula alucard >/dev/null
+if grep -qx 'darkModeEnabled=true' "$GW/config/kde.org/ghostwriter.conf" && ! grep -q 'theme=' "$GW/config/kde.org/ghostwriter.conf" \
+   && [ ! -e "$GW/data/ghostwriter/themes/MeowSystem.json" ]; then
+  ok "ghostwriter: o reverter tira o theme e o JSON e guarda o resto do conf"
+else
+  falha "ghostwriter: o reverter deixou resto ou levou o que não era dele" "$(cat "$GW/config/kde.org/ghostwriter.conf"; ls -R "$GW/data" 2>&1)"
+fi
+
+semear ghostwriter
+sed -i 's/^theme=.*/theme=Plainstraction/' "$GW/config/kde.org/ghostwriter.conf"
+saida="$(mod ghostwriter aplicar meowsystem mocha)"; rc1=$?
+saida="$saida$(mod ghostwriter aplicar meowsystem mocha)"; rc2=$?
+if [ "$rc1" = 1 ] && [ "$rc2" = 3 ] && grep -qx 'theme=Plainstraction' "$GW/config/kde.org/ghostwriter.conf" \
+   && [ -f "$GW/data/ghostwriter/themes/MeowSystem.json" ]; then
+  ok "ghostwriter: o tema que ela escolheu à mão não é trocado, e o aviso (3) não some"
+else
+  falha "ghostwriter: o tema dela foi trocado ou os rc não foram 1 e 3 (deu $rc1 e $rc2)" "$saida"
+fi
+mod ghostwriter reverter meowsystem mocha >/dev/null
+grep -qx 'theme=Plainstraction' "$GW/config/kde.org/ghostwriter.conf" \
+  && ok "ghostwriter: o reverter nunca apaga o tema dela" \
+  || falha "ghostwriter: o reverter mexeu no tema dela"
+
+semear ghostwriter
+sed -i 's/^theme=.*/theme=Classic/' "$GW/config/kde.org/ghostwriter.conf"
+mod ghostwriter aplicar meowsystem mocha >/dev/null
+grep -qx 'theme=MeowSystem' "$GW/config/kde.org/ghostwriter.conf" \
+  && ok "ghostwriter: o Classic, que o app grava sozinho no primeiro uso, não conta como escolha dela" \
+  || falha "ghostwriter: o Classic foi tratado como escolha dela"
+
+semear ghostwriter
+mkdir -p "$GW/data/ghostwriter/themes"
+printf '{"foreground": "#010203", "background": "#040506"}\n' > "$GW/data/ghostwriter/themes/MeowSystem.json"
+antes="$(arquivos)"
+saida="$(mod ghostwriter aplicar meowsystem mocha)"; rc=$?
+if [ "$rc" = 3 ] && [ "$antes" = "$(arquivos)" ]; then
+  ok "ghostwriter: um MeowSystem.json dela, sem a marca, não é sobrescrito e o conf não aponta para ele"
+else
+  falha "ghostwriter: o JSON dela foi tocado ou o conf mudou (rc=$rc)" "$saida"
+fi
+
+semear ghostwriter
+rm -rf "$GW"
+saida="$(mod ghostwriter aplicar meowsystem mocha)"; rc=$?
+if [ "$rc" = 1 ] && grep -qx 'theme=MeowSystem' "$GW/config/kde.org/ghostwriter.conf" && [ -f "$GW/data/ghostwriter/themes/MeowSystem.json" ]; then
+  ok "ghostwriter: instalado e nunca aberto, o conf e o tema nascem do módulo"
+else
+  falha "ghostwriter: sem conf anterior o módulo não criou o conf e o tema (rc=$rc)" "$saida"
+fi
+mod ghostwriter reverter meowsystem mocha >/dev/null
+[ ! -e "$GW/config/kde.org/ghostwriter.conf" ] && [ ! -e "$GW/data/ghostwriter/themes/MeowSystem.json" ] \
+  && ok "ghostwriter: o reverter apaga o conf que o módulo criou" \
+  || falha "ghostwriter: o reverter deixou o conf ou o tema que o módulo criou"
+
+semear ghostwriter
+rm -rf "$CASA/.var" "$CASA/.local/share/flatpak"
+printf '#!/bin/sh\nexit 0\n' > "$BIN/ghostwriter"; chmod +x "$BIN/ghostwriter"
+mod ghostwriter aplicar dracula dracula >/dev/null
+if [ -f "$CASA/.local/share/ghostwriter/themes/MeowSystem.json" ] \
+   && grep -qx 'theme=MeowSystem' "$CASA/.config/kde.org/ghostwriter.conf"; then
+  ok "ghostwriter: o pacote nativo escreve em ~/.local/share/ghostwriter e ~/.config/kde.org"
+else
+  falha "ghostwriter: a instalação nativa não foi vestida"
+fi
+mod ghostwriter reverter dracula dracula >/dev/null
+[ ! -e "$CASA/.local/share/ghostwriter/themes/MeowSystem.json" ] && [ ! -e "$CASA/.config/kde.org/ghostwriter.conf" ] \
+  && ok "ghostwriter: o reverter nativo limpa o tema e o conf" \
+  || falha "ghostwriter: o reverter nativo deixou resto"
+rm -f "$BIN/ghostwriter"
 
 if [ "$falhas" -gt 0 ]; then
   printf 'temas-por-app: %s falha(s)\n' "$falhas" >&2
