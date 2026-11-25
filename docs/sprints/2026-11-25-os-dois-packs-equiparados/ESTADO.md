@@ -16,13 +16,14 @@ Pedido: «concluir os dois temas, equiparar eles de fato». Parte da folha
 | bloco | o quê | estado |
 |---|---|---|
 | 1 · código | P299, o btop sem o mauve do Mocha cravado | feito, commit `b02bd98` |
-| 2 · desenhos do Catppuccin | seis escolhidos e instalados (P300, decisão 69, commit `19018bc`): Câmera, VLC, Steam Link, Azahar, Super ZSNES e Godot; instalador passado no MeowSystem e no Meow-portatil | feito; faltam 1 e 8 |
+| 2 · desenhos do Catppuccin | sete escolhidos e instalados no MeowSystem e no Meow-portatil: os seis do Arcticons (P300, decisão 69, `19018bc`) e o COSMIC Viewer 1G (decisão 70, `8dc79c7`); P301 curou o `git-limpo.sh` que apagava o mapa em edição (`9956e3c`) | falta o 8 |
 | 3 · módulos de app | Godot, GIMP, ghostwriter (`BLOCO-APPS-SEM-MODULO.md`) | voando na worktree `.worktrees/meow-apps-2511`, branch `bloco/apps-sem-modulo` |
 | 4 · desenhos do Dracula | Dédalo, FogStripper, Pipeline EducaDados no nitro-5 | na fila do André (`b6b2791a`) |
 
 ## O que falta do bloco 2
-- COSMIC Viewer (1) e FogStripper (8): ela pediu «melhorar o original». As opções novas (conversor afinado e
-  redesenho à mão, marcadas «Nova») estão na página privada «Desenhos do Catppuccin», coleção `escolhas`.
+- FogStripper (8): ela pediu o 8D melhorado, «na mão mesmo, você escrevendo o SVG». As duas versões novas (8E, seis
+  fios; 8F, oito fios) estão na página privada «Desenhos do Catppuccin», coleção `escolhas`; os SVG em
+  `~/.cache/meow-leva/fogstripper-8E.svg` e `-8F.svg`.
 - A Forja (9A, mauve), Pipeline EducaDados (10A, green) e o FogStripper são projetos dela: `tests/pack-dracula-completo.sh`
   recusa arte pessoal em `packs/`. Vão no mapa de quem usa (`~/.config/meow/icones-convertidos.map`), por PC. A Forja
   e o Pipeline têm `Icon=` de caminho absoluto no atalho (`forja.desktop`, `pipelines-educadados.desktop`), que
@@ -32,6 +33,11 @@ Pedido: «concluir os dois temas, equiparar eles de fato». Parte da folha
   dela. No portátil não há atalho do Godot.
 
 ## O bloco 3
+Os três módulos fechados na worktree pelo `implementa-apps`: godot `29f8bad`, gimp `feb29d5`, ghostwriter `9054fbc`.
+Medido por quem coordena no nitro-5: o ghostwriter flatpak guarda mesmo em `config/kde.org/ghostwriter.conf` (seção
+`[Style]`; existe também uma `[style]` minúscula, a conferir) e `data/ghostwriter/themes`. Falta o conferente e a
+passada na tela.
+
 Dois agentes, um de cada vez: `implementa-apps` (agente, alto), depois o conferente (agente, alto), que confere e
 corrige. A prova na tela é de quem coordena: os módulos só entram no `master` depois de ela ver a captura de cada
 app aberto.
