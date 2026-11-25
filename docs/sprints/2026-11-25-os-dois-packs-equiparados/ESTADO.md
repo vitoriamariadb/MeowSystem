@@ -35,14 +35,19 @@ Pedido: «concluir os dois temas, equiparar eles de fato». Parte da folha
   dela. No portátil não há atalho do Godot.
 
 ## O bloco 3
-Os três módulos fechados na worktree pelo `implementa-apps`: godot `29f8bad`, gimp `feb29d5`, ghostwriter `9054fbc`.
-Medido por quem coordena no nitro-5: o ghostwriter flatpak guarda mesmo em `config/kde.org/ghostwriter.conf` (seção
-`[Style]`; existe também uma `[style]` minúscula, a conferir) e `data/ghostwriter/themes`. Falta o conferente e a
-passada na tela.
+Fechado na worktree `.worktrees/meow-apps-2511` (branch `bloco/apps-sem-modulo`), fora do `master`:
+`29f8bad` godot, `feb29d5` gimp, `9054fbc` ghostwriter (implementa-apps); `d995ac0` e `fc2c769`, dois consertos do
+Godot, `9ef0a18`, teste do ghostwriter no formato real, e `5d3fbde`, o `ACHADO-chave-etapa-intermitente.md`
+(confere-apps). Veredito do conferente: godot aprovado com dois consertos, gimp e ghostwriter aprovados;
+`./tests/todos.sh --portatil` com 146 verdes, 0 pulados, 0 vermelhos.
 
-Dois agentes, um de cada vez: `implementa-apps` (agente, alto), depois o conferente (agente, alto), que confere e
-corrige. A prova na tela é de quem coordena: os módulos só entram no `master` depois de ela ver a captura de cada
-app aberto.
+**Por que não entrou no `master`:** `gimp` já está no `APPS_ATIVOS` dos três PCs (`meow.conf`, linha 67 nos dois dela,
+1482 no nitro-5). Integrar liga o tema do GIMP nos três na atualização seguinte (decisão 65), sem ninguém ter visto.
+Godot e ghostwriter não estão em nenhum `APPS_ATIVOS`. Espera o cartão «módulos» da página de decisões.
+
+Falta: a passada na tela (GIMP e Godot com cópia da configuração, na área OS), a suíte inteira com COSMIC e a
+integração. O ghostwriter só existe no nitro-5, onde o dono tem `theme=Sem nome 1`: o módulo grava o tema e não o
+escolhe.
 
 ## A bandeja e a barra, medidas em 25/11
 - Os dois packs desenham os mesmos 269 nomes do `sistema.map` (barra, applets e Configurações), cada um no seu
