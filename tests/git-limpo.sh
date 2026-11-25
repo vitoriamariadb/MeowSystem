@@ -190,6 +190,8 @@ done
 
 printf '\n--- 3c o «Usar» da oficina não muda o git status ---\n'
 CASA_O="$TMP/casa-oficina"; ANTES_O="$TMP/antes-o"; DEPOIS_O="$TMP/depois-o"
+MAPA_DO_CLONE="$RAIZ/packs/meowsystem/icones/apps-convertidos.map"; MAPA_DE_ANTES="$TMP/mapa-de-antes"
+cp -- "$MAPA_DO_CLONE" "$MAPA_DE_ANTES"
 estado_com_novos() { git -C "$RAIZ" status --porcelain --untracked-files=all | LC_ALL=C sort; }
 mkdir -p "$CASA_O/.config/meow" "$CASA_O/.local/share/applications"
 cp "$RAIZ/meow.conf.exemplo" "$CASA_O/.config/meow/meow.conf"
@@ -245,7 +247,7 @@ else
   falha "o construir_convertidos.sh não leu o mapa de quem usa, ou escreveu no clone"
   diff "$ANTES_O" "$DEPOIS_O" | sed 's/^/        /' >&2
 fi
-git -C "$RAIZ" checkout -q -- packs/meowsystem/icones/apps-convertidos.map 2>/dev/null
+cmp -s "$MAPA_DE_ANTES" "$MAPA_DO_CLONE" || cp -- "$MAPA_DE_ANTES" "$MAPA_DO_CLONE"
 rm -f "$RAIZ/packs/meowsystem/icones/apps/um-desenho.svg" "$RAIZ/packs/meowsystem/icones/apps/um-desenho.svg"
 
 printf '\n--- 4/4 o painel em uso não suja o repositório inteiro ---\n'
