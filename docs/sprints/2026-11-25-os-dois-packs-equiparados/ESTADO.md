@@ -44,6 +44,20 @@ Dois agentes, um de cada vez: `implementa-apps` (agente, alto), depois o confere
 corrige. A prova na tela é de quem coordena: os módulos só entram no `master` depois de ela ver a captura de cada
 app aberto.
 
+## A bandeja e a barra, medidas em 25/11
+- Os dois packs desenham os mesmos 269 nomes do `sistema.map` (barra, applets e Configurações), cada um no seu
+  estilo. Nenhum nome falta em nenhum dos dois.
+- Só o `meowsystem` declara `icones.bandeja`: com o Dracula no ar, `icones_bandeja.sh`, `icones_tray_steam.sh` e
+  `icones_tray_zapzap.sh` pulam, e os ícones de bandeja da Steam e do ZapZap ficam de fábrica.
+- Ao vivo: MeowSystem com Hefesto e Steam (os dois com `IconThemePath` próprio); portátil com Hefesto; nitro-5 com o
+  ZapZap, que não manda `IconName`. OBS e qBittorrent não foram medidos (fechados).
+- A Soneca no `meowsystem` aponta para `soneca-desperto` e `soneca-ronronar`, que não existem no pack: valem os SVG
+  do próprio applet, como diz a decisão 59.
+
+## As decisões dela
+Página privada «O que falta decidir»: coleções `decisoes` (14 cartões: opção e comentário), `barra` (ícones
+marcados para rever) e `geral` (`bandeja`, `cota`). Ler de lá antes de abrir o próximo bloco.
+
 ## Fica com quem usa
 - Os códigos da folha de desenhos (e a cor de cada um).
 - Os cinco campos do Dracula sem leitor: estão no formato do manual (`docs/PACKS.md`, exemplo e aviso); ganhar leitor
