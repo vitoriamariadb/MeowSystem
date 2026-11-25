@@ -42,12 +42,12 @@ CLARO="$(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1])
 moldes_do_base="$(cd "$RAIZ/packs/meowsystem" && find temas-de-apps -name '*.modelo.*' -type f | sort)"
 moldes_iguais() {
   local m
-  [ "$(printf '%s\n' "$moldes_do_base" | wc -l)" = 11 ] || return 1
+  [ "$(printf '%s\n' "$moldes_do_base" | wc -l)" = 12 ] || return 1
   while IFS= read -r m; do cmp -s "$RAIZ/packs/meowsystem/$m" "$1/$m" || return 1; done <<< "$moldes_do_base"
 }
 moldes_iguais "$DIR" && moldes_iguais "$RAIZ/packs/dracula" \
-  && ok "o pack que nasce do Personalizar traz os 11 moldes de tema de aplicativo, os mesmos do pack-base e do Dracula" \
-  || falha "o pack pessoal ou o Dracula não trazem os 11 moldes do pack-base" "$(cd "$DIR" && find temas-de-apps -type f 2>&1 | sort)"
+  && ok "o pack que nasce do Personalizar traz os 12 moldes de tema de aplicativo, os mesmos do pack-base e do Dracula" \
+  || falha "o pack pessoal ou o Dracula não trazem os 12 moldes do pack-base" "$(cd "$DIR" && find temas-de-apps -type f 2>&1 | sort)"
 [ ! -d "$DIR/temas/capturados" ] \
   && ok "o pack pessoal nasce sem captura própria (o tema vem do pack de onde nasceu)" \
   || falha "o pack pessoal já nasceu com captura: o teste não prova a derivação" "$(ls "$DIR/temas/capturados")"
@@ -113,7 +113,7 @@ saida3="$(etapa tema)"; rc3="$(cat "$T/rc")"
 
 amb env MEOW_PACKS="$T/novos" python3 "$RAIZ/scripts/pack.py" novo do-meow-novo >/dev/null 2>&1
 moldes_iguais "$T/novos/do-meow-novo" \
-  && ok "o meow pack novo também semeia os 11 moldes no pack que nasce" \
+  && ok "o meow pack novo também semeia os 12 moldes no pack que nasce" \
   || falha "o meow pack novo nasceu sem os moldes" "$(find "$T/novos" -name '*.modelo.*' 2>&1)"
 
 VELHO="$CASA/.local/share/meowsystem/packs/meu-meow-portatil"
@@ -125,15 +125,15 @@ printf '# o kitty dela, mexido à mão\nforeground {{text}}\n' > "$VELHO/temas-d
 retrato_moldes() { find "$CASA/.local/share/meowsystem/packs" -path '*temas-de-apps*' -type f -printf '%P %s %T@\n' | sort; }
 antes="$(retrato_moldes)"
 conferir="$(amb python3 "$RAIZ/scripts/pack.py" semear-moldes --conferir 2>&1)"
-[ "$antes" = "$(retrato_moldes)" ] && grep -q 'meu-meow-portatil ganharia 10 molde' <<< "$conferir" \
+[ "$antes" = "$(retrato_moldes)" ] && grep -q 'meu-meow-portatil ganharia 11 molde' <<< "$conferir" \
   && ! grep -q 'meu-tema' <<< "$conferir" \
-  && ok "o --conferir conta os 10 moldes que faltam no pack pessoal de antes e não escreve" \
+  && ok "o --conferir conta os 11 moldes que faltam no pack pessoal de antes e não escreve" \
   || falha "o semear-moldes --conferir escreveu ou contou errado" "$conferir"
 semeou="$(amb python3 "$RAIZ/scripts/pack.py" semear-moldes 2>&1)"
 mexido="$(cat "$VELHO/temas-de-apps/kitty/kitty.modelo.conf")"
 faltam="$(cd "$RAIZ/packs/meowsystem" && while IFS= read -r m; do [ -f "$VELHO/$m" ] || printf '%s\n' "$m"; done <<< "$moldes_do_base")"
 [ -z "$faltam" ] && [ "$mexido" = "$(printf '# o kitty dela, mexido à mão\nforeground {{text}}')" ] \
-  && grep -q 'meu-meow-portatil ganhou 10 molde' <<< "$semeou" \
+  && grep -q 'meu-meow-portatil ganhou 11 molde' <<< "$semeou" \
   && ok "a passada do install dá ao pack pessoal de antes os moldes que faltam, sem tocar no que ela mexeu" \
   || falha "o semear-moldes não completou o pack pessoal, ou trocou o molde dela" "$semeou / faltam: $faltam"
 antes="$(retrato_moldes)"

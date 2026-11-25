@@ -92,7 +92,8 @@
     "libadwaita": {},
     "krita": {},
     "obs": {},
-    "firefox": {}
+    "firefox": {},
+    "godot": {}
   },
   "mascote": {
     "desenhos": "mascote/",

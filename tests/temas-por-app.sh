@@ -7,7 +7,7 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 
 command -v python3 >/dev/null 2>&1 || { printf 'FALHOU: sem python3\n' >&2; exit 1; }
 
-APPS=(libadwaita krita obs firefox)
+APPS=(libadwaita krita obs firefox godot)
 PACKS=(meowsystem:mocha dracula:dracula)
 
 T="$(mktemp -d)" || exit 2
@@ -67,6 +67,12 @@ semear() {
       no_disco com.obsproject.Studio
       mkdir -p "$CASA/.var/app/com.obsproject.Studio/config/obs-studio"
       printf '[General]\nLanguage=pt-BR\n' > "$CASA/.var/app/com.obsproject.Studio/config/obs-studio/user.ini" ;;
+    godot)
+      mkdir -p "$CASA/.config/godot"
+      printf '[gd_resource type="EditorSettings" load_steps=2 format=3]\n\n[sub_resource type="InputEventKey" id="InputEventKey_lde7y"]\nkeycode = 4194326\n\n[resource]\ninterface/theme/base_color = Color(0.21, 0.24, 0.29, 1)\ninterface/theme/accent_color = Color(0.44, 0.73, 0.98, 1)\ninterface/theme/contrast = 0.3\ninterface/editor/display_scale = 3\n' \
+        > "$CASA/.config/godot/editor_settings-4.4.tres"
+      printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nresource_local_to_scene = false\ninterface/theme/color_preset = "Default"\ninterface/theme/base_color = Color(0.161, 0.161, 0.161, 1)\ninterface/theme/accent_color = Color(0.337, 0.62, 1, 1)\ninterface/theme/contrast = 0.3\nasset_store/available_urls = {\n"Godot Asset Library": "https://godotengine.org/asset-library/api"\n}\ntext_editor/theme/color_theme = "Default"\n' \
+        > "$CASA/.config/godot/editor_settings-4.7.tres" ;;
     firefox)
       no_disco org.mozilla.firefox
       mkdir -p "$CASA/.var/app/org.mozilla.firefox/.mozilla/firefox/abc.default"
@@ -315,6 +321,124 @@ for app in "${APPS[@]}"; do
 done
 
 printf '\n'
+semear godot
+GD="$CASA/.config/godot"
+mod godot aplicar meowsystem mocha >/dev/null
+if grep -qx 'interface/theme/preset = "Custom"' "$GD/editor_settings-4.4.tres" \
+   && grep -qx 'interface/theme/color_preset = "Custom"' "$GD/editor_settings-4.7.tres" \
+   && ! grep -q '^interface/theme/preset' "$GD/editor_settings-4.7.tres" \
+   && ! grep -q 'color_preset' "$GD/editor_settings-4.4.tres"; then
+  ok "godot: a chave do preset segue a versão do arquivo (preset até o 4.6, color_preset desde o 4.7)"
+else
+  falha "godot: a chave do preset não seguiu a versão do arquivo" "$(cat "$GD"/editor_settings-4.*.tres)"
+fi
+if grep -qx 'interface/theme/base_color = Color(0.117647, 0.117647, 0.180392, 1)' "$GD/editor_settings-4.4.tres" \
+   && grep -qx 'interface/theme/base_color = Color(0.117647, 0.117647, 0.180392, 1)' "$GD/editor_settings-4.7.tres" \
+   && grep -qx 'interface/theme/contrast = 0.3' "$GD/editor_settings-4.7.tres" \
+   && grep -qx 'text_editor/theme/color_theme = "MeowSystem"' "$GD/editor_settings-4.4.tres" \
+   && grep -qx 'text_editor/theme/color_theme = "MeowSystem"' "$GD/editor_settings-4.7.tres" \
+   && [ "$(grep -c '^interface/theme/base_color' "$GD/editor_settings-4.7.tres")" = 1 ]; then
+  ok "godot: a base do mocha entra em Color de 0 a 1 nos dois arquivos, sem chave repetida"
+else
+  falha "godot: as cores do mocha não entraram como esperado" "$(cat "$GD"/editor_settings-4.*.tres)"
+fi
+if grep -qx 'interface/editor/display_scale = 3' "$GD/editor_settings-4.4.tres" \
+   && grep -q 'InputEventKey_lde7y' "$GD/editor_settings-4.4.tres" \
+   && grep -qx '"Godot Asset Library": "https://godotengine.org/asset-library/api"' "$GD/editor_settings-4.7.tres" \
+   && grep -q '^\[resource\]$' "$GD/editor_settings-4.7.tres"; then
+  ok "godot: o resto do editor_settings fica como o Godot deixou"
+else
+  falha "godot: o aplicar mexeu no que não era dele" "$(cat "$GD"/editor_settings-4.*.tres)"
+fi
+if grep -q 'symbol_color="#89DCEB"' "$GD/text_editor_themes/MeowSystem.tet" \
+   && grep -q 'selection_color="#9399B240"' "$GD/text_editor_themes/MeowSystem.tet" \
+   && head -n 1 "$GD/text_editor_themes/MeowSystem.tet" | grep -qx '; meowsystem-tema: meowsystem/mocha'; then
+  ok "godot: o tema do editor de texto sai da paleta, com alfa onde o molde pede"
+else
+  falha "godot: o MeowSystem.tet não saiu como o esperado" "$(head -n 12 "$GD/text_editor_themes/MeowSystem.tet" 2>&1)"
+fi
+sed -i 's/Color(0.117647, 0.117647, 0.180392, 1)/Color(0.118, 0.118, 0.18, 1)/' "$GD/editor_settings-4.7.tres"
+antes="$(arquivos)"
+saida="$(mod godot aplicar meowsystem mocha)"; rc=$?
+if [ "$rc" = 0 ] && [ "$antes" = "$(arquivos)" ]; then
+  ok "godot: o Godot que reescreve a cor com três casas não reabre o aplicar"
+else
+  falha "godot: a cor arredondada pelo Godot foi tratada como diferente (rc=$rc)" "$saida"
+fi
+mod godot aplicar meowsystem latte >/dev/null
+if grep -qx 'interface/theme/contrast = -0.06' "$GD/editor_settings-4.4.tres" \
+   && grep -qx 'interface/theme/base_color = Color(0.937255, 0.945098, 0.960784, 1)' "$GD/editor_settings-4.7.tres" \
+   && grep -q 'tipo="light"' "$GD/text_editor_themes/MeowSystem.tet"; then
+  ok "godot: o flavor claro troca a base, vira contraste negativo e mantém o preset Custom"
+else
+  falha "godot: a troca para o latte não saiu como o esperado" "$(cat "$GD"/editor_settings-4.4.tres)"
+fi
+mod godot reverter meowsystem latte >/dev/null
+if ! grep -q 'preset\|color_theme' "$GD/editor_settings-4.4.tres" "$GD/editor_settings-4.7.tres" \
+   && grep -qx 'interface/editor/display_scale = 3' "$GD/editor_settings-4.4.tres" \
+   && [ ! -e "$GD/text_editor_themes/MeowSystem.tet" ] && [ ! -d "$GD/text_editor_themes" ]; then
+  ok "godot: o reverter tira o preset, as cores, o color_theme e o .tet e guarda o resto"
+else
+  falha "godot: o reverter deixou resto ou levou o que não era dele" "$(cat "$GD"/editor_settings-4.4.tres; ls -R "$GD")"
+fi
+
+semear godot
+sed -i 's/^interface\/theme\/color_preset = .*/interface\/theme\/color_preset = "Light"/' "$GD/editor_settings-4.7.tres"
+saida="$(mod godot aplicar meowsystem mocha)"; rc=$?
+if [ "$rc" = 1 ] && grep -qx 'interface/theme/color_preset = "Light"' "$GD/editor_settings-4.7.tres" \
+   && grep -qx 'interface/theme/base_color = Color(0.161, 0.161, 0.161, 1)' "$GD/editor_settings-4.7.tres" \
+   && grep -qx 'text_editor/theme/color_theme = "MeowSystem"' "$GD/editor_settings-4.7.tres" \
+   && grep -qx 'interface/theme/preset = "Custom"' "$GD/editor_settings-4.4.tres"; then
+  ok "godot: o preset que ela escolheu à mão fica como está e o outro arquivo é vestido"
+else
+  falha "godot: o preset Light dela foi trocado, ou o outro arquivo não foi vestido (rc=$rc)" "$saida"
+fi
+sed -i 's/^text_editor\/theme\/color_theme = .*/text_editor\/theme\/color_theme = "Godot 2"/' "$GD/editor_settings-4.4.tres"
+saida="$(mod godot aplicar meowsystem mocha)"; rc=$?
+[ "$rc" = 3 ] && grep -qx 'text_editor/theme/color_theme = "Godot 2"' "$GD/editor_settings-4.4.tres" \
+  && ok "godot: o tema de texto que ela escolheu à mão não é trocado, e o aviso (3) não some" \
+  || falha "godot: o tema de texto dela foi trocado ou o rc não foi 3 (rc=$rc)" "$saida"
+mod godot reverter meowsystem mocha >/dev/null
+grep -qx 'interface/theme/color_preset = "Light"' "$GD/editor_settings-4.7.tres" \
+  && grep -qx 'text_editor/theme/color_theme = "Godot 2"' "$GD/editor_settings-4.4.tres" \
+  && ok "godot: o reverter nunca apaga a escolha dela" \
+  || falha "godot: o reverter apagou a escolha dela"
+
+semear godot
+mkdir -p "$GD/text_editor_themes"
+printf '[color_theme]\nsymbol_color="#010203"\n' > "$GD/text_editor_themes/MeowSystem.tet"
+antes="$(arquivos)"
+saida="$(mod godot aplicar meowsystem mocha)"; rc=$?
+if [ "$rc" = 3 ] && [ "$antes" = "$(arquivos)" ]; then
+  ok "godot: um MeowSystem.tet dela, sem a marca, não é sobrescrito e nada é ligado a ele"
+else
+  falha "godot: o MeowSystem.tet dela foi tocado ou o editor_settings mudou (rc=$rc)" "$saida"
+fi
+
+semear godot
+rm -rf "$GD"
+antes="$(arquivos)"
+saida="$(mod godot aplicar meowsystem mocha)"; rc=$?
+if [ "$rc" = 3 ] && [ "$antes" = "$(arquivos)" ] && ! printf '%s' "$saida" | grep -qi 'erro\|falhou'; then
+  ok "godot: sem configuração do editor o módulo se pula (3) sem escrever nem acusar erro"
+else
+  falha "godot: sem configuração devia dar 3 sem escrever (rc=$rc)" "$saida"
+fi
+saida="$(mod godot reverter meowsystem mocha)"; rc=$?
+[ "$rc" = 0 ] && ok "godot: o reverter sem configuração não tem o que desfazer (0)" \
+  || falha "godot: o reverter sem configuração devia dar 0 e deu $rc" "$saida"
+
+semear godot
+mkdir -p "$CASA/.var/app/org.godotengine.Godot/config/godot"
+cp "$GD/editor_settings-4.4.tres" "$CASA/.var/app/org.godotengine.Godot/config/godot/"
+mod godot aplicar dracula dracula >/dev/null
+if grep -qx 'text_editor/theme/color_theme = "MeowSystem"' "$CASA/.var/app/org.godotengine.Godot/config/godot/editor_settings-4.4.tres" \
+   && [ -f "$CASA/.var/app/org.godotengine.Godot/config/godot/text_editor_themes/MeowSystem.tet" ]; then
+  ok "godot: o Godot em flatpak também recebe o tema, na pasta de configuração dele"
+else
+  falha "godot: a instalação em flatpak não foi vestida"
+fi
+
 if [ "$falhas" -gt 0 ]; then
   printf 'temas-por-app: %s falha(s)\n' "$falhas" >&2
   exit 1

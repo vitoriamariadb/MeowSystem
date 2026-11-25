@@ -147,7 +147,8 @@
     "libadwaita": {},
     "krita": {},
     "obs": {},
-    "firefox": {}
+    "firefox": {},
+    "godot": {}
   },
   "lancador": {
     "ocultar": [
