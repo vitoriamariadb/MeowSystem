@@ -34,4 +34,4 @@ tema	cosmic-theme/src/model/cosmic_palette.rs	093e526b16a1fb906737c44d99737065df
 casa	src/icon_theme.rs	2abfd6369c9f1cb9091a0432803d2edf6832ac88fbbe3432ce533dfb642f569e	dd108aa	scripts/construir_icones.sh
 casa	cosmic-theme/src/model/theme.rs	fac1f12ee6fe7f4cd98a2fc3c1c508cb8144a088c81af16d4d4ba4e6b169e1be	dd108aa	scripts/instalar_fontes.sh
 
-revisao	cosmic-applets	40248fb	freedesktop-desktop-entry 0.8.1	scripts/appid_dock.sh
+revisao	cosmic-applets	cb3ea91	freedesktop-desktop-entry 0.8.4	scripts/appid_dock.sh
