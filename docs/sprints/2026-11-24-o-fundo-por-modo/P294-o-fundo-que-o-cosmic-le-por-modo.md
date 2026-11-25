@@ -46,7 +46,12 @@ congelado no grupo do dia da cópia; quando a pasta desse grupo saiu, o fundo fi
   baixada). Os 24 testes de navegador ficaram vermelhos na primeira rodada por falta do Chromium de teste
   (`~/.cache/ms-playwright` tinha saído do disco numa limpeza de cache) e verdes com ele de volta.
 
+## No nitro-5 (25/11/2026, 1h37)
+`git pull` e o `meow-wallpaper.service` de lá: as três casas passaram a apontar para `.girando`, e três segundos depois
+o `cosmic-bg` gravou no estado dele uma imagem de dentro de `.girando` para `HDMI-A-1` e `eDP-1` (o processo foi de
+4 MB para 28 MB). A pasta `.girando` como fonte funciona no `cosmic-bg` 1.11. O `meow-fundo.path` de lá ainda vigia só
+a casa de antes, até o doctor das 5h reinstalar a unidade.
+
 ## O que ficou sem prova
-- O print da tela: a TV saiu do ar (HDMI `disconnected`) 13 s depois da cura e não voltou até o fim da sessão.
-- Com a pasta `.girando` como fonte, falta ver o `cosmic-bg` 1.11 trocar de imagem; a medida foi com uma imagem fixada.
-- O nitro-5 recebe pelo `atualiza.sh`; lá o defeito foi medido, a cura ainda não.
+- No MeowSystem, o print da tela: a TV saiu do ar (HDMI `disconnected`) 13 s depois da cura.
+- A troca de imagem ao fim do intervalo, nos dois PCs.
