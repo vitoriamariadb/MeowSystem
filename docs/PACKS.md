@@ -1322,8 +1322,8 @@ paleta dele: o módulo usa o molde do próprio pack
 (`temas-de-apps/<app>/<app>.modelo.*`) e o preenche com as cores do pack, no
 flavor da máquina. Vale para `kitty`, `gnome-terminal`, `telegram`, `discord`,
 `onlyoffice`, `zapzap`, `libadwaita` (com o `ajustes/` ao lado), `krita`, `obs`,
-`firefox` e `godot`. O molde não tem cor: só marcadores `{{papel}}`, e a cor entra na
-instalação, com a paleta do pack no ar. Todo pack traz os mesmos 12 moldes: os
+`firefox`, `godot` e `gimp`. O molde não tem cor: só marcadores `{{papel}}`, e a cor entra na
+instalação, com a paleta do pack no ar. Todo pack traz os mesmos 13 moldes: os
 dois do repositório os têm, o `meow pack novo` e o Personalizar os semeiam no
 pack que nasce, e o install dá ao pack pessoal de antes os que faltam
 (`pack.py semear-moldes`), sem trocar o que a pessoa já mexeu. O pack que traz

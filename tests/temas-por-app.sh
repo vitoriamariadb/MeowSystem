@@ -7,7 +7,7 @@ falha() { printf 'FALHOU: %s\n' "$1" >&2; [ -n "${2:-}" ] && printf '%s\n' "$2" 
 
 command -v python3 >/dev/null 2>&1 || { printf 'FALHOU: sem python3\n' >&2; exit 1; }
 
-APPS=(libadwaita krita obs firefox godot)
+APPS=(libadwaita krita obs firefox godot gimp)
 PACKS=(meowsystem:mocha dracula:dracula)
 
 T="$(mktemp -d)" || exit 2
@@ -67,6 +67,10 @@ semear() {
       no_disco com.obsproject.Studio
       mkdir -p "$CASA/.var/app/com.obsproject.Studio/config/obs-studio"
       printf '[General]\nLanguage=pt-BR\n' > "$CASA/.var/app/com.obsproject.Studio/config/obs-studio/user.ini" ;;
+    gimp)
+      no_disco org.gimp.GIMP
+      mkdir -p "$CASA/.config/GIMP/3.2/themes" "$CASA/.config/GIMP/3.0"
+      printf '(undo-levels 99)\n' > "$CASA/.config/GIMP/3.0/gimprc" ;;
     godot)
       mkdir -p "$CASA/.config/godot"
       printf '[gd_resource type="EditorSettings" load_steps=2 format=3]\n\n[sub_resource type="InputEventKey" id="InputEventKey_lde7y"]\nkeycode = 4194326\n\n[resource]\ninterface/theme/base_color = Color(0.21, 0.24, 0.29, 1)\ninterface/theme/accent_color = Color(0.44, 0.73, 0.98, 1)\ninterface/theme/contrast = 0.3\ninterface/editor/display_scale = 3\n' \
@@ -437,6 +441,90 @@ if grep -qx 'text_editor/theme/color_theme = "MeowSystem"' "$CASA/.var/app/org.g
   ok "godot: o Godot em flatpak também recebe o tema, na pasta de configuração dele"
 else
   falha "godot: a instalação em flatpak não foi vestida"
+fi
+
+semear gimp
+GM="$CASA/.config/GIMP"
+mod gimp aplicar meowsystem mocha >/dev/null
+if grep -qx '@import url("file:///app/share/gimp/3.0/themes/Default/gimp-dark.css");' "$GM/3.2/themes/MeowSystem/gimp-dark.css" \
+   && grep -qx '@define-color bg-color               #1E1E2E;' "$GM/3.2/themes/MeowSystem/gimp-dark.css" \
+   && grep -qx '@define-color ruler-color            rgba(17, 17, 27, 0.3);' "$GM/3.2/themes/MeowSystem/gimp-dark.css" \
+   && ! grep -q 'escuro\|claro' "$GM/3.2/themes/MeowSystem/gimp-dark.css" \
+   && [ ! -e "$GM/3.2/themes/MeowSystem/gimp-light.css" ] && [ -f "$GM/3.0/themes/MeowSystem/gimp-dark.css" ]; then
+  ok "gimp: o tema escuro importa o Default escuro, traz só a seção escura e entra em cada pasta de versão"
+else
+  falha "gimp: o gimp-dark.css não saiu como o esperado" "$(cat "$GM/3.2/themes/MeowSystem/gimp-dark.css" 2>&1 | head -n 12)"
+fi
+if [ "$(cat "$GM/3.2/gimprc")" = '(theme "MeowSystem")' ] \
+   && [ "$(cat "$GM/3.0/gimprc")" = "$(printf '(undo-levels 99)\n(theme "MeowSystem")')" ]; then
+  ok "gimp: o gimprc ganha o (theme) e guarda o resto, e nasce quando não existia"
+else
+  falha "gimp: o gimprc não ficou como o esperado" "$(cat "$GM/3.2/gimprc" "$GM/3.0/gimprc" 2>&1)"
+fi
+mod gimp aplicar meowsystem latte >/dev/null
+if [ -f "$GM/3.2/themes/MeowSystem/gimp-light.css" ] && [ ! -e "$GM/3.2/themes/MeowSystem/gimp-dark.css" ] \
+   && grep -qx '@import url("file:///app/share/gimp/3.0/themes/Default/gimp-light.css");' "$GM/3.2/themes/MeowSystem/gimp-light.css" \
+   && grep -qx '@define-color bg-color               #E6E9EF;' "$GM/3.2/themes/MeowSystem/gimp-light.css" \
+   && [ "$(grep -c '^@define-color bg-color' "$GM/3.2/themes/MeowSystem/gimp-light.css")" = 1 ]; then
+  ok "gimp: o flavor claro troca para gimp-light.css, com a seção clara, e tira o escuro que era dele"
+else
+  falha "gimp: a troca para o latte não saiu como o esperado" "$(ls "$GM/3.2/themes/MeowSystem")"
+fi
+mod gimp reverter meowsystem latte >/dev/null
+if [ ! -e "$GM/3.2/themes/MeowSystem" ] && [ ! -e "$GM/3.2/gimprc" ] \
+   && [ "$(cat "$GM/3.0/gimprc")" = '(undo-levels 99)' ] && [ -d "$GM/3.2/themes" ]; then
+  ok "gimp: o reverter tira o tema e o (theme), apaga o gimprc que ele criou e guarda o resto do outro"
+else
+  falha "gimp: o reverter deixou resto ou levou o que não era dele" "$(find "$GM" -type f | sort)"
+fi
+
+semear gimp
+printf '(theme "System")\n(undo-levels 99)\n' > "$GM/3.2/gimprc"
+saida="$(mod gimp aplicar meowsystem mocha)"; rc1=$?
+saida="$saida$(mod gimp aplicar meowsystem mocha)"; rc2=$?
+if [ "$rc1" = 1 ] && [ "$rc2" = 3 ] && [ "$(cat "$GM/3.2/gimprc")" = "$(printf '(theme "System")\n(undo-levels 99)')" ]; then
+  ok "gimp: o tema que ela escolheu à mão no gimprc não é trocado, e o aviso (3) não some"
+else
+  falha "gimp: o (theme) dela foi trocado ou os rc não foram 1 e 3 (deu $rc1 e $rc2)" "$saida"
+fi
+mod gimp reverter meowsystem mocha >/dev/null
+[ "$(cat "$GM/3.2/gimprc")" = "$(printf '(theme "System")\n(undo-levels 99)')" ] \
+  && ok "gimp: o reverter nunca apaga o tema dela" \
+  || falha "gimp: o reverter mexeu no (theme) dela"
+
+semear gimp
+mkdir -p "$GM/3.2/themes/MeowSystem"
+printf '* { color: red; }\n' > "$GM/3.2/themes/MeowSystem/gimp-dark.css"
+antes="$(arquivos)"
+saida="$(mod gimp aplicar meowsystem mocha)"; rc=$?
+if [ "$rc" = 1 ] && [ "$(cat "$GM/3.2/themes/MeowSystem/gimp-dark.css")" = '* { color: red; }' ] \
+   && [ ! -e "$GM/3.2/gimprc" ] && [ -f "$GM/3.0/themes/MeowSystem/gimp-dark.css" ]; then
+  ok "gimp: um gimp-dark.css dela, sem a marca, não é sobrescrito e o gimprc não aponta para ele"
+else
+  falha "gimp: o tema dela foi tocado ou o gimprc passou a apontar para ele (rc=$rc)" "$saida"
+fi
+
+semear gimp
+rm -rf "$GM"
+antes="$(arquivos)"
+saida="$(mod gimp aplicar meowsystem mocha)"; rc=$?
+if [ "$rc" = 3 ] && [ "$antes" = "$(arquivos)" ] && ! printf '%s' "$saida" | grep -qi 'erro\|falhou'; then
+  ok "gimp: instalado mas sem pasta de versão o módulo se pula (3) sem escrever nem acusar erro"
+else
+  falha "gimp: sem pasta de configuração devia dar 3 sem escrever (rc=$rc)" "$saida"
+fi
+saida="$(mod gimp reverter meowsystem mocha)"; rc=$?
+[ "$rc" = 0 ] && ok "gimp: o reverter sem pasta de configuração não tem o que desfazer (0)" \
+  || falha "gimp: o reverter sem pasta de configuração devia dar 0 e deu $rc" "$saida"
+
+semear gimp
+mkdir -p "$CASA/.var/app/org.gimp.GIMP/config/GIMP/3.2"
+mod gimp aplicar dracula dracula >/dev/null
+if [ -f "$CASA/.var/app/org.gimp.GIMP/config/GIMP/3.2/themes/MeowSystem/gimp-dark.css" ] \
+   && grep -qx '(theme "MeowSystem")' "$CASA/.var/app/org.gimp.GIMP/config/GIMP/3.2/gimprc"; then
+  ok "gimp: a pasta de versão que o flatpak guarda em ~/.var também é vestida"
+else
+  falha "gimp: a pasta de ~/.var/app/org.gimp.GIMP não foi vestida"
 fi
 
 if [ "$falhas" -gt 0 ]; then

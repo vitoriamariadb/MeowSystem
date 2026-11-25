@@ -1,0 +1,42 @@
+/* meowsystem-tema: {{pack}}/{{flavor}} */
+/* tipo: {{tipo}} */
+/* escuro */
+@define-color fg-color               {{text}};
+@define-color bg-color               {{base}};
+@define-color border-color           {{crust}};
+@define-color dimmed-fg-color        {{subtext0}};
+@define-color disabled-fg-color      {{overlay1}};
+@define-color disabled-button-color  {{surface2}};
+@define-color hover-color            {{surface1}};
+@define-color widget-bg-color        {{mantle}};
+@define-color selected-color         {{crust}};
+@define-color extreme-bg-color       {{crust}};
+@define-color extreme-selected-color {{surface0}};
+@define-color strong-border-color    {{surface0}};
+@define-color stronger-border-color  {{surface1}};
+@define-color edge-border-color      {{crust}};
+@define-color scrollbar-slider-color {{overlay0}};
+@define-color scrollbar-trough-color {{base}};
+@define-color ruler-color            rgba({{crust:rgb}}, 0.3);
+@define-color theme_selected_bg_color {{mauve}};
+@define-color theme_selected_fg_color {{crust}};
+/* claro */
+@define-color fg-color               {{text}};
+@define-color bg-color               {{mantle}};
+@define-color border-color           {{crust}};
+@define-color dimmed-fg-color        {{subtext0}};
+@define-color disabled-fg-color      {{overlay1}};
+@define-color disabled-button-color  {{surface0}};
+@define-color hover-color            {{base}};
+@define-color widget-bg-color        {{crust}};
+@define-color selected-color         {{base}};
+@define-color extreme-bg-color       {{base}};
+@define-color extreme-selected-color {{crust}};
+@define-color strong-border-color    {{surface0}};
+@define-color stronger-border-color  {{surface1}};
+@define-color edge-border-color      {{surface1}};
+@define-color scrollbar-slider-color {{overlay1}};
+@define-color scrollbar-trough-color {{base}};
+@define-color ruler-color            rgba({{crust:rgb}}, 0.3);
+@define-color theme_selected_bg_color {{mauve}};
+@define-color theme_selected_fg_color {{base}};

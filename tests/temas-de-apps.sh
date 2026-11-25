@@ -29,6 +29,7 @@ declare -A TETO=(
   [obs]=0
   [firefox]=0
   [godot]=0
+  [gimp]=0
   [chromium]=0
 )
 
