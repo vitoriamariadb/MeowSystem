@@ -608,6 +608,32 @@ grep -qx 'theme=MeowSystem' "$GW/config/kde.org/ghostwriter.conf" \
   || falha "ghostwriter: o Classic foi tratado como escolha dela"
 
 semear ghostwriter
+printf '[General]\nlocale=pt_BR\n\n[Style]\ndarkModeEnabled=true\ninterfaceStyle=0\ntheme=Sem nome 1\n\n[style]\nshowUnbreakableSpace=false\n' \
+  > "$GW/config/kde.org/ghostwriter.conf"
+mkdir -p "$GW/data/ghostwriter/themes"
+printf '{"dark": {"background": "#010203"}, "light": {"background": "#040506"}}\n' > "$GW/data/ghostwriter/themes/Sem nome 1.json"
+conf_antes="$(cat "$GW/config/kde.org/ghostwriter.conf")"; dela_antes="$(cat "$GW/data/ghostwriter/themes/Sem nome 1.json")"
+saida="$(mod ghostwriter aplicar meowsystem mocha)"; rc1=$?
+saida="$saida$(mod ghostwriter reverter meowsystem mocha)"
+if [ "$rc1" = 1 ] && [ "$conf_antes" = "$(cat "$GW/config/kde.org/ghostwriter.conf")" ] \
+   && [ "$dela_antes" = "$(cat "$GW/data/ghostwriter/themes/Sem nome 1.json")" ] \
+   && [ ! -e "$GW/data/ghostwriter/themes/MeowSystem.json" ]; then
+  ok "ghostwriter: o tema dela com espaço no nome fica escolhido, o arquivo dela fica intacto, e o reverter devolve o conf como era"
+else
+  falha "ghostwriter: o tema dela ou o conf mudaram (rc=$rc1)" "$saida$(cat "$GW/config/kde.org/ghostwriter.conf")"
+fi
+
+semear ghostwriter
+printf '[General]\nlocale=pt_BR\n\n[style]\nshowUnbreakableSpace=false\n' > "$GW/config/kde.org/ghostwriter.conf"
+mod ghostwriter aplicar meowsystem mocha >/dev/null
+secao="$(awk '/^\[/{s=$0} /^theme=/{print s}' "$GW/config/kde.org/ghostwriter.conf")"
+if [ "$secao" = '[Style]' ] && [ "$(sed -n '/^\[style\]$/,/^\[/p' "$GW/config/kde.org/ghostwriter.conf" | grep -c '=')" = 1 ]; then
+  ok "ghostwriter: o theme entra no [Style] maiúsculo e o [style] minúsculo, outra seção, fica só com o que tinha"
+else
+  falha "ghostwriter: o theme caiu na seção errada" "$(cat "$GW/config/kde.org/ghostwriter.conf")"
+fi
+
+semear ghostwriter
 mkdir -p "$GW/data/ghostwriter/themes"
 printf '{"foreground": "#010203", "background": "#040506"}\n' > "$GW/data/ghostwriter/themes/MeowSystem.json"
 antes="$(arquivos)"
