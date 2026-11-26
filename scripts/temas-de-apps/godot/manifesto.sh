@@ -5,11 +5,35 @@
 _GODOT_FLATPAK="org.godotengine.Godot"
 _GODOT_NOME="MeowSystem"
 
-_godot_pastas() {
-  local pasta
-  for pasta in "${XDG_CONFIG_HOME:-$HOME/.config}/godot" "$HOME/.var/app/$_GODOT_FLATPAK/config/godot"; do
-    compgen -G "$pasta/editor_settings-4*.tres" >/dev/null && printf '%s\n' "$pasta"
+_godot_bibliotecas_da_steam() {
+  local raiz vdf
+  for raiz in "$HOME/.steam/steam" "$HOME/.steam/debian-installation" "$HOME/.local/share/Steam"; do
+    vdf="$raiz/steamapps/libraryfolders.vdf"
+    [ -f "$vdf" ] || continue
+    printf '%s\n' "$raiz"
+    sed -n 's/^[[:space:]]*"path"[[:space:]]*"\(.*\)"[[:space:]]*$/\1/p' "$vdf"
   done
+}
+
+_godot_autocontidos() {
+  local lib pasta
+  while IFS= read -r lib; do
+    for pasta in "$lib"/steamapps/common/*/; do
+      [ -e "${pasta}._sc_" ] || [ -e "${pasta}_sc_" ] || continue
+      printf '%s\n' "${pasta}editor_data"
+    done
+  done < <(_godot_bibliotecas_da_steam)
+}
+
+_godot_pastas() {
+  local pasta real vistas=$'\n'
+  while IFS= read -r pasta; do
+    compgen -G "$pasta/editor_settings-4*.tres" >/dev/null || continue
+    real="$(readlink -f -- "$pasta")"
+    case "$vistas" in *$'\n'"$real"$'\n'*) continue ;; esac
+    vistas+="$real"$'\n'
+    printf '%s\n' "$real"
+  done < <(printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/godot" "$HOME/.var/app/$_GODOT_FLATPAK/config/godot"; _godot_autocontidos)
 }
 
 _godot_tres() {

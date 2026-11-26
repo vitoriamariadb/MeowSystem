@@ -460,6 +460,37 @@ else
 fi
 
 semear godot
+rm -rf "$GD"
+SC="$CASA/.steam/debian-installation/steamapps/common/Godot Engine"
+FORA="$T/disco/SteamLibrary/steamapps/common/Outro Godot"
+mkdir -p "$SC/editor_data" "$FORA/editor_data" "$CASA/.steam/debian-installation/steamapps/common/Um Jogo/editor_data"
+ln -s debian-installation "$CASA/.steam/steam"
+: > "$SC/._sc_"; : > "$FORA/_sc_"
+printf '"libraryfolders"\n{\n\t"0"\n\t{\n\t\t"path"\t\t"%s"\n\t}\n\t"1"\n\t{\n\t\t"path"\t\t"%s"\n\t}\n}\n' \
+  "$CASA/.steam/debian-installation" "$T/disco/SteamLibrary" > "$CASA/.steam/debian-installation/steamapps/libraryfolders.vdf"
+for d in "$SC" "$FORA" "$CASA/.steam/debian-installation/steamapps/common/Um Jogo"; do
+  printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\ninterface/theme/color_preset = "Default"\n' > "$d/editor_data/editor_settings-4.7.tres"
+done
+saida="$(mod godot aplicar meowsystem mocha)"; rc=$?
+if [ "$rc" = 1 ] && grep -qx 'interface/theme/color_preset = "Custom"' "$SC/editor_data/editor_settings-4.7.tres" \
+   && [ -f "$SC/editor_data/text_editor_themes/MeowSystem.tet" ] \
+   && grep -qx 'text_editor/theme/color_theme = "MeowSystem"' "$FORA/editor_data/editor_settings-4.7.tres" \
+   && grep -qx 'interface/theme/color_preset = "Default"' "$CASA/.steam/debian-installation/steamapps/common/Um Jogo/editor_data/editor_settings-4.7.tres" \
+   && [ "$(printf '%s\n' "$saida" | grep -c 'MeowSystem.tet')" = 2 ]; then
+  ok "godot: o Godot autocontido da Steam (._sc_ ou _sc_ ao lado do binário) é vestido na editor_data dele, em toda biblioteca, uma vez só, e pasta sem a marca fica de fora"
+else
+  falha "godot: o Godot autocontido da Steam não foi vestido como o esperado (rc=$rc)" "$saida"
+fi
+mod godot reverter meowsystem mocha >/dev/null
+if ! grep -q 'Custom\|MeowSystem\|base_color' "$SC/editor_data/editor_settings-4.7.tres" "$FORA/editor_data/editor_settings-4.7.tres" \
+   && [ ! -e "$SC/editor_data/text_editor_themes/MeowSystem.tet" ] && [ ! -e "$FORA/editor_data/text_editor_themes/MeowSystem.tet" ]; then
+  ok "godot: o reverter desfaz também na editor_data do Godot autocontido"
+else
+  falha "godot: o reverter deixou resto na editor_data do Godot autocontido" "$(cat "$SC/editor_data/editor_settings-4.7.tres"; ls -R "$SC/editor_data")"
+fi
+rm -rf "$T/disco"
+
+semear godot
 rm -f "$GD/editor_settings-4.4.tres" "$GD/editor_settings-4.7.tres"
 printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\ninterface/editor/display_scale = 3\n' > "$GD/editor_settings-4.5.tres"
 printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\ninterface/editor/display_scale = 3\n' > "$GD/editor_settings-4.6.tres"
