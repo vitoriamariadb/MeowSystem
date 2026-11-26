@@ -71,12 +71,21 @@ _com_traco() {
   fi
 }
 
-_pronto() {
+_glifo_aceito() {
+  local motivo
   if [ -n "$GLIFO_FORA" ]; then
     meow_erro "o glifo $GLIFO_FORA é link ou sai de dentro do pack — recusado"
     return "$MEOW_ERRO"
   fi
-  if [ ! -f "$GLIFO" ]; then
+  motivo="$(python3 -I "$RAIZ/scripts/glifo_tracado.py" "$GLIFO" 2>&1)" || {
+    meow_erro "o glifo do pack foi recusado: $motivo — nada foi escrito"
+    return "$MEOW_ERRO"
+  }
+  return "$MEOW_OK"
+}
+
+_pronto() {
+  if [ ! -f "$GLIFO" ] && [ ! -L "$GLIFO" ]; then
     meow_pula "não existe $GLIFO — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
   fi
@@ -97,7 +106,6 @@ _cirurgia() {
   MEOW_ZZ_COMMIT="$(_commit_de || echo desconhecido)" \
   python3 -I - "$alvo" "$(_com_traco)" <<'PY'
 import ast, os, re, sys, tempfile, shutil
-import xml.etree.ElementTree as ET
 
 alvo   = sys.argv[1]
 glifo  = sys.argv[2]
@@ -110,35 +118,8 @@ try:
 except OSError as e:
     print('ERRO'); print('não consegui ler %s: %s' % (alvo, e)); sys.exit(0)
 
-FORMAS = {'svg', 'g', 'path', 'circle', 'rect', 'ellipse', 'line', 'polyline', 'polygon', 'title', 'desc'}
-ATRIBUTOS_DE_TRACO = {
-    'viewBox', 'width', 'height', 'version', 'role', 'aria-label', 'id', 'transform', 'opacity',
-    'd', 'points', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'x1', 'y1', 'x2', 'y2',
-    'fill', 'fill-rule', 'fill-opacity', 'clip-rule',
-    'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit',
-    'stroke-opacity', 'stroke-dasharray', 'stroke-dashoffset',
-}
-
 def recusar(motivo):
     print('ERRO'); print('o glifo do pack foi recusado: %s — nada foi escrito' % motivo); sys.exit(0)
-
-def local(nome):
-    return nome.rsplit('}', 1)[-1]
-
-if re.search(r'<!DOCTYPE|<!ENTITY', glifo, flags=re.I):
-    recusar('traz DOCTYPE ou ENTITY')
-try:
-    arvore = ET.fromstring(glifo)
-except ET.ParseError as e:
-    recusar('não é SVG bem formado (%s)' % e)
-for el in arvore.iter():
-    if local(el.tag) not in FORMAS:
-        recusar('traz elemento que não é traçado: %s' % local(el.tag))
-    for nome, valor in el.attrib.items():
-        if local(nome) not in ATRIBUTOS_DE_TRACO:
-            recusar('traz atributo que não é de traçado: %s' % local(nome))
-        if 'url(' in valor.replace(' ', '').lower():
-            recusar('o atributo %s aponta para fora do desenho' % local(nome))
 
 miolo = re.sub(r'^.*?<svg[^>]*>', '', glifo, flags=re.S)
 miolo = re.sub(r'</svg>\s*$', '', miolo, flags=re.S).strip()
@@ -352,8 +333,8 @@ _pronto; rc=$?
 [ "$rc" = "$MEOW_OK" ] || exit "$rc"
 
 case "$MODO" in
-  conferir) _conferir ;;
-  aplicar)  _aplicar  ;;
+  conferir) _glifo_aceito && _conferir ;;
+  aplicar)  _glifo_aceito && _aplicar  ;;
   desfazer) _desfazer ;;
 esac
 exit $?
