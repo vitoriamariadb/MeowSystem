@@ -63,6 +63,41 @@ escolhe.
 Página privada «O que falta decidir»: coleções `decisoes` (14 cartões: opção e comentário), `barra` (ícones
 marcados para rever) e `geral` (`bandeja`, `cota`). Ler de lá antes de abrir o próximo bloco.
 
+## Depois das catorze decisões (25/11, noite)
+As decisões estão em `DECISOES-DE-25-11.md`. O que já saiu delas:
+
+- **Portátil:** `apt dist-upgrade` completo (44 pacotes, rc=0, nada pendente, sem pedido de reinício) e limite de
+  carga ligado: `acer-wmi-battery` 0.1.9f90d75 por DKMS (a mesma fonte do nitro-5, sha256 conferido),
+  `/etc/modprobe.d/acer-wmi-battery.conf` com `enable_health_mode=1`, `/etc/modules-load.d/acer-wmi-battery.conf`.
+  `health_mode=1`, bateria em «Not charging». Registro em `~/.cache/meow-leva/portatil-2511.log` do portátil.
+- **Atalhos:** A Forja (9A, mauve) e Pipeline EducaDados (10A, green) no mapa de quem usa dos dois PCs dela, pela
+  oficina (`forja:mao:mauve`, `pipelines-educadados:mao:green`); o ícone de fábrica de cada um copiado para o
+  `hicolor`; `Icon=forja` e `Icon=pipelines-educadados` nos atalhos (a linha de antes em
+  `~/.cache/meow-leva/*.desktop.antes`). Recado sem commit em cada projeto:
+  `Hefesto-Forja/docs/RECADO-o-atalho-usa-nome-de-icone.md` e
+  `pipelines-educadados-apresentacao/RECADO-o-atalho-usa-nome-de-icone.md`.
+- **Bandeja dos apps fechados**, abertos num Xvfb e fechados: qBittorrent (`Id=qBittorrent`) e ZapZap (`Id=ZapZap`)
+  publicam `IconName` vazio e só `IconPixmap` 22x22, sem `IconThemePath`: tema de ícones não os alcança. O OBS
+  registrou um item na primeira abertura e nenhum na segunda (`SysTrayEnabled=true`); ficou sem medida.
+  O `flatpak kill` deixa trava velha no qBittorrent (`config/qBittorrent/lockfile`, pid 2 do sandbox): ele não abre
+  até a trava sair. Fechar com `SIGTERM` no processo `qbittorrent` leva 2 s e não deixa trava.
+- **Bloco 3, a passada de tela:** achou o P302 (o Godot da Steam é autocontido: `._sc_` ao lado do binário,
+  preferências em `editor_data/`; o módulo não olhava lá). Conserto com teste em `51a2556`, na branch
+  `bloco/apps-sem-modulo`. Capturas de antes e depois, num Xvfb com cópia da instalação:
+  `~/.cache/meow-leva/captura-godot-2026-11-25.png` e `captura-gimp-2026-11-25.png`, enviadas a ela. Neste PC a
+  pasta `~/.var/app/org.gimp.GIMP/config/GIMP/` não tem `3.x`: o GIMP 3.2 nunca foi aberto aqui e o módulo se pula
+  até ele abrir uma vez. Espera o sim dela para entrar no `master`.
+- **Dois blocos voando** (uma worktree cada, agente implementa, agente confere):
+  `bloco/nucleo-do-pack` em `.worktrees/meow-nucleo-2511` (`BLOCO-NUCLEO-DO-PACK.md`: tabela da procedência em
+  `procedencia.tsv`, `73f434c`; prompt de pack pessoal por lista, `b0a65e4`, decisão 71, com três furos de segurança
+  apontados na revisão e devolvidos ao implementador) e `bloco/cli-e-bandeja` em `.worktrees/meow-cli-2511`
+  (`BLOCO-CLI-E-BANDEJA.md`: `meow ganchos`, `869462f`; bandeja do Dracula, `a09139f` e `b586c96`). Na integração:
+  acrescentar ao `packs/dracula/procedencia.tsv` os dois glifos novos da bandeja, e uma linha de `pack.py` é tocada
+  pelos dois blocos (`CAMPOS_COM_LEITOR`).
+- **Falta:** a captura da vitrine do Catppuccin (pede a área de trabalho na tela: só com o sim dela para trocar de
+  área por alguns segundos); a folha de papéis de parede e a página de temas de ícone do VS Code para o Dracula
+  (bloco de pesquisa, depois destes dois); a explicação do P276 item D; ler a calibração do nitro-5 em 26/11.
+
 ## Fica com quem usa
 - Os códigos da folha de desenhos (e a cor de cada um).
 - Os cinco campos do Dracula sem leitor: estão no formato do manual (`docs/PACKS.md`, exemplo e aviso); ganhar leitor
