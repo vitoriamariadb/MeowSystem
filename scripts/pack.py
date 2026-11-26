@@ -1269,9 +1269,10 @@ def do_repositorio(caminho):
 
 PERMITIDOS_STARSHIP = os.path.join(RAIZ, "dados", "contratos", "starship-permitidos.tsv")
 MODULOS_STARSHIP = os.path.join(RAIZ, "dados", "contratos", "starship-modulos.tsv")
+LIGAVEIS_STARSHIP = os.path.join(RAIZ, "dados", "contratos", "starship-ligaveis.tsv")
 TETO_BYTES_STARSHIP = 65536
 TETO_CHAVES_STARSHIP = 1000
-RE_CHAVE_STARSHIP = re.compile(r"[^\x00-\x1f\x7f]{1,64}")
+RE_REFERENCIA_STARSHIP = re.compile(r"\$\{([^}]*)\}|\$([A-Za-z0-9_]+)")
 RE_NOME_STARSHIP = re.compile(r"[A-Za-z0-9_-]+")
 RE_COR_STARSHIP = re.compile(r"#[0-9A-Fa-f]{6}")
 RE_CHAVE_NUA = re.compile(r"[A-Za-z0-9_-]+")
@@ -1292,16 +1293,41 @@ def _regras_starship():
     return regras
 
 
-def _modulos_starship():
-    with open(MODULOS_STARSHIP, encoding="utf-8") as fh:
+def _lista_de_nomes(arquivo):
+    with open(arquivo, encoding="utf-8") as fh:
         return frozenset(n for n in fh.read().split("\n") if n)
+
+
+def _modulos_starship():
+    return _lista_de_nomes(MODULOS_STARSHIP)
+
+
+def _perigoso_no_terminal(c):
+    return unicodedata.category(c) in ("Cc", "Cf", "Cs", "Zl", "Zp") or c in BIDI_STARSHIP
+
+
+def _linha_imprimivel(texto, teto=400):
+    saida = []
+    for c in str(texto):
+        if _perigoso_no_terminal(c):
+            n = ord(c)
+            saida.append(f"\\u{n:04x}" if n <= 0xFFFF else f"\\U{n:08x}")
+        else:
+            saida.append(c)
+    linha = "".join(saida)
+    return linha if len(linha) <= teto else linha[:teto] + "…"
+
+
+def _chave_livre(segmento):
+    return 1 <= len(segmento) <= 64 and not any(
+        unicodedata.category(c) == "Cc" or c in BIDI_STARSHIP for c in segmento)
 
 
 def _casa_starship(segmento, padrao, modulos):
     if padrao == "{modulo}":
         return segmento in modulos
     if padrao == "*":
-        return RE_CHAVE_STARSHIP.fullmatch(segmento) is not None
+        return _chave_livre(segmento)
     return segmento == padrao
 
 
@@ -1313,7 +1339,18 @@ def _tipo_em_portugues(valor):
     return type(valor).__name__
 
 
-def _conferir_valor_starship(nome, valor, tipo, limite):
+def _conferir_referencias_starship(nome, valor, aqui, modulos):
+    topo = aqui in (("format",), ("right_format",))
+    for achado in RE_REFERENCIA_STARSHIP.finditer(valor):
+        ref = achado.group(1) if achado.group(1) is not None else achado.group(2)
+        raiz = ref.split(".", 1)[0]
+        _exigir(raiz not in TABELAS_QUE_RODAM,
+                f"`{nome}`: o texto cita `{raiz}`, e o módulo `{raiz}` {TABELAS_QUE_RODAM.get(raiz)}")
+        _exigir(not topo or raiz in modulos or raiz == "all",
+                f"`{nome}`: o texto cita `{raiz}`, que não é módulo da lista (dados/contratos/starship-modulos.tsv)")
+
+
+def _conferir_valor_starship(nome, valor, tipo, limite, aqui, modulos):
     esperado = f"`{nome}`: o valor precisa ser"
     if tipo == "texto":
         _exigir(isinstance(valor, str), f"{esperado} texto, e veio {_tipo_em_portugues(valor)}")
@@ -1322,6 +1359,7 @@ def _conferir_valor_starship(nome, valor, tipo, limite):
         _exigir(not any(unicodedata.category(c) == "Cc" or c in BIDI_STARSHIP for c in valor),
                 f"`{nome}`: o texto tem caractere de controle")
         _exigir(len(valor) <= int(limite), f"`{nome}`: o texto passa de {limite} caracteres")
+        _conferir_referencias_starship(nome, valor, aqui, modulos)
     elif tipo == "nome":
         _exigir(isinstance(valor, str) and len(valor) <= int(limite) and RE_NOME_STARSHIP.fullmatch(valor),
                 f"{esperado} um nome de até {limite} letras, dígitos, '_' ou '-'")
@@ -1331,6 +1369,11 @@ def _conferir_valor_starship(nome, valor, tipo, limite):
         _exigir(type(valor) is bool, f"{esperado} verdadeiro ou falso, e veio {_tipo_em_portugues(valor)}")
         _exigir(limite == "-" or valor is (limite == "true"),
                 f"`{nome}`: só vale {limite} (o que muda a aparência fica; o que avisa por fora, não)")
+    elif tipo == "ligavel":
+        _exigir(type(valor) is bool, f"{esperado} verdadeiro ou falso, e veio {_tipo_em_portugues(valor)}")
+        _exigir(valor or aqui[0] in _lista_de_nomes(LIGAVEIS_STARSHIP),
+                f"`{nome}`: o módulo `{aqui[0]}` pode rodar coisa ou mostrar dado, e o prompt de pack de fora só o desliga "
+                f"(dados/contratos/starship-ligaveis.tsv diz quais ele liga)")
     elif tipo == "inteiro":
         baixo, alto = (int(x) for x in limite.split(".."))
         _exigir(type(valor) is int, f"{esperado} um inteiro, e veio {_tipo_em_portugues(valor)}")
@@ -1372,7 +1415,7 @@ def _conferir_prompt_starship(dados):
                     f"`{nome}`: a chave `{chave}` {CHAVES_QUE_RODAM.get(chave)}, e o prompt de pack de fora só muda a aparência")
             regra = regra_de(aqui)
             _exigir(regra, f"`{nome}`: chave fora da lista do que só muda a aparência (dados/contratos/starship-permitidos.tsv)")
-            _conferir_valor_starship(nome, valor, regra[1], regra[2])
+            _conferir_valor_starship(nome, valor, regra[1], regra[2], aqui, modulos)
 
     andar(dados, ())
 
@@ -1418,7 +1461,7 @@ def _prompt_aprovado(dono, arquivo):
     except UnicodeDecodeError:
         raise Recusa("o prompt não é UTF-8") from None
     except tomllib.TOMLDecodeError as e:
-        raise Recusa("o prompt não é TOML válido: " + " ".join(str(e).split())) from None
+        raise Recusa("o prompt não é TOML válido: " + _linha_imprimivel(" ".join(str(e).split()))) from None
     _conferir_prompt_starship(dados)
     nome = re.sub(r"[^a-z0-9_]", "_", dono.lower())
     corpo = {k: v for k, v in dados.items() if k not in ("palette", "palettes")}
@@ -1470,8 +1513,8 @@ def cmd_prompt(ref):
         except Recusa as e:
             if os.path.isfile(destino):
                 os.unlink(destino)
-            print(f"recusado={dono}")
-            print(f"motivo={e}")
+            print(f"recusado={_linha_imprimivel(dono)}")
+            print(f"motivo={_linha_imprimivel(e)}")
             achado = acervo("prompt.starship", ref=os.path.join(RAIZ, "packs", PACK_BASE))
     if not achado or not (gerado or do_repositorio(achado)):
         return RECUSADO
@@ -2842,7 +2885,7 @@ def validar(ref, silencioso=False):
             try:
                 _prompt_aprovado(_dono_do_arquivo(alvo_prompt), alvo_prompt)
             except Recusa as e:
-                print(f"  aviso prompt.starship: o prompt de pack de fora foi recusado: {e}; "
+                print(f"  aviso prompt.starship: o prompt de pack de fora foi recusado: {_linha_imprimivel(e)}; "
                       f"vale o do pack-base, nas cores deste pack", file=sys.stderr)
 
     if not silencioso and not do_repositorio(dir_pack):

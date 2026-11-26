@@ -1961,7 +1961,16 @@ substituições de `directory`, o comprimento de `directory` e `git_branch`, o
 `time_format`, e a ordem dos módulos (que é a do `format`). O bloco de paleta do
 pack é aceito e ignorado: a cor sai da paleta do pack no ar, como sempre. O texto
 não leva quebra de linha nem caractere de controle (a quebra do prompt é o módulo
-`line_break`), e o motor escapa aspas e barras ao escrever.
+`line_break`), e o motor escapa aspas e barras ao escrever. O texto de formato
+não cita `env_var` nem `custom` (`$env_var`, `${env_var.X}`, `$custom`,
+`${custom.x}`), e o `format` e o `right_format` só citam módulos de
+`starship-modulos.tsv` (ou `$all`). O pack de fora só desliga módulo
+(`disabled = true`); ligar (`false`) só vale para os de
+`dados/contratos/starship-ligaveis.tsv`, que são os do preset do pack-base e
+alguns que só mostram o próprio estado (`jobs`, `status`, `battery`,
+`memory_usage`, `shell`, `fill`): `sudo`, `direnv`, `mise`, `localip` e os que
+vêm desligados de fábrica ficam fora. O que o pack escreve e aparece na frase
+de recusa sai escapado, numa linha só.
 
 Fica de fora, por construção, o que roda comando ou lê o ambiente: o módulo
 `custom` e as chaves `command`, `commands`, `when`, `shell` e `env_var`, e tudo

@@ -820,11 +820,59 @@ caso r-controle 'controle' "$(printf '[os.symbols]\nPop = "\\u001b[2JNEKO"\n')"
 caso r-toml-quebrado 'TOML' "$(printf "format = \"\$custom\$character\"\npalette = 'x\n[custom.y]\ncommand = \"touch %s\"\nwhen = \"true\"\n'\n" "$MARCA_DO_PROMPT_A")"
 caso r-palette-multilinha 'palette' "$(printf "palette = '''x\n[custom.y]\ncommand = \"touch %s\"\n'''\n" "$MARCA_DO_PROMPT_A")"
 caso r-texto-enorme 'format' "$(python3 -c 'print("format = \"" + "a" * 5000 + "\"")')"
+caso r-fmt-env-var 'env_var' "$(printf 'format = "$directory$env_var$character"\n')"
+caso r-fmt-env-var-chaves 'env_var' "$(printf 'format = "${env_var.HOME}"\n')"
+caso r-fmt-custom 'custom' "$(printf 'format = "$custom$character"\n')"
+caso r-fmt-custom-chaves 'custom' "$(printf 'format = "${custom.x}"\n')"
+caso r-fmt-direita 'custom' "$(printf 'right_format = "${custom.x}"\n')"
+caso r-fmt-modulo 'format' "$(printf '[git_branch]\nformat = "[${env_var.HOME}](bold)"\n')"
+caso r-fmt-modulo-inventado 'inventado' "$(printf 'format = "$directory$inventado"\n')"
+caso r-fmt-modulo-nome-dentro 'env_var' "$(printf 'format = "x${env_var}y"\n')"
+caso r-liga-sudo 'sudo.disabled' "$(printf '[sudo]\ndisabled = false\n')"
+caso r-liga-direnv 'direnv.disabled' "$(printf '[direnv]\ndisabled = false\n')"
+caso r-liga-mise 'mise.disabled' "$(printf '[mise]\ndisabled = false\n')"
+caso r-liga-localip 'localip.disabled' "$(printf '[localip]\ndisabled = false\n')"
 if [ -z "$recusas_ruins" ] && [ ! -e "$MARCA_DO_PROMPT_A" ] && [ ! -e "$MARCA_PROMPT" ]; then
-  ok "o prompt de pack pessoal com chave fora da lista é recusado inteiro, com a chave na frase: [custom] (cheio e vazio), command, commands, when, shell, env_var (chave e tabela), chave e módulo desconhecidos, notificação, tipo errado (inteiro, booleano, lista, texto), quebra de linha, caractere de controle, TOML quebrado, palette em várias linhas e texto enorme; nada é gerado, o prompt escrito é o do pack-base, e a marca não nasce"
+  ok "o prompt de pack pessoal com chave fora da lista é recusado inteiro, com a chave na frase: [custom] (cheio e vazio), command, commands, when, shell, env_var (chave e tabela), chave e módulo desconhecidos, notificação, tipo errado (inteiro, booleano, lista, texto), quebra de linha, caractere de controle, TOML quebrado, palette em várias linhas e texto enorme, referência a env_var, custom ou módulo desconhecido no texto de formato, e ligar sudo, direnv, mise ou localip; nada é gerado, o prompt escrito é o do pack-base, e a marca não nasce"
 else
   falha "o prompt de pack pessoal foi aceito, ou a recusa não disse a chave, ou algo foi gerado:" "$recusas_ruins"
 fi
+
+rm -rf "$CASA/.cache/meowsystem"
+pack_de_prompt liga-e-desliga "$(cat <<'TOML'
+format = "$all$directory$character"
+
+[sudo]
+disabled = true
+
+[localip]
+disabled = true
+
+[time]
+disabled = false
+
+[git_branch]
+format = '[[ $symbol $branch ](fg:crust bg:yellow)]($style)'
+TOML
+)"
+resp="$(prompt_resposta liga-e-desliga)"
+{ ! grep -q '^recusado=' <<< "$resp" && [ -n "$(gerado_de "$resp")" ]; } \
+  && ok "desligar módulo que roda coisa, ligar os do preset, \$all e as variáveis do módulo (\$symbol, \$branch) passam" \
+  || falha "o prompt que só desliga sudo e localip, e usa \$all, foi recusado" "$resp"
+
+limpo_ruim=""
+for _caso in "ctl|[directory]\n\"a\\\\u001b[2Jb\" = 1\n|directory.a\\\\u001b" "bidi|[directory]\n\"x\\\\u202ey\" = 1\n|directory.x\\\\u202ey" "c1|[os.symbols]\n\"a\\\\u009bb\" = \"x\"\n|u009b" "cf|[directory]\n\"a\\\\u200bb\" = 1\n|u200b"; do
+  _id="r-limpa-${_caso%%|*}"; _resto="${_caso#*|}"; _toml="${_resto%%|*}"; _frase="${_resto#*|}"
+  pack_de_prompt "$_id" "$(printf '%b' "$_toml")"
+  resp="$(prompt_resposta "$_id")"; vale="$(amb python3 "$RAIZ/scripts/pack.py" validar "$_id" 2>&1)"
+  grep -q '^motivo=' <<< "$resp" || limpo_ruim+=" $_id:sem-motivo"
+  grep -q "^motivo=.*$_frase" <<< "$resp" || limpo_ruim+=" $_id:sem-chave-escapada($(sed -n 's/^motivo=//p' <<< "$resp" | cat -v | head -c 160))"
+  LC_ALL=C grep -qP '[\x00-\x08\x0b-\x1f\x7f]|\xe2\x80[\x8b-\x8f\xaa-\xae]|\xe2\x81[\xa6-\xa9]|\xc2[\x80-\x9f]' <<< "$resp" && limpo_ruim+=" $_id:controle-na-saida"
+  LC_ALL=C grep -qP '[\x00-\x08\x0b-\x1f\x7f]|\xe2\x80[\x8b-\x8f\xaa-\xae]|\xe2\x81[\xa6-\xa9]|\xc2[\x80-\x9f]' <<< "$vale" && limpo_ruim+=" $_id:controle-no-validar"
+done
+[ -z "$limpo_ruim" ] \
+  && ok "o nome da chave recusada chega ao motivo e ao aviso do validar numa linha imprimível: escape de terminal, controle C1, formato (ZWSP) e BIDI saem escapados, nunca crus" \
+  || falha "o motivo da recusa levou caractere de controle ao terminal:$limpo_ruim"
 
 rm -rf "$CASA/.cache/meowsystem"
 pack_de_prompt escapa-aspas "$(printf '[os.symbols]\nPop = "a\\"] [custom.y"\n[directory.substitutions]\n"Docu\\"ments" = "d\\\\x"\n')"

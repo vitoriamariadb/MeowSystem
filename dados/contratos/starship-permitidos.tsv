@@ -8,7 +8,7 @@ palettes.*.*	cor	-
 {modulo}.format	texto	1024
 {modulo}.style	texto	256
 {modulo}.symbol	texto	64
-{modulo}.disabled	booleano	-
+{modulo}.disabled	ligavel	-
 os.symbols.*	texto	64
 username.show_always	booleano	-
 username.style_user	texto	256
