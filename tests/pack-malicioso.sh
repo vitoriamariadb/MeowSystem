@@ -886,6 +886,27 @@ resp="$(prompt_resposta r-linha-injetada)"
   && ok "a chave com quebra de linha não injeta uma segunda linha valor= nem recusado= na resposta que o prompt.sh lê" \
   || falha "a chave recusada injetou linha na resposta do verbo prompt" "$resp"
 
+fundo_ruim=""
+for _qual in pack paleta; do
+  _id="r-json-fundo-$_qual"
+  pack_de_prompt "$_id" ""
+  _fundo="$(python3 -c 'print("[" * 5000 + "]" * 5000)')"
+  if [ "$_qual" = pack ]; then
+    printf '{"formato": 2, "id": "%s", "nome": "Fundo", "heranca": "dracula", "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"}, "x": %s}\n' "$_id" "$_fundo" > "$RAIZ_DELA/$_id/pack.json"
+  else
+    python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps(d)[:-1] + ", \"x\": " + sys.argv[2] + "}")' \
+      "$RAIZ/packs/dracula/paleta.json" "$_fundo" > "$RAIZ_DELA/$_id/paleta.json"
+  fi
+  resp="$(timeout 20 env -i PATH="$T/falso:$PATH" HOME="$CASA" USER="${USER:-t}" LANG="${LANG:-C.UTF-8}" \
+      XDG_DATA_HOME="$XDG" MEOW_PACKS="$T/vazio" MEOW_RAIZ="$RAIZ" MEOW_CONF="$CASA/.config/meow/meow.conf" \
+      MEOW_PONTE=/nao/existe python3 "$RAIZ/scripts/pack.py" validar "$_id" 2>&1)"; rc=$?
+  { [ "$rc" != 0 ] && [ "$rc" != 124 ] && ! grep -q Traceback <<< "$resp" && grep -q 'fundo demais' <<< "$resp"; } \
+    || fundo_ruim+=" $_qual(rc=$rc: $(tr '\n' ' ' <<< "$resp" | tail -c 160))"
+done
+[ -z "$fundo_ruim" ] \
+  && ok "pack.json ou paleta.json de pack de fora com lista aninhada fundo demais é recusado pelo validar com uma frase, sem traceback" \
+  || falha "JSON aninhado fundo demais no pack de fora derrubou o validar:$fundo_ruim"
+
 estranho_ruim=""
 for _forma in fundo-lista fundo-tabela pasta fifo; do
   _id="r-arquivo-$_forma"

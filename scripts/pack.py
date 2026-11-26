@@ -2657,6 +2657,8 @@ def validar(ref, silencioso=False):
             p = json.load(fh)
     except json.JSONDecodeError as e:
         raise Recusa(f"pack.json não é JSON válido: linha {e.lineno}, coluna {e.colno} — {e.msg}")
+    except RecursionError:
+        raise Recusa("pack.json aninha lista ou objeto fundo demais") from None
     except UnicodeDecodeError as e:
         raise Recusa(f"pack.json não é UTF-8 (byte {e.object[e.start]:#04x} na posição {e.start})")
 
@@ -2690,11 +2692,16 @@ def validar(ref, silencioso=False):
             dados = json.load(fh)
     except json.JSONDecodeError as e:
         raise Recusa(f"{arq}: não é JSON válido: linha {e.lineno} — {e.msg}")
+    except RecursionError:
+        raise Recusa(f"{arq}: aninha lista ou objeto fundo demais") from None
     except UnicodeDecodeError as e:
         raise Recusa(f"{arq}: não é UTF-8 (byte {e.object[e.start]:#04x} na posição {e.start})")
 
     for nome_arq, doc in (("pack.json", p), (arq, dados)):
-        ruim = _caractere_de_controle(doc)
+        try:
+            ruim = _caractere_de_controle(doc)
+        except RecursionError:
+            raise Recusa(f"{nome_arq}: aninha lista ou objeto fundo demais") from None
         _exigir(ruim is None,
                 f"{nome_arq}: {ruim} tem caractere de controle — texto de pack é uma\n"
                 f"    linha de letras; o terminal e o tema dos aplicativos o leriam como comando")
