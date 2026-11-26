@@ -1341,7 +1341,7 @@ def _tipo_em_portugues(valor):
 
 
 def _conferir_referencias_starship(nome, valor, aqui, modulos):
-    topo = aqui in (("format",), ("right_format",))
+    topo = aqui in (("format",), ("right_format",), ("continuation_prompt",))
     for achado in RE_REFERENCIA_STARSHIP.finditer(valor):
         ref = achado.group(1) if achado.group(1) is not None else achado.group(2)
         raiz = ref.split(".", 1)[0]

@@ -828,6 +828,7 @@ caso r-fmt-direita 'custom' "$(printf 'right_format = "${custom.x}"\n')"
 caso r-fmt-continuacao 'env_var' "$(printf 'continuation_prompt = "${env_var.HOME} "\n')"
 caso r-fmt-modulo 'format' "$(printf '[git_branch]\nformat = "[${env_var.HOME}](bold)"\n')"
 caso r-fmt-modulo-inventado 'inventado' "$(printf 'format = "$directory$inventado"\n')"
+caso r-fmt-continuacao-inventado 'inventado' "$(printf 'continuation_prompt = "$inventado> "\n')"
 caso r-fmt-modulo-nome-dentro 'env_var' "$(printf 'format = "x${env_var}y"\n')"
 caso r-liga-sudo 'sudo.disabled' "$(printf '[sudo]\ndisabled = false\n')"
 caso r-liga-direnv 'direnv.disabled' "$(printf '[direnv]\ndisabled = false\n')"
@@ -874,6 +875,10 @@ done
 [ -z "$limpo_ruim" ] \
   && ok "o nome da chave recusada chega ao motivo e ao aviso do validar numa linha imprimível: escape de terminal, controle C1, formato (ZWSP) e BIDI saem escapados, nunca crus" \
   || falha "o motivo da recusa levou caractere de controle ao terminal:$limpo_ruim"
+
+! grep -qiE 'laude|nthropic' "$RAIZ"/dados/contratos/starship-*.tsv \
+  && ok "as listas do prompt de pack de fora não trazem os módulos que leem a sessão de um assistente: nome de ferramenta fica fora do repositório, e o pack que os cita é recusado como módulo desconhecido" \
+  || falha "uma lista do prompt de pack de fora traz módulo com nome de ferramenta" "$(grep -liE 'laude|nthropic' "$RAIZ"/dados/contratos/starship-*.tsv)"
 
 pack_de_prompt r-linha-injetada "$(printf '"a\\nvalor=%s/injetado.toml\\nrecusado=outro" = 1\n' "$T")"
 resp="$(prompt_resposta r-linha-injetada)"
