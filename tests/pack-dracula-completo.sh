@@ -148,14 +148,15 @@ printf '{"formato": 2, "id": "meu-prompt", "nome": "Meu prompt", "heranca": "dra
 printf "format = \"\$character\"\npalette = 'x'\n\n[character]\nsuccess_symbol = '[meu](mauve)'\n\n[palettes.x]\nmauve = \"#000000\"\n" > "$PP/meu-prompt/prompt/starship.toml"
 amb MEOW_PACKS="$PP" PACK=meu-prompt FLAVOR=dracula MEOW_ESTADO="$T/estado" PROMPT_ALVO="$T/st-meu.toml" \
   bash "$RAIZ/scripts/prompt.sh" aplicar >/dev/null 2>&1
-base_sem_paleta="$(grep -v '^palette\|^\[palettes\|^[a-z_]* = "#' "$T/st-dracula.toml" 2>/dev/null)"
-if ! grep -q "\[meu\]" "$T/st-meu.toml" 2>/dev/null \
-   && [ "$(grep -v '^palette\|^\[palettes\|^[a-z_]* = "#' "$T/st-meu.toml" 2>/dev/null)" = "$base_sem_paleta" ] \
+if grep -qxF "success_symbol = \"[meu](mauve)\"" "$T/st-meu.toml" 2>/dev/null \
+   && grep -qx 'format = "$character"' "$T/st-meu.toml" \
+   && ! grep -q '\[os\]\|\[directory\]' "$T/st-meu.toml" \
    && grep -qx "mauve = \"$dra_mauve\"" "$T/st-meu.toml" && grep -qx "palette = 'meu_prompt_dracula'" "$T/st-meu.toml" \
+   && [ "$(grep -c '^\[palettes\.' "$T/st-meu.toml")" = 1 ] \
    && grep -qx "prompt.starship" <(sed -n '/^CAMPOS_COM_LEITOR = {/,/^}/p' "$RAIZ/scripts/pack.py" | grep -o 'prompt\.starship'); then
-  ok "o prompt é vaga do pack do repositório: o preset próprio de pack pessoal (prompt.starship) não entra, e a paleta dele entra no do pack-base"
+  ok "o prompt de pack pessoal só de aparência entra pela lista de permitidos (decisão 71), e a cor dele é a do pack no ar"
 else
-  falha "o prompt.sh leu o starship.toml de pack de fora, ou não pôs nele a paleta do pack" "$(cat "$T/st-meu.toml" 2>&1 | head -12)"
+  falha "o prompt.sh não pôs o prompt do pack pessoal, ou não pôs nele a paleta do pack no ar" "$(cat "$T/st-meu.toml" 2>&1 | head -12)"
 fi
 if ! grep -q 'valores.get("FLAVOR") or "mocha"' "$RAIZ/scripts/app/servidor.py" \
    && ! grep -qi 'que o Catppuccin escolheu' "$RAIZ/meow.conf.exemplo"; then
