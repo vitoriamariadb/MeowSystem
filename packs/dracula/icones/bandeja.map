@@ -3,6 +3,7 @@
 # Formato:  IconName-que-o-app-publica : glifo-em-icones/sistema/ [: alias]
 #
 # Sem linha ativa: a Steam manda IconThemePath próprio e o ZapZap manda a imagem pronta, então nenhum
-# dos dois consulta o tema. O desenho do Dracula para eles mora em icones/sistema/ (steam.svg e
-# whatsapp.svg, em forma cheia e currentColor) e entra por scripts/icones_tray_steam.sh (PNG na cor
+# dos dois consulta o tema. O desenho do Dracula para eles mora em icones/sistema/ (steam_tray_mono.svg e
+# zapzap_tray.svg, em forma cheia e currentColor; o nome do glifo não é de app, para o completar não o
+# tomar por ícone de aplicativo) e entra por scripts/icones_tray_steam.sh (PNG na cor
 # do texto do flavor) e scripts/icones_tray_zapzap.sh (o _SYMBOLIC do app).

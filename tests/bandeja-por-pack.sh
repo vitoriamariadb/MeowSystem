@@ -147,9 +147,9 @@ pack_com() {
 }
 
 pack_com meowsystem "$RAIZ/packs/meowsystem/icones/biblioteca/whatsapp.svg" mocha "#dedede" sim
-pack_com dracula "$RAIZ/packs/dracula/icones/sistema/whatsapp.svg" dracula "#f8f8f2" nao
+pack_com dracula "$RAIZ/packs/dracula/icones/sistema/zapzap_tray.svg" dracula "#f8f8f2" nao
 H_DRACULA="$H_DE"
-pack_com dracula "$RAIZ/packs/dracula/icones/sistema/whatsapp.svg" alucard "#4a4f67" nao
+pack_com dracula "$RAIZ/packs/dracula/icones/sistema/zapzap_tray.svg" alucard "#4a4f67" nao
 
 mkdir -p "$T/packs"
 cp -r "$RAIZ/packs/dracula" "$T/packs/semband"

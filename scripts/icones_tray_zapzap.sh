@@ -9,7 +9,8 @@ APP_ID="${MEOW_TRAY_ZAPZAP_APP:-com.rtosta.zapzap}"
 GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-}"
 if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
   IFS=$'\t' read -r _desenhos _ _ <<<"$_achado"
-  GLIFO="$_desenhos/whatsapp.svg"
+  GLIFO="$_desenhos/zapzap_tray.svg"
+  [ -f "$GLIFO" ] || GLIFO="$_desenhos/whatsapp.svg"
   if [ ! -f "$GLIFO" ]; then
     for _p in sistema apps biblioteca; do
       GLIFO="$(dirname "$_desenhos")/$_p/whatsapp.svg"; [ -f "$GLIFO" ] && break

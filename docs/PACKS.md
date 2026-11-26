@@ -828,8 +828,9 @@ pack deixou e diz «o pack no ar não declara icones.sistema». Com o bloco, a l
 
 O `dracula` declara também `"bandeja": { "desenhos": "icones/sistema/", "mapa": "icones/bandeja.map", "pintar": "text" }`, com o
 mapa sem linha ativa: a Steam e o ZapZap não consultam o tema. `icones_tray_steam.sh` e `icones_tray_zapzap.sh`
-procuram `steam.svg` e `whatsapp.svg` primeiro na pasta `desenhos` do bloco, depois em `sistema/`, `apps/` e
-`biblioteca/` do pack. O traço de 4 só entra no glifo que se desenha por `stroke="currentColor"`; o glifo cheio do
+procuram `steam_tray_mono.svg` e `zapzap_tray.svg` na pasta `desenhos` do bloco (nome que nenhum aplicativo
+tem, para o `completar` não o tomar por ícone de app) e, sem eles, `steam.svg` e `whatsapp.svg` nela e em `sistema/`,
+`apps/` e `biblioteca/` do pack. O traço de 4 só entra no glifo que se desenha por `stroke="currentColor"`; o glifo cheio do
 Dracula entra como está. O PNG da Steam sai na cor que `pintar` dá no flavor (sem `pintar`, `#DEDEDE`), e o ZapZap
 guarda o `{color}` dele. Pack sem o bloco devolve os dois ao de fábrica.
 

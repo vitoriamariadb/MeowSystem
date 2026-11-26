@@ -9,7 +9,8 @@ GLIFO="${MEOW_TRAY_STEAM_GLIFO:-}"
 COR_DO_PACK=""
 if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
   IFS=$'\t' read -r _desenhos _ COR_DO_PACK <<<"$_achado"
-  GLIFO="$_desenhos/steam.svg"
+  GLIFO="$_desenhos/steam_tray_mono.svg"
+  [ -f "$GLIFO" ] || GLIFO="$_desenhos/steam.svg"
   if [ ! -f "$GLIFO" ]; then
     for _p in sistema apps biblioteca; do
       GLIFO="$(dirname "$_desenhos")/$_p/steam.svg"; [ -f "$GLIFO" ] && break
