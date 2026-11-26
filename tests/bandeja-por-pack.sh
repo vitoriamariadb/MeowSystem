@@ -201,24 +201,54 @@ H_MAL="$(casa malband)"
 ZZ_MAL="$H_MAL/zz/$ZZ_REL"
 STEAM_MAL="$H_MAL/.steam/debian-installation/public/steam_tray_mono.png"
 
+guarda_a_forma() {
+  local rotulo="$1" texto="$2" saida rc
+  printf '%s' "$ZZ_ORIGINAL" > "$ZZ_MAL"
+  saida="$(rodar "$H_MAL" malband dracula icones_tray_zapzap.sh --aplicar "$T/packs")"; rc=$?
+  if [ "$rc" = 1 ] && python3 -I - "$ZZ_MAL" "$ZZ_ORIGINAL" "$texto" <<'PY'
+import ast, sys
+novo, antes = ast.parse(open(sys.argv[1], encoding='utf-8').read()), ast.parse(sys.argv[2])
+achado = [n for n in ast.walk(novo) if isinstance(n, ast.Assign) and getattr(n.targets[0], 'id', '') == '_SYMBOLIC']
+texto = achado[0].value.value
+achado[0].value.value = [n for n in ast.walk(antes) if isinstance(n, ast.Assign)][0].value.value
+sys.exit(0 if ast.dump(novo) == ast.dump(antes) and sys.argv[3] in texto
+         and not any(isinstance(n, ast.Call) for n in ast.walk(novo)) else 1)
+PY
+  then
+    ok "$rotulo: o texto entra como dado no _SYMBOLIC, e o tray_icon.py guarda a forma de fábrica"
+  else
+    falha "$rotulo: rc=$rc ou o tray_icon.py mudou de forma" "$saida$(cat "$ZZ_MAL")"
+  fi
+}
+
 cat > "$GLIFOS_MAL/zapzap_tray.svg" <<'SVG'
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><title>"""
 import os; os.system("true")
 _x = """</title></svg>
 SVG
-recusa_glifo "glifo de pack de fora que fecha a string do _SYMBOLIC" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
+guarda_a_forma 'glifo com """ que fecharia a string do _SYMBOLIC' 'os.system("true")'
+
+cat > "$GLIFOS_MAL/zapzap_tray.svg" <<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/>\</svg>
+SVG
+guarda_a_forma 'glifo com \ no fim, que escaparia as aspas de fecho' 'v48z"/>\'
+
+cat > "$GLIFOS_MAL/zapzap_tray.svg" <<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><title>''' + __import__("os").system("true") + '''</title></svg>
+SVG
+guarda_a_forma "glifo com ''' e aspas duplas misturadas" "''' + __import__"
 
 printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><title>{notify.__class__}</title></svg>' \
   > "$GLIFOS_MAL/zapzap_tray.svg"
 recusa_glifo "glifo de pack de fora com chave solta que quebraria o format do ZapZap" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
 
-printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><title>a\</title></svg>' \
+printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="url(#fora)" onload="x()" d="M0 0h48v48z"/></svg>' \
   > "$GLIFOS_MAL/zapzap_tray.svg"
-recusa_glifo "glifo de pack de fora com barra invertida, que escaparia as aspas do _SYMBOLIC" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
+recusa_glifo "glifo de pack de fora com atributo que não é de traçado" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
 
 printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><image href="file:///etc/hostname"/><script>x()</script></svg>' \
   > "$GLIFOS_MAL/zapzap_tray.svg"
-recusa_glifo "glifo de pack de fora com elemento que não é forma" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
+recusa_glifo "glifo de pack de fora com elemento que não é traçado" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
 
 printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/></svg>' > "$T/fora.svg"
 ln -sf "$T/fora.svg" "$GLIFOS_MAL/zapzap_tray.svg"

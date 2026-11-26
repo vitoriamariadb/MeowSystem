@@ -96,7 +96,7 @@ _cirurgia() {
   MEOW_ZZ_TRACO="$TRACO" MEOW_ZZ_DE_TRACO="$DE_TRACO" MEOW_ZZ_ESCREVER="$escrever" MEOW_ZZ_GUARDA="$GUARDA" \
   MEOW_ZZ_COMMIT="$(_commit_de || echo desconhecido)" \
   python3 -I - "$alvo" "$(_com_traco)" <<'PY'
-import os, re, sys, tempfile, shutil
+import ast, os, re, sys, tempfile, shutil
 import xml.etree.ElementTree as ET
 
 alvo   = sys.argv[1]
@@ -111,19 +111,34 @@ except OSError as e:
     print('ERRO'); print('não consegui ler %s: %s' % (alvo, e)); sys.exit(0)
 
 FORMAS = {'svg', 'g', 'path', 'circle', 'rect', 'ellipse', 'line', 'polyline', 'polygon', 'title', 'desc'}
+ATRIBUTOS_DE_TRACO = {
+    'viewBox', 'width', 'height', 'version', 'role', 'aria-label', 'id', 'transform', 'opacity',
+    'd', 'points', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'x1', 'y1', 'x2', 'y2',
+    'fill', 'fill-rule', 'fill-opacity', 'clip-rule',
+    'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit',
+    'stroke-opacity', 'stroke-dasharray', 'stroke-dashoffset',
+}
 
 def recusar(motivo):
     print('ERRO'); print('o glifo do pack foi recusado: %s — nada foi escrito' % motivo); sys.exit(0)
 
-if re.search(r'<!DOCTYPE|<!ENTITY|"""|\\', glifo, flags=re.I):
-    recusar('traz DOCTYPE, ENTITY, aspas triplas ou barra invertida, que sairiam da string do _SYMBOLIC')
+def local(nome):
+    return nome.rsplit('}', 1)[-1]
+
+if re.search(r'<!DOCTYPE|<!ENTITY', glifo, flags=re.I):
+    recusar('traz DOCTYPE ou ENTITY')
 try:
     arvore = ET.fromstring(glifo)
 except ET.ParseError as e:
     recusar('não é SVG bem formado (%s)' % e)
-estranhos = sorted({el.tag.rsplit('}', 1)[-1] for el in arvore.iter()} - FORMAS)
-if estranhos:
-    recusar('traz elemento que não é forma: %s' % ', '.join(estranhos))
+for el in arvore.iter():
+    if local(el.tag) not in FORMAS:
+        recusar('traz elemento que não é traçado: %s' % local(el.tag))
+    for nome, valor in el.attrib.items():
+        if local(nome) not in ATRIBUTOS_DE_TRACO:
+            recusar('traz atributo que não é de traçado: %s' % local(nome))
+        if 'url(' in valor.replace(' ', '').lower():
+            recusar('o atributo %s aponta para fora do desenho' % local(nome))
 
 miolo = re.sub(r'^.*?<svg[^>]*>', '', glifo, flags=re.S)
 miolo = re.sub(r'</svg>\s*$', '', miolo, flags=re.S).strip()
@@ -152,31 +167,49 @@ NOSSO = (
     '</svg>\n'
 ) % miolo
 
-padrao = re.compile(r'(_SYMBOLIC\s*=\s*""")(.*?)(""")', re.S)
-achados = padrao.findall(atual)
-if len(achados) != 1:
-    print('DESCONHECIDO')
-    print('achei %d bloco(s) `_SYMBOLIC = \"\"\"…\"\"\"` em %s — esperava exatamente 1'
-          % (len(achados), os.path.basename(alvo)))
-    sys.exit(0)
+def desconhecido(motivo):
+    print('DESCONHECIDO'); print(motivo); sys.exit(0)
 
-corpo = achados[0][1]
+def atribuicoes(modulo):
+    return [n for n in ast.walk(modulo)
+            if isinstance(n, ast.Assign) and len(n.targets) == 1
+            and isinstance(n.targets[0], ast.Name) and n.targets[0].id == '_SYMBOLIC']
+
+try:
+    modulo = ast.parse(atual)
+except SyntaxError as e:
+    desconhecido('%s não é Python que eu leia (%s)' % (os.path.basename(alvo), e))
+achados = atribuicoes(modulo)
+if len(achados) != 1 or not (isinstance(achados[0].value, ast.Constant) and isinstance(achados[0].value.value, str)):
+    desconhecido('achei %d atribuição(ões) de texto a _SYMBOLIC em %s — esperava exatamente 1'
+                 % (len(achados), os.path.basename(alvo)))
+no = achados[0].value
+
+corpo = no.value
 if corpo == NOSSO:
-    print('VESTIDO'); print('o bloco _SYMBOLIC ja e o glifo do Arcticons'); sys.exit(0)
+    print('VESTIDO'); print('o bloco _SYMBOLIC ja e o glifo do pack'); sys.exit(0)
 
 faltando = [c for c in ('{color}', '{notify}') if c not in corpo]
 if faltando:
-    print('DESCONHECIDO')
-    print('o bloco _SYMBOLIC nao tem %s — o ZapZap mudou o formato e eu nao vou '
-          'adivinhar' % ' nem '.join(faltando))
-    sys.exit(0)
+    desconhecido('o bloco _SYMBOLIC nao tem %s — o ZapZap mudou o formato e eu nao vou adivinhar'
+                 % ' nem '.join(faltando))
 
-novo = padrao.sub(lambda m: m.group(1) + NOSSO + m.group(3), atual, count=1)
+cru = atual.encode('utf-8')
+inicios, pos = [], 0
+for linha in cru.splitlines(keepends=True):
+    inicios.append(pos); pos += len(linha)
+inicio = inicios[no.lineno - 1] + no.col_offset
+fim = inicios[no.end_lineno - 1] + no.end_col_offset
+novo = (cru[:inicio] + repr(NOSSO).encode('utf-8') + cru[fim:]).decode('utf-8')
 
 try:
     compile(novo, alvo, 'exec')
+    modulo_novo = ast.parse(novo)
 except SyntaxError as e:
     print('ERRO'); print('o resultado nao compila (%s) — nada foi escrito' % e); sys.exit(0)
+no.value = NOSSO
+if ast.dump(modulo_novo) != ast.dump(modulo):
+    print('ERRO'); print('o arquivo gerado mudaria de forma além do texto do _SYMBOLIC — nada foi escrito'); sys.exit(0)
 
 if not escrever:
     print('FABRICA'); print('o bloco _SYMBOLIC e o de fabrica e da para aplicar'); sys.exit(0)
