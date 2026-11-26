@@ -227,6 +227,34 @@ rm -f "$GLIFOS_MAL/steam_tray_mono.svg"
 ln -s "$T/fora.svg" "$GLIFOS_MAL/steam_tray_mono.svg"
 recusa_glifo "glifo da Steam que é link para fora do pack" "$H_MAL" icones_tray_steam.sh "$STEAM_MAL"
 
+mkdir -p "$T/alheio/sistema"
+cp "$RAIZ/packs/dracula/icones/sistema/zapzap_tray.svg" "$RAIZ/packs/dracula/icones/sistema/steam_tray_mono.svg" "$T/alheio/sistema/"
+for caso in sobe absoluto link; do
+  cp -r "$RAIZ/packs/dracula" "$T/packs/des$caso"
+  case "$caso" in
+    sobe)     desenhos="../malband/icones/sistema/" ;;
+    absoluto) desenhos="$T/alheio/sistema/" ;;
+    link)     ln -s "$T/alheio" "$T/packs/des$caso/icones/fora"; desenhos="icones/fora/sistema/" ;;
+  esac
+  python3 - "$T/packs/des$caso/pack.json" "des$caso" "$desenhos" <<'PY'
+import json, sys
+f = sys.argv[1]
+p = json.load(open(f, encoding="utf-8"))
+p["id"] = sys.argv[2]
+p["icones"]["bandeja"]["desenhos"] = sys.argv[3]
+json.dump(p, open(f, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+PY
+  saida="$(env -i PATH="$FALSO:$PATH" HOME="$H_MAL" MEOW_RAIZ="$RAIZ" NO_COLOR=1 MEOW_PACKS="$T/packs" \
+    python3 "$RAIZ/scripts/pack.py" icones-de-status "des$caso" bandeja dracula 2>&1)"; rc=$?
+  printf '%s' "$ZZ_ORIGINAL" > "$ZZ_MAL"
+  saida_zz="$(rodar "$H_MAL" "des$caso" dracula icones_tray_zapzap.sh --aplicar "$T/packs")"
+  [ "$rc" != 0 ] && grep -q 'sai de dentro do pack' <<<"$saida" \
+    && grep -q "pack 'des$caso' não resolve" <<<"$saida_zz" \
+    && ! grep -qF "$(prefixo_do_desenho "$T/alheio/sistema/zapzap_tray.svg")" "$ZZ_MAL" \
+    && ok "icones.bandeja.desenhos que sai do pack ($caso) é recusado, e o pack inteiro com ele: nada de fora entra no ZapZap" \
+    || falha "icones.bandeja.desenhos que sai do pack ($caso) passou ou o desenho de fora entrou (rc=$rc)" "$saida$saida_zz"
+done
+
 for pack in dracula; do
   saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa-validar" MEOW_RAIZ="$RAIZ" NO_COLOR=1 python3 "$RAIZ/scripts/pack.py" validar "$pack" 2>&1)"; rc=$?
   [ "$rc" = 0 ] && ! grep -qi 'bandeja' <<<"$saida" \
