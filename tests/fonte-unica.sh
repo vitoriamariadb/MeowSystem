@@ -97,9 +97,9 @@ env -i PATH="$PATH" HOME="$CASA_TR" XDG_CACHE_HOME="$CASA_TR/.cache" MEOW_RAIZ="
   && ok "com o Dracula no ar, o traço do firefox não é gravado a 48 px: o scalable do pack decide" \
   || falha "o 48x48/apps/firefox.svg do traço ainda é gravado e vence o scalable do pack"
 
-grep -q '^| `icones/apps/firefox.svg` |' "$RAIZ/packs/dracula/PROCEDENCIA.md" \
+grep -q "^icones/apps/firefox.svg"$'\t' "$RAIZ/packs/dracula/procedencia.tsv" \
   && ok "o Firefox copiado tem linha de procedência no pack" \
-  || falha "packs/dracula/PROCEDENCIA.md não tem a linha do Firefox — arte copiada sem origem"
+  || falha "packs/dracula/procedencia.tsv não tem a linha do Firefox — arte copiada sem origem"
 
 fora=""
 for mapa in "$RAIZ"/assets/icones/*.map "$RAIZ"/packs/*/icones/*.map; do
@@ -212,10 +212,10 @@ cp "$RAIZ/packs/dracula/icones/apps/steam.svg" "$origem"
 cp "$origem" "$d/icones/apps/steam.svg"
 sha_reg="$(sha256sum "$origem" | cut -d' ' -f1)"
 procedencia() {
-  printf '# teste\n\n| arquivo | lido de | licença | copiado em | sha256 |\n|---|---|---|---|---|\n'
-  printf '| `icones/apps/steam.svg` | `%s` | GPL-3.0 | 2026-09-23 | `%s` |\n' "$1" "$sha_reg"
+  printf 'arquivo\tlido de\tlicença\tcopiado em\tsha256\n'
+  printf 'icones/apps/steam.svg\t%s\tGPL-3.0\t2026-09-23\t%s\n' "$1" "$sha_reg"
 }
-procedencia "$origem" > "$d/PROCEDENCIA.md"
+procedencia "$origem" > "$d/procedencia.tsv"
 
 saida="$(pack_py sincronizar copia 2>&1)"; rc=$?
 [ "$rc" = "0" ] && printf '%s' "$saida" | grep -q '1 de 1 em dia' \
@@ -249,14 +249,14 @@ saida="$(pack_py sincronizar copia 2>&1)"; rc=$?
   && ok "origem fora desta máquina não é divergência: diz, e sai 0" \
   || falha "sincronizar tratou a origem ausente como divergência (rc=$rc)" "$saida"
 
-printf '# teste\n\n| arquivo | lido de | licença | copiado em | sha256 |\n|---|---|---|---|---|\n| `icones/apps/steam.svg` |  | GPL-3.0 | 2026-09-24 | `%s` |\n' \
-  "$sha_reg" > "$d/PROCEDENCIA.md"
+printf 'arquivo\tlido de\tlicença\tcopiado em\tsha256\nicones/apps/steam.svg\t\tGPL-3.0\t2026-09-24\t%s\n' \
+  "$sha_reg" > "$d/procedencia.tsv"
 saida="$(pack_py sincronizar copia 2>&1)"; rc=$?
 [ "$rc" = "0" ] && printf '%s' "$saida" | grep -q '1 só registro' \
   && ok "linha sem 'lido de' é só registro: nada a comparar, e sai 0" \
   || falha "sincronizar tratou a linha sem 'lido de' como divergência (rc=$rc)" "$saida"
 
-procedencia "$T/home/.bashrc" > "$d/PROCEDENCIA.md"; : > "$T/home/.bashrc"
+procedencia "$T/home/.bashrc" > "$d/procedencia.tsv"; : > "$T/home/.bashrc"
 saida="$(pack_py sincronizar copia 2>&1)"; rc=$?
 [ "$rc" = "1" ] && printf '%s' "$saida" | grep -q 'não é o mesmo tipo de arquivo' \
   && ok "a coluna 'lido de' não abre arquivo de outro tipo (um pack de terceiro escreve o dado dele)" \

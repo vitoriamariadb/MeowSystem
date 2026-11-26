@@ -63,7 +63,7 @@ VERBOS
     fonte   <nome> [id]          as linhas de `fontes` daquele nome. 0 = uma
                                  fonte só; 1 = nenhuma, ou mais de uma. O lado
                                  que ficou atrás vai para o stderr.
-    sincronizar <id>             compara cada arte copiada do PROCEDENCIA.md com
+    sincronizar <id>             compara cada arte copiada do procedencia.tsv com
                                  a origem dela. SÓ LÊ. 0 = em dia, 1 = algum
                                  lado andou. Ver `cmd_sincronizar`.
     captura <par>                onde ESTÁ a captura <flavor>-<accent>, subindo
@@ -155,7 +155,7 @@ VERBOS
                                  o pack num `.meowpack` (um .tar.zst com um
                                  MANIFESTO de sha256). Recusa o que não valida,
                                  o que não tem CREDITOS.md e a arte de terceiro
-                                 sem licença no PROCEDENCIA.md.
+                                 sem licença no procedencia.tsv.
     importar <arquivo> [--seco]  confere o `.meowpack` inteiro, valida, e só então
                                  instala em ~/.local/share/meowsystem/packs/.
                                  Recusa qualquer script. NÃO APLICA nada. Um
@@ -640,7 +640,7 @@ def resolver_alvo(valor, base):
     if _caminho_da_maquina(resto):
         raise Recusa(f"{valor!r} é um endereço desta máquina, e não do pack. "
                      f"Copie a arte para dentro do pack e registre a origem no "
-                     f"PROCEDENCIA.md — ver docs/PACKS.md, 'Fonte e derivados'")
+                     f"procedencia.tsv — ver docs/PACKS.md, 'Fonte e derivados'")
     try:
         cheio = _dentro(raiz, resto, "alvo")
     except Recusa:
@@ -882,27 +882,27 @@ def cmd_fonte(nome, ref):
 
 
 COLUNAS_PROCEDENCIA = ("arquivo", "lido de", "sha256")
+ARQUIVO_PROCEDENCIA = "procedencia.tsv"
 
 
 def _tabela_procedencia(caminho):
-    cab, linhas = None, []
+    nome = os.path.basename(caminho)
     with open(caminho, encoding="utf-8") as fh:
-        for linha in fh:
-            s = linha.strip()
-            if not s.startswith("|"):
-                if cab is not None:
-                    break
-                continue
-            celulas = [c.strip().strip("`").strip() for c in s.strip("|").split("|")]
-            if cab is None:
-                nomes = [c.lower() for c in celulas]
-                if all(col in nomes for col in COLUNAS_PROCEDENCIA):
-                    cab = nomes
-                continue
-            if all(c and set(c) <= set("-: ") for c in celulas):
-                continue
-            linhas.append(dict(zip(cab, celulas)))
-    return linhas
+        linhas = fh.read().split("\n")
+    if linhas and linhas[-1] == "":
+        linhas.pop()
+    cab = [c.strip().lower() for c in linhas[0].rstrip("\r").split("\t")] if linhas else []
+    _exigir(all(col in cab for col in COLUNAS_PROCEDENCIA),
+            f"{nome}: o cabeçalho precisa das colunas {', '.join(COLUNAS_PROCEDENCIA)}")
+    saida = []
+    for n, linha in enumerate(linhas[1:], 2):
+        if not linha.strip():
+            continue
+        celulas = linha.rstrip("\r").split("\t")
+        _exigir(len(celulas) == len(cab),
+                f"{nome}:{n}: {len(celulas)} coluna(s), e o cabeçalho tem {len(cab)}")
+        saida.append(dict(zip(cab, (c.strip() for c in celulas))))
+    return saida
 
 
 def _origem(valor):
@@ -925,15 +925,15 @@ def cmd_sincronizar(ref):
     if not dir_pack:
         print(f"  erro não achei o pack {ref!r}", file=sys.stderr)
         return ERRO_USO
-    proc = os.path.join(dir_pack, "PROCEDENCIA.md")
+    proc = os.path.join(dir_pack, ARQUIVO_PROCEDENCIA)
     if not os.path.isfile(proc):
-        print(f"  --   {os.path.basename(dir_pack)} não tem PROCEDENCIA.md — "
+        print(f"  --   {os.path.basename(dir_pack)} não tem {ARQUIVO_PROCEDENCIA} — "
               f"nenhuma arte copiada a comparar")
         return OK
     linhas = _tabela_procedencia(proc)
     if not linhas:
-        print(f"  erro {_relativo(proc)}: nenhuma tabela com as colunas "
-              f"{', '.join(COLUNAS_PROCEDENCIA)}", file=sys.stderr)
+        print(f"  erro {_relativo(proc)}: nenhuma linha de arte abaixo do cabeçalho",
+              file=sys.stderr)
         return ERRO_USO
 
     em_dia = fora = andou = registro = 0
@@ -941,18 +941,18 @@ def cmd_sincronizar(ref):
         arquivo, lido, reg = lin.get("arquivo", ""), lin.get("lido de", ""), lin.get("sha256", "").lower()
         rotulo = arquivo or "(linha sem arquivo)"
         try:
-            aqui = _dentro(dir_pack, arquivo, "PROCEDENCIA.md")
+            aqui = _dentro(dir_pack, arquivo, ARQUIVO_PROCEDENCIA)
             origem = _origem(lido) if lido else ""
             _exigir(RE_SHA256.match(reg), f"sha256 {reg!r} não tem 64 hex")
             _exigir(not origem
                     or os.path.splitext(origem)[1].lower() == os.path.splitext(aqui)[1].lower(),
                     f"lido de {lido!r} não é o mesmo tipo de arquivo que {arquivo!r}")
         except Recusa as e:
-            print(f"  ~~   {rotulo} — a linha do PROCEDENCIA.md não serve: {e}")
+            print(f"  ~~   {rotulo} — a linha do procedencia.tsv não serve: {e}")
             andou += 1
             continue
         if not os.path.isfile(aqui):
-            print(f"  ~~   {rotulo} — está no PROCEDENCIA.md e não existe no pack")
+            print(f"  ~~   {rotulo} — está no procedencia.tsv e não existe no pack")
             andou += 1
             continue
         if not origem:
@@ -985,10 +985,10 @@ def cmd_sincronizar(ref):
         if s_aqui != s_origem:
             print("         o gesto é seu. Para trazer a versão da origem:")
             print(f"           cp '{origem}' '{aqui}'")
-            print("         e troque o sha256 da linha no PROCEDENCIA.md. Para ficar")
+            print("         e troque o sha256 da linha no procedencia.tsv. Para ficar")
             print(f"         com a daqui, o sha256 passa a ser {s_aqui}.")
         else:
-            print(f"         troque o sha256 da linha no PROCEDENCIA.md por {s_aqui}.")
+            print(f"         troque o sha256 da linha no procedencia.tsv por {s_aqui}.")
 
     total = len(linhas) - registro
     resumo = f"{em_dia} de {total} em dia com a origem"
@@ -2829,7 +2829,7 @@ def _tres_pastas(p, dir_pack):
                     if os.path.isdir(os.path.join(pasta, t, d)))
     _exigir(not dentro,
             f"icones/: {', '.join(dentro)} — as três pastas não têm subpasta. O flavor vai no\n"
-            f"    nome (`desenho-mocha.svg`) e a origem no PROCEDENCIA.md; ponha os arquivos direto\n"
+            f"    nome (`desenho-mocha.svg`) e a origem no procedencia.tsv; ponha os arquivos direto\n"
             f"    em apps/, sistema/ ou biblioteca/.")
 
 
@@ -3741,19 +3741,18 @@ def medir_exportacao(ref):
 
 
 def _licencas(dir_pack):
-    proc = os.path.join(dir_pack, "PROCEDENCIA.md")
+    proc = os.path.join(dir_pack, ARQUIVO_PROCEDENCIA)
     if not os.path.isfile(proc):
         return []
-    linhas = _tabela_procedencia(proc)
-    if not linhas:
-        return ["PROCEDENCIA.md: não achei a tabela que diz de onde veio cada arte "
-                f"(as colunas {', '.join(COLUNAS_PROCEDENCIA)} e licença) — sem ela, "
-                "não há como saber o que pode sair"]
+    try:
+        linhas = _tabela_procedencia(proc)
+    except Recusa as e:
+        return [f"{e} — sem a tabela inteira, não há como saber o que pode sair"]
     problemas = []
     for lin in linhas:
         licenca = lin.get("licença", lin.get("licenca", ""))
         if not re.search(r"\w", licenca):
-            problemas.append(f"PROCEDENCIA.md: {lin.get('arquivo') or '(linha sem arquivo)'} "
+            problemas.append(f"{ARQUIVO_PROCEDENCIA}: {lin.get('arquivo') or '(linha sem arquivo)'} "
                              f"não diz a licença — arte de terceiro sem licença escrita não "
                              f"é reempacotada")
     return problemas
@@ -4110,6 +4109,13 @@ def para_tres_pastas(ident, membros):
             if m and novo(m.group(1)) != m.group(1):
                 linhas[i] = linha.replace(m.group(1), novo(m.group(1)), 1)
         saida["PROCEDENCIA.md"] = "\n".join(linhas).encode("utf-8")
+    if ARQUIVO_PROCEDENCIA in saida:
+        linhas = saida[ARQUIVO_PROCEDENCIA].decode("utf-8", "replace").split("\n")
+        for i, linha in enumerate(linhas):
+            primeira, tab, resto = linha.partition("\t")
+            if tab and primeira.startswith("icones/") and novo(primeira) != primeira:
+                linhas[i] = novo(primeira) + tab + resto
+        saida[ARQUIVO_PROCEDENCIA] = "\n".join(linhas).encode("utf-8")
     return saida
 
 
@@ -4523,7 +4529,7 @@ def montar_novo(ident, csv=None, nome_dado=""):
         f"é dele a procedência. `meow pack info {ident}` diz o que é próprio e o que "
         f"é herdado.\n\n"
         f"## Se entrar arte de terceiro\n\n"
-        f"Copie-a para dentro do pack e ponha uma linha no `PROCEDENCIA.md` — de "
+        f"Copie-a para dentro do pack e ponha uma linha no `procedencia.tsv` — de "
         f"onde veio, sob que licença, em que data (ver docs/PACKS.md, \"Fonte e "
         f"derivados\"). O `meow pack exportar` recusa arte sem licença escrita ali.\n")
     arquivos = {

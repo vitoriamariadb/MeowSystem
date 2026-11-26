@@ -105,10 +105,10 @@ m = os.path.join(d, "icones", "apps.map")
 t = open(m, encoding="utf-8").read()
 t += "\ncom.exemplo.Velho : feitos-a-mao/alien.svg   # aponta para a pasta de antes\n"
 open(m, "w", encoding="utf-8").write(t)
-pr = os.path.join(d, "PROCEDENCIA.md")
+pr = os.path.join(d, "procedencia.tsv")
 t = open(pr, encoding="utf-8").read()
-t = t.replace("| `icones/biblioteca/alien.svg` |", "| `icones/feitos-a-mao/alien.svg` |")
-t = re.sub(r"^\| `icones/sistema/", "| `icones/pastas/", t, flags=re.M)
+t = t.replace("\nicones/biblioteca/alien.svg\t", "\nicones/feitos-a-mao/alien.svg\t")
+t = re.sub(r"^icones/sistema/", "icones/pastas/", t, flags=re.M)
 open(pr, "w", encoding="utf-8").write(t)
 PY
 antes="$(cd "$V/velho" && find icones -type f \( -name '*.svg' -o -name '*.png' \) -exec sha256sum {} + | cut -d' ' -f1 | sort | sha256sum)"
@@ -139,8 +139,8 @@ saida="$(pack_py validar velho 2>&1)"; rc=$?
   || falha "o pack convertido não valida (rc=$rc)" "$saida"
 saida="$(pack_py sincronizar velho 2>&1)"; rc=$?
 [[ "$saida" != *"não existe no pack"* ]] \
-  && ok "o PROCEDENCIA.md do convertido aponta os arquivos onde eles estão" \
-  || falha "o PROCEDENCIA.md do convertido ficou com o caminho de antes" "$(printf '%s\n' "$saida" | grep 'não existe' | head -3)"
+  && ok "o procedencia.tsv do convertido aponta os arquivos onde eles estão" \
+  || falha "o procedencia.tsv do convertido ficou com o caminho de antes" "$(printf '%s\n' "$saida" | grep 'não existe' | head -3)"
 fi
 
 for par in "assets/icones/resgatados/luna.svg:packs/dracula/icones/apps/luna.svg" \

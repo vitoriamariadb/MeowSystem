@@ -952,10 +952,10 @@ exporta_recusa() {
     falha "o exportar não recusou $2, ou não disse por quê (rc=$rc)" "$saida"
   fi
 }
-printf '| arquivo | lido de | licença | sha256 |\n|---|---|---|---|\n| `logo.svg` | `~/x/logo.svg` |  | `%064d` |\n' 0 \
-  > "$PACKS/$LIC/PROCEDENCIA.md"
-exporta_recusa "logo.svg não diz a licença" "a arte de terceiro sem licença no PROCEDENCIA.md"
-rm -f "$PACKS/$LIC/PROCEDENCIA.md"
+printf 'arquivo\tlido de\tlicença\tsha256\nlogo.svg\t~/x/logo.svg\t\t%064d\n' 0 \
+  > "$PACKS/$LIC/procedencia.tsv"
+exporta_recusa "logo.svg não diz a licença" "a arte de terceiro sem licença no procedencia.tsv"
+rm -f "$PACKS/$LIC/procedencia.tsv"
 python3 - "$PACKS/$LIC/pack.json" <<'PY' || exit 2
 import json, sys
 p = json.load(open(sys.argv[1])); p.pop("creditos", None)
@@ -2195,12 +2195,13 @@ read -r bib_tem bib_total bib_commit <<< "$achados"
 sem_linha=""
 for f in "$BIB"/*.svg; do
   [ -e "$f" ] || continue
-  grep -qF "| \`icones/biblioteca/$(basename "$f")\` |" "$RAIZ/packs/dracula/PROCEDENCIA.md" \
+  grep -qF "icones/biblioteca/$(basename "$f")"$'\t' "$RAIZ/packs/dracula/procedencia.tsv" \
+    || grep -qF "| \`icones/biblioteca/$(basename "$f")\` |" "$RAIZ/packs/dracula/PROCEDENCIA.md" \
     || sem_linha="$sem_linha$(basename "$f")
 "
 done
 [ -d "$BIB" ] && [ -z "$sem_linha" ] \
-  && ok "todo desenho da biblioteca do Dracula tem a linha dele no PROCEDENCIA.md" \
+  && ok "todo desenho da biblioteca do Dracula tem a linha dele na procedência do pack" \
   || falha "desenho na biblioteca sem procedência (ou a biblioteca sumiu):" "$sem_linha"
 
 esperado="$(python3 - "$RAIZ/packs/dracula/icones" <<'PY'
@@ -2561,13 +2562,13 @@ faltam=""
 for app in obsidian vscode; do
   url="$(valor55 dracula "$app.origem.url")"; sha="$(valor55 dracula "$app.origem.sha256")"
   [[ "$url" == https://* ]] && [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || faltam+=" $app: url ou sha256 fora da forma ($url $sha);"
-  grep -qF "$sha" "$RAIZ/packs/dracula/PROCEDENCIA.md" || faltam+=" $app: o sha256 não está no PROCEDENCIA.md;"
+  grep -qF "$sha" "$RAIZ/packs/dracula/procedencia.tsv" "$RAIZ/packs/dracula/PROCEDENCIA.md" || faltam+=" $app: o sha256 não está na procedência do pack;"
 done
 pasta="$(valor55 dracula obsidian.origem.pasta)"
 [[ "$pasta" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*$ ]] && [[ "$(valor55 dracula obsidian.origem.url)" == *"/archive/${pasta#obsidian-}.tar.gz" ]] \
   || faltam+=" obsidian: a pasta ($pasta) não é a do commit da URL;"
 [ -z "$faltam" ] \
-  && ok "o Obsidian e o VS Code do Dracula descem pinados, e o PROCEDENCIA.md traz os dois sha256" \
+  && ok "o Obsidian e o VS Code do Dracula descem pinados, e a procedência do pack traz os dois sha256" \
   || falha "o pino do tema de fora do Dracula:$faltam"
 
 saida="$(app55 dracula vscode-icones.esquema)"
@@ -2818,20 +2819,31 @@ import hashlib, os, re, sys
 ruins = []
 for pack in sorted(os.listdir(sys.argv[1])):
     d = os.path.join(sys.argv[1], pack)
-    proc = os.path.join(d, "PROCEDENCIA.md")
-    if not os.path.isfile(proc):
-        continue
-    for n, l in enumerate(open(proc, encoding="utf-8"), 1):
-        m = re.match(r"\| `(icones/[^`]+)` \|.*\| `([0-9a-f]{64})` \|\s*$", l)
-        if not m or not os.path.isfile(os.path.join(d, m.group(1))):
+    linhas = []
+    for nome in ("PROCEDENCIA.md", "procedencia.tsv"):
+        proc = os.path.join(d, nome)
+        if os.path.isfile(proc):
+            linhas += [(nome, n, l) for n, l in enumerate(open(proc, encoding="utf-8"), 1)]
+    for nome, n, l in linhas:
+        if nome == "procedencia.tsv":
+            c = l.rstrip("\n").split("\t")
+            rel, sha = (c[0], c[-1]) if len(c) >= 2 else ("", "")
+            if not re.fullmatch(r"[0-9a-f]{64}", sha):
+                continue
+        else:
+            m = re.match(r"\| `(icones/[^`]+)` \|.*\| `([0-9a-f]{64})` \|\s*$", l)
+            if not m:
+                continue
+            rel, sha = m.group(1), m.group(2)
+        if not os.path.isfile(os.path.join(d, rel)):
             continue
-        if hashlib.sha256(open(os.path.join(d, m.group(1)), "rb").read()).hexdigest() != m.group(2):
-            ruins.append(f"{pack}/PROCEDENCIA.md:{n} {m.group(1)}")
+        if hashlib.sha256(open(os.path.join(d, rel), "rb").read()).hexdigest() != sha:
+            ruins.append(f"{pack}/{nome}:{n} {rel}")
 print("; ".join(ruins) if ruins else "limpo")
 PY
 )"
 [ "$resultado" = "limpo" ] \
-  && ok "o sha256 de cada linha do PROCEDENCIA é o do desenho que está no pack" \
+  && ok "o sha256 de cada linha do PROCEDENCIA e do procedencia.tsv é o do desenho que está no pack" \
   || falha "PROCEDENCIA com sha256 de outra versão do desenho" "$resultado"
 
 printf '\n'

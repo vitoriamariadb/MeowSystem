@@ -81,7 +81,7 @@ for rel in versionados:
     if not rel or not (rel.startswith(RODA) or rel in SOLTOS):
         continue
     caminho = os.path.join(raiz, rel)
-    if os.path.basename(rel) == "PROCEDENCIA.md":
+    if os.path.basename(rel) == pack.ARQUIVO_PROCEDENCIA:
         if os.path.isfile(caminho):
             for lin in pack._tabela_procedencia(caminho):
                 if ALVO in lin.get("lido de", ""):

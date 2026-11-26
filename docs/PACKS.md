@@ -364,7 +364,8 @@ packs/<id>/
     sistema/                pasta, tipo de arquivo, status, simbólico — o tema monta daqui:
                             folder-*.svg (pastas.map) e os moldes de tipo de arquivo (mimetypes.map)
     biblioteca/             TODO o resto, para escolher no painel: SVG e PNG feito à mão
-  PROCEDENCIA.md            de onde veio cada arquivo (o flavor vai no nome, a origem aqui)
+  PROCEDENCIA.md            a prosa de onde veio cada arquivo (o flavor vai no nome, a origem aqui)
+  procedencia.tsv           a tabela que o sincronizar e o exportar leem: um arquivo por linha
   mascote/                  o mascote do dock e do terminal (mascote.dia, mascote.noite)
   temas-de-apps/<app>/      os temas de DENTRO dos aplicativos — ver a seção própria
   cursores/<nome>/cursors/  o ponteiro do pack (origens.cursores.proprio) — ver "O ponteiro"
@@ -754,7 +755,7 @@ pack-base `meowsystem` e todo pack futuro.
 escolheu. **Os projetos da autora entram na biblioteca do Dracula**, direto em
 `icones/biblioteca/`. Nenhum desenho
 da biblioteca veste um programa sozinho: quem veste é uma linha do `apps.map`.
-De onde veio cada arquivo está no `PROCEDENCIA.md`, e o `catalog.json` da pasta
+De onde veio cada arquivo está no `procedencia.tsv`, e o `catalog.json` da pasta
 dá o rótulo do seletor: a `descricao` com a primeira letra em maiúscula, ou tal como
 está escrita quando a ficha traz `"caixa_da_marca": true` (npm, macOS, esbuild).
 
@@ -772,14 +773,14 @@ packs/<id>/icones/
   quarta pasta: as três são planas, e o `validar` recusa subpasta dentro delas.
 - **A origem não é pasta.** PNG feito à mão, desenho recuperado, autoral ou
   versão antiga: tudo é `biblioteca/` (ou `apps/`, se estiver ligado). O que
-  diferencia de onde veio é o `PROCEDENCIA.md`.
+  diferencia de onde veio é o `procedencia.tsv`.
 - **O `validar` recusa a quarta pasta** num pack de formato 2, na porta de quem
   publica — a do motor continua vendo o pack, para uma pasta solta não trocar o
   tema de ninguém.
 - **Um pack de formato 1 continua valendo.** O motor lê as pastas que ele
   declara, e o `meow pack importar` converte um `.meowpack` de formato 1 na
   chegada: cada pasta vai para uma das três (pelo nome ou pela categoria), e o
-  `pack.json`, o `apps.map` e a primeira coluna do `PROCEDENCIA.md` passam a
+  `pack.json`, o `apps.map` e a primeira coluna do `procedencia.tsv` passam a
   dizer o caminho novo, sem mudar um byte de desenho.
 - **`meow pack novo` cria as três**, vazias, e o `CREDITOS.md` dele diz o que
   vai em cada uma.
@@ -879,7 +880,7 @@ escolhe o próximo ícone de aplicativo, vestindo alguém ou não.
   subpasta, todos os achados de uma vez — e só na porta
   de quem publica: um arquivo solto numa pasta que nada instala não pode fazer o
   motor ignorar o pack inteiro.
-- **Cada desenho tem a linha dele no `PROCEDENCIA.md`**, como qualquer arte
+- **Cada desenho tem a linha dele no `procedencia.tsv`**, como qualquer arte
   copiada (ver [Fonte e derivados](#fonte-e-derivados)). O `tests/pack.sh`
   cobra isso, e conta a biblioteca do Dracula contra o `Dracula_OS-Theme` por
   sha256 quando ele está na máquina — onde não está, pula dizendo por quê.
@@ -902,7 +903,7 @@ campo no `pack.json`, e nada os instala sozinho — quem veste um programa com e
 Desenho que chega em PNG vira vetor (decisão 2): o SVG é desenhado em formas, na cor medida
 no PNG, e conferido por RMSE contra ele, sobre o fundo do pack e sobre branco, valendo o
 pior dos dois. O PNG sai só quando o vetor passa, e o SVG tem a linha dele no
-`PROCEDENCIA.md`, com o sha256 do PNG de que nasceu.
+`procedencia.tsv`, com o sha256 do PNG de que nasceu.
 
 **Raster não é fonte.** Um PNG que ainda não tenha vetor continua visível no
 seletor, numa pasta à parte («feitos à mão (PNG)»), e travado: ele não se
@@ -1136,7 +1137,7 @@ derivado não se edita: a próxima instalação apaga o retoque.
 | 2. derivado não se edita | o que está no tema é calculado da fonte, na instalação | `meow_icones_derivar`, em `scripts/lib/icones.sh` |
 | 3. derivado não se versiona | o git guarda a fonte; o derivado nasce no tema | a própria forma: nenhum derivado mora no repositório |
 | 4. mapa não aponta para fora | alvo é pack, `motor:` ou `pack:` — `~/` e absoluto são recusados | `validar`, `pack.py alvo` |
-| 5. arte de terceiro entra por cópia | copiada para dentro do pack, com uma linha no `PROCEDENCIA.md` | `tests/fonte-unica.sh` (o Firefox) |
+| 5. arte de terceiro entra por cópia | copiada para dentro do pack, com uma linha no `procedencia.tsv` | `tests/fonte-unica.sh` (o Firefox) |
 | 6. recolorir é por papel | `sujeito`, `tinta`, `fundo` resolvidos na paleta do flavor | `gerar_icones_autorais.py` — é por papel que o `alucard` ganhou os seus |
 | 7. uma linha responde | `meow icones fonte <nome>` diz a fonte e o que deriva dela | `scripts/meow` |
 | 8. a cópia tem caminho de volta | `meow pack sincronizar <id>` compara cópia e origem, e **não copia** | `pack.py sincronizar` |
@@ -1211,18 +1212,18 @@ de mexer nele. **Raster não é fonte:** um PNG passado ao `derivar` é recusado
 com 2, porque de um PNG não sai vetor, nem outro flavor, nem tamanho maior sem
 borrar.
 
-### O `PROCEDENCIA.md` do pack, e o `sincronizar`
+### O `procedencia.tsv` do pack, e o `sincronizar`
 
 Arte de terceiro entra no pack **copiada**, e não apontada: apontar para um diretório de
 outro projeto é depender de algo que ele pode reescrever do zero.
 
-Cada cópia ganha uma linha no `packs/<id>/PROCEDENCIA.md`:
+Cada cópia ganha uma linha no `packs/<id>/procedencia.tsv`, seis campos separados por tabulação
+(aqui com `→` no lugar da tabulação, para ler):
 
 ```
-| arquivo | de onde | lido de | licença | copiado em | sha256 |
-|---|---|---|---|---|---|
-| `icones/biblioteca/net.waterfox.waterfox.svg` | `m4thewz/dracula-icons`, ramo `circle` — … |  | GPL-3.0 | 2026-09-23 | `a13118bd…` |
-| `icones/biblioteca/guvcview.svg` | este repositório — `assets/icones/resgatados/guvcview.svg` | `pack:dracula:biblioteca/guvcview.svg` | a do pacote `guvcview` | 2026-09-17 | `085829f8…` |
+arquivo → de onde → lido de → licença → copiado em → sha256
+icones/biblioteca/net.waterfox.waterfox.svg → `m4thewz/dracula-icons`, ramo `circle` — … →  → GPL-3.0 → 2026-09-23 → a13118bd…
+icones/biblioteca/guvcview.svg → este repositório — `assets/icones/resgatados/guvcview.svg` → pack:dracula:biblioteca/guvcview.svg → a do pacote `guvcview` → 2026-09-17 → 085829f8…
 ```
 
 `lido de` aceita `~/…`, `motor:…`, `pack:<id>:…` ou caminho absoluto, e é só **lido**. Para
@@ -2312,7 +2313,7 @@ Ele confere, nesta ordem, e **para no primeiro erro**:
     de quem —, e ficam de fora o binário (byte nulo nos primeiros 8000 bytes,
     a pergunta do git) e o oculto, que o `exportar` não leva. Cobrado só pelo
     verbo `validar`, como o 14 e o 15: um pack pessoal com o próprio caminho
-    num `PROCEDENCIA.md` continua vestindo o desktop. O `exportar`, o
+    num `PROCEDENCIA.md` ou `procedencia.tsv` continua vestindo o desktop. O `exportar`, o
     `importar` e o `novo` (com ou sem `--de-csv`) rodam o `validar` inteiro, e
     a herdam sem uma linha a mais
 14. **a vitrine** — a capa existe, é SVG e está dentro do pack; a frase curta
@@ -2466,7 +2467,7 @@ Exportar é publicar, e ele recusa — dizendo o arquivo — antes de escrever:
 2. **o pack sem `CREDITOS.md`** (ou sem o arquivo que o campo `creditos`
    nomeia). Arte de terceiro não é reempacotada sem dizer de onde veio; se
    tudo é seu, ele diz isso;
-3. **a arte do `PROCEDENCIA.md` sem licença.** O exportar lê a mesma tabela que
+3. **a arte do `procedencia.tsv` sem licença.** O exportar lê a mesma tabela que
    o `sincronizar` (ver [Fonte e derivados](#fonte-e-derivados)), e a coluna
    `licença` vazia, `?` ou `—` é arte que ninguém disse que pode sair;
 4. **script e link simbólico** — `.sh`, arquivo que abra com `#!`, link. As

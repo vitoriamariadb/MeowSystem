@@ -98,6 +98,7 @@ PORTATIL=(
   reler-uma-vez.sh
   derivados.sh
   tres-pastas.sh
+  procedencia-em-dado.sh
   migracao-do-painel.py
   vizinhos.sh
   qbittorrent-tema-do-pack.sh
