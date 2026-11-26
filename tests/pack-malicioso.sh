@@ -875,6 +875,36 @@ done
   && ok "o nome da chave recusada chega ao motivo e ao aviso do validar numa linha imprimível: escape de terminal, controle C1, formato (ZWSP) e BIDI saem escapados, nunca crus" \
   || falha "o motivo da recusa levou caractere de controle ao terminal:$limpo_ruim"
 
+pack_de_prompt r-linha-injetada "$(printf '"a\\nvalor=%s/injetado.toml\\nrecusado=outro" = 1\n' "$T")"
+resp="$(prompt_resposta r-linha-injetada)"
+[ "$(grep -c '^valor=' <<< "$resp")" = 1 ] && [ "$(grep -c '^recusado=' <<< "$resp")" = 1 ] && ! grep -q 'injetado.toml$' <<< "$resp" \
+  && ok "a chave com quebra de linha não injeta uma segunda linha valor= nem recusado= na resposta que o prompt.sh lê" \
+  || falha "a chave recusada injetou linha na resposta do verbo prompt" "$resp"
+
+estranho_ruim=""
+for _forma in fundo-lista fundo-tabela pasta fifo; do
+  _id="r-arquivo-$_forma"
+  rm -rf "$CASA/.cache/meowsystem"
+  pack_de_prompt "$_id" 'format = "$character"'
+  _arq="$RAIZ_DELA/$_id/prompt/starship.toml"
+  case "$_forma" in
+    fundo-lista)  python3 -c 'print("x = " + "[" * 5000 + "]" * 5000)' > "$_arq" ;;
+    fundo-tabela) python3 -c 'print("x = " + "{a=" * 3000 + "1" + "}" * 3000)' > "$_arq" ;;
+    pasta)        rm -f "$_arq"; mkdir "$_arq" ;;
+    fifo)         rm -f "$_arq"; mkfifo "$_arq" ;;
+  esac
+  resp="$(timeout 20 env -i PATH="$T/falso:$PATH" HOME="$CASA" USER="${USER:-t}" LANG="${LANG:-C.UTF-8}" \
+      XDG_DATA_HOME="$XDG" MEOW_PACKS="$T/vazio" MEOW_RAIZ="$RAIZ" MEOW_CONF="$CASA/.config/meow/meow.conf" \
+      MEOW_PONTE=/nao/existe python3 "$RAIZ/scripts/pack.py" prompt "$_id" 2>&1)"; rc=$?
+  { [ "$rc" = 0 ] && grep -qx "recusado=$_id" <<< "$resp" && grep -q '^motivo=' <<< "$resp" \
+    && grep -qxF "valor=$RAIZ/packs/meowsystem/prompt/starship.toml" <<< "$resp" && ! grep -q Traceback <<< "$resp"; } \
+    || estranho_ruim+=" $_forma(rc=$rc: $(tr '\n' ' ' <<< "$resp" | tail -c 160))"
+  rm -rf "$_arq"
+done
+[ -z "$estranho_ruim" ] \
+  && ok "starship.toml aninhado fundo demais, pasta ou FIFO no pack de fora é recusado com motivo, sem traceback nem trava, e vale o do pack-base" \
+  || falha "starship.toml estranho no pack de fora derrubou ou travou o verbo prompt:$estranho_ruim"
+
 rm -rf "$CASA/.cache/meowsystem"
 pack_de_prompt escapa-aspas "$(printf '[os.symbols]\nPop = "a\\"] [custom.y"\n[directory.substitutions]\n"Docu\\"ments" = "d\\\\x"\n')"
 resp="$(prompt_resposta escapa-aspas)"; arq="$(gerado_de "$resp")"

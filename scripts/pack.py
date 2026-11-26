@@ -209,6 +209,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import sys
 import threading
 import unicodedata
@@ -1453,13 +1454,22 @@ def _prompt_aprovado(dono, arquivo):
         import tomllib
     except ImportError:
         raise Recusa("este Python não tem o tomllib (3.11 ou mais), e sem ele o prompt de pack de fora não é lido") from None
-    with open(arquivo, "rb") as fh:
+    try:
+        fd = os.open(arquivo, os.O_RDONLY | os.O_NONBLOCK)
+    except OSError as e:
+        raise Recusa(f"o prompt não abre: {e.strerror}") from None
+    if not stat.S_ISREG(os.fstat(fd).st_mode):
+        os.close(fd)
+        raise Recusa("o prompt não é um arquivo comum")
+    with os.fdopen(fd, "rb") as fh:
         bruto = fh.read(TETO_BYTES_STARSHIP + 1)
     _exigir(len(bruto) <= TETO_BYTES_STARSHIP, f"o prompt passa de {TETO_BYTES_STARSHIP // 1024} KiB")
     try:
         dados = tomllib.loads(bruto.decode("utf-8"))
     except UnicodeDecodeError:
         raise Recusa("o prompt não é UTF-8") from None
+    except RecursionError:
+        raise Recusa("o prompt aninha lista ou tabela fundo demais") from None
     except tomllib.TOMLDecodeError as e:
         raise Recusa("o prompt não é TOML válido: " + _linha_imprimivel(" ".join(str(e).split()))) from None
     _conferir_prompt_starship(dados)
