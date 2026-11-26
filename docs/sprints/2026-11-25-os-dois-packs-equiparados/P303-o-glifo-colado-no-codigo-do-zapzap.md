@@ -44,3 +44,8 @@ qualquer byte do SVG podia mudar a forma do arquivo gerado.
 - Chave solta, atributo que não é de traçado (`url(`, `onload`), elemento que não é traçado (`image`, `script`)
   e glifo que é link para fora: rc=2, e o arquivo do app fica byte a byte o de fábrica.
 - `icones.bandeja.desenhos` com `../`, caminho absoluto ou link: o pack inteiro é recusado e nada de fora entra.
+
+## Na integração
+O glifo da Steam ganhou a guarda de só formas (`_so_formas` em `scripts/icones_tray_steam.sh`): sem ela, um
+`<image>` no glifo de um pack de fora embutia no PNG da bandeja um arquivo vizinho do SVG temporário. Um caso em
+`tests/bandeja-por-pack.sh`, vermelho antes (rc=1, PNG escrito) e verde depois (rc=2, nada escrito).
