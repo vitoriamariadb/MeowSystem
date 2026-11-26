@@ -98,6 +98,39 @@ As decisões estão em `DECISOES-DE-25-11.md`. O que já saiu delas:
   área por alguns segundos); a folha de papéis de parede e a página de temas de ícone do VS Code para o Dracula
   (bloco de pesquisa, depois destes dois); a explicação do P276 item D; ler a calibração do nitro-5 em 26/11.
 
+## A integração dos três blocos (25/11, 23h)
+Árvore de integração `integra/2511`, em linha reta sobre o `master` (`2107764`), sem conflito. Nenhum agente voa.
+
+- **Módulos de app** (`bloco/apps-sem-modulo`): Godot, GIMP e ghostwriter, com o P302. Ela viu as capturas e
+  escolheu ligar o Godot e o GIMP; o GIMP do nitro-5 muda junto (item `1020689c` na fila do dono do pack).
+- **Núcleo do pack** (`bloco/nucleo-do-pack`): `procedencia.tsv` nos dois packs; prompt de pack pessoal por lista
+  (decisão 71, exceção na 67). O conferente fechou: referência no `format` e no `continuation_prompt`, tipo
+  `ligavel` (`starship-ligaveis.tsv`, 27 módulos, nenhum roda binário que o starship não rode de fábrica), linha
+  não imprimível, aninhamento fundo, pasta e FIFO no `starship.toml`, e `pack.json`/`paleta.json` aninhados fundo
+  (`ba86321`). Sem conserto, escrito em `ACHADO-arquivo-de-pack-de-fora-sem-teto.md`.
+- **Ganchos e bandeja** (`bloco/cli-e-bandeja`): `meow ganchos instalar|conferir|remover`; o Dracula declara
+  `icones.bandeja` (ela aprovou os dois glifos na folha). P303: o glifo do pack virava código no `tray_icon.py` do
+  ZapZap; agora entra por `repr()` trocado pela AST, e ZapZap e Steam passam o glifo por `scripts/glifo_tracado.py`.
+  O desfazer não depende mais do glifo (caso em `tests/bandeja-por-pack.sh`).
+- **Na integração:** as duas linhas dos glifos no `packs/dracula/procedencia.tsv` (a do fantasma com licença
+  «a confirmar», perguntada ao dono do pack); a captura `packs/meowsystem/capturas/area-de-trabalho.jpg`, sobre o
+  `patinhas-noite` do próprio pack, declarada em `vitrine.capturas`, com a exceção no `.gitignore` para
+  `packs/*/capturas/`.
+- **Prova:** `./tests/todos.sh` inteira em `fa59deb`: 185 verdes, 0 pulados, 0 vermelhos
+  (`~/.cache/meow-leva/suite-integra-2511.log`). Depois dela entrou só `37cf783`, que toca um arquivo de teste,
+  rodado verde sozinho.
+- **Sem medida:** o OBS na bandeja (escolha dela). **Sem prova na tela:** o ícone do ZapZap na bandeja com o app
+  aberto no formato novo; o prompt de um pack pessoal num terminal.
+
+## Os blocos seguintes
+1. `meow.conf.exemplo`: o esquema do painel sai dos comentários para um arquivo de dados (decisão dela); reescreve o
+   leitor do painel e o `migrar_conf.py`. Tarefa escrita antes do agente.
+2. Leitor único para arquivo de pack de fora, com teto de tamanho, cobrindo os mapas
+   (`ACHADO-arquivo-de-pack-de-fora-sem-teto.md`); junto, o `user.css` do Spotify de pack de fora, que pode buscar
+   na rede por `url()`.
+3. Pesquisa, em página com opções: papéis de parede do Catppuccin e tema de ícones de arquivo do VS Code no Dracula.
+4. A calibração do nitro-5 (`~/.cache/meow-leva/bateria-calibra.log`, em 26/11).
+
 ## Fica com quem usa
 - Os códigos da folha de desenhos (e a cor de cada um).
 - Os cinco campos do Dracula sem leitor: estão no formato do manual (`docs/PACKS.md`, exemplo e aviso); ganhar leitor
@@ -106,7 +139,6 @@ As decisões estão em `DECISOES-DE-25-11.md`. O que já saiu delas:
 - GitHub Desktop, Foundry VTT e cliente da Steam: sem tema possível sem cliente modificado.
 
 ## Próximo passo
-1. Chegando o relato do `implementa-apps`: medir de novo o que ele afirma, lançar o conferente.
-2. Chegando os códigos da folha: escrever as linhas nos mapas (`apps-arcticons.map`, `apps-convertidos.map`), com
-   teste; construir e instalar só com o sim dela.
-3. Suíte inteira uma vez, integração no `master`, instalador nos três PCs.
+1. `master` recebe a `integra/2511` por avanço direto, push, `meow levantamento` e instalador nos três PCs.
+2. `godot` entra no `APPS_ATIVOS` dos dois PCs dela; passada de tela (Godot, GIMP, vitrine no painel, prompt).
+3. Remover as worktrees fechadas e abrir o bloco do `meow.conf.exemplo`.
