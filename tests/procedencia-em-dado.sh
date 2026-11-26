@@ -60,6 +60,12 @@ grep -q 'procedencia\.tsv' "$RAIZ/packs/dracula/PROCEDENCIA.md" \
   && ok "o PROCEDENCIA.md de cada pack aponta para o arquivo de dados" \
   || falha "o PROCEDENCIA.md de um dos packs não aponta para o procedencia.tsv" ""
 
+orfas="$(grep -nE 'tabela de cima|no fim da tabela acima|linhas da tabela acima|cada um abaixo é a do|^desta tabela\.$' \
+  "$RAIZ/packs/dracula/PROCEDENCIA.md" | head -3)"
+[ -z "$orfas" ] \
+  && ok "a prosa do PROCEDENCIA.md do Dracula não aponta mais para a tabela de arte acima ou abaixo: aponta para o procedencia.tsv" \
+  || falha "a prosa do PROCEDENCIA.md do Dracula ainda manda olhar a tabela de arte que saiu dele" "$orfas"
+
 brinquedo() {
   local id="$1" d="$T/packs/$1"
   mkdir -p "$d/icones/apps"

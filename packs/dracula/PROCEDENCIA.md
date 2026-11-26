@@ -49,8 +49,8 @@ linhas apontavam para lá, e o `meow doctor` as relia a cada passada, por meio d
 alcance"; nesta, ela amarrava o produto a uma pasta pessoal.
 
 Agora a coluna `lido de` está **vazia** nessas linhas, e a origem continua
-escrita como texto na coluna `de onde` — que é o que este arquivo existe para
-dizer. O `sincronizar` conta a linha vazia como "só registro": confere que o
+escrita como texto na coluna `de onde` do `procedencia.tsv` — que é o que a
+procedência existe para dizer. O `sincronizar` conta a linha vazia como "só registro": confere que o
 arquivo existe no pack e não abre nada fora dele. A coluna ficou, vazia, em vez
 de sair: é a mesma tabela que o `meow pack exportar` lê para a licença, e sem ela
 o pack não seria reempacotado. A única linha que ainda compara é a do
@@ -93,7 +93,7 @@ As 16 ligações de `src/icons/projects/` (os projetos pessoais) NÃO entraram �
 pack é exportável, e aqueles são desta máquina. O `icones/apps/nyx.svg` era
 anterior a essa decisão (16/09) e ficou onde estava até 24/09/2026, quando a P43
 o tirou do pack pela mesma regra — o arquivo, a linha do `apps.map` e a linha
-desta tabela.
+do `procedencia.tsv`.
 
 **Três desenhos entraram em 24/09/2026 (P43)**, de `current/` do
 `Dracula_OS-Theme`, para as entradas que a P36 deixou de fora e que a decisão
@@ -133,7 +133,7 @@ busca achar «alienígena»), a tabela ficou com 581 linhas.
 **Em 15/10/2026 (P84) os 39 viraram vetor**: cada um
 ganhou um `.svg` desenhado à mão ao lado, medido contra o PNG (RMSE de 0 a 1,
 no pior de dois fundos, `#282A36` e branco) e conferido a olho numa folha de
-contato; os 39 passaram, os PNG saíram, e a linha de cada um abaixo é a do
+contato; os 39 passaram, os PNG saíram, e a linha de cada um no `procedencia.tsv` é a do
 vetor, com o sha256 do PNG de que ele nasceu. O critério e a tabela inteira
 estão em `docs/sprints/2026-10-15-fechamento/P84-png-para-vetor.md`, no histórico do git.
 
@@ -146,7 +146,7 @@ O `meow pack sincronizar dracula` e o `meow pack exportar` leem de lá; este arq
 **«Joga tudo pro pack» (15/10; decisões 13 e 16).** A varredura de 15/10
 (56.998 arquivos únicos, quatro frentes) e a recuperação de apagados (432
 achados) apontaram o que existia fora do pack: 163 arquivos entram agora, e a
-linha de cada um está no fim da tabela acima, com a origem em texto, o sha256 e
+linha de cada um está no fim do `procedencia.tsv`, com a origem em texto, o sha256 e
 a licença. A pasta não diz de onde veio; a linha diz.
 
 | pasta | arquivos | classe |
@@ -251,14 +251,14 @@ continua na biblioteca, com a sua linha acima, como história do desenho.
 ## Os temas de aplicativo — 24/09/2026, sprint P42
 
 Os moldes moram em `temas-de-apps/<app>/` (os mesmos 11 em todo pack), declarados no bloco `apps` do
-`pack.json`. **Não são cópias**, e por isso não estão na tabela de cima: cada
+`pack.json`. **Não são cópias**, e por isso não estão no `procedencia.tsv`: cada
 um é o arquivo do aplicativo com o PAPEL da cor no lugar do hex (`{{base}}`,
 `{{mauve}}`), pela decisão de 23/09 de que cor de tema de aplicativo sai da
 paleta do pack. Quem põe o hex é o `scripts/temas-de-apps/modelo.py`, na hora de
 aplicar, no flavor da máquina — é o que faz o `alucard` sair claro nos cinco.
 
 Um modelo nunca vai ser igual, byte a byte, ao arquivo de onde o desenho veio.
-Na tabela de cima o `sincronizar` diria "a ORIGEM andou" para sempre e
+No `procedencia.tsv` o `sincronizar` diria "a ORIGEM andou" para sempre e
 ofereceria um `cp` que apagaria os papéis. E esta tabela não tem a coluna
 "lido de" de propósito: nada lê a origem em execução — o
 `tests/sem-dracula-os-theme.sh` cobra, e o `tests/temas-de-apps.sh` cobra que
@@ -293,7 +293,7 @@ partir dos temas de fábrica do app (o binário 9.4.0 traz oito).
 ## As pastas especiais — 25/09/2026, sprint P61
 
 Os sete desenhos de `icones/sistema/` são **desenho próprio deste projeto** (ver
-o `packs/meowsystem/CREDITOS.md`), e por isso não estão na tabela de cima: não há origem a
+o `packs/meowsystem/CREDITOS.md`), e por isso não estão no `procedencia.tsv`: não há origem a
 comparar. Eles não recolorem pelo acento (`icones.pastas.recolorir: false`, a
 decisão do pack), e o corpo da pasta — as costas e a frente, a mesma silhueta
 nos sete — estava em dois tons fora da paleta do Dracula. Os dois passaram ao
@@ -402,7 +402,7 @@ Desde 24/09/2026 (P41) duas artes de terceiro chegam pelo `pack.json` como
 **receita**: a URL, o sha256 do pacote e a pasta de dentro dele. Quem instala
 baixa, confere byte a byte e só então põe no disco — o `construir_icones.sh`
 para a base, o `cursor.sh` para o ponteiro. Nenhum arquivo delas mora neste
-diretório, e por isso elas **não são linhas da tabela acima**: a tabela é das
+diretório, e por isso elas **não são linhas do `procedencia.tsv`**: ele é das
 cópias, e o `sincronizar` compara cópia com origem. O que se baixa é conferido
 pelo sha256 na instalação, e é o sha256 que diz qual versão foi escolhida.
 [Desde a P55, 24/09/2026, são quatro: o tema do Obsidian e a extensão do VS Code
