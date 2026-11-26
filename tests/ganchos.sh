@@ -265,6 +265,57 @@ else
   falha "instalar sobrescreveu um gancho que não podia guardar"
 fi
 
+R2="$T/clone-do-meow"
+g init -q "$R2"
+mkdir -p "$R2/scripts"
+cp -R "$RAIZ/scripts/lib" "$R2/scripts/lib"
+cp "$RAIZ/scripts/meow" "$RAIZ/scripts/ganchos.sh" "$RAIZ/scripts/gancho-pre-push.sh" "$RAIZ/scripts/gancho-post-merge.sh" "$R2/scripts/"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$R2/install.sh"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$R2/scripts/higiene.sh"
+chmod 755 "$R2/scripts/meow" "$R2/install.sh"
+g -C "$R2" add -A
+g -C "$R2" commit -q -m base --no-verify
+H2="$(cd "$R2/.git/hooks" && pwd -P)"
+CASA2="$T/casa2"
+mkdir -p "$CASA2"
+meow() { (cd "$T" && HOME="$CASA2" MEOW_RAIZ="$R2" bash "$R2/scripts/meow" "$@" 2>&1); }
+
+saida="$(meow ganchos instalar)"; rc=$?
+[ "$rc" -eq 0 ] && [ -x "$H2/pre-commit" ] \
+  && [ "$(g -C "$R2" config --get ganchos.pre-push)" = scripts/gancho-pre-push.sh ] \
+  && ok "meow ganchos instalar instala no clone do meow, estando em outra pasta" \
+  || falha "meow ganchos instalar não instalou" "$saida"
+antes="$(md5sum "$H2"/pre-commit; g -C "$R2" config --get-regexp '^ganchos\.')"
+saida="$(meow ganchos instalar)"; rc=$?
+depois="$(md5sum "$H2"/pre-commit; g -C "$R2" config --get-regexp '^ganchos\.')"
+[ "$rc" -eq 0 ] && [ "$antes" = "$depois" ] && [ "$(grep -c '^já estava' <<<"$saida")" -eq 3 ] \
+  && ok "meow ganchos instalar, de novo, não muda nada" || falha "a segunda instalação pelo meow mexeu" "$saida"
+saida="$(meow ganchos conferir)"; rc=$?
+[ "$rc" -eq 0 ] && [ "$(grep -c '^ok:' <<<"$saida")" -eq 3 ] \
+  && ok "meow ganchos conferir dá 0 com os três em dia" || falha "meow ganchos conferir não reconheceu" "$saida"
+saida="$(meow ganchos)"; rc=$?
+[ "$rc" -eq 0 ] && [ "$(grep -c '^ok:' <<<"$saida")" -eq 3 ] \
+  && ok "meow ganchos sem verbo é o conferir" || falha "meow ganchos sem verbo não conferiu" "$saida"
+saida="$(meow ganchos remover)"; rc=$?
+[ "$rc" -eq 0 ] && [ ! -e "$H2/pre-commit" ] && [ -z "$(g -C "$R2" config --get-regexp '^ganchos\.')" ] \
+  && ok "meow ganchos remover tira o pre-commit e as chaves" || falha "meow ganchos remover não removeu" "$saida"
+saida="$(meow ganchos conferir)"; rc=$?
+[ "$rc" -eq 1 ] && grep -q '^falta: pre-commit' <<<"$saida" \
+  && ok "meow ganchos conferir sem gancho sai 1 e diz o que falta" || falha "conferir sem gancho não saiu 1" "$saida"
+saida="$(meow ganchos inventado)"; rc=$?
+[ "$rc" -eq 2 ] && grep -q 'verbo desconhecido' <<<"$saida" \
+  && ok "meow ganchos com verbo que não existe sai 2" || falha "verbo desconhecido não saiu 2" "$saida"
+saida="$(meow ganchos --help)"
+for v in instalar conferir remover; do
+  grep -q "meow ganchos $v" <<<"$saida" && ok "meow ganchos --help lista $v" || falha "meow ganchos --help não lista $v" "$saida"
+  grep -q "meow ganchos $v" <<<"$(meow --help)" && ok "meow --help lista meow ganchos $v" || falha "meow --help não lista meow ganchos $v"
+done
+grep -q "'ganchos:" "$RAIZ/dados/zsh/_meow" && ok "a completion oferece ganchos" || falha "a completion não oferece ganchos"
+for v in instalar conferir remover; do
+  awk '/^        ganchos\)/ { d = 1 } d && /^        [a-z-]+\)/ && !/ganchos/ { exit } d' "$RAIZ/dados/zsh/_meow" | grep -q "'$v:" \
+    && ok "a completion de ganchos oferece $v" || falha "a completion de ganchos não oferece $v"
+done
+
 if [ "$falhas" -gt 0 ]; then
   printf '\n%d falha(s) nos ganchos.\n' "$falhas" >&2
   exit 1

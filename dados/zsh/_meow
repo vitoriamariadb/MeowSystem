@@ -63,6 +63,7 @@ _meow() {
     'files-menu:os 2 itens de papel de parede no menu da área de trabalho'
     'compositor:baixa, patcha e compila o cosmic-comp (é o que a linha patches do doctor pede)'
     'espaco:quanto o MeowSystem ocupa no disco, e o que dá para liberar'
+    'ganchos:os ganchos de git de quem desenvolve: conferir, instalar e remover'
     'levantamento:lê a máquina antes do install e lista tudo o que vai travar'
     'apps:tabela de módulo, app instalado e tema'
     'configurar:wizard curto: as chaves essenciais do meow.conf (--tudo para o resto)'
@@ -164,6 +165,17 @@ _meow() {
               'inventario:cada caminho que o MeowSystem escreve'
               'aparar:corta o que passou do teto'
               'liberar:tira o que se reconstrói'
+            )
+            _describe -t acoes 'ação' acoes
+          fi
+          ;;
+        ganchos)
+          if (( CURRENT == 2 )); then
+            local -a acoes
+            acoes=(
+              'conferir:diz o que falta, sai 1 se falta algum'
+              'instalar:põe o pre-commit e as chaves ganchos.* no clone'
+              'remover:devolve o pre-commit de antes e apaga as chaves'
             )
             _describe -t acoes 'ação' acoes
           fi

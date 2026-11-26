@@ -101,5 +101,13 @@ menu de fábrica.
 Para o portal, **Remover** no cartão Aprimoramentos gráficos e `meow graficos reverter` são o mesmo
 gesto: tiram o shim, o drop-in e a policy do Chrome e gravam `GRAFICOS="nao"`. O build fica guardado.
 
+## Os ganchos de quem desenvolve
+
+`meow ganchos instalar` põe o `pre-commit` (a higiene) na pasta comum do git e grava as chaves `ganchos.pre-push` e
+`ganchos.post-merge` no clone; o `pre-push` recusa push para o `master` de ponta sem assinatura. `meow ganchos conferir`
+diz o que falta (sai 1 se falta algum) e `meow ganchos remover` devolve o `pre-commit` de antes e apaga as chaves. Os
+três chamam `scripts/ganchos.sh` no clone que o `meow` acha. O `install.sh` não instala gancho e o `meow doctor` não o
+cobra: é gesto de quem desenvolve, nunca de quem só usa.
+
 O que o projeto entrega, o que roda sozinho e quando, e o caminho de volta de cada coisa estão
 em [`ESTADO-FINAL.md`](ESTADO-FINAL.md).

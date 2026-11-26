@@ -3053,6 +3053,10 @@ cmd_ajuda() {
   meow espaco                  quanto o MeowSystem ocupa no disco e o que dá para liberar
   meow espaco liberar          tira o que se reconstrói (o próximo build refaz)
 
+  meow ganchos conferir        os ganchos de quem desenvolve estão no clone? Sai 1 se falta algum
+  meow ganchos instalar        põe o pre-commit e as chaves do pre-push e do post-merge no clone
+  meow ganchos remover         devolve o pre-commit de antes e apaga as chaves
+
   meow atualizar               puxa o master verde do GitHub e instala; o timer faz
                                sozinho 3 minutos depois de entrar na sessão e uma vez por dia
 
@@ -3134,6 +3138,21 @@ cmd_espaco() {
       printf '  meow espaco liberar    tira tudo o que se reconstrói; o próximo build refaz\n'
       ;;
     *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow espaco --help"; return "$MEOW_ERRO" ;;
+  esac
+}
+
+cmd_ganchos() {
+  local verbo="${1:-conferir}"
+  case "$verbo" in
+    instalar|conferir|remover)
+      (cd "$RAIZ" && exec bash scripts/ganchos.sh "$verbo") ;;
+    -h|--help)
+      meow_titulo "meow ganchos"
+      printf '  meow ganchos conferir   diz se o pre-commit e as chaves do pre-push e do post-merge estão no clone\n'
+      printf '  meow ganchos instalar   põe o pre-commit na pasta comum do git e as chaves ganchos.* no clone\n'
+      printf '  meow ganchos remover    devolve o pre-commit de antes e apaga as chaves\n'
+      ;;
+    *) meow_erro "verbo desconhecido: $verbo"; meow_info "veja: meow ganchos --help"; return "$MEOW_ERRO" ;;
   esac
 }
 
@@ -3579,6 +3598,7 @@ despachar() {
     leitura)          shift; cmd_leitura "$@" ;;
     compositor)       shift; cmd_compositor "$@" ;;
     espaco|espaço)    shift; cmd_espaco "$@" ;;
+    ganchos)          shift; cmd_ganchos "$@" ;;
     atualizar)        shift; exec "$RAIZ/scripts/atualiza.sh" rodar ;;
     levantamento)     shift; carregar_conf || exit "$MEOW_ERRO"; exec "$RAIZ/scripts/levantamento.sh" "$@" ;;
     cosmic)           shift
