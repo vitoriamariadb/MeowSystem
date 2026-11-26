@@ -123,7 +123,9 @@ _arte() {
 
 _com_traco() {
   local arq="$1" largura="$2"
-  if grep -q 'stroke-width' "$arq"; then
+  if ! grep -q 'stroke="currentColor"' "$arq"; then
+    cat -- "$arq"
+  elif grep -q 'stroke-width' "$arq"; then
     sed -E 's/stroke-width="[^"]*"/stroke-width="'"$largura"'"/g' "$arq"
   else
     sed -E 's/<(circle|rect|line|polyline|polygon|path|ellipse) /<\1 stroke-width="'"$largura"'" /g' "$arq"

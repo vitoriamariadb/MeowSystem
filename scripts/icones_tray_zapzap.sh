@@ -9,11 +9,21 @@ APP_ID="${MEOW_TRAY_ZAPZAP_APP:-com.rtosta.zapzap}"
 GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-}"
 if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
   IFS=$'\t' read -r _desenhos _ _ <<<"$_achado"
-  for _p in sistema apps biblioteca; do
-    GLIFO="$(dirname "$_desenhos")/$_p/whatsapp.svg"; [ -f "$GLIFO" ] && break
-  done
+  GLIFO="$_desenhos/whatsapp.svg"
+  if [ ! -f "$GLIFO" ]; then
+    for _p in sistema apps biblioteca; do
+      GLIFO="$(dirname "$_desenhos")/$_p/whatsapp.svg"; [ -f "$GLIFO" ] && break
+    done
+  fi
 fi
 TRACO="${MEOW_TRAY_ZAPZAP_TRACO:-4}"
+if grep -qs 'stroke="currentColor"' "$GLIFO"; then
+  DE_TRACO=1
+  DESENHO="o Arcticons"
+else
+  DE_TRACO=0
+  DESENHO="o glifo do pack"
+fi
 GUARDA="${MEOW_ESTADO:-$HOME/.local/state/meowsystem}/zapzap"
 
 MODO=aplicar
@@ -43,7 +53,9 @@ _commit_de() {
 }
 
 _com_traco() {
-  if grep -q 'stroke-width' "$GLIFO"; then
+  if [ "$DE_TRACO" != 1 ]; then
+    cat -- "$GLIFO"
+  elif grep -q 'stroke-width' "$GLIFO"; then
     sed -E 's/stroke-width="[^"]*"/stroke-width="'"$TRACO"'"/g' "$GLIFO"
   else
     sed -E 's/<(circle|rect|line|polyline|polygon|path|ellipse) /<\1 stroke-width="'"$TRACO"'" /g' "$GLIFO"
@@ -68,7 +80,7 @@ _pronto() {
 
 _cirurgia() {
   local alvo="$1" escrever="${2:-0}"
-  MEOW_ZZ_TRACO="$TRACO" MEOW_ZZ_ESCREVER="$escrever" MEOW_ZZ_GUARDA="$GUARDA" \
+  MEOW_ZZ_TRACO="$TRACO" MEOW_ZZ_DE_TRACO="$DE_TRACO" MEOW_ZZ_ESCREVER="$escrever" MEOW_ZZ_GUARDA="$GUARDA" \
   MEOW_ZZ_COMMIT="$(_commit_de || echo desconhecido)" \
   python3 -I - "$alvo" "$(_com_traco)" <<'PY'
 import os, re, sys, tempfile, shutil
@@ -88,18 +100,26 @@ miolo = re.sub(r'^.*?<svg[^>]*>', '', glifo, flags=re.S)
 miolo = re.sub(r'</svg>\s*$', '', miolo, flags=re.S).strip()
 miolo = miolo.replace('currentColor', '{color}')
 
+if os.environ.get('MEOW_ZZ_DE_TRACO') == '1':
+    NOTA = ('  <!-- MeowSystem: glifo `whatsapp` do Arcticons (CC BY-SA 4.0), traco %s na\n'
+            '       grade de 48, dentro de um scale(256/48). Reaplicado por\n'
+            '       scripts/icones_tray_zapzap.sh apos todo flatpak update. -->\n'
+            % os.environ.get('MEOW_ZZ_TRACO', '4'))
+else:
+    NOTA = ('  <!-- MeowSystem: glifo `whatsapp` do pack no ar, forma cheia na grade de 48,\n'
+            '       dentro de um scale(256/48). Reaplicado por\n'
+            '       scripts/icones_tray_zapzap.sh apos todo flatpak update. -->\n')
+
 NOSSO = (
     '<?xml version="1.0" encoding="utf-8"?>\n'
     '<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">\n'
-    '  <!-- MeowSystem: glifo `whatsapp` do Arcticons (CC BY-SA 4.0), traco %s na\n'
-    '       grade de 48, dentro de um scale(256/48). Reaplicado por\n'
-    '       scripts/icones_tray_zapzap.sh apos todo flatpak update. -->\n'
+    + NOTA +
     '  <g transform="scale(5.3333333)">\n'
     '    %s\n'
     '  </g>\n'
     '  {notify}\n'
     '</svg>\n'
-) % (os.environ.get('MEOW_ZZ_TRACO', '4'), miolo)
+) % miolo
 
 padrao = re.compile(r'(_SYMBOLIC\s*=\s*""")(.*?)(""")', re.S)
 achados = padrao.findall(atual)
@@ -179,7 +199,7 @@ _conferir() {
 
   case "$veredito" in
     VESTIDO)
-      meow_ok "o ícone da bandeja do ZapZap segue com o Arcticons"
+      meow_ok "o ícone da bandeja do ZapZap segue com $DESENHO"
       return "$MEOW_OK" ;;
     FABRICA)
       meow_muda "o ícone da bandeja do ZapZap voltou ao de fábrica — um flatpak update o desfez"
@@ -208,7 +228,7 @@ _aplicar() {
       meow_ok "o ícone da bandeja do ZapZap já estava aplicado"
       return "$MEOW_OK" ;;
     ESCRITO)
-      meow_muda "ícone da bandeja do ZapZap refeito com o Arcticons"
+      meow_muda "ícone da bandeja do ZapZap refeito com $DESENHO"
       meow_info "  o desenho novo aparece quando o ZapZap for fechado e aberto de novo"
       return "$MEOW_DIVERGENTE" ;;
     DESCONHECIDO)

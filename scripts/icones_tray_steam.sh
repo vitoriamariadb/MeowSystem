@@ -6,14 +6,27 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$RAIZ/scripts/lib/comum.sh"
 
 GLIFO="${MEOW_TRAY_STEAM_GLIFO:-}"
+COR_DO_PACK=""
 if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
-  IFS=$'\t' read -r _desenhos _ _ <<<"$_achado"
-  for _p in sistema apps biblioteca; do
-    GLIFO="$(dirname "$_desenhos")/$_p/steam.svg"; [ -f "$GLIFO" ] && break
-  done
+  IFS=$'\t' read -r _desenhos _ COR_DO_PACK <<<"$_achado"
+  GLIFO="$_desenhos/steam.svg"
+  if [ ! -f "$GLIFO" ]; then
+    for _p in sistema apps biblioteca; do
+      GLIFO="$(dirname "$_desenhos")/$_p/steam.svg"; [ -f "$GLIFO" ] && break
+    done
+  fi
 fi
 TRACO="${MEOW_TRAY_STEAM_TRACO:-4}"
-COR="${MEOW_TRAY_STEAM_COR:-#DEDEDE}"
+COR="${MEOW_TRAY_STEAM_COR:-${COR_DO_PACK:-#DEDEDE}}"
+if grep -qs 'stroke="currentColor"' "$GLIFO"; then
+  DE_TRACO=1
+  DESENHO="o Arcticons"
+  NOTA_DO_PNG='MeowSystem: o glifo steam do Arcticons (CC BY-SA 4.0) no lugar do icone de fabrica da bandeja. Este chunk existe so para o arquivo ter o tamanho que package/steam_client_ubuntu12.installed espera. '
+else
+  DE_TRACO=0
+  DESENHO="o glifo do pack"
+  NOTA_DO_PNG='MeowSystem: o glifo steam do pack no ar no lugar do icone de fabrica da bandeja. Este chunk existe so para o arquivo ter o tamanho que package/steam_client_ubuntu12.installed espera. '
+fi
 FABRICA="$RAIZ/dados/apps/tray-terceiros/steam_tray_mono.png.original"
 
 RELATIVO="public/steam_tray_mono.png"
@@ -52,19 +65,25 @@ PY
   return 1
 }
 
+_pintado() {
+  if [ "$DE_TRACO" = 1 ] && grep -q 'stroke-width' "$GLIFO"; then
+    sed -E 's/stroke-width="[^"]*"/stroke-width="'"$TRACO"'"/g; s/currentColor/'"$COR"'/g' "$GLIFO"
+  elif [ "$DE_TRACO" = 1 ]; then
+    sed -E 's/<(circle|rect|line|polyline|polygon|path|ellipse) /<\1 stroke-width="'"$TRACO"'" /g; s/currentColor/'"$COR"'/g' "$GLIFO"
+  else
+    sed -E 's/currentColor/'"$COR"'/g' "$GLIFO"
+  fi
+}
+
 _desenhar() {
   local destino="$1" tam="$2" crc="$3" svg rc
   svg="$(mktemp -t meow-steam-XXXXXX.svg)" || return 1
-  if grep -q 'stroke-width' "$GLIFO"; then
-    sed -E 's/stroke-width="[^"]*"/stroke-width="'"$TRACO"'"/g; s/currentColor/'"$COR"'/g' "$GLIFO" > "$svg"
-  else
-    sed -E 's/<(circle|rect|line|polyline|polygon|path|ellipse) /<\1 stroke-width="'"$TRACO"'" /g; s/currentColor/'"$COR"'/g' "$GLIFO" > "$svg"
-  fi
+  _pintado > "$svg"
   rsvg-convert -w 48 -h 48 -f png -o "$destino.cru" "$svg" 2>/dev/null; rc=$?
   rm -f "$svg"
   [ "$rc" = 0 ] || { rm -f "$destino.cru"; return 1; }
 
-  MEOW_TAM="$tam" MEOW_CRC="$crc" python3 -I - "$destino.cru" "$destino" <<'PY'
+  MEOW_TAM="$tam" MEOW_CRC="$crc" MEOW_NOTA="$NOTA_DO_PNG" python3 -I - "$destino.cru" "$destino" <<'PY'
 import os, struct, sys, zlib
 
 alvo_tam = int(os.environ['MEOW_TAM'])
@@ -76,9 +95,7 @@ if fim < 0:
     sys.exit('png sem IEND')
 cabeca, iend = base[:fim], base[fim:]
 
-nota = (b'MeowSystem: o glifo steam do Arcticons (CC BY-SA 4.0) no lugar do '
-        b'icone de fabrica da bandeja. Este chunk existe so para o arquivo ter '
-        b'o tamanho que package/steam_client_ubuntu12.installed espera. ')
+nota = os.environ['MEOW_NOTA'].encode('ascii')
 folga = alvo_tam - len(cabeca) - len(iend) - 12 - 4
 if folga < 0:
     sys.exit('o desenho ja passa do tamanho de fabrica')
@@ -190,7 +207,7 @@ _igual() {
 
 _conferir() {
   if _igual; then
-    meow_ok "o ícone da bandeja da Steam está com o Arcticons"
+    meow_ok "o ícone da bandeja da Steam está com $DESENHO"
     return "$MEOW_OK"
   fi
   if cmp -s "$RAIZ_STEAM/$RELATIVO" "$FABRICA" 2>/dev/null; then
@@ -204,7 +221,7 @@ _conferir() {
 _aplicar() {
   local alvo="$RAIZ_STEAM/$RELATIVO" tmp modo
   if _igual; then
-    meow_ok "o ícone da bandeja da Steam está com o Arcticons"
+    meow_ok "o ícone da bandeja da Steam está com $DESENHO"
     return "$MEOW_OK"
   fi
   if meow_seco; then
@@ -232,7 +249,11 @@ _aplicar() {
   mv -f "$tmp" "$alvo" || { rm -f "$tmp"; return "$MEOW_ERRO"; }
   meow_manifesto_registrar "$alvo"
 
-  meow_info "ícone da bandeja da Steam: com o Arcticons (traço $TRACO, $COR)"
+  if [ "$DE_TRACO" = 1 ]; then
+    meow_info "ícone da bandeja da Steam: com $DESENHO (traço $TRACO, $COR)"
+  else
+    meow_info "ícone da bandeja da Steam: com $DESENHO ($COR)"
+  fi
   meow_info "o ícone novo aparece quando a Steam reabrir"
   return "$MEOW_DIVERGENTE"
 }
