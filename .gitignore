@@ -12,6 +12,8 @@ packs/meowsystem/fontes/locais/*.[tT][tT][cC]
 !docs/capturas/*.png
 !docs/capturas/*.jpg
 !docs/capturas/readme/*.png
+!packs/*/capturas/*.png
+!packs/*/capturas/*.jpg
 
 !packs/*/icones/biblioteca/*.png
 !packs/*/icones/biblioteca/**/*.png

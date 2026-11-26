@@ -14,6 +14,9 @@
       "claro",
       "escuro"
     ],
+    "capturas": [
+      "capturas/area-de-trabalho.jpg"
+    ],
     "site": "https://github.com/catppuccin/catppuccin"
   },
   "paleta": {
