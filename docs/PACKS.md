@@ -826,6 +826,13 @@ nome a nome); sem `heranca` também, não ganha ícone de status: o doctor tira 
 pack deixou e diz «o pack no ar não declara icones.sistema». Com o bloco, a linha diz o pack no ar:
 «ícones do sistema já com os desenhos do pack Dracula».
 
+O `dracula` declara também `"bandeja": { "desenhos": "icones/sistema/", "mapa": "icones/bandeja.map", "pintar": "text" }`, com o
+mapa sem linha ativa: a Steam e o ZapZap não consultam o tema. `icones_tray_steam.sh` e `icones_tray_zapzap.sh`
+procuram `steam.svg` e `whatsapp.svg` primeiro na pasta `desenhos` do bloco, depois em `sistema/`, `apps/` e
+`biblioteca/` do pack. O traço de 4 só entra no glifo que se desenha por `stroke="currentColor"`; o glifo cheio do
+Dracula entra como está. O PNG da Steam sai na cor que `pintar` dá no flavor (sem `pintar`, `#DEDEDE`), e o ZapZap
+guarda o `{color}` dele. Pack sem o bloco devolve os dois ao de fábrica.
+
 O `validar` cobra a existência de tudo o que estiver declarado. Um pack que
 promete um acervo e não entrega é recusado — pelo mesmo motivo que o `creditos`
 é cobrado: um validador que carimba a promessa vazia ensina a escrevê-la.
@@ -1204,7 +1211,8 @@ corte de bandeja), **só a primeira tem para onde ir:**
   autorais de `icones/apps/`. Os desenhos de `icones/apps/` do Dracula declaram
   `recolorir: false`: cada um tem de 6 a 10 cores próprias.
 - **Bandeja.** Tem mapa e instalador próprios (`bandeja.map`,
-  `icones_bandeja.sh`), veste glifo Arcticons, e o mapa está vazio de propósito.
+  `icones_bandeja.sh`), e o mapa está vazio de propósito nos dois packs que a declaram. O MeowSystem veste glifo
+  Arcticons de traço; o Dracula, o desenho cheio dele.
 
 Quando uma dessas famílias ganhar consumidor, ela entra como uma linha no
 `meow_icones_derivados` — e aparece no `meow icones fonte` sem ninguém lembrar

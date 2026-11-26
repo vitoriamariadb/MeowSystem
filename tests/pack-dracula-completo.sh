@@ -549,11 +549,20 @@ fi
 CS="$T/casa-status"; mkdir -p "$CS"
 ST="$CS/.local/share/icons/MeowSystem-Icons"
 status_com() {
-  local pack="$1" flavor="$2" script="$3" modo="$4"
+  local pack="$1" flavor="$2" script="$3" modo="$4" packs="${5:-}"
   env -i PATH="$FALSO:$PATH" HOME="$CS" MEOW_RAIZ="$RAIZ" NO_COLOR=1 PACK="$pack" FLAVOR="$flavor" \
-    "$RAIZ/scripts/$script" "$modo" >/dev/null 2>&1
+    ${packs:+MEOW_PACKS="$packs"} "$RAIZ/scripts/$script" "$modo" >/dev/null 2>&1
   return $?
 }
+cp -r "$RAIZ/packs/dracula" "$T/packs/semband"
+python3 - "$T/packs/semband/pack.json" <<'PY'
+import json, sys
+f = sys.argv[1]
+p = json.load(open(f, encoding="utf-8"))
+p["id"] = "semband"
+p["icones"].pop("bandeja", None)
+json.dump(p, open(f, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+PY
 status_com dracula dracula icones_sistema.sh --aplicar
 status_com dracula dracula icones_bandeja.sh --aplicar; rc_bandeja=$?
 shas_meow="$(cd "$RAIZ/packs/meowsystem/icones/sistema" && sha256sum ./*.svg | cut -d' ' -f1 | sort -u)"
@@ -567,9 +576,9 @@ if [ "$n_status" -gt 0 ] && [ "$repetidos" = 0 ] \
 else
   falha "os ícones de status do Dracula repetem o desenho do MeowSystem ou ficaram sem pintura (iguais: $repetidos de $n_status)"
 fi
-[ "$rc_bandeja" = 3 ] \
-  && ok "o Dracula não declara icones.bandeja: a bandeja pula e não lê packs/meowsystem" \
-  || falha "a bandeja do Dracula não pulou (rc=$rc_bandeja)"
+[ "$rc_bandeja" = 0 ] \
+  && ok "o Dracula declara icones.bandeja: a bandeja não pula, e o mapa dele não tem linha para escrever" \
+  || falha "a bandeja do Dracula pulou ou escreveu (rc=$rc_bandeja)"
 status_com dracula dracula icones_sistema.sh --aplicar; rc2=$?
 [ "$rc2" = 0 ] \
   && ok "a segunda passada dos ícones de status do Dracula não escreve nada" \
@@ -581,26 +590,26 @@ if [ "$rc_mew" = 0 ] && grep -q 'stroke="currentColor"' "$ST/scalable/devices/di
 else
   falha "o MeowSystem no ar não confere os ícones de status depois do Dracula (rc=$rc_mew)"
 fi
-status_com dracula dracula icones_bandeja.sh --aplicar
+status_com semband dracula icones_bandeja.sh --aplicar "$T/packs"
 mkdir -p "$ST/20x20/status"
 printf '<svg xmlns="http://www.w3.org/2000/svg"/>' > "$ST/20x20/status/resto-de-outro-pack.svg"
-status_com dracula dracula icones_bandeja.sh --aplicar
+status_com semband dracula icones_bandeja.sh --aplicar "$T/packs"
 [ ! -e "$ST/20x20/status/resto-de-outro-pack.svg" ] \
   && ok "o pack sem icones.bandeja tira da bandeja o que um pack anterior escreveu" \
   || falha "o resto de bandeja de outro pack ficou"
 SS="$CS/.steam/steam/public"; mkdir -p "$SS" "$CS/.local/state/meowsystem"
 printf 'fabrica' > "$SS/steam_tray_mono.png.meow-original"
 printf 'de-outro' > "$SS/steam_tray_mono.png"
-status_com dracula dracula icones_tray_steam.sh --aplicar; rc_alheio=$?
+status_com semband dracula icones_tray_steam.sh --aplicar "$T/packs"; rc_alheio=$?
 [ "$rc_alheio" = 3 ] && [ "$(cat "$SS/steam_tray_mono.png")" = de-outro ] \
   && ok "sem icones.bandeja, o ícone da Steam que não é nosso fica como está" \
   || falha "sem icones.bandeja, o ícone alheio da Steam foi mexido (rc=$rc_alheio)"
 printf 'nosso' > "$SS/steam_tray_mono.png"
 printf '%s\t2026-10-27\t%s\n' "$(readlink -f "$SS/steam_tray_mono.png")" \
   "$(sha256sum "$SS/steam_tray_mono.png" | cut -d' ' -f1)" > "$CS/.local/state/meowsystem/manifesto.tsv"
-status_com dracula dracula icones_tray_steam.sh --conferir; rc_c=$?
-status_com dracula dracula icones_tray_steam.sh --aplicar; rc_a=$?
-status_com dracula dracula icones_tray_steam.sh --aplicar; rc_a2=$?
+status_com semband dracula icones_tray_steam.sh --conferir "$T/packs"; rc_c=$?
+status_com semband dracula icones_tray_steam.sh --aplicar "$T/packs"; rc_a=$?
+status_com semband dracula icones_tray_steam.sh --aplicar "$T/packs"; rc_a2=$?
 if [ "$rc_c" = 1 ] && [ "$rc_a" = 1 ] && [ "$rc_a2" = 3 ] \
    && [ "$(cat "$SS/steam_tray_mono.png")" = fabrica ] \
    && ! grep -q steam_tray_mono "$CS/.local/state/meowsystem/manifesto.tsv"; then

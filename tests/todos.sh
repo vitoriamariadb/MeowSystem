@@ -151,6 +151,7 @@ PORTATIL=(
   completion-dos-verbos.sh
   valores-de-antes.sh
   cache-do-lancador.sh
+  bandeja-por-pack.sh
 )
 
 MAQUINA=(

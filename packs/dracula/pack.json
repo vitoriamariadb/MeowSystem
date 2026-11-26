@@ -63,6 +63,11 @@
       "mapa": "icones/sistema.map",
       "pintar": "text"
     },
+    "bandeja": {
+      "desenhos": "icones/sistema/",
+      "mapa": "icones/bandeja.map",
+      "pintar": "text"
+    },
     "mimetypes": {
       "herda": "meowsystem"
     },
