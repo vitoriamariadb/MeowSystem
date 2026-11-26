@@ -1949,9 +1949,26 @@ O Dracula não traz o seu: herda o do pack-base, e todos os papéis que o preset
 pede (`mauve`, `peach`, `yellow`, `green`, `sapphire`, `lavender`, `red`,
 `crust`) existem nos dois flavors dele.
 
-O `starship.toml` só é lido de pack do repositório: o de pack importado ou
-pessoal não é lido (o `validar` avisa e o pack segue valendo), e o prompt dele
-é o preset do pack-base com a paleta dele.
+**Pack de fora (decisão 71).** O `starship.toml` de um pack pessoal ou importado
+nunca é copiado nem lido pelo starship: o motor o lê com o `tomllib`, confere cada
+tabela, chave e tipo de valor contra a lista de `dados/contratos/starship-permitidos.tsv`
+(colunas `caminho`, `tipo`, `limite`; `{modulo}` é um nome de
+`dados/contratos/starship-modulos.tsv` e `*` é qualquer nome de chave) e escreve ele
+mesmo o arquivo que vale, em `~/.cache/meowsystem/prompt/<pack>.toml`, só com o
+que aprovou. Entra o que só muda a aparência: `format`, `right_format`, `style`,
+`symbol`, `disabled`, os símbolos de `os`, `character` e `git_status`, as
+substituições de `directory`, o comprimento de `directory` e `git_branch`, o
+`time_format`, e a ordem dos módulos (que é a do `format`). O bloco de paleta do
+pack é aceito e ignorado: a cor sai da paleta do pack no ar, como sempre. O texto
+não leva quebra de linha nem caractere de controle (a quebra do prompt é o módulo
+`line_break`), e o motor escapa aspas e barras ao escrever.
+
+Fica de fora, por construção, o que roda comando ou lê o ambiente: o módulo
+`custom` e as chaves `command`, `commands`, `when`, `shell` e `env_var`, e tudo
+que não está na lista. A primeira chave fora recusa o prompt do pack inteiro, com
+uma frase que diz qual chave; o `validar` repete a frase como aviso, o pack segue
+valendo, e o prompt dele é o preset do pack-base com a paleta dele. Nunca se aplica
+metade. Pack do repositório continua lido como está.
 
 ## O que ainda não é do pack
 
@@ -2236,8 +2253,10 @@ regra tem um lugar só em cada linguagem, que todo leitor usa:
   a cada abertura do editor, e o sha256 de um pack prova integridade, não
   confiança.
 - **prompt**: o `starship.toml` pode fazer o starship rodar comando, e por
-  isso só é lido de pack do repositório; o de fora entrega só a paleta
-  (decisão 67);
+  isso o arquivo de pack de fora nunca é copiado nem lido pelo starship: o motor
+  o confere contra a lista de permitidos (só aparência) e escreve ele mesmo o
+  arquivo que vale; com uma chave fora da lista, o de fora entrega só a paleta
+  (decisões 67 e 71);
 - **nenhum executável de pack importado no Spotify**: o `theme.js` e a pasta
   `assets/` (que o `overwrite_assets` copia por cima do cliente) são código, e
   só o tema do spicetify de um pack do repositório os leva, a exceção escrita

@@ -580,11 +580,13 @@ cobre 65 atualiza.sh 'run em curso ou vermelho não avança' dados/systemd/meow-
 cobre 65 atualiza.sh 'só avança para commit assinado por chave da lista' scripts/atualiza.sh 'verify-commit'
 cobre 66 botoes-lado.sh 'valor ilegível' scripts/botoes_lado.sh 'BL_PADRAO_DIREITA='
 cobre 67 pack-malicioso.sh 'nenhum executável de pack importado chega ao Spotify' scripts/temas-de-apps/spotify/manifesto.sh 'inject_theme_js "\$js" replace_colors 1 overwrite_assets "\$js"'
-cobre 67 pack-malicioso.sh 'o starship.toml de pack importado não é lido' scripts/pack.py 'if achado and not do_repositorio\(achado\)'
+cobre 67 pack-malicioso.sh 'o starship.toml de pack de fora que roda comando é recusado inteiro' scripts/pack.py 'if achado and not do_repositorio\(achado\)'
 cobre 67 pack-malicioso.sh 'molde de tema de pack de fora que difere do pack-base não é lido' scripts/pack.py 'vale = molde_que_vale\(app, achado\)'
 cobre 68 arvore.sh 'entrada versionada nova na raiz'
 cobre 69 pack-dracula-completo.sh 'os seis desenhos escolhidos em 25/11' packs/meowsystem/icones/apps-arcticons.map '^azahar:lime3ds:yellow$'
 cobre 70 pack-dracula-completo.sh 'o COSMIC Viewer veste o original convertido' packs/meowsystem/icones/apps-convertidos.map '^com\.system76\.CosmicViewer:.*:lavender:--k 4 --funde 60$'
+cobre 71 pack-malicioso.sh 'o prompt de pack pessoal com chave fora da lista é recusado inteiro' scripts/pack.py 'TABELAS_QUE_RODAM = '
+cobre 71 pack-malicioso.sh 'o prompt de pack pessoal só de aparência entra' dados/contratos/starship-permitidos.tsv '^directory\.truncation_length'
 
 sem_linha=""; total=0
 while read -r n; do
