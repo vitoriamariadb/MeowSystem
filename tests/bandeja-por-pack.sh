@@ -177,6 +177,56 @@ rodar "$H_DRACULA" semband dracula icones_tray_zapzap.sh --aplicar "$T/packs" >/
   && ok "trocar para um pack sem bandeja devolve o ZapZap de fábrica" \
   || falha "o ZapZap não voltou ao de fábrica ao sair do pack com bandeja (rc=$rc_z)"
 
+recusa_glifo() {
+  local rotulo="$1" h="$2" script="$3" alvo="$4" antes saida rc
+  printf '%s' "$ZZ_ORIGINAL" > "$ZZ_MAL"
+  cp "$RAIZ/dados/apps/tray-terceiros/steam_tray_mono.png.original" "$STEAM_MAL"
+  antes="$(sha256sum < "$alvo")"
+  saida="$(rodar "$h" malband dracula "$script" --aplicar "$T/packs")"; rc=$?
+  [ "$rc" = 2 ] && [ "$(sha256sum < "$alvo")" = "$antes" ] && ! grep -q 'os.system' "$alvo" \
+    && ok "$rotulo: recusado (rc=2) e nada escrito · $(grep -m1 -o "recusad.*" <<<"$saida")" \
+    || falha "$rotulo: rc=$rc ou o arquivo do app mudou" "$saida"
+}
+
+cp -r "$RAIZ/packs/dracula" "$T/packs/malband"
+python3 - "$T/packs/malband/pack.json" <<'PY'
+import json, sys
+f = sys.argv[1]
+p = json.load(open(f, encoding="utf-8"))
+p["id"] = "malband"
+json.dump(p, open(f, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+PY
+GLIFOS_MAL="$T/packs/malband/icones/sistema"
+H_MAL="$(casa malband)"
+ZZ_MAL="$H_MAL/zz/$ZZ_REL"
+STEAM_MAL="$H_MAL/.steam/debian-installation/public/steam_tray_mono.png"
+
+cat > "$GLIFOS_MAL/zapzap_tray.svg" <<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><title>"""
+import os; os.system("true")
+_x = """</title></svg>
+SVG
+recusa_glifo "glifo de pack de fora que fecha a string do _SYMBOLIC" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
+
+printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><title>{notify.__class__}</title></svg>' \
+  > "$GLIFOS_MAL/zapzap_tray.svg"
+recusa_glifo "glifo de pack de fora com chave solta que quebraria o format do ZapZap" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
+
+printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><title>a\</title></svg>' \
+  > "$GLIFOS_MAL/zapzap_tray.svg"
+recusa_glifo "glifo de pack de fora com barra invertida, que escaparia as aspas do _SYMBOLIC" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
+
+printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><image href="file:///etc/hostname"/><script>x()</script></svg>' \
+  > "$GLIFOS_MAL/zapzap_tray.svg"
+recusa_glifo "glifo de pack de fora com elemento que não é forma" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
+
+printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/></svg>' > "$T/fora.svg"
+ln -sf "$T/fora.svg" "$GLIFOS_MAL/zapzap_tray.svg"
+recusa_glifo "glifo do ZapZap que é link para fora do pack" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
+rm -f "$GLIFOS_MAL/steam_tray_mono.svg"
+ln -s "$T/fora.svg" "$GLIFOS_MAL/steam_tray_mono.svg"
+recusa_glifo "glifo da Steam que é link para fora do pack" "$H_MAL" icones_tray_steam.sh "$STEAM_MAL"
+
 for pack in dracula; do
   saida="$(env -i PATH="$FALSO:$PATH" HOME="$T/casa-validar" MEOW_RAIZ="$RAIZ" NO_COLOR=1 python3 "$RAIZ/scripts/pack.py" validar "$pack" 2>&1)"; rc=$?
   [ "$rc" = 0 ] && ! grep -qi 'bandeja' <<<"$saida" \

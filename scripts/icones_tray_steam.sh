@@ -7,6 +7,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 GLIFO="${MEOW_TRAY_STEAM_GLIFO:-}"
 COR_DO_PACK=""
+GLIFO_FORA=""
 if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
   IFS=$'\t' read -r _desenhos _ COR_DO_PACK <<<"$_achado"
   GLIFO="$_desenhos/steam_tray_mono.svg"
@@ -15,6 +16,13 @@ if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
     for _p in sistema apps biblioteca; do
       GLIFO="$(dirname "$_desenhos")/$_p/steam.svg"; [ -f "$GLIFO" ] && break
     done
+  fi
+  if [ -e "$GLIFO" ] || [ -L "$GLIFO" ]; then
+    _casa="$(realpath -e -- "$(dirname "$_desenhos")")"
+    _real="$(realpath -e -- "$GLIFO" 2>/dev/null)" || _real=""
+    if [ -L "$GLIFO" ] || [[ "$_real" != "$_casa"/* ]]; then
+      GLIFO_FORA="$GLIFO"
+    fi
   fi
 fi
 TRACO="${MEOW_TRAY_STEAM_TRACO:-4}"
@@ -162,6 +170,10 @@ _sem_glifo() {
 }
 
 _pronto() {
+  if [ -n "$GLIFO_FORA" ]; then
+    meow_erro "o glifo $GLIFO_FORA é link ou sai de dentro do pack — recusado"
+    return "$MEOW_ERRO"
+  fi
   if [ ! -f "$GLIFO" ]; then
     meow_pula "sem o glifo steam no pack no ar — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"

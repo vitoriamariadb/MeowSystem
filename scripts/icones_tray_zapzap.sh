@@ -7,6 +7,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 APP_ID="${MEOW_TRAY_ZAPZAP_APP:-com.rtosta.zapzap}"
 GLIFO="${MEOW_TRAY_ZAPZAP_GLIFO:-}"
+GLIFO_FORA=""
 if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
   IFS=$'\t' read -r _desenhos _ _ <<<"$_achado"
   GLIFO="$_desenhos/zapzap_tray.svg"
@@ -15,6 +16,13 @@ if [ -z "$GLIFO" ] && _achado="$(meow_icones_de_status bandeja)"; then
     for _p in sistema apps biblioteca; do
       GLIFO="$(dirname "$_desenhos")/$_p/whatsapp.svg"; [ -f "$GLIFO" ] && break
     done
+  fi
+  if [ -e "$GLIFO" ] || [ -L "$GLIFO" ]; then
+    _casa="$(realpath -e -- "$(dirname "$_desenhos")")"
+    _real="$(realpath -e -- "$GLIFO" 2>/dev/null)" || _real=""
+    if [ -L "$GLIFO" ] || [[ "$_real" != "$_casa"/* ]]; then
+      GLIFO_FORA="$GLIFO"
+    fi
   fi
 fi
 TRACO="${MEOW_TRAY_ZAPZAP_TRACO:-4}"
@@ -64,6 +72,10 @@ _com_traco() {
 }
 
 _pronto() {
+  if [ -n "$GLIFO_FORA" ]; then
+    meow_erro "o glifo $GLIFO_FORA é link ou sai de dentro do pack — recusado"
+    return "$MEOW_ERRO"
+  fi
   if [ ! -f "$GLIFO" ]; then
     meow_pula "não existe $GLIFO — nada a aplicar"
     return "$MEOW_SEM_DEPENDENCIA"
@@ -85,6 +97,7 @@ _cirurgia() {
   MEOW_ZZ_COMMIT="$(_commit_de || echo desconhecido)" \
   python3 -I - "$alvo" "$(_com_traco)" <<'PY'
 import os, re, sys, tempfile, shutil
+import xml.etree.ElementTree as ET
 
 alvo   = sys.argv[1]
 glifo  = sys.argv[2]
@@ -97,9 +110,26 @@ try:
 except OSError as e:
     print('ERRO'); print('não consegui ler %s: %s' % (alvo, e)); sys.exit(0)
 
+FORMAS = {'svg', 'g', 'path', 'circle', 'rect', 'ellipse', 'line', 'polyline', 'polygon', 'title', 'desc'}
+
+def recusar(motivo):
+    print('ERRO'); print('o glifo do pack foi recusado: %s — nada foi escrito' % motivo); sys.exit(0)
+
+if re.search(r'<!DOCTYPE|<!ENTITY|"""|\\', glifo, flags=re.I):
+    recusar('traz DOCTYPE, ENTITY, aspas triplas ou barra invertida, que sairiam da string do _SYMBOLIC')
+try:
+    arvore = ET.fromstring(glifo)
+except ET.ParseError as e:
+    recusar('não é SVG bem formado (%s)' % e)
+estranhos = sorted({el.tag.rsplit('}', 1)[-1] for el in arvore.iter()} - FORMAS)
+if estranhos:
+    recusar('traz elemento que não é forma: %s' % ', '.join(estranhos))
+
 miolo = re.sub(r'^.*?<svg[^>]*>', '', glifo, flags=re.S)
 miolo = re.sub(r'</svg>\s*$', '', miolo, flags=re.S).strip()
 miolo = miolo.replace('currentColor', '{color}')
+if re.search(r'[{}]', miolo.replace('{color}', '')):
+    recusar('traz chave solta, que quebraria o format do _SYMBOLIC')
 
 if os.environ.get('MEOW_ZZ_DE_TRACO') == '1':
     NOTA = ('  <!-- MeowSystem: glifo `whatsapp` do Arcticons (CC BY-SA 4.0), traco %s na\n'
