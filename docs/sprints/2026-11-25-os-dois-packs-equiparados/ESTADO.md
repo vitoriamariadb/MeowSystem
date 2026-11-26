@@ -138,7 +138,19 @@ As decisões estão em `DECISOES-DE-25-11.md`. O que já saiu delas:
 - Papéis de parede do Catppuccin (3 pares contra 19 desenhos do Dracula) e as capturas da vitrine: arte.
 - GitHub Desktop, Foundry VTT e cliente da Steam: sem tema possível sem cliente modificado.
 
+## A entrega (25/11, 23h50)
+- `master` em `fc1f25b`, no GitHub. `meow levantamento` com «nada a resolver» e instalador com rc=0 nos três PCs
+  (`~/.cache/meow-leva/install-2511-final.log` em cada um).
+- `godot` no `APPS_ATIVOS` dos dois PCs dela (a linha de antes em `~/.cache/meow-leva/meow.conf.antes-do-godot`).
+  Neste PC o Godot foi vestido em `~/.config/godot` e na `editor_data` da Steam.
+- nitro-5: o ícone da bandeja do ZapZap foi refeito com o glifo do Dracula; a Steam não está instalada lá; o GIMP
+  espera ser aberto uma vez.
+- As worktrees e as branches dos blocos e da integração foram removidas: todo commit delas está no `master`.
+- Sem prova na tela: o Godot e o GIMP abertos de verdade depois do instalador, o ZapZap na bandeja do nitro-5 e a
+  captura na vitrine do painel.
+
 ## Próximo passo
-1. `master` recebe a `integra/2511` por avanço direto, push, `meow levantamento` e instalador nos três PCs.
-2. `godot` entra no `APPS_ATIVOS` dos dois PCs dela; passada de tela (Godot, GIMP, vitrine no painel, prompt).
-3. Remover as worktrees fechadas e abrir o bloco do `meow.conf.exemplo`.
+1. Escrever a tarefa do bloco do `meow.conf.exemplo` (item 1 de «Os blocos seguintes») e lançar: uma worktree, um
+   agente implementa, um confere.
+2. Ler a calibração do nitro-5 (`~/.cache/meow-leva/bateria-calibra.log`).
+3. A página de papéis de parede do Catppuccin e a dos ícones de arquivo do VS Code no Dracula.
