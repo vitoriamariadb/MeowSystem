@@ -1,4 +1,4 @@
-# P303 — o glifo da bandeja era colado no código Python do ZapZap (25/11/2026)
+# P303 — o glifo do pack virava código no ZapZap (25/11/2026)
 
 Achado na conferência do bloco `cli-e-bandeja`, antes de integrar. Já existia no `master`.
 
@@ -28,9 +28,11 @@ qualquer byte do SVG podia mudar a forma do arquivo gerado.
   pelo `repr()` do SVG montado, gerado pelo Python. O SVG nunca é colado como fonte.
 - Antes de escrever, o arquivo novo é lido de novo pela `ast` e comparado ao de fábrica com a constante trocada:
   se qualquer outra coisa mudou, nada se escreve.
-- O glifo só é aceito se for traçado: XML bem formado, sem `DOCTYPE`/`ENTITY`, só os elementos de forma (`svg`,
-  `g`, `path`, `circle`, `rect`, `ellipse`, `line`, `polyline`, `polygon`, `title`, `desc`), só atributos de
-  traçado e sem `url(`. Chave solta continua recusada, porque o ZapZap faz `format` no texto.
+- O glifo só é aceito se for traçado (`scripts/glifo_tracado.py`, `recusa(texto)` para quem importa e
+  `glifo_tracado.py <glifo.svg>` na linha de comando, rc=2 com o motivo): XML bem formado, sem `DOCTYPE`/`ENTITY`,
+  só os elementos de forma (`svg`, `g`, `path`, `circle`, `rect`, `ellipse`, `line`, `polyline`, `polygon`,
+  `title`, `desc`), só atributos de traçado e sem `url(`. Chave solta continua recusada, porque o ZapZap faz
+  `format` no texto.
 - Glifo que é link, ou que pelo caminho real sai do pack, é recusado no ZapZap e na Steam.
 - Efeito colateral: o `tray_icon.py` vestido de agora em diante traz o `_SYMBOLIC` como literal de uma linha
   (`'…\n…'`) e não mais entre aspas triplas. Um arquivo já vestido no formato antigo, com o mesmo desenho, dá
