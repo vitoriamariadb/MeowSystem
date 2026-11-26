@@ -274,6 +274,7 @@ CAMPOS_COM_LEITOR = {
     "fontes.herda",
     "icones.mimetypes.flavor",
     "icones.sistema.pintar",
+    "icones.bandeja.pintar",
     "icones.sistema.traco.*",
     "icones.gerador",
     "icones.autorais.gerar",
