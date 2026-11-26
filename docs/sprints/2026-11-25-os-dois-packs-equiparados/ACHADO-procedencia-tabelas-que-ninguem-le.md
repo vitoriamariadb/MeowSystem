@@ -3,8 +3,8 @@
 ## O que se mediu
 O leitor antigo do `pack.py` parava no fim da PRIMEIRA tabela com as colunas `arquivo`, `lido de` e `sha256`. Ficaram
 fora da leitura, em prosa, as linhas das tabelas seguintes: no `packs/meowsystem/PROCEDENCIA.md`, quatro tabelas de seis
-colunas (os papéis de parede de P234, o desligar de P253, os botões de P256, a lateral de P259; 35 linhas no total
-contando a que migrou, 50 com as outras de forma parecida); no `packs/dracula/PROCEDENCIA.md`, as tabelas de cinco colunas
+colunas (os papéis de parede de P234, o desligar de P253, os botões de P256, a lateral de P259; ficaram no arquivo 50 linhas de tabela com o
+arquivo na primeira coluna, 35 delas de seis colunas); no `packs/dracula/PROCEDENCIA.md`, as tabelas de cinco colunas
 (temas de aplicativo, pastas especiais, ícones de arquivo; entre elas 5 linhas da biblioteca, `discord-c.svg`,
 `guvcview-2.svg`, `md.obsidian.Obsidian.svg`, `mozc.svg`, `org.telegram.desktop.svg`).
 Consequência: o `exportar` não confere a licença dessas linhas, e o `sincronizar` não confere que o arquivo existe.
