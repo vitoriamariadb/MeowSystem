@@ -100,6 +100,8 @@ ic = p["icones"]
 ic["autorais"]["desenhos"] = "icones/autorais/"
 ic["pastas"]["desenhos"] = "icones/pastas/"
 ic["sistema"]["desenhos"] = "icones/pastas/"
+if "bandeja" in ic:
+    ic["bandeja"]["desenhos"] = "icones/pastas/"
 json.dump(p, open(f, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 m = os.path.join(d, "icones", "apps.map")
 t = open(m, encoding="utf-8").read()
