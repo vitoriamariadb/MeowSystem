@@ -223,6 +223,11 @@ recusa_glifo "glifo de pack de fora com elemento que não é forma" "$H_MAL" ico
 printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/></svg>' > "$T/fora.svg"
 ln -sf "$T/fora.svg" "$GLIFOS_MAL/zapzap_tray.svg"
 recusa_glifo "glifo do ZapZap que é link para fora do pack" "$H_MAL" icones_tray_zapzap.sh "$ZZ_MAL"
+cp "$GLIFOS_MAL/steam_tray_mono.svg" "$T/steam-bom.svg"
+printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><image href="vizinho.png" width="48" height="48"/></svg>' \
+  > "$GLIFOS_MAL/steam_tray_mono.svg"
+recusa_glifo "glifo da Steam com elemento que não é forma, que embutiria outro arquivo no PNG" "$H_MAL" icones_tray_steam.sh "$STEAM_MAL"
+cp "$T/steam-bom.svg" "$GLIFOS_MAL/steam_tray_mono.svg"
 rm -f "$GLIFOS_MAL/steam_tray_mono.svg"
 ln -s "$T/fora.svg" "$GLIFOS_MAL/steam_tray_mono.svg"
 recusa_glifo "glifo da Steam que é link para fora do pack" "$H_MAL" icones_tray_steam.sh "$STEAM_MAL"

@@ -25,11 +25,13 @@ desenho tem de continuar entrando como texto ali. A cura é o glifo só entrar s
 - recusa chave solta, que quebraria o `format`;
 - recusa qualquer elemento que não seja forma de desenho;
 - recusa glifo que é link simbólico ou que sai da pasta do pack pelo caminho real, na Steam e no ZapZap.
+Na integração, o glifo da Steam ganhou a mesma guarda de só formas: sem ela, um `<image>` no glifo embutia no PNG da
+bandeja um arquivo vizinho do SVG temporário.
 Toda recusa sai com rc=2 e nada escrito. `0089eda` cobre também a pasta `desenhos` que sobe (`../`), é absoluta ou
 passa por link: o pack inteiro é recusado pela guarda `_dentro` do `pack.py`, que já existia.
 
 ## Como se prova
-`tests/bandeja-por-pack.sh`: seis casos do glifo, vermelhos sem o conserto e verdes com ele, e três da pasta
+`tests/bandeja-por-pack.sh`: seis casos do glifo do ZapZap e um do glifo da Steam, vermelhos sem o conserto e verdes com ele, e três da pasta
 `desenhos`. Com `meowsystem`/mocha a saída dos três scripts e os arquivos gerados são idênticos aos do `master`.
 
 ## O que fica de fora

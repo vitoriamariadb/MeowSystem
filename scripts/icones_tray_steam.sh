@@ -84,6 +84,25 @@ _pintado() {
   fi
 }
 
+_so_formas() {
+  python3 -I - "$1" <<'PY'
+import re, sys
+import xml.etree.ElementTree as ET
+FORMAS = {'svg', 'g', 'path', 'circle', 'rect', 'ellipse', 'line', 'polyline', 'polygon', 'title', 'desc'}
+try:
+    texto = open(sys.argv[1], encoding='utf-8').read()
+except (OSError, UnicodeDecodeError):
+    sys.exit(1)
+if re.search(r'<!DOCTYPE|<!ENTITY', texto, flags=re.I):
+    sys.exit(1)
+try:
+    arvore = ET.fromstring(texto)
+except ET.ParseError:
+    sys.exit(1)
+sys.exit(1 if {el.tag.rsplit('}', 1)[-1] for el in arvore.iter()} - FORMAS else 0)
+PY
+}
+
 _desenhar() {
   local destino="$1" tam="$2" crc="$3" svg rc
   svg="$(mktemp -t meow-steam-XXXXXX.svg)" || return 1
@@ -189,6 +208,10 @@ _pronto() {
   meow_tem python3 || {
     meow_pula "sem python3 — não dá para montar o PNG no tamanho de fábrica"
     return "$MEOW_SEM_DEPENDENCIA"
+  }
+  _so_formas "$GLIFO" || {
+    meow_erro "o glifo $GLIFO traz o que não é forma de desenho — recusado, nada foi escrito"
+    return "$MEOW_ERRO"
   }
   return "$MEOW_OK"
 }
