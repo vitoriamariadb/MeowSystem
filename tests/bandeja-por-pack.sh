@@ -262,6 +262,29 @@ rm -f "$GLIFOS_MAL/steam_tray_mono.svg"
 ln -s "$T/fora.svg" "$GLIFOS_MAL/steam_tray_mono.svg"
 recusa_glifo "glifo da Steam que é link para fora do pack" "$H_MAL" icones_tray_steam.sh "$STEAM_MAL"
 
+for caso in elemento link; do
+  H_VOLTA="$(casa "volta-$caso")"
+  ZZ_VOLTA="$H_VOLTA/zz/$ZZ_REL"
+  rm -f "$GLIFOS_MAL/zapzap_tray.svg"
+  cp "$RAIZ/packs/dracula/icones/sistema/zapzap_tray.svg" "$GLIFOS_MAL/zapzap_tray.svg"
+  rodar "$H_VOLTA" malband dracula icones_tray_zapzap.sh --aplicar "$T/packs" >/dev/null
+  vestido="$(cat "$ZZ_VOLTA")"
+  rm -f "$GLIFOS_MAL/zapzap_tray.svg"
+  if [ "$caso" = link ]; then
+    ln -s "$T/fora.svg" "$GLIFOS_MAL/zapzap_tray.svg"
+  else
+    printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="currentColor" d="M0 0h48v48z"/><image href="vizinho.png"/></svg>' \
+      > "$GLIFOS_MAL/zapzap_tray.svg"
+  fi
+  rodar "$H_VOLTA" malband dracula icones_tray_zapzap.sh --aplicar "$T/packs" >/dev/null; rc_r=$?
+  saida="$(rodar "$H_VOLTA" malband dracula icones_tray_zapzap.sh --desfazer "$T/packs")"; rc_d=$?
+  if [ "$vestido" != "${ZZ_ORIGINAL%$'\n'}" ] && [ "$rc_r" = 2 ] && [ "$rc_d" != 2 ] && [ "$(cat "$ZZ_VOLTA")" = "${ZZ_ORIGINAL%$'\n'}" ]; then
+    ok "o ZapZap já vestido volta ao de fábrica pelo desfazer mesmo com o glifo do pack recusado ($caso)"
+  else
+    falha "o glifo recusado ($caso) impediu o desfazer do ZapZap (recusa=$rc_r desfazer=$rc_d)" "$saida"
+  fi
+done
+
 mkdir -p "$T/alheio/sistema"
 cp "$RAIZ/packs/dracula/icones/sistema/zapzap_tray.svg" "$RAIZ/packs/dracula/icones/sistema/steam_tray_mono.svg" "$T/alheio/sistema/"
 for caso in sobe absoluto link; do
