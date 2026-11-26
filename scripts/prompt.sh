@@ -25,6 +25,7 @@ _PROMPT_PACK="$(meow_pack_dir)"
 _PROMPT_RESPOSTA="$(python3 "$MEOW_RAIZ/scripts/pack.py" prompt "${_PROMPT_PACK:-meowsystem}" 2>/dev/null)"
 PROMPT_FONTE="$(sed -n 's/^valor=//p' <<< "$_PROMPT_RESPOSTA")"
 PROMPT_RECUSADO="$(sed -n 's/^recusado=//p' <<< "$_PROMPT_RESPOSTA")"
+PROMPT_MOTIVO="$(sed -n 's/^motivo=//p' <<< "$_PROMPT_RESPOSTA")"
 _PROMPT_PACK="$(basename "${_PROMPT_PACK:-meowsystem}")"
 [ "$_PROMPT_PACK" = "meowsystem" ] && _PROMPT_PACK="catppuccin"
 
@@ -105,7 +106,7 @@ cmd_aplicar() {
     return "$MEOW_SEM_DEPENDENCIA"
   fi
   [ -f "$PROMPT_FONTE" ] || { meow_erro "o pack $_PROMPT_PACK não traz o prompt, nem pela herança (prompt.starship)"; return "$MEOW_ERRO"; }
-  [ -z "$PROMPT_RECUSADO" ] || meow_aviso "o prompt do pack $PROMPT_RECUSADO não vem com o MeowSystem: vale o do pack-base, na paleta do pack no ar"
+  [ -z "$PROMPT_RECUSADO" ] || meow_aviso "o prompt do pack $PROMPT_RECUSADO foi recusado${PROMPT_MOTIVO:+ ($PROMPT_MOTIVO)}: vale o do pack-base, na paleta do pack no ar"
 
   if ! _prompt_tem_starship; then
     _prompt_dizer_falta_starship

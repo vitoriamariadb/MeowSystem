@@ -689,11 +689,193 @@ for _id in mal-prompt mal-prompt-linhas; do
 done
 if grep -q 'aviso prompt.starship' <<< "$saida" && ! grep -q 'recusado: prompt' <<< "$saida" && ! grep -qiE 'digite|rode|execute' <<< "$saida" \
    && [ -s "$T/st-so-paleta.toml" ] && [ -z "$prompt_ruim" ] && [ ! -e "$MARCA_PROMPT" ]; then
-  ok "o starship.toml de pack importado não é lido: com [custom] ou com o truque de várias linhas na palette, o prompt é byte a byte o do pack-base com a paleta do pack, e a marca não nasce${st_real:+ (o starship de verdade desenhou o prompt)}"
+  ok "o starship.toml de pack de fora que roda comando é recusado inteiro: com [custom] ou com o truque de várias linhas na palette, o prompt é byte a byte o do pack-base com a paleta do pack, e a marca não nasce${st_real:+ (o starship de verdade desenhou o prompt)}"
 else
-  falha "o starship.toml de pack importado foi lido (validar rc=$rc; prompt diferente do pack-base em:$prompt_ruim)" \
+  falha "o starship.toml de pack de fora com [custom] foi aceito (validar rc=$rc; prompt diferente do pack-base em:$prompt_ruim)" \
     "$saida / marca: $(ls "$MARCA_PROMPT" 2>&1) / $(diff "$T/st-so-paleta.toml" "$T/st-mal-prompt.toml" 2>&1 | head -6)"
 fi
+
+MARCA_DO_PROMPT_A="$T/prompt-aceito-executou"
+prompt_resposta() { amb python3 "$RAIZ/scripts/pack.py" prompt "$1" 2>&1; }
+gerado_de() { sed -n 's/^valor=//p' <<< "$1"; }
+pack_de_prompt bom-aparencia "$(cat <<'TOML'
+"$schema" = 'https://starship.rs/config-schema.json'
+format = "$os$username$directory$git_branch$time$line_break$character"
+palette = 'catppuccin_mocha'
+
+[os]
+disabled = false
+style = "bg:mauve fg:crust"
+
+[os.symbols]
+Pop = "NEKO"
+Linux = "tux"
+
+[username]
+show_always = true
+style_user = "bg:mauve fg:crust"
+format = '[ $user]($style)'
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"Documents" = "docs"
+"Downloads" = "baixados"
+
+[git_branch]
+format = '[[ $symbol $branch ](fg:crust bg:yellow)]($style)'
+
+[time]
+disabled = false
+time_format = "%R"
+
+[character]
+success_symbol = "[>](bold fg:green)"
+error_symbol = "[>](bold fg:red)"
+
+[palettes.catppuccin_mocha]
+mauve = "#cba6f7"
+crust = "#11111b"
+TOML
+)"
+bom_resp="$(prompt_resposta bom-aparencia)"; bom_arq="$(gerado_de "$bom_resp")"
+prompt_de bom-aparencia
+bom_ruim=""
+{ [ -n "$bom_arq" ] && [ -f "$bom_arq" ] && [ "$bom_arq" != "$RAIZ/packs/meowsystem/prompt/starship.toml" ]; } || bom_ruim+=" valor($bom_resp)"
+! grep -q '^recusado=' <<< "$bom_resp" || bom_ruim+=" recusado"
+estrutura="$(python3 -I - "$bom_arq" "$T/st-bom-aparencia.toml" <<'PY'
+import sys, tomllib
+for arq in sys.argv[1:]:
+    try:
+        d = tomllib.load(open(arq, "rb"))
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        print(f"{arq}: {e}"); sys.exit()
+    ok = (d["os"]["symbols"]["Pop"] == "NEKO" and d["directory"]["truncation_length"] == 3
+          and d["directory"]["substitutions"]["Downloads"] == "baixados"
+          and d["character"]["success_symbol"] == "[>](bold fg:green)"
+          and d["format"] == "$os$username$directory$git_branch$time$line_break$character"
+          and set(d) <= {"$schema", "format", "palette", "palettes", "os", "username", "directory", "git_branch", "time", "character"})
+    if not ok:
+        print(f"{arq}: o que o pack pediu não chegou, ou chegou chave a mais: {sorted(d)}"); sys.exit()
+print("ok")
+PY
+)"
+[ "$estrutura" = "ok" ] || bom_ruim+=" estrutura($estrutura)"
+grep -q "^palette = 'bom_aparencia_dracula'$" "$T/st-bom-aparencia.toml" 2>/dev/null || bom_ruim+=" paleta-do-pack-no-ar"
+grep -q '^mauve = "#bd93f9"$' "$T/st-bom-aparencia.toml" 2>/dev/null || bom_ruim+=" cor-do-dracula"
+if [ -n "$st_real" ] && [ -f "$T/st-bom-aparencia.toml" ]; then
+  ( cd "$T" && env -i PATH="$T/falso:/usr/bin:/bin" HOME="$CASA" STARSHIP_CONFIG="$T/st-bom-aparencia.toml" \
+      STARSHIP_CACHE="$T/st-cache" "$st_real" print-config >/dev/null 2>"$T/st-bom-erro" ) || bom_ruim+=" starship($(head -c 200 "$T/st-bom-erro"))"
+fi
+if [ -z "$bom_ruim" ]; then
+  ok "o prompt de pack pessoal só de aparência entra: o motor escreve o arquivo a partir do que aprovou, o pedido chega (símbolo, estilo, substituições, ordem), a cor é a do pack no ar${st_real:+, e o starship de verdade o carrega}"
+else
+  falha "o prompt de pack pessoal só de aparência não entrou como pedido:$bom_ruim" "$bom_resp"
+fi
+
+recusa_de_prompt() {
+  local id="$1" frase="$2" conteudo="$3" resp ruim="" esperado
+  rm -rf "$CASA/.cache/meowsystem"
+  pack_de_prompt "$id" "$conteudo"
+  resp="$(prompt_resposta "$id")"
+  grep -qx "recusado=$id" <<< "$resp" || ruim+=" sem-recusado"
+  grep -qxF "valor=$RAIZ/packs/meowsystem/prompt/starship.toml" <<< "$resp" || ruim+=" valor-nao-e-o-do-pack-base"
+  grep -q "^motivo=.*$frase" <<< "$resp" || ruim+=" motivo-sem($frase: $(sed -n 's/^motivo=//p' <<< "$resp" | head -c 200))"
+  [ -z "$(find "$CASA/.cache/meowsystem" -type f 2>/dev/null)" ] || ruim+=" gerou-arquivo"
+  prompt_de "$id"
+  esperado="$(sed "s/so_paleta_dracula/$(printf '%s' "$id" | tr - _)_dracula/g" "$T/st-so-paleta.toml" 2>/dev/null)"
+  [ -s "$T/st-$id.toml" ] && [ "$(cat "$T/st-$id.toml")" = "$esperado" ] || ruim+=" prompt-diferente-do-pack-base"
+  ! grep -qE '\[custom|touch |^command|NEKO' "$T/st-$id.toml" 2>/dev/null || ruim+=" arquivo-escrito-tem-o-recusado"
+  if [ -z "$ruim" ]; then printf 'ok\n'; else printf '%s\n' "$ruim"; fi
+}
+
+recusas_ruins=""
+caso() {
+  local resultado
+  resultado="$(recusa_de_prompt "$@")"
+  [ "$resultado" = "ok" ] || recusas_ruins+="
+$1:$resultado"
+}
+caso r-custom custom "$(printf 'format = "$custom$character"\n[custom.x]\ncommand = "touch %s"\nwhen = "true"\n' "$MARCA_DO_PROMPT_A")"
+caso r-custom-vazio custom "$(printf '[custom.x]\n')"
+caso r-command 'command' "$(printf '[git_branch]\ncommand = "touch %s"\n' "$MARCA_DO_PROMPT_A")"
+caso r-commands 'commands' "$(printf '[directory]\ncommands = [["touch", "%s"]]\n' "$MARCA_DO_PROMPT_A")"
+caso r-when 'when' "$(printf '[git_branch]\nwhen = "true"\n')"
+caso r-shell 'shell' "$(printf '[directory]\nshell = ["sh", "-c"]\n')"
+caso r-env-var-chave 'env_var' "$(printf '[directory]\nenv_var = "HOME"\n')"
+caso r-env-var-tabela 'env_var' "$(printf '[env_var.HOME]\nvariable = "HOME"\n')"
+caso r-desconhecida 'directory.foo' "$(printf '[directory]\nfoo = 1\n')"
+caso r-modulo-inventado 'inventado' "$(printf '[inventado]\nformat = "x"\n')"
+caso r-notificacao 'cmd_duration.show_notifications' "$(printf '[cmd_duration]\nshow_notifications = true\n')"
+caso r-chave-do-topo 'command_timeout' "$(printf 'command_timeout = 100\n')"
+caso r-tipo-inteiro 'directory.truncation_length' "$(printf '[directory]\ntruncation_length = "3"\n')"
+caso r-tipo-booleano 'os.disabled' "$(printf '[os]\ndisabled = "sim"\n')"
+caso r-tipo-lista 'directory.truncation_length' "$(printf '[directory]\ntruncation_length = [1, 2]\n')"
+caso r-tipo-texto 'os.symbols.Pop' "$(printf '[os.symbols]\nPop = 7\n')"
+caso r-quebra-de-linha 'quebra de linha' "$(printf '[os.symbols]\nPop = "a\\nNEKO"\n')"
+caso r-aspas-e-tabela 'quebra de linha' "$(printf '[os.symbols]\nPop = "x\\"\\n[custom.y]\\ncommand = \\"touch %s\\""\n' "$MARCA_DO_PROMPT_A")"
+caso r-controle 'controle' "$(printf '[os.symbols]\nPop = "\\u001b[2JNEKO"\n')"
+caso r-toml-quebrado 'TOML' "$(printf "format = \"\$custom\$character\"\npalette = 'x\n[custom.y]\ncommand = \"touch %s\"\nwhen = \"true\"\n'\n" "$MARCA_DO_PROMPT_A")"
+caso r-palette-multilinha 'palette' "$(printf "palette = '''x\n[custom.y]\ncommand = \"touch %s\"\n'''\n" "$MARCA_DO_PROMPT_A")"
+caso r-texto-enorme 'format' "$(python3 -c 'print("format = \"" + "a" * 5000 + "\"")')"
+if [ -z "$recusas_ruins" ] && [ ! -e "$MARCA_DO_PROMPT_A" ] && [ ! -e "$MARCA_PROMPT" ]; then
+  ok "o prompt de pack pessoal com chave fora da lista é recusado inteiro, com a chave na frase: [custom] (cheio e vazio), command, commands, when, shell, env_var (chave e tabela), chave e módulo desconhecidos, notificação, tipo errado (inteiro, booleano, lista, texto), quebra de linha, caractere de controle, TOML quebrado, palette em várias linhas e texto enorme; nada é gerado, o prompt escrito é o do pack-base, e a marca não nasce"
+else
+  falha "o prompt de pack pessoal foi aceito, ou a recusa não disse a chave, ou algo foi gerado:" "$recusas_ruins"
+fi
+
+rm -rf "$CASA/.cache/meowsystem"
+pack_de_prompt escapa-aspas "$(printf '[os.symbols]\nPop = "a\\"] [custom.y"\n[directory.substitutions]\n"Docu\\"ments" = "d\\\\x"\n')"
+resp="$(prompt_resposta escapa-aspas)"; arq="$(gerado_de "$resp")"
+resultado="$(python3 -I - "$arq" <<'PY'
+import sys, tomllib
+try:
+    d = tomllib.load(open(sys.argv[1], "rb"))
+except (OSError, tomllib.TOMLDecodeError) as e:
+    print(e); sys.exit()
+bom = (d["os"]["symbols"]["Pop"] == 'a"] [custom.y' and d["directory"]["substitutions"]['Docu"ments'] == "d\\x"
+       and "custom" not in d and set(d) <= {"palette", "palettes", "os", "directory"})
+print("ok" if bom else f"não voltou igual: {d}")
+PY
+)"
+[ -n "$arq" ] && [ "$resultado" = "ok" ] \
+  && ok "aspas e barras dentro do texto são escapadas pelo motor: o arquivo gerado devolve ao pé da letra o que o pack pediu, e nunca ganha tabela nova" \
+  || falha "o motor não escapou aspas e barras ao gerar o prompt" "$resp / $resultado"
+
+rm -rf "$CASA/.cache/meowsystem"
+pack_de_prompt copia-do-base "$(cat "$RAIZ/packs/meowsystem/prompt/starship.toml")"
+resp="$(prompt_resposta copia-do-base)"; arq="$(gerado_de "$resp")"
+prompt_de copia-do-base
+copia_ruim=""
+{ [ -n "$arq" ] && [ -f "$arq" ] && ! grep -q '^recusado=' <<< "$resp"; } || copia_ruim+=" recusado($resp)"
+diff_do_base="$(python3 -I - "$RAIZ/packs/meowsystem/prompt/starship.toml" "$arq" <<'PY'
+import sys, tomllib
+a = tomllib.load(open(sys.argv[1], "rb"))
+b = tomllib.load(open(sys.argv[2], "rb"))
+for k in ("palette", "palettes"):
+    a.pop(k, None); b.pop(k, None)
+print("igual" if a == b else "diferente")
+PY
+)"
+[ "$diff_do_base" = "igual" ] || copia_ruim+=" conteudo-diferente-do-preset"
+if [ -n "$st_real" ] && [ -f "$T/st-copia-do-base.toml" ]; then
+  ( cd "$T" && env -i PATH="$T/falso:/usr/bin:/bin" HOME="$CASA" STARSHIP_CONFIG="$T/st-copia-do-base.toml" \
+      STARSHIP_CACHE="$T/st-cache" "$st_real" print-config >/dev/null 2>"$T/st-copia-erro" ) || copia_ruim+=" starship($(head -c 200 "$T/st-copia-erro"))"
+fi
+[ -z "$copia_ruim" ] \
+  && ok "o preset do pack-base, copiado inteiro para um pack pessoal, passa pela lista e chega igual (fora a paleta, que é a do pack no ar)${st_real:+, e o starship de verdade o carrega}" \
+  || falha "o preset do pack-base copiado para um pack pessoal não passou pela lista:$copia_ruim" "$resp"
+
+avisa_ruim=""
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar r-env-var-chave 2>&1)"
+grep -q "aviso prompt.starship: o prompt de pack de fora foi recusado: \`directory.env_var\`" <<< "$saida" || avisa_ruim+=" recusa-sem-a-chave($saida)"
+saida="$(amb python3 "$RAIZ/scripts/pack.py" validar bom-aparencia 2>&1)"
+! grep -q 'aviso prompt.starship' <<< "$saida" || avisa_ruim+=" aviso-em-prompt-aceito"
+[ -z "$avisa_ruim" ] \
+  && ok "o validar diz qual chave recusou o prompt de pack pessoal, e não avisa de prompt que entrou" \
+  || falha "o aviso do validar sobre o prompt do pack pessoal está errado:$avisa_ruim"
 _id=mal-spot-origem
 mkdir -p "$RAIZ_DELA/$_id"; cp "$RAIZ/packs/dracula/paleta.json" "$RAIZ_DELA/$_id/"
 printf '{"formato": 1, "id": "%s", "nome": "Mal origem", "versao": "1.0.0", "autor": "x", "licenca": "MIT",\n "heranca": "dracula", "paleta": {"arquivo": "paleta.json", "flavor_padrao": "dracula"},\n "apps": {"spotify": {"spicetify_tema": "Bom", "esquema": "Dracula",\n   "origem": {"tipo": "github-arvore", "repo": "a/b", "commit": "../../../fora", "pasta": "../../fora/pasta"}}}}\n' \

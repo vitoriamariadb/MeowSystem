@@ -51,10 +51,14 @@ VERBOS
                                  `icones-traco.map` de quem usa ainda citam,
                                  com cópia `.antes-caminhos`; a segunda
                                  passada não escreve. Com --conferir só conta.
-    prompt  <id>                 `valor=<starship.toml>` do pack, pela herança;
-                                 só pack que vem com o MeowSystem traz o seu: o
-                                 de pack de fora vira o do pack-base, com
-                                 `recusado=<pack>` antes.
+    prompt  <id>                 `valor=<starship.toml>` do pack, pela herança.
+                                 O de pack do repositório vale como está; o de
+                                 pack de fora é lido com o tomllib, conferido
+                                 contra dados/contratos/starship-permitidos.tsv,
+                                 e o motor escreve o arquivo que vale (no cache)
+                                 só com o que aprovou. Chave fora da lista
+                                 recusa o prompt inteiro: o do pack-base vale,
+                                 com `recusado=<pack>` e `motivo=<frase>` antes.
     semear-moldes [--conferir]   dá a cada pack pessoal os moldes de tema de
                                  aplicativo do pack-base que ele ainda não tem
                                  (`temas-de-apps/<app>/<app>.modelo.*`); nunca
@@ -207,6 +211,7 @@ import re
 import shutil
 import sys
 import threading
+import unicodedata
 import xml.etree.ElementTree as ET
 
 FORMATO_MIN = 1
@@ -1262,15 +1267,213 @@ def do_repositorio(caminho):
     return os.path.realpath(caminho).startswith(raiz + os.sep)
 
 
+PERMITIDOS_STARSHIP = os.path.join(RAIZ, "dados", "contratos", "starship-permitidos.tsv")
+MODULOS_STARSHIP = os.path.join(RAIZ, "dados", "contratos", "starship-modulos.tsv")
+TETO_BYTES_STARSHIP = 65536
+TETO_CHAVES_STARSHIP = 1000
+RE_CHAVE_STARSHIP = re.compile(r"[^\x00-\x1f\x7f]{1,64}")
+RE_NOME_STARSHIP = re.compile(r"[A-Za-z0-9_-]+")
+RE_COR_STARSHIP = re.compile(r"#[0-9A-Fa-f]{6}")
+RE_CHAVE_NUA = re.compile(r"[A-Za-z0-9_-]+")
+BIDI_STARSHIP = frozenset(chr(c) for c in list(range(0x202A, 0x202F)) + list(range(0x2066, 0x206A)))
+CHAVES_QUE_RODAM = {"command": "manda rodar comando", "commands": "manda rodar comando",
+                    "when": "manda rodar comando", "shell": "manda rodar comando",
+                    "env_var": "lê o ambiente"}
+TABELAS_QUE_RODAM = {"custom": "roda comando", "env_var": "lê o ambiente"}
+
+
+def _regras_starship():
+    regras = []
+    with open(PERMITIDOS_STARSHIP, encoding="utf-8") as fh:
+        for linha in fh.read().split("\n"):
+            if linha:
+                caminho, tipo, limite = linha.split("\t")
+                regras.append((tuple(caminho.split(".")), tipo, limite))
+    return regras
+
+
+def _modulos_starship():
+    with open(MODULOS_STARSHIP, encoding="utf-8") as fh:
+        return frozenset(n for n in fh.read().split("\n") if n)
+
+
+def _casa_starship(segmento, padrao, modulos):
+    if padrao == "{modulo}":
+        return segmento in modulos
+    if padrao == "*":
+        return RE_CHAVE_STARSHIP.fullmatch(segmento) is not None
+    return segmento == padrao
+
+
+def _tipo_em_portugues(valor):
+    for tipo, nome in ((bool, "booleano"), (int, "inteiro"), (float, "número"), (str, "texto"),
+                       (list, "lista"), (dict, "tabela")):
+        if isinstance(valor, tipo):
+            return nome
+    return type(valor).__name__
+
+
+def _conferir_valor_starship(nome, valor, tipo, limite):
+    esperado = f"`{nome}`: o valor precisa ser"
+    if tipo == "texto":
+        _exigir(isinstance(valor, str), f"{esperado} texto, e veio {_tipo_em_portugues(valor)}")
+        _exigir("\n" not in valor and "\r" not in valor,
+                f"`{nome}`: o texto tem quebra de linha; a quebra do prompt é o módulo line_break")
+        _exigir(not any(unicodedata.category(c) == "Cc" or c in BIDI_STARSHIP for c in valor),
+                f"`{nome}`: o texto tem caractere de controle")
+        _exigir(len(valor) <= int(limite), f"`{nome}`: o texto passa de {limite} caracteres")
+    elif tipo == "nome":
+        _exigir(isinstance(valor, str) and len(valor) <= int(limite) and RE_NOME_STARSHIP.fullmatch(valor),
+                f"{esperado} um nome de até {limite} letras, dígitos, '_' ou '-'")
+    elif tipo == "cor":
+        _exigir(isinstance(valor, str) and RE_COR_STARSHIP.fullmatch(valor), f"{esperado} uma cor #RRGGBB")
+    elif tipo == "booleano":
+        _exigir(type(valor) is bool, f"{esperado} verdadeiro ou falso, e veio {_tipo_em_portugues(valor)}")
+        _exigir(limite == "-" or valor is (limite == "true"),
+                f"`{nome}`: só vale {limite} (o que muda a aparência fica; o que avisa por fora, não)")
+    elif tipo == "inteiro":
+        baixo, alto = (int(x) for x in limite.split(".."))
+        _exigir(type(valor) is int, f"{esperado} um inteiro, e veio {_tipo_em_portugues(valor)}")
+        _exigir(baixo <= valor <= alto, f"`{nome}`: o inteiro precisa estar entre {baixo} e {alto}")
+    else:
+        raise Recusa(f"`{nome}`: tipo {tipo!r} que a lista não conhece")
+
+
+def _conferir_prompt_starship(dados):
+    regras, modulos = _regras_starship(), _modulos_starship()
+    visto = [0]
+
+    def prefixo_da_lista(caminho):
+        return any(len(r[0]) > len(caminho)
+                   and all(_casa_starship(s, p, modulos) for s, p in zip(caminho, r[0]))
+                   for r in regras)
+
+    def regra_de(caminho):
+        for r in regras:
+            if len(r[0]) == len(caminho) and all(_casa_starship(s, p, modulos) for s, p in zip(caminho, r[0])):
+                return r
+        return None
+
+    def andar(no, caminho):
+        for chave, valor in no.items():
+            visto[0] += 1
+            _exigir(visto[0] <= TETO_CHAVES_STARSHIP,
+                    f"o prompt tem mais de {TETO_CHAVES_STARSHIP} chaves")
+            aqui = caminho + (chave,)
+            nome = ".".join(aqui)
+            if isinstance(valor, dict):
+                _exigir(chave not in TABELAS_QUE_RODAM,
+                        f"`{nome}`: o módulo `{chave}` {TABELAS_QUE_RODAM.get(chave)}, e o prompt de pack de fora só muda a aparência")
+                _exigir(prefixo_da_lista(aqui),
+                        f"`{nome}`: tabela fora da lista do que só muda a aparência (dados/contratos/starship-permitidos.tsv)")
+                andar(valor, aqui)
+                continue
+            _exigir(chave not in CHAVES_QUE_RODAM,
+                    f"`{nome}`: a chave `{chave}` {CHAVES_QUE_RODAM.get(chave)}, e o prompt de pack de fora só muda a aparência")
+            regra = regra_de(aqui)
+            _exigir(regra, f"`{nome}`: chave fora da lista do que só muda a aparência (dados/contratos/starship-permitidos.tsv)")
+            _conferir_valor_starship(nome, valor, regra[1], regra[2])
+
+    andar(dados, ())
+
+
+def _chave_toml(chave):
+    if RE_CHAVE_NUA.fullmatch(chave):
+        return chave
+    return _texto_toml(chave)
+
+
+def _texto_toml(valor):
+    return '"' + valor.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _valor_toml(valor):
+    if isinstance(valor, bool):
+        return "true" if valor else "false"
+    if isinstance(valor, int):
+        return str(valor)
+    return _texto_toml(valor)
+
+
+def _emitir_toml(no, caminho, linhas):
+    escalares = [(k, v) for k, v in no.items() if not isinstance(v, dict)]
+    tabelas = [(k, v) for k, v in no.items() if isinstance(v, dict)]
+    if caminho and escalares:
+        linhas.extend(["", "[" + ".".join(_chave_toml(c) for c in caminho) + "]"])
+    linhas.extend(f"{_chave_toml(k)} = {_valor_toml(v)}" for k, v in escalares)
+    for chave, sub in tabelas:
+        _emitir_toml(sub, caminho + (chave,), linhas)
+
+
+def _prompt_aprovado(dono, arquivo):
+    try:
+        import tomllib
+    except ImportError:
+        raise Recusa("este Python não tem o tomllib (3.11 ou mais), e sem ele o prompt de pack de fora não é lido") from None
+    with open(arquivo, "rb") as fh:
+        bruto = fh.read(TETO_BYTES_STARSHIP + 1)
+    _exigir(len(bruto) <= TETO_BYTES_STARSHIP, f"o prompt passa de {TETO_BYTES_STARSHIP // 1024} KiB")
+    try:
+        dados = tomllib.loads(bruto.decode("utf-8"))
+    except UnicodeDecodeError:
+        raise Recusa("o prompt não é UTF-8") from None
+    except tomllib.TOMLDecodeError as e:
+        raise Recusa("o prompt não é TOML válido: " + " ".join(str(e).split())) from None
+    _conferir_prompt_starship(dados)
+    nome = re.sub(r"[^a-z0-9_]", "_", dono.lower())
+    corpo = {k: v for k, v in dados.items() if k not in ("palette", "palettes")}
+    linhas = [f"{_chave_toml(k)} = {_valor_toml(v)}" for k, v in corpo.items() if not isinstance(v, dict)]
+    linhas.append(f"palette = '{nome}'")
+    for chave, sub in corpo.items():
+        if isinstance(sub, dict):
+            _emitir_toml(sub, (chave,), linhas)
+    linhas.extend(["", f"[palettes.{nome}]", 'base = "#000000"'])
+    return "\n".join(linhas) + "\n"
+
+
+def _cache_do_prompt(dono):
+    base = os.environ.get("MEOW_CACHE") or os.path.join(
+        os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache"), "meowsystem")
+    return os.path.join(base, "prompt", re.sub(r"[^A-Za-z0-9._-]", "_", dono) + ".toml")
+
+
+def _gravar_se_mudou(caminho, texto):
+    try:
+        with open(caminho, encoding="utf-8") as fh:
+            if fh.read() == texto:
+                return
+    except OSError:
+        pass
+    os.makedirs(os.path.dirname(caminho), exist_ok=True)
+    provisorio = caminho + ".novo"
+    with open(provisorio, "w", encoding="utf-8") as fh:
+        fh.write(texto)
+    os.replace(provisorio, caminho)
+
+
+def _dono_do_arquivo(arquivo):
+    dono = os.path.dirname(arquivo)
+    while dono != os.path.dirname(dono) and not os.path.isfile(os.path.join(dono, "pack.json")):
+        dono = os.path.dirname(dono)
+    return os.path.basename(dono)
+
+
 def cmd_prompt(ref):
     achado = acervo("prompt.starship", ref=ref)
+    gerado = False
     if achado and not do_repositorio(achado):
-        dono = os.path.dirname(achado)
-        while dono != os.path.dirname(dono) and not os.path.isfile(os.path.join(dono, "pack.json")):
-            dono = os.path.dirname(dono)
-        print(f"recusado={os.path.basename(dono)}")
-        achado = acervo("prompt.starship", ref=os.path.join(RAIZ, "packs", PACK_BASE))
-    if not achado or not do_repositorio(achado):
+        dono = _dono_do_arquivo(achado)
+        destino = _cache_do_prompt(dono)
+        try:
+            _gravar_se_mudou(destino, _prompt_aprovado(dono, achado))
+            achado, gerado = destino, True
+        except Recusa as e:
+            if os.path.isfile(destino):
+                os.unlink(destino)
+            print(f"recusado={dono}")
+            print(f"motivo={e}")
+            achado = acervo("prompt.starship", ref=os.path.join(RAIZ, "packs", PACK_BASE))
+    if not achado or not (gerado or do_repositorio(achado)):
         return RECUSADO
     print(f"valor={achado}")
     return OK
@@ -2636,8 +2839,11 @@ def validar(ref, silencioso=False):
         alvo_prompt = _dentro(dir_pack, str(starship), "prompt.starship")
         _exigir(os.path.isfile(alvo_prompt), f"prompt.starship: {starship!r} não existe no pack")
         if not silencioso and not do_repositorio(alvo_prompt):
-            print(f"  aviso prompt.starship: o prompt de pack de fora não é lido; "
-                  f"vale o do pack-base, nas cores deste pack", file=sys.stderr)
+            try:
+                _prompt_aprovado(_dono_do_arquivo(alvo_prompt), alvo_prompt)
+            except Recusa as e:
+                print(f"  aviso prompt.starship: o prompt de pack de fora foi recusado: {e}; "
+                      f"vale o do pack-base, nas cores deste pack", file=sys.stderr)
 
     if not silencioso and not do_repositorio(dir_pack):
         for app in moldes_diferentes_do_base(dir_pack, p):
